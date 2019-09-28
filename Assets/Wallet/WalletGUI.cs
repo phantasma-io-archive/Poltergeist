@@ -1,15 +1,22 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+using Phantasma.VM.Utils;
+using Phantasma.Cryptography;
+using Phantasma.Blockchain.Contracts;
+using Phantasma.Numerics;
 
 namespace Poltergeist
 {
-    public enum WalletState
+    public enum GUIState
     {
         Invalid,
         Accounts,
-        Balances
+        Balances,
+        Transfer,
+        Sending,
+        Confirming,
     }
 
     public enum PromptResult
@@ -28,6 +35,13 @@ namespace Poltergeist
         Right
     }
 
+    public enum WalletState
+    {
+        Refreshing,
+        Ready,
+        Error
+    }
+
     public class WalletGUI : MonoBehaviour
     {
         public GUISkin guiSkin;
@@ -37,15 +51,19 @@ namespace Poltergeist
 
         private Rect modalRect;
 
-        private WalletState currentState;
-        private Stack<WalletState> stateStack = new Stack<WalletState>();
+        private GUIState guiState;
+        private Stack<GUIState> stateStack = new Stack<GUIState>();
 
         private int selectedAccountIndex;
         private Action<bool> passwordPromptCallback;
         private string accountPasswordInput;
         private PromptResult passwordPromptResult;
 
-        private Balance[] currentBalances;
+        private AccountState accountState;
+        private WalletState walletState;
+
+        private string transferSymbol;
+        private Hash transactionHash;
 
         private AnimationDirection currentAnimation;
         private float animationTime;
@@ -62,7 +80,7 @@ namespace Poltergeist
         void Start()
         {
             int border = Units(4);
-            windowRect.width = Mathf.Min(600, Screen.width) - border;
+            windowRect.width = Mathf.Min(800, Screen.width) - border;
             windowRect.height = Mathf.Min(800, Screen.height) - border;
 
             windowRect.x = (Screen.width - windowRect.width) / 2;
@@ -70,22 +88,22 @@ namespace Poltergeist
 
             defaultRect = new Rect(windowRect);
 
-            PushState(WalletState.Accounts);
+            guiState = GUIState.Invalid;;
         }
 
-        #region UTILS
-        private void PushState(WalletState state)
+#region UTILS
+        private void PushState(GUIState state)
         {
-            if (currentState != WalletState.Invalid)
+            if (guiState != GUIState.Invalid)
             {
-                stateStack.Push(currentState);
+                stateStack.Push(guiState);
             }
-            currentState = state;
+            guiState = state;
         }
 
         private void PopState()
         {
-            currentState = stateStack.Pop();
+            guiState = stateStack.Pop();
         }
 
         public void Animate(AnimationDirection direction, bool invert, Action callback = null)
@@ -111,6 +129,17 @@ namespace Poltergeist
 
         private void Update()
         {
+            if (this.guiState == GUIState.Invalid && AccountManager.Instance.Ready && !HasAnimation)
+            {
+                Animate(AnimationDirection.Up, true, () =>
+                {
+                    stateStack.Clear();
+                    guiState = GUIState.Invalid;
+                    PushState(GUIState.Accounts);
+                    Animate(AnimationDirection.Down, false);
+                });
+            }
+
             if (currentAnimation != AnimationDirection.None)
             {
                 float animationDuration = 0.5f;
@@ -195,14 +224,30 @@ namespace Poltergeist
         {
             GUI.DrawTexture(new Rect(Units(1), Units(1), 32, 32), ResourceManager.Instance.WalletLogo);
 
-            switch (currentState)
+            switch (guiState)
             {
-                case WalletState.Accounts:
+                case GUIState.Invalid:
+                    DrawCenteredText("Initializing wallet...");
+                    break;
+
+                case GUIState.Sending:
+                    DrawCenteredText("Sending transaction...");
+                    break;
+
+                case GUIState.Confirming:
+                    DrawCenteredText($"Confirming transaction {transactionHash}...");
+                    break;
+
+                case GUIState.Accounts:
                     DoAccountScreen();
                     break;
 
-                case WalletState.Balances:
+                case GUIState.Balances:
                     DoBalanceScreen();
+                    break;
+
+                case GUIState.Transfer:
+                    DoTransferScreen();
                     break;
             }
 
@@ -266,13 +311,28 @@ namespace Poltergeist
                         if (sucess)
                         {
                             var selectedAccount = accountManager.Accounts[selectedAccountIndex];
-                            accountManager.FetchBalances(selectedAccount, (balances) =>
-                            {
-                                this.currentBalances = balances;
-                                PushState(WalletState.Balances);
+
+                            walletState = WalletState.Refreshing;
+                            Animate(AnimationDirection.Down, true, () => {
+                                PushState(GUIState.Balances);
+
+                                StartCoroutine(accountManager.FetchBalances(selectedAccount, (state) =>
+                                {
+                                    if (state != null)
+                                    {
+                                        this.accountState = state;
+                                        walletState = WalletState.Ready;
+                                    }
+                                    else
+                                    {
+                                        walletState = WalletState.Error;
+                                    }
+                                }));
 
                                 Animate(AnimationDirection.Up, false);
                             });
+
+
                         }
                         else
                         {
@@ -299,74 +359,255 @@ namespace Poltergeist
                 GUI.Button(new Rect((halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Generate new wallet");
                 GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key");
             }
-
         }
 
-        private void DoBalanceScreen()
+        private void DrawCenteredText(string caption)
         {
-            int curY = Units(5);
-
-            var accountManager = AccountManager.Instance;
-            var selectedAccount = accountManager.Accounts[selectedAccountIndex];
-
-            int headerSize = Units(10);
-            GUI.Label(new Rect((windowRect.width - headerSize)/2, curY, headerSize, Units(2)), "BALANCES");
-            curY += Units(1);
-
-            for (int i = 0; i < currentBalances.Length; i++)
-            {
-                var balance = currentBalances[i];
-
-                var icon = ResourceManager.Instance.GetToken(balance.symbol);
-                if (icon != null)
-                {
-                    GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
-                }
-
-                var panelHeight = Units(8);
-                var rect = GetExpandedRect(curY, panelHeight);
-                GUI.Box(rect, "");
-
-                int btnWidth = Units(11);
-                int halfWidth = (int)(rect.width / 2);
-
-                GUI.Label(new Rect(Units(5), curY + Units(1), Units(10), Units(2)), $"{balance.amount} {balance.symbol}");
-
-                curY += Units(2);
-            }
-
-            DoBottomBar();
+            var style = GUI.skin.label;
+            var content = new GUIContent(caption);
+            var size = new Vector2(200, 40); //   style.CalcSize(content);
+            GUI.Label(new Rect((windowRect.width - size.x) / 2, (windowRect.height - size.y) / 2, size.x, size.y), content);
         }
 
-        private void DoBottomBar()
+        private void DoCloseButton()
         {
-
-            var panelHeight = Units(9);
-            int curY = (int)(windowRect.height - panelHeight + Units(1));
-
-            var rect = GetExpandedRect(curY, panelHeight);
-            GUI.Box(rect, "");
-
-            int btnWidth = Units(11);
-            int halfWidth = (int)(rect.width / 2);
-
-            GUI.Label(new Rect(halfWidth - 10, curY + Units(3), 28, 20), "or");
-
-            //GUI.Button(new Rect((halfWidth - btnWidth) / 2, prevY + Units(3), btnWidth, Units(2)), "Something");
-
-            if (GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Logout"))
+            if (GUI.Button(new Rect(windowRect.width - Units(3), Units(1), Units(2), Units(2)), "X"))
             {
                 Animate(AnimationDirection.Right, true, () =>
                 {
                     selectedAccountIndex = -1;
-                    currentBalances = null;
+                    accountState = null;
                     stateStack.Clear();
-                    PushState(WalletState.Accounts);
+                    PushState(GUIState.Accounts);
                     Animate(AnimationDirection.Left, false);
                 });
             }
         }
 
+        private void DoBalanceScreen()
+        {
+            switch (walletState)
+            {
+                case WalletState.Refreshing:
+                    DrawCenteredText("Fetching balances...");
+                    return;
+
+                case WalletState.Error:
+                    DrawCenteredText("Error fetching balances...");
+                    DoCloseButton();
+                    return;
+            }
+
+            DoCloseButton();
+
+            int curY = Units(4);
+
+            int headerSize = Units(10);
+            GUI.Label(new Rect((windowRect.width - headerSize) / 2, curY, headerSize, Units(2)), "BALANCES");
+            curY += Units(3);
+
+            var accountManager = AccountManager.Instance;
+            var selectedAccount = accountManager.Accounts[selectedAccountIndex];
+
+            Rect rect;
+            int panelHeight;
+
+            var address = Address.FromText(this.accountState.address);
+
+            decimal feeBalance = 0;
+
+            foreach (var balance in accountState.balances)
+            {
+                if (balance.Symbol == "KCAL")
+                {
+                    feeBalance += balance.Amount;
+                }
+            }
+
+            int btnWidth;
+            int i = 0;
+            foreach (var balance in accountState.balances)
+            {
+                var icon = ResourceManager.Instance.GetToken(balance.Symbol);
+                if (icon != null)
+                {
+                    GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
+                }
+
+                panelHeight = Units(8);
+                rect = GetExpandedRect(curY, panelHeight);
+                GUI.Box(rect, "");
+
+                btnWidth = Units(11);
+                int halfWidth = (int)(rect.width / 2);
+
+                GUI.Label(new Rect(Units(5), curY + Units(1), Units(20), Units(2)), $"{balance.Amount} {balance.Symbol}");
+
+                string secondaryAction;
+                bool secondaryEnabled;
+                Action secondaryCallback;
+
+                switch (balance.Symbol)
+                {
+                    case "SOUL":
+                        secondaryAction = "Stake";
+                        secondaryEnabled = this.accountState.stake == 0 && balance.Amount > 0;
+                        secondaryCallback = () =>
+                        {
+                            var sb = new ScriptBuilder();
+
+                            if (feeBalance > 0)
+                            {
+                                sb.AllowGas(address, Address.Null, 1, 9999);
+                                sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(balance.Amount, balance.Decimals));
+                            }
+                            else
+                            {
+                                sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(balance.Amount, balance.Decimals));
+                                sb.CallContract("stake", "Claim", address, address);
+                                sb.AllowGas(address, Address.Null, 1, 9999);
+                            }
+
+                            sb.SpendGas(address);
+                            var script = sb.EndScript();
+
+                            SendTransaction(script, "main");
+                        };
+                        break;
+
+                    case "KCAL":
+                        secondaryAction = "Claim";
+                        secondaryEnabled = this.accountState.claim > 0;
+                        secondaryCallback = () =>
+                        {
+                            var sb = new ScriptBuilder();
+                            sb.AllowGas(address, Address.Null, 1, 9999);
+                            sb.CallContract("stake", "Claim", address, address);
+                            sb.SpendGas(address);
+                            var script = sb.EndScript();
+
+                            SendTransaction(script, "main");
+                        };
+                        break;
+
+                    default:
+                        secondaryAction = null;
+                        secondaryEnabled = false;
+                        secondaryCallback = null;
+                        break;
+                }
+
+                if (!string.IsNullOrEmpty(secondaryAction))
+                {
+                    GUI.enabled = secondaryEnabled;
+                    if (GUI.Button(new Rect(rect.x + rect.width - Units(17), curY + Units(1), Units(4), Units(2)), secondaryAction))
+                    {
+                        secondaryCallback?.Invoke();
+                    }
+                    GUI.enabled = true;
+                }
+
+                var swapEnabled = AccountManager.Instance.SwapSupported(balance.Symbol);
+                GUI.enabled = swapEnabled;
+                GUI.Button(new Rect(rect.x + rect.width - Units(11), curY + Units(1), Units(4), Units(2)), "Swap");
+                GUI.enabled = true;
+
+                if (GUI.Button(new Rect(rect.x + rect.width - (Units(5) + 8), curY + Units(1), Units(4), Units(2)), "Send"))
+                {
+                    transferSymbol = balance.Symbol;
+                    PushState(GUIState.Transfer);
+                    break;
+                }
+
+                curY += Units(6);
+                i++;
+            }
+
+            if (guiState != GUIState.Balances)
+            {
+                return;
+            }
+
+            panelHeight = Units(9);
+            curY = (int)(windowRect.height - panelHeight + Units(1));
+
+            rect = GetExpandedRect(curY, panelHeight);
+            GUI.Box(rect, this.accountState.address);
+
+            btnWidth = Units(11);
+
+            int totalWidth = (int)rect.width; // (int)(rect.width / 2);
+
+            //GUI.Button(new Rect((halfWidth - btnWidth) / 2, prevY + Units(3), btnWidth, Units(2)), "Something");
+
+            int leftoverWidth = (int)(rect.width - totalWidth);
+
+            if (GUI.Button(new Rect(leftoverWidth + (totalWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Copy Address"))
+            {
+                EditorGUIUtility.systemCopyBuffer = this.accountState.address;
+            }
+        }
+
+        private void DoTransferScreen()
+        {
+            DoCloseButton();
+
+            int curY = Units(4);
+
+            int headerSize = Units(10);
+            GUI.Label(new Rect((windowRect.width - headerSize) / 2, curY, headerSize, Units(2)), transferSymbol+" TRANSFER");
+            curY += Units(3);
+
+            var accountManager = AccountManager.Instance;
+            var selectedAccount = accountManager.Accounts[selectedAccountIndex];
+
+            DoBackButton();
+        }
+
+        private void DoBackButton()
+        {
+            int panelHeight = Units(9);
+            int curY = (int)(windowRect.height - panelHeight + Units(1));
+
+            var rect = GetExpandedRect(curY, panelHeight);
+
+            int btnWidth = Units(11);
+
+            int totalWidth = (int)rect.width; // (int)(rect.width / 2);
+
+            //GUI.Button(new Rect((halfWidth - btnWidth) / 2, prevY + Units(3), btnWidth, Units(2)), "Something");
+
+            int leftoverWidth = (int)(rect.width - totalWidth);
+
+            if (GUI.Button(new Rect(leftoverWidth + (totalWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Back"))
+            {
+                PopState();
+            }
+        }
+
+        private void SendTransaction(byte[] script, string chain)
+        {
+            var accountManager = AccountManager.Instance;
+            var selectedAccount = accountManager.Accounts[this.selectedAccountIndex];
+
+            Animate(AnimationDirection.Right, true, () =>
+            {
+                PushState(GUIState.Sending);
+                accountManager.SignAndSendTransaction(selectedAccount, "chain", script, (hash) =>
+                {
+                    if (hash != Hash.Null)
+                    {
+                        transactionHash = hash;
+                        PushState(GUIState.Confirming);
+                    }
+                    else
+                    {
+                        Debug.LogError("Error sending tx");
+                    }
+                });
+                Animate(AnimationDirection.Left, false);
+            });
+        }
     }
 
 }
