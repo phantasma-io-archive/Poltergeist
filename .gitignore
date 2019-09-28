@@ -1,0 +1,12 @@
+bin/
+obj/
+Logs/
+.vs/
+Library/
+Temp/
+*.csproj
+*.sln
+.DS_Store
+*.user
+packages/
+*launchSettings.json
