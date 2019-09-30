@@ -662,5 +662,39 @@ namespace Poltergeist
         {
             return symbol == "SOUL" || symbol == "NEO" || symbol == "GAS";
         }
+
+        public int CreateWallet(string name, PlatformKind platforms)
+        {
+            if (Accounts.Length >= 5)
+            {
+                throw new Exception("No more open slots.");
+            }
+
+            if (string.IsNullOrEmpty(name) || name.Length < 3)
+            {
+                throw new Exception("Name is too short.");
+            }
+
+            if (name.Length > 16)
+            {
+                throw new Exception("Name is too long.");
+            }
+
+            for (int i=0; i<Accounts.Length; i++)
+            {
+                if (Accounts[i].name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new Exception("An account with this name already exists.");
+                }
+            }
+
+            var keys = PhantasmaKeys.Generate();
+            var list = this.Accounts.ToList();
+            list.Add(new Account() { name = name, key = keys.ToWIF(), password = "", platforms = platforms, misc = "" });
+
+            this.Accounts = list.ToArray();
+            return Accounts.Length - 1;
+        }
+
     }
 }

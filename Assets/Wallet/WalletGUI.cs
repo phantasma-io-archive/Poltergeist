@@ -468,6 +468,29 @@ namespace Poltergeist
             }
         }
 
+        private void LoginIntoAccount(int index)
+        {
+            var accountManager = AccountManager.Instance;
+            accountManager.SelectAccount(index);
+            RequestPassword((auth) =>
+            {
+                if (auth == PromptResult.Success)
+                {
+                    accountManager.RefreshTokenPrices();
+                    Animate(AnimationDirection.Down, true, () => {
+                        PushState(GUIState.Balances);
+                        Animate(AnimationDirection.Up, false);
+                    });
+                }
+                else
+                if (auth == PromptResult.Failure)
+                {
+                    var account = accountManager.Accounts[index];
+                    MessageBox($"Could not open '{account.name}' account");
+                }
+            });
+        }
+
         private void DoAccountScreen()
         {
             int curY = Units(5);
@@ -488,23 +511,7 @@ namespace Poltergeist
 
                 if (GUI.Button(new Rect(windowRect.width - (btnWidth + Units(2) + 4), curY + Units(2) - 4, btnWidth, Units(2)), "Open"))
                 {
-                    accountManager.SelectAccount(i);
-                    RequestPassword((auth) =>
-                    {
-                        if (auth == PromptResult.Success)
-                        {
-                            accountManager.RefreshTokenPrices();
-                            Animate(AnimationDirection.Down, true, () => {
-                                PushState(GUIState.Balances);
-                                Animate(AnimationDirection.Up, false);
-                            });
-                        }
-                        else
-                        if (auth == PromptResult.Failure)
-                        {
-                            MessageBox($"Could not open '{account.name}' account");
-                        }
-                    });
+                    LoginIntoAccount(i);
                 }
 
                 curY += Units(6);
@@ -522,8 +529,28 @@ namespace Poltergeist
 
                 GUI.Label(new Rect(halfWidth - 10, curY + Units(3), 28, 20), "or");
 
-                GUI.Button(new Rect(-Units(2) + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Generate new wallet");
+                if (GUI.Button(new Rect(-Units(2) + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Generate new wallet"))
+                {
+                    ShowModal("Create wallet", "Enter name for your new wallet", ModalState.Input, 32, true, (result, name) =>
+                    {
+                        if (result == PromptResult.Success)
+                        {
+                            try
+                            {
+                                int walletIndex = accountManager.CreateWallet(name, PlatformKind.Phantasma | PlatformKind.Neo);
+                                LoginIntoAccount(walletIndex);
+                            }
+                            catch (Exception e)
+                            {
+                                MessageBox("Error creating account.\n"+e.Message);
+                            }
+                        }
+                    });
+                }
+
+                GUI.enabled = false;
                 GUI.Button(new Rect((rect.width - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key");
+                GUI.enabled = true;
 
                 if (GUI.Button(new Rect(Units(2) + halfWidth + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Settings"))
                 {
@@ -741,11 +768,13 @@ namespace Poltergeist
 
             DrawHorizontalCenteredText(curY - 5, Units(2), state.address);
 
+#if UNITY_EDITOR
             if (GUI.Button(new Rect(windowRect.width - Units(6), curY + 5, Units(4), Units(1)), "Copy"))
             {
                 EditorGUIUtility.systemCopyBuffer = state.address;
                 MessageBox("Address copied to clipboard");
             }
+#endif
         }
 
         private void DoBalanceScreen()

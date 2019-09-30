@@ -268,8 +268,8 @@ MonoBehaviour:
       m_Right: 5
       m_Top: 0
       m_Bottom: 0
-    m_Font: {fileID: 0}
-    m_FontSize: 0
+    m_Font: {fileID: 12800000, guid: e874aaeb51cbea945a83018967bbb48e, type: 3}
+    m_FontSize: 20
     m_FontStyle: 0
     m_Alignment: 0
     m_WordWrap: 1
@@ -462,13 +462,13 @@ MonoBehaviour:
     m_Padding:
       m_Left: 0
       m_Right: 0
-      m_Top: 0
+      m_Top: 4
       m_Bottom: 0
     m_Overflow:
-      m_Left: 5
-      m_Right: 5
+      m_Left: 0
+      m_Right: 0
       m_Top: 0
-      m_Bottom: 5
+      m_Bottom: 0
     m_Font: {fileID: 0}
     m_FontSize: 25
     m_FontStyle: 0
