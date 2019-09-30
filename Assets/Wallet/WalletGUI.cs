@@ -443,7 +443,10 @@ namespace Poltergeist
                         if (msg == null)
                         {
                             PopState();
-                            MessageBox("Transaction sent succesfully!");
+                            MessageBox("Transaction sent succesfully!", () =>
+                            {
+                                InvokeTransactionCallback(transactionHash);
+                            });
                         }
                         else
                         if (msg == "pending")
