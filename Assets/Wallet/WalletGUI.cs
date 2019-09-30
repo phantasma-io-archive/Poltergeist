@@ -289,7 +289,7 @@ namespace Poltergeist
 
         private void DoMainWindow(int windowID)
         {
-            GUI.DrawTexture(new Rect(Units(1), Units(1), 32, 32), ResourceManager.Instance.WalletLogo);
+            GUI.DrawTexture(new Rect(Units(1), Units(1) + 4, 32, 32), ResourceManager.Instance.WalletLogo);
 
             switch (guiState)
             {
@@ -359,10 +359,12 @@ namespace Poltergeist
                     modalResult = PromptResult.Failure;
                 }
 
+                GUI.enabled = modalInput.Length > 0;
                 if (GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm"))
                 {
                     modalResult = PromptResult.Success;
                 }
+                GUI.enabled = true;
             }
             else
             {
@@ -386,12 +388,12 @@ namespace Poltergeist
                 var rect = GetExpandedRect(curY, panelHeight);
                 GUI.Box(rect, "");
 
-                int btnWidth = Units(11);
+                int btnWidth = Units(7);
                 int halfWidth = (int)(rect.width / 2);
 
                 GUI.Label(new Rect(Units(2), curY + Units(1), Units(25), Units(2)), account.ToString());
 
-                if (GUI.Button(new Rect(windowRect.width - (btnWidth + Units(2)), curY + Units(2), btnWidth, Units(2)), "Open"))
+                if (GUI.Button(new Rect(windowRect.width - (btnWidth + Units(2) + 4), curY + Units(2) -4, btnWidth, Units(2)), "Open"))
                 {
                     accountManager.SelectAccount(i);
                     RequestPassword((sucess) =>
@@ -451,8 +453,18 @@ namespace Poltergeist
             var temp = style.alignment;
             style.alignment = TextAnchor.MiddleCenter;
 
-            var size = new Vector2(windowRect.width, windowRect.height); 
-            GUI.Label(new Rect((windowRect.width - size.x) / 2, (windowRect.height - size.y) / 2, size.x, size.y), caption);
+            GUI.Label(new Rect(0, 0, windowRect.width, windowRect.height), caption);
+
+            style.alignment = temp;
+        }
+
+        private void DrawHorizontalCenteredText(int curY, float height, string caption)
+        {
+            var style = GUI.skin.label;
+            var temp = style.alignment;
+            style.alignment = TextAnchor.MiddleCenter;
+
+            GUI.Label(new Rect(0, curY, windowRect.width, height), caption);
 
             style.alignment = temp;
         }
@@ -552,10 +564,7 @@ namespace Poltergeist
 
             int curY = Units(2);
 
-            int headerSize = Units(10);
-            GUI.Label(new Rect((windowRect.width - headerSize) / 2, curY, headerSize, Units(2)), "BALANCES");
-            curY += Units(5);
-
+            DrawHorizontalCenteredText(curY, Units(2), "BALANCES");
 
             Rect rect;
             int panelHeight;
@@ -565,8 +574,11 @@ namespace Poltergeist
             int currentPlatformIndex = 0;
             var platformList = accountManager.CurrentAccount.platforms.Split();
 
+            int baseUnits;
+
             if (platformList.Count > 1)
             {
+                baseUnits = 10;
                 for (int i = 0; i < platformList.Count; i++)
                 {
                     if (platformList[i] == accountManager.CurrentPlatform)
@@ -577,13 +589,18 @@ namespace Poltergeist
                 }
                 platformComboBox.SelectedItemIndex = currentPlatformIndex;
 
-                var platformIndex = platformComboBox.Show(new Rect(Units(1), curY, Units(8), Units(2)), platformList);
+                var platformIndex = platformComboBox.Show(new Rect(Units(3) + 8, curY - 8, Units(8), Units(2)), platformList);
 
                 if (platformIndex != currentPlatformIndex)
                 {
                     accountManager.CurrentPlatform = platformList[platformIndex];
                 }
             }
+            else
+            {
+                baseUnits = 1;
+            }
+            curY += Units(5);
 
             var state = accountManager.CurrentState;
 
@@ -593,9 +610,9 @@ namespace Poltergeist
                 return;
             }
 
-            GUI.Label(new Rect(Units(10), curY - 5, Units(20), Units(2)), state.address);
+            DrawHorizontalCenteredText(curY - 5, Units(2), state.address);
 
-            if (GUI.Button(new Rect(Units(10) + state.address.Length * 9, curY + 5, Units(3), Units(1)), "Copy"))
+            if (GUI.Button(new Rect(windowRect.width - Units(6), curY + 5, Units(4), Units(1)), "Copy"))
             {
                 EditorGUIUtility.systemCopyBuffer = state.address;
                 MessageBox("Address copied to clipboard");
@@ -629,7 +646,7 @@ namespace Poltergeist
                 btnWidth = Units(11);
                 int halfWidth = (int)(rect.width / 2);
 
-                GUI.Label(new Rect(Units(5), curY + Units(1), Units(20), Units(2)), $"{balance.Amount} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Amount)})");
+                GUI.Label(new Rect(Units(5), curY + Units(1) - 4, Units(20), Units(2)), $"{balance.Amount} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Amount)})");
 
                 string secondaryAction;
                 bool secondaryEnabled;
@@ -752,8 +769,7 @@ namespace Poltergeist
 
             int curY = Units(4);
 
-            int headerSize = Units(10);
-            GUI.Label(new Rect((windowRect.width - headerSize) / 2, curY, headerSize, Units(2)), transferSymbol+" TRANSFER");
+            DrawHorizontalCenteredText(curY, Units(2), transferSymbol +" TRANSFER");
             curY += Units(3);
 
             var accountManager = AccountManager.Instance;
