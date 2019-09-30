@@ -24,13 +24,13 @@ namespace Poltergeist
     {
         private const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
         private const string NeoRPCTag = "settings.neo.rpc.url";
-        private const string NeoscanAPITag = "settings.neoscan.api";
+        private const string NeoscanAPITag = "settings.neoscan.url";
         private const string NexusNameTag = "settings.nexus.name";
         private const string CurrencyTag = "settings.currency";
 
         public string phantasmaRPCURL;
         public string neoRPCURL;
-        public string neoscanAPIURL;
+        public string neoscanURL;
         public string nexusName;
         public string currency;
 
@@ -44,7 +44,7 @@ namespace Poltergeist
 
             this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, defaultRPC);
             this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, "http://mankinighost.phantasma.io:30333");
-            this.neoscanAPIURL = PlayerPrefs.GetString(NeoscanAPITag, "http://mankinighost.phantasma.io:4000");
+            this.neoscanURL = PlayerPrefs.GetString(NeoscanAPITag, "http://mankinighost.phantasma.io:4000");
 
             this.nexusName = PlayerPrefs.GetString(NexusNameTag, "simnet");
             this.currency = PlayerPrefs.GetString(CurrencyTag, "USD");

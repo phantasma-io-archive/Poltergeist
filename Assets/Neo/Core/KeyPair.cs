@@ -12,7 +12,7 @@ namespace Phantasma.Neo.Core
         public readonly byte[] PublicKey;
         public readonly byte[] CompressedPublicKey;
         public readonly UInt160 PublicKeyHash;
-        public readonly string address;
+        public readonly string Address;
         public readonly string WIF;
 
         public readonly UInt160 signatureHash;
@@ -46,7 +46,7 @@ namespace Phantasma.Neo.Core
 
             this.PublicKey = pKey.EncodePoint(false).Skip(1).ToArray();
 
-            this.address = CryptoUtils.ToAddress(signatureHash);
+            this.Address = CryptoUtils.ToAddress(signatureHash);
             this.WIF = GetWIF();
         }
 
@@ -111,7 +111,7 @@ namespace Phantasma.Neo.Core
 
         public override string ToString()
         {
-            return this.address;
+            return this.Address;
         }
     }
 }

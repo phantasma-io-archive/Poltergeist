@@ -630,7 +630,7 @@ namespace Phantasma.Neo.Core
                 gas = 0,
                 inputs = inputs != null ? inputs.ToArray() : null,
                 outputs = outputs != null ? outputs.ToArray() : null,
-                attributes = inputs == null ? (new TransactionAttribute[] { new TransactionAttribute(TransactionAttributeUsage.Script, key.address.AddressToScriptHash()) } ) : null
+                attributes = inputs == null ? (new TransactionAttribute[] { new TransactionAttribute(TransactionAttributeUsage.Script, key.Address.AddressToScriptHash()) } ) : null
             };
 
             transaction.Sign(key);
@@ -649,7 +649,7 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator SendAsset(Action<Transaction> callback, UnspentEntries unspent, NeoKey fromKey, string toAddress, string symbol, decimal amount)
         {
-            if (String.Equals(fromKey.address, toAddress, StringComparison.OrdinalIgnoreCase))
+            if (String.Equals(fromKey.Address, toAddress, StringComparison.OrdinalIgnoreCase))
             {
                 throw new NeoException("Source and dest addresses are the same");
             }
@@ -687,7 +687,7 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator ClaimGas(UnspentEntries unspent, NeoKey ownerKey, List<UnspentEntry> claimable, decimal amount, Action<Transaction> callback)
         {
-            var targetScriptHash = new UInt160(ownerKey.address.AddressToScriptHash());
+            var targetScriptHash = new UInt160(ownerKey.Address.AddressToScriptHash());
 
             var references = new List<Transaction.Input>();
             foreach (var entry in claimable)
@@ -785,7 +785,7 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator GetAssetBalancesOf(NeoKey key, Action<Dictionary<string, decimal>> callback)
         {
-            return GetAssetBalancesOf(key.address, callback);
+            return GetAssetBalancesOf(key.Address, callback);
         }
 
         public IEnumerator GetAssetBalancesOf(string address, Action<Dictionary<string, decimal>> callback)

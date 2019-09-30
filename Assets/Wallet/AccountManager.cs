@@ -43,6 +43,13 @@ namespace Poltergeist
         }
     }
 
+    public struct HistoryEntry
+    {
+        public string hash;
+        public DateTime date;
+        public string url;
+    }
+
     public enum AccountFlags
     {
         None = 0x0,
@@ -100,15 +107,17 @@ namespace Poltergeist
         public bool HasSelection => _selectedAccountIndex < Accounts.Length;
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
+        private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
+        public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
 
         public string Status { get; private set; }
         public bool Ready => Status == "ok";
-        public bool Refreshing => _accountRefreshCount > 0;
+        public bool Refreshing => _pendingRequestCount > 0;
 
         private Phantasma.SDK.PhantasmaAPI phantasmaApi;
         private Phantasma.Neo.Core.NeoAPI neoApi;
@@ -122,7 +131,7 @@ namespace Poltergeist
 
         private DateTime _lastPriceUpdate = DateTime.MinValue;
 
-        private int _accountRefreshCount;
+        private int _pendingRequestCount;
 
         private void Awake()
         {
@@ -264,7 +273,7 @@ namespace Poltergeist
         private void LoadNexus()
         {
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
-            neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanAPIURL);
+            neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
 
             var tokenList = PlayerPrefs.GetString(TokenInfoTag, "");
 
@@ -338,10 +347,14 @@ namespace Poltergeist
             }
         }
 
-        private Action _refreshWalletCallback;
+        private Action _refreshCallback;
+        private DateTime _lastBalanceRefresh = DateTime.MinValue;
+        private DateTime _lastHistoryRefresh = DateTime.MinValue;
 
         public void SelectAccount(int index)
         {
+            _lastBalanceRefresh = DateTime.MinValue;
+            _lastHistoryRefresh = DateTime.MinValue;
             _selectedAccountIndex = index;
             CurrentPlatform = PlatformKind.None;
             _states.Clear();
@@ -351,15 +364,15 @@ namespace Poltergeist
         {
             _selectedAccountIndex = -1;
         }
-
-        private void ReportWalletStatus(PlatformKind platform, AccountState state)
+        
+        private void ReportWalletBalance(PlatformKind platform, AccountState state)
         {
-            _accountRefreshCount--;
+            _pendingRequestCount--;
 
             if (state != null)
             {
                 Debug.Log("Received new state for " + platform);
-                _states[platform] = state; 
+                _states[platform] = state;
 
                 if (CurrentPlatform == PlatformKind.None)
                 {
@@ -367,20 +380,56 @@ namespace Poltergeist
                 }
             }
 
-            if (_accountRefreshCount == 0)
+            if (_pendingRequestCount == 0)
             {
-                var temp = _refreshWalletCallback;
-                _refreshWalletCallback = null;
-                temp?.Invoke();
+                InvokeRefreshCallback();
             }
         }
 
-        public void RefreshBalances(Action callback)
+        private void ReportWalletHistory(PlatformKind platform, List<HistoryEntry> history)
         {
-            _refreshWalletCallback = callback;
+            _pendingRequestCount--;
+
+            if (history != null)
+            {
+                Debug.Log("Received new history for " + platform);
+                _history[platform] = history.ToArray();
+
+                if (CurrentPlatform == PlatformKind.None)
+                {
+                    CurrentPlatform = platform;
+                }
+            }
+
+            if (_pendingRequestCount == 0)
+            {
+                InvokeRefreshCallback();
+            }
+        }
+
+        private void InvokeRefreshCallback()
+        {
+            var temp = _refreshCallback;
+            _refreshCallback = null;
+            temp?.Invoke();
+        }
+
+        public void RefreshBalances(bool force, Action callback = null)
+        {
+            var now = DateTime.UtcNow;
+            var diff = now - _lastBalanceRefresh;
+
+            if (!force && diff.TotalSeconds < 30)
+            {
+                InvokeRefreshCallback();
+                return;
+            }
+
+            _lastBalanceRefresh = now;
+            _refreshCallback = callback;
 
             var platforms = CurrentAccount.platforms.Split();
-            _accountRefreshCount = platforms.Count;
+            _pendingRequestCount = platforms.Count;
 
             var account = this.CurrentAccount;
 
@@ -408,11 +457,11 @@ namespace Poltergeist
                                     state.flags |= AccountFlags.Master;
                                 }
 
-                                ReportWalletStatus(platform, state);
+                                ReportWalletBalance(platform, state);
                             },
                             (error, msg) =>
                             {
-                                ReportWalletStatus(platform, null);
+                                ReportWalletBalance(platform, null);
                             }));
                         }
                         break;
@@ -437,8 +486,8 @@ namespace Poltergeist
 
                                 var state = new AccountState()
                                 {
-                                    address = keys.address,
-                                    name = keys.address, // TODO support NNS
+                                    address = keys.Address,
+                                    name = keys.Address, // TODO support NNS
                                     stake = 0,
                                     claim = 0, // TODO support claimable GAS
                                     balances = balances.ToArray(),
@@ -450,21 +499,135 @@ namespace Poltergeist
                                     state.flags |= AccountFlags.Master;
                                 }
 
-                                ReportWalletStatus(platform, state);
+                                ReportWalletBalance(platform, state);
                             }));
                         }
                         break;
 
                     default:
-                        ReportWalletStatus(platform, null);
+                        ReportWalletBalance(platform, null);
                         break;
                 }
             }
         }
 
+        public void RefreshHistory(bool force, Action callback = null)
+        {
+            var now = DateTime.UtcNow;
+            var diff = now - _lastHistoryRefresh;
+
+            if (!force && diff.TotalSeconds < 30)
+            {
+                InvokeRefreshCallback();
+                return;
+            }
+
+            _lastBalanceRefresh = now;
+            _refreshCallback = callback;
+
+            var platforms = CurrentAccount.platforms.Split();
+            _pendingRequestCount = platforms.Count;
+
+            var account = this.CurrentAccount;
+
+            foreach (var platform in platforms)
+            {
+                switch (platform)
+                {
+                    case PlatformKind.Phantasma:
+                        {
+                            var keys = PhantasmaKeys.FromWIF(account.key);
+                            StartCoroutine(phantasmaApi.GetAddressTransactions(keys.Address.Text, 1, 20, (x, page, max) =>
+                            {
+                                var history = new List<HistoryEntry>();
+
+                                foreach (var tx in x.txs)
+                                {
+                                    var timeSpan = TimeSpan.FromSeconds(tx.timestamp);
+                                    history.Add(new HistoryEntry()
+                                    {
+                                        hash = tx.hash,
+                                        date = new DateTime(timeSpan.Ticks).ToLocalTime(),
+                                    });
+                                }
+
+                                ReportWalletHistory(platform, history);
+                            },
+                            (error, msg) =>
+                            {
+                                ReportWalletHistory(platform, null);
+                            }));
+                        }
+                        break;
+
+                    case PlatformKind.Neo:
+                        {
+                            var keys = NeoKey.FromWIF(account.key);
+                            var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
+
+                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            {
+                                ReportWalletHistory(platform, null);
+                            },
+                            (response) =>
+                            {
+                                var history = new List<HistoryEntry>();
+
+                                var entries = response.GetNode("entries");
+                                foreach (var entry in entries.Children)
+                                {
+                                    var hash = entry.GetString("txid");
+                                    var time = entry.GetUInt32("time");
+                                    var timeSpan = TimeSpan.FromSeconds(time);
+
+                                    history.Add(new HistoryEntry()
+                                    {
+                                        hash = hash,
+                                        date = new DateTime(timeSpan.Ticks).ToLocalTime(),
+                                        url = GetNeoscanTransactionURL(hash),
+                                    });
+                                }
+
+                                ReportWalletHistory(platform, history);
+                            }));
+                        }
+                        break;
+
+                    default:
+                        ReportWalletHistory(platform, null);
+                        break;
+                }
+            }
+        }
+
+        private string GetNeoscanTransactionURL(string hash)
+        {
+            var url = Settings.neoscanURL;
+            if (!url.EndsWith("/"))
+            {
+                url += "/";
+            }
+
+            return $"{url}transaction/{hash}";
+        }
+
+        private string GetNeoscanAPIUrl(string request)
+        {
+            var protocol = Settings.neoscanURL.StartsWith("https") ? "https://" : "http://";
+
+            var url = Settings.neoscanURL.Substring(protocol.Length);
+
+            if (!url.EndsWith("/"))
+            {
+                url += "/";
+            }
+
+            return $"{url}api/main_net/v1/{request}";
+        }
+
         internal bool SwapSupported(string symbol)
         {
-            return symbol == "SOUL";
+            return symbol == "SOUL" || symbol == "NEO" || symbol == "GAS";
         }
     }
 }

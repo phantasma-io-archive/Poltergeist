@@ -70,7 +70,7 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator BalanceOf(NeoKey keys, Action<BigInteger> callback)
         {
-            return BalanceOf(keys.address, callback);
+            return BalanceOf(keys.Address, callback);
         }
 
         public IEnumerator BalanceOf(UInt160 hash, Action<BigInteger> callback)
@@ -99,7 +99,7 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator Transfer(UnspentEntries unspent, NeoKey from_key, byte[] to_address_hash, BigInteger amount, Action<Transaction> callback)
         {
-            var sender_address_hash = from_key.address.GetScriptHashFromAddress();
+            var sender_address_hash = from_key.Address.GetScriptHashFromAddress();
             return api.CallContract(callback, unspent, from_key, ScriptHash, "transfer", new object[] { sender_address_hash, to_address_hash, amount});
         }
     }
