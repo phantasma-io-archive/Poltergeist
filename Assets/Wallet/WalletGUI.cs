@@ -114,7 +114,7 @@ namespace Poltergeist
         }
 
         private void SetState(GUIState state)
-        { 
+        {
             guiState = state;
 
             var accountManager = AccountManager.Instance;
@@ -322,7 +322,7 @@ namespace Poltergeist
 
             if (modalState != ModalState.None)
             {
-                var modalWidth = Units(30);
+                var modalWidth = Units(44);
                 var modalHeight = Units(20);
                 modalRect = new Rect((Screen.width - modalWidth) / 2, (Screen.height - modalHeight) / 2, modalWidth, modalHeight);
                 modalRect = GUI.ModalWindow(0, modalRect, DoModalWindow, modalTitle);
@@ -443,7 +443,8 @@ namespace Poltergeist
                         if (msg == null)
                         {
                             PopState();
-                            MessageBox("Transaction sent succesfully!", () =>
+
+                            accountManager.RefreshBalances(true, () =>
                             {
                                 InvokeTransactionCallback(transactionHash);
                             });
@@ -459,7 +460,7 @@ namespace Poltergeist
                             PopState();
                             MessageBox(msg, () =>
                             {
-                                InvokeTransactionCallback(transactionHash);
+                                InvokeTransactionCallback(Hash.Null);
                             });
                         }
                     });
@@ -780,157 +781,221 @@ namespace Poltergeist
 
             decimal feeBalance = state.GetBalance("KCAL");
 
-            if (state.balances.Length > 0)
+            int balanceCount = 0;
+            int btnWidth;
+            int index = 0;
+            foreach (var balance in state.balances)
             {
-                int btnWidth;
-                int index = 0;
-                foreach (var balance in state.balances)
+                if (balance.Amount < 0.001m)
                 {
-                    var icon = ResourceManager.Instance.GetToken(balance.Symbol);
-                    if (icon != null)
-                    {
-                        GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
-                    }
+                    continue;
+                }
 
-                    panelHeight = Units(8);
-                    rect = GetExpandedRect(curY, panelHeight);
-                    GUI.Box(rect, "");
+                balanceCount++;
+                var icon = ResourceManager.Instance.GetToken(balance.Symbol);
+                if (icon != null)
+                {
+                    GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
+                }
 
-                    btnWidth = Units(11);
-                    int halfWidth = (int)(rect.width / 2);
+                panelHeight = Units(8);
+                rect = GetExpandedRect(curY, panelHeight);
+                GUI.Box(rect, "");
 
-                    GUI.Label(new Rect(Units(5), curY + Units(1) - 4, Units(20), Units(2)), $"{balance.Amount.ToString("0.####")} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Amount)})");
+                btnWidth = Units(11);
+                int halfWidth = (int)(rect.width / 2);
 
-                    string secondaryAction;
-                    bool secondaryEnabled;
-                    Action secondaryCallback;
+                GUI.Label(new Rect(Units(5), curY + Units(1) - 4, Units(20), Units(2)), $"{balance.Amount.ToString("0.####")} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Amount)})");
 
-                    switch (balance.Symbol)
-                    {
-                        case "SOUL":
-                            secondaryAction = "Stake";
-                            secondaryEnabled = state.stake == 0 && balance.Amount > 0;
-                            secondaryCallback = () =>
-                            {
-                                var address = Address.FromText(state.address);
+                string secondaryAction;
+                bool secondaryEnabled;
+                Action secondaryCallback;
 
-                                var sb = new ScriptBuilder();
-                                var gasPrice = accountManager.Settings.feePrice;
-
-                                if (feeBalance > 0)
-                                {
-                                    sb.AllowGas(address, Address.Null, gasPrice, 9999);
-                                    sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(balance.Amount, balance.Decimals));
-                                }
-                                else
-                                {
-                                    sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(balance.Amount, balance.Decimals));
-                                    sb.CallContract("stake", "Claim", address, address);
-                                    sb.AllowGas(address, Address.Null, gasPrice, 9999);
-                                }
-
-                                sb.SpendGas(address);
-                                var script = sb.EndScript();
-
-                                SendTransaction(script, "main");
-                            };
-                            break;
-
-                        case "KCAL":
-                            secondaryAction = "Claim";
-                            secondaryEnabled = state.claim > 0;
-                            secondaryCallback = () =>
-                            {
-                                var address = Address.FromText(state.address);
-                                var gasPrice = accountManager.Settings.feePrice;
-
-                                var sb = new ScriptBuilder();
-                                sb.AllowGas(address, Address.Null, gasPrice, 1);
-                                sb.CallContract("stake", "Claim", address, address);
-                                sb.SpendGas(address);
-                                var script = sb.EndScript();
-
-                                SendTransaction(script, "main");
-                            };
-                            break;
-
-                        case "GAS":
-                            secondaryAction = "Claim";
-                            secondaryEnabled = state.claim > 0;
-                            secondaryCallback = () =>
-                            {
-                            };
-                            break;
-
-                        default:
-                            secondaryAction = null;
-                            secondaryEnabled = false;
-                            secondaryCallback = null;
-                            break;
-                    }
-
-                    if (!string.IsNullOrEmpty(secondaryAction))
-                    {
-                        GUI.enabled = secondaryEnabled;
-                        if (GUI.Button(new Rect(rect.x + rect.width - Units(17), curY + Units(1), Units(4), Units(2)), secondaryAction))
+                switch (balance.Symbol)
+                {
+                    case "SOUL":
+                        secondaryAction = "Stake";
+                        secondaryEnabled = state.stake == 0 && balance.Amount > 0;
+                        secondaryCallback = () =>
                         {
-                            secondaryCallback?.Invoke();
-                        }
-                        GUI.enabled = true;
-                    }
+                            var address = Address.FromText(state.address);
 
+                            var sb = new ScriptBuilder();
+                            var gasPrice = accountManager.Settings.feePrice;
+
+                            if (feeBalance > 0)
+                            {
+                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(balance.Amount, balance.Decimals));
+                            }
+                            else
+                            {
+                                sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(balance.Amount, balance.Decimals));
+                                sb.CallContract("stake", "Claim", address, address);
+                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                            }
+
+                            sb.SpendGas(address);
+                            var script = sb.EndScript();
+
+                            SendTransaction(script, "main", (hash) =>
+                            {
+                                if (hash != Hash.Null)
+                                {
+                                    MessageBox("Your SOUL was staked!\nTransaction hash: " + hash);
+                                }
+                            });
+                        };
+                        break;
+
+                    case "KCAL":
+                        secondaryAction = "Claim";
+                        secondaryEnabled = state.claim > 0;
+                        secondaryCallback = () =>
+                        {
+                            var address = Address.FromText(state.address);
+                            var gasPrice = accountManager.Settings.feePrice;
+
+                            var sb = new ScriptBuilder();
+                            sb.AllowGas(address, Address.Null, gasPrice, 1);
+                            sb.CallContract("stake", "Claim", address, address);
+                            sb.SpendGas(address);
+                            var script = sb.EndScript();
+
+                            SendTransaction(script, "main", (hash) =>
+                            {
+                                if (hash != Hash.Null)
+                                {
+                                    MessageBox("You claimed some KCAL!\nTransaction hash: " + hash);
+                                }
+                            });
+                        };
+                        break;
+
+                    case "GAS":
+                        secondaryAction = "Claim";
+                        secondaryEnabled = state.claim > 0;
+                        secondaryCallback = () =>
+                        {
+                        };
+                        break;
+
+                    default:
+                        secondaryAction = null;
+                        secondaryEnabled = false;
+                        secondaryCallback = null;
+                        break;
+                }
+
+                if (!string.IsNullOrEmpty(secondaryAction))
+                {
+                    GUI.enabled = secondaryEnabled;
+                    if (GUI.Button(new Rect(rect.x + rect.width - Units(17), curY + Units(1), Units(4), Units(2)), secondaryAction))
+                    {
+                        secondaryCallback?.Invoke();
+                    }
+                    GUI.enabled = true;
+                }
+
+                if (balance.Symbol == "KCAL")
+                {
+                    if (GUI.Button(new Rect(rect.x + rect.width - Units(11), curY + Units(1), Units(4), Units(2)), "Burn"))
+                    {
+                        ConfirmBox($"Do you want to burn {balance.Amount.ToString("0.####")} KCAL?\nIt will be sent to the SES energy bomb!", (result) =>
+                        {
+                            if (result == PromptResult.Success)
+                            {
+                                RequestPassword((auth) =>
+                                {
+                                    if (auth == PromptResult.Success)
+                                    {
+                                        var address = Address.FromText(state.address);
+
+                                        var burnAddress = Address.FromHash("bomb");
+
+                                        var sb = new ScriptBuilder();
+                                        var gasPrice = accountManager.Settings.feePrice;
+
+                                        sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                        sb.TransferBalance(balance.Symbol, address, burnAddress);
+                                        sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(balance.Amount, balance.Decimals));
+                                        sb.SpendGas(address);
+                                        var script = sb.EndScript();
+
+                                        SendTransaction(script, "main", (hash) =>
+                                        {
+                                            if (hash != Hash.Null)
+                                            {
+                                                MessageBox("Your burned some KCAL!\nTransaction hash: " + hash);
+                                            }
+                                        });
+                                    }
+                                    else
+                                 if (auth == PromptResult.Failure)
+                                    {
+                                        MessageBox($"Authorization failed");
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+                else
+                {
                     var swapEnabled = AccountManager.Instance.SwapSupported(balance.Symbol);
                     GUI.enabled = swapEnabled;
                     GUI.Button(new Rect(rect.x + rect.width - Units(11), curY + Units(1), Units(4), Units(2)), "Swap");
                     GUI.enabled = true;
-
-                    if (GUI.Button(new Rect(rect.x + rect.width - (Units(5) + 8), curY + Units(1), Units(4), Units(2)), "Send"))
-                    {
-                        transferSymbol = balance.Symbol;
-                        var transferName = $"{transferSymbol} transfer";
-                        ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, (result, destAddress) =>
-                        {
-                            if (Address.IsValidAddress(destAddress))
-                            {
-                                if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                                {
-                                    ContinuePhantasmaTransfer(transferName, transferSymbol, destAddress);
-                                }
-                                else
-                                {
-                                    ContinueSwapOut(transferName, transferSymbol, destAddress);
-                                }
-                            }
-                            else
-                            if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
-                            {
-                                if (accountManager.CurrentPlatform == PlatformKind.Neo)
-                                {
-                                    ContinueNeoTransfer(transferName, transferSymbol, destAddress);
-                                }
-                                else
-                                if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                                {
-                                    ContinueSwapIn(transferName, transferSymbol, destAddress);
-                                }
-                                else
-                                {
-                                    MessageBox($"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported");
-                                }
-                            }
-                            else
-                            {
-                                MessageBox("Invalid destination address");
-                            }
-                        });
-                        break;
-                    }
-
-                    curY += Units(6);
-                    index++;
                 }
+
+                if (GUI.Button(new Rect(rect.x + rect.width - (Units(5) + 8), curY + Units(1), Units(4), Units(2)), "Send"))
+                {
+                    transferSymbol = balance.Symbol;
+                    var transferName = $"{transferSymbol} transfer";
+                    ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, (result, destAddress) =>
+                    {
+                        if (Address.IsValidAddress(destAddress))
+                        {
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                            {
+                                ContinuePhantasmaTransfer(transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            {
+                                ContinueSwapOut(transferName, transferSymbol, destAddress);
+                            }
+                        }
+                        else
+                        if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
+                        {
+                            if (accountManager.CurrentPlatform == PlatformKind.Neo)
+                            {
+                                ContinueNeoTransfer(transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                            {
+                                ContinueSwapIn(transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            {
+                                MessageBox($"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported");
+                            }
+                        }
+                        else
+                        {
+                            MessageBox("Invalid destination address");
+                        }
+                    });
+                    break;
+                }
+
+                curY += Units(6);
+                index++;
             }
-            else
+
+
+            if (balanceCount == 0)
             {
                 DrawHorizontalCenteredText(curY, Units(2), $"No assets found in this {accountManager.CurrentPlatform} account.");
             }
@@ -1079,7 +1144,7 @@ namespace Poltergeist
             temp?.Invoke(hash);
         }
 
-        private void SendTransaction(byte[] script, string chain, Action<Hash> callback = null)
+        private void SendTransaction(byte[] script, string chain, Action<Hash> callback)
         {
             var accountManager = AccountManager.Instance;
 
@@ -1188,7 +1253,13 @@ namespace Poltergeist
                                             return;
                                         }
 
-                                        SendTransaction(script, "main");
+                                        SendTransaction(script, "main", (hash) =>
+                                        {
+                                            if (hash != Hash.Null)
+                                            {
+                                                MessageBox($"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                                            }
+                                        });
                                     }
                                     else
                                     if (auth == PromptResult.Failure)
