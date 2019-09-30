@@ -69,13 +69,9 @@ namespace Poltergeist
 
         private int currencyIndex;
         private string[] currencyOptions;
-        private ComboBox currencyComboBox;
+        private ComboBox currencyComboBox = new ComboBox();
 
-        private int platformIndex;
-        private string[] platformOptions;
-        private ComboBox platformComboBox;
-
-        private GUIStyle listStyle;
+        private ComboBox platformComboBox = new ComboBox();
 
         public static int Units(int n)
         {
@@ -96,7 +92,6 @@ namespace Poltergeist
             guiState = GUIState.Loading;
 
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
-            currencyComboBox = new ComboBox();
         }
 
 #region UTILS
@@ -453,9 +448,13 @@ namespace Poltergeist
         private void DrawCenteredText(string caption)
         {
             var style = GUI.skin.label;
-            var content = new GUIContent(caption);
-            var size = new Vector2(200, 40); //   style.CalcSize(content);
-            GUI.Label(new Rect((windowRect.width - size.x) / 2, (windowRect.height - size.y) / 2, size.x, size.y), content);
+            var temp = style.alignment;
+            style.alignment = TextAnchor.MiddleCenter;
+
+            var size = new Vector2(windowRect.width, windowRect.height); 
+            GUI.Label(new Rect((windowRect.width - size.x) / 2, (windowRect.height - size.y) / 2, size.x, size.y), caption);
+
+            style.alignment = temp;
         }
 
         private void DoCloseButton(Func<bool> callback = null)
@@ -476,7 +475,7 @@ namespace Poltergeist
                 }
             }
         }
-
+       
         private void DoSettingsScreen()
         {
             var accountManager = AccountManager.Instance;
@@ -507,19 +506,6 @@ namespace Poltergeist
                 return true;
             });
 
-            if (listStyle == null)
-            {
-                listStyle = GUI.skin.customStyles[0];
-
-                listStyle.normal.textColor = Color.white;
-                listStyle.onHover.background =
-                listStyle.hover.background = new Texture2D(2, 2);
-                listStyle.padding.left =
-                listStyle.padding.right =
-                listStyle.padding.top =
-                listStyle.padding.bottom = Units(1);
-            }
-
             int curY = Units(2);
 
             int headerSize = Units(10);
@@ -541,7 +527,7 @@ namespace Poltergeist
             curY += Units(3);
 
             GUI.Label(new Rect(Units(1), curY, Units(8), Units(2)), "Currency");
-            currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions, listStyle);
+            currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions);
             accountManager.Settings.currency = currencyOptions[currencyIndex];
             curY += Units(3);
         }
@@ -576,7 +562,46 @@ namespace Poltergeist
 
             decimal feeBalance = 0;
 
+            int currentPlatformIndex = 0;
+            var platformList = accountManager.CurrentAccount.platforms.Split();
+
+            if (platformList.Count > 1)
+            {
+                for (int i = 0; i < platformList.Count; i++)
+                {
+                    if (platformList[i] == accountManager.CurrentPlatform)
+                    {
+                        currentPlatformIndex = i;
+                        break;
+                    }
+                }
+                platformComboBox.SelectedItemIndex = currentPlatformIndex;
+
+                var platformIndex = platformComboBox.Show(new Rect(Units(1), curY, Units(8), Units(2)), platformList);
+
+                if (platformIndex != currentPlatformIndex)
+                {
+                    accountManager.CurrentPlatform = platformList[platformIndex];
+                }
+            }
+
             var state = accountManager.CurrentState;
+
+            if (state == null)
+            {
+                DrawCenteredText("Temporary error, cannot display balances...");
+                return;
+            }
+
+            GUI.Label(new Rect(Units(10), curY - 5, Units(20), Units(2)), state.address);
+
+            if (GUI.Button(new Rect(Units(10) + state.address.Length * 9, curY + 5, Units(3), Units(1)), "Copy"))
+            {
+                EditorGUIUtility.systemCopyBuffer = state.address;
+                MessageBox("Address copied to clipboard");
+            }
+
+            curY += Units(5);
 
             foreach (var balance in state.balances)
             {
@@ -586,8 +611,9 @@ namespace Poltergeist
                 }
             }
 
+
             int btnWidth;
-            int i = 0;
+            int index = 0;
             foreach (var balance in state.balances)
             {
                 var icon = ResourceManager.Instance.GetToken(balance.Symbol);
@@ -694,7 +720,7 @@ namespace Poltergeist
                 }
 
                 curY += Units(6);
-                i++;
+                index++;
             }
 
             if (guiState != GUIState.Balances)
@@ -711,8 +737,6 @@ namespace Poltergeist
             btnWidth = Units(11);
 
             int totalWidth = (int)rect.width; // (int)(rect.width / 2);
-
-            //GUI.Button(new Rect((halfWidth - btnWidth) / 2, prevY + Units(3), btnWidth, Units(2)), "Something");
 
             int leftoverWidth = (int)(rect.width - totalWidth);
 

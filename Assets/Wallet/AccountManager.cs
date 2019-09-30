@@ -50,6 +50,22 @@ namespace Poltergeist
         Validator = 0x2
     }
 
+    public static class AccountFlagsExtensions
+    {
+        public static List<PlatformKind> Split(this PlatformKind kind)
+        {
+            var list = new List<PlatformKind>();
+            foreach (var platform in AccountManager.AvailablePlatforms)
+            {
+                if (kind.HasFlag(platform))
+                {
+                    list.Add(platform);
+                }
+            }
+            return list;
+        }
+    }
+
     public class AccountState
     {
         public string name;
@@ -85,7 +101,7 @@ namespace Poltergeist
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
 
-        public PlatformKind CurrentPlatform { get; private set; }
+        public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
@@ -323,24 +339,11 @@ namespace Poltergeist
 
         private Action _refreshWalletCallback;
 
-        public List<PlatformKind> SplitFlags(PlatformKind kind)
-        {
-            var list = new List<PlatformKind>();
-            foreach (var platform in AvailablePlatforms)
-            {
-                if (kind.HasFlag(platform))
-                {
-                    list.Add(kind);
-                }
-            }
-            return list;
-        }
-
         public void SelectAccount(int index)
         {
             _selectedAccountIndex = index;
+            CurrentPlatform = PlatformKind.None;
             _states.Clear();
-            CurrentPlatform = SplitFlags(CurrentAccount.platforms).First();
         }
 
         public void UnselectAcount()
@@ -354,7 +357,13 @@ namespace Poltergeist
 
             if (state != null)
             {
+                Debug.Log("Received new state for " + platform);
                 _states[platform] = state; 
+
+                if (CurrentPlatform == PlatformKind.None)
+                {
+                    CurrentPlatform = platform;
+                }
             }
 
             if (_accountRefreshCount == 0)
@@ -369,7 +378,7 @@ namespace Poltergeist
         {
             _refreshWalletCallback = callback;
 
-            var platforms = SplitFlags(CurrentAccount.platforms);
+            var platforms = CurrentAccount.platforms.Split();
             _accountRefreshCount = platforms.Count;
 
             var account = this.CurrentAccount;
