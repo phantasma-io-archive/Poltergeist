@@ -25,12 +25,12 @@ public class ComboBox
         this.boxStyle = boxStyle;
     }
 
-    public int Show<T>(Rect rect, IList<T> listContent)
+    public int Show<T>(Rect rect, IList<T> listContent, out int height)
     {
-        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray());
+        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray(), out height);
     }
 
-    public int Show(Rect rect, IList<GUIContent> listContent)
+    public int Show(Rect rect, IList<GUIContent> listContent, out int height)
     {
         if (listStyle == null)
         {
@@ -90,15 +90,16 @@ public class ComboBox
             isClickedComboButton = true;
         }
 
+        height = WalletGUI.Units(2);
         if (isClickedComboButton)
         {
             Rect listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2),
                       rect.width, WalletGUI.Units(3) * listContent.Count);
 
-          //  GUI.Box(listRect, "");
+            //  GUI.Box(listRect, "");
 
-            listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2),
-                      rect.width, WalletGUI.Units(2) * listContent.Count);
+            height += WalletGUI.Units(2) * listContent.Count;
+            listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2), rect.width, height);
 
             int newSelectedItemIndex = GUI.SelectionGrid(listRect, selectedItemIndex, listContent.ToArray(), 1, listStyle);
             if (newSelectedItemIndex != selectedItemIndex)
@@ -106,6 +107,8 @@ public class ComboBox
                 selectedItemIndex = newSelectedItemIndex;
                 buttonContent = listContent[selectedItemIndex];
             }
+
+            height += WalletGUI.Units(2);
         }
 
         if (done)

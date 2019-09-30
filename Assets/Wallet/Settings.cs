@@ -1,7 +1,17 @@
-﻿using UnityEngine;
+﻿using Phantasma.Numerics;
+using System;
+using UnityEngine;
 
 namespace Poltergeist
 {
+    public enum NexusKind
+    {
+        Main_Net,
+        Test_Net,
+        Local_Net,
+        Custom
+    }
+
     public static class SettingsExtension
     {
         public static bool IsValidURL(this string url)
@@ -22,37 +32,121 @@ namespace Poltergeist
 
     public class Settings
     {
-        private const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
-        private const string NeoRPCTag = "settings.neo.rpc.url";
-        private const string NeoscanAPITag = "settings.neoscan.url";
-        private const string NexusNameTag = "settings.nexus.name";
-        private const string CurrencyTag = "settings.currency";
+        public const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
+        public const string NeoRPCTag = "settings.neo.rpc.url";
+        public const string NeoscanAPITag = "settings.neoscan.url";
+        public const string NexusNameTag = "settings.nexus.name";
+
+        public const string NexusKindTag = "settings.nexus.kind";
+        public const string CurrencyTag = "settings.currency";
+        public const string GasPriceTag = "settings.fee.price";
 
         public string phantasmaRPCURL;
         public string neoRPCURL;
         public string neoscanURL;
         public string nexusName;
         public string currency;
+        public BigInteger feePrice;
+        public NexusKind nexusKind;
 
         public void Load()
         {
 #if UNITY_EDITOR
-            string defaultRPC = "http://localhost:7077/rpc";
+            var defaultNexus = NexusKind.Custom;
 #else
-            string defaultRPC = "http://45.76.88.140:7076/rpc";
+            var defaultNexus = NexusKind.Main_Net;
 #endif
+            var nexusKind = PlayerPrefs.GetString(NexusKindTag, defaultNexus.ToString());
+            if (!Enum.TryParse<NexusKind>(nexusKind, true, out this.nexusKind))
+            {
+                this.nexusKind = defaultNexus;
+            }
 
-            this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, defaultRPC);
-            this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, "http://mankinighost.phantasma.io:30333");
-            this.neoscanURL = PlayerPrefs.GetString(NeoscanAPITag, "http://mankinighost.phantasma.io:4000");
+            this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
+            this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));
+            this.neoscanURL = PlayerPrefs.GetString(NeoscanAPITag, GetDefaultValue(NeoscanAPITag));
+            this.nexusName = PlayerPrefs.GetString(NexusNameTag, GetDefaultValue(NexusNameTag));
 
-            this.nexusName = PlayerPrefs.GetString(NexusNameTag, "simnet");
             this.currency = PlayerPrefs.GetString(CurrencyTag, "USD");
+
+            var defaultGasPrice = 100000;
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(GasPriceTag, defaultGasPrice.ToString()), out feePrice))
+            {
+                this.feePrice = 100000;
+            }
+        }
+
+        public string GetDefaultValue(string tag)
+        {
+            switch (tag)
+            {
+                case PhantasmaRPCTag:
+                    switch (nexusKind)
+                    {
+                        case NexusKind.Local_Net:
+                            return "http://localhost:7077/rpc";
+
+                        default: 
+                            return "http://45.76.88.140:7076/rpc";
+                    }
+                    break;
+
+                case NeoRPCTag:
+                    switch (nexusKind)
+                    {
+                        case NexusKind.Main_Net:
+                            int index = (int)(DateTime.UtcNow.Ticks % 5);
+                            return $"http://seed{index}.neo.org:10332";
+
+                        default:
+                            return "http://mankinighost.phantasma.io:30333";
+                    }
+                    break;
+                    
+                case NeoscanAPITag:
+                    switch (nexusKind)
+                    {
+                        case NexusKind.Main_Net:
+                            return "https://neoscan.io";
+
+                        default:
+                            return "http://mankinighost.phantasma.io:4000";
+                    }
+                    break;
+
+                case NexusNameTag:
+                    switch (nexusKind)
+                    {
+                        case NexusKind.Main_Net:
+                            return "mainnet";
+
+                        default:
+                            return "simnet";
+                    }
+                    break;
+
+                default:
+                    return "";
+            }
         }
 
         public void Save()
         {
+            PlayerPrefs.SetString(NexusKindTag, nexusKind.ToString());
+            PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
+            PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
+            PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
+            PlayerPrefs.SetString(NexusNameTag, this.nexusName);
+            PlayerPrefs.SetString(CurrencyTag, this.currency);
+            PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
+        }
 
+        public void RestoreEndpoints()
+        {
+            this.phantasmaRPCURL = this.GetDefaultValue(PhantasmaRPCTag);
+            this.neoRPCURL = this.GetDefaultValue(NeoRPCTag);
+            this.neoscanURL = this.GetDefaultValue(NeoscanAPITag);
+            this.nexusName = this.GetDefaultValue(NexusNameTag);
         }
     }
 }

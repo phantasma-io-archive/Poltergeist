@@ -81,6 +81,20 @@ namespace Poltergeist
         public decimal claim;
         public Balance[] balances;
         public AccountFlags flags;
+
+        public decimal GetBalance(string symbol)
+        {
+            for (int i=0; i<balances.Length; i++)
+            {
+                var entry = balances[i];
+                if (entry.Symbol == symbol)
+                {
+                    return entry.Amount;
+                }
+            }
+
+            return 0;
+        }
     }
 
     public struct Balance
@@ -153,7 +167,7 @@ namespace Poltergeist
             {
                 var price = _tokenPrices[symbol] * amount;
                 var ch = _currencyMap[CurrentTokenCurrency];
-                return $"{price} {ch}";
+                return $"{price.ToString("0.####")} {ch}";
             }
             else
             {
@@ -210,10 +224,11 @@ namespace Poltergeist
             else
             {
                 Accounts = new Account[] {
-                    new Account() { name = "demo", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" },
-                    new Account() { name = "zion", platforms = PlatformKind.Neo, key = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H", password = "", misc = "" },
+                    new Account() { name = "genesis", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" },
+                    //new Account() { name = "zion", platforms = PlatformKind.Neo, key = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H", password = "", misc = "" },
                     new Account() { name = "master", platforms = PlatformKind.Neo, key = "KxDgvEKzgSBPPfuVfw67oPQBSjidEiqTHURKSDL1R7yGaGYAeYnr", password = "", misc = "" },
                     new Account() { name = "other", platforms = PlatformKind.Phantasma, key = "Kweyrx8ypkoPfzMsxV4NtgH8vXCWC1s1Dn3c2KJ4WAzC5nkyNt3e", password = "", misc = "" },
+                    new Account() { name = "monk", platforms = PlatformKind.Phantasma, key = "Kx4GzZxzGZsQNt8URu36SnvR5KGSzg8s8ZxH8cunzZGh2JLmxHsW", password = "", misc = "" },
                 };
             }
         }
@@ -322,28 +337,25 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public IEnumerator SignAndSendTransaction(string chain, byte[] script, Action<Hash> callback)
+        public void SignAndSendTransaction(string chain, byte[] script, Action<Hash> callback)
         {
             var account = this.CurrentAccount;
 
-            switch (account.platforms)
+            if (CurrentPlatform == PlatformKind.Phantasma)
             {
-                case PlatformKind.Phantasma:
-                    {
-                        var keys = PhantasmaKeys.FromWIF(account.key);
-                        return phantasmaApi.SignAndSendTransaction(keys, script, chain, (hashText) =>
-                        {
-                            var hash = Hash.Parse(hashText);
-                            callback(hash);
-                        }, (error, msg) =>
-                        {
-                            callback(Hash.Null);
-                        });
-                    }
-
-                default:
+                var keys = PhantasmaKeys.FromWIF(account.key);
+                StartCoroutine(phantasmaApi.SignAndSendTransaction(keys, script, chain, (hashText) =>
+                {
+                    var hash = Hash.Parse(hashText);
+                    callback(hash);
+                }, (error, msg) =>
+                {
                     callback(Hash.Null);
-                    return null;
+                }));
+            }
+            else
+            {
+                callback(Hash.Null);
             }
         }
 
@@ -405,6 +417,27 @@ namespace Poltergeist
             {
                 InvokeRefreshCallback();
             }
+        }
+
+        public void RequestConfirmation(string transactionHash, Action<string> callback)
+        {
+            switch (CurrentPlatform)
+            {
+                case PlatformKind.Phantasma:
+                    StartCoroutine( phantasmaApi.GetTransaction(transactionHash, (tx) =>
+                    {
+                        callback(null);
+                    }, (error, msg) =>
+                    {
+                        callback(msg);
+                    }));
+                    break;
+
+                default:
+                    callback("platform not supported: " + CurrentPlatform);
+                    break;
+            }
+
         }
 
         private void InvokeRefreshCallback()

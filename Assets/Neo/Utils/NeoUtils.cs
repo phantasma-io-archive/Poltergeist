@@ -28,7 +28,7 @@ namespace Phantasma.Neo.Utils
         }
     }
 
-    public static class LuxUtils
+    public static class NeoUtils
     {
         public static BigInteger ToBigInteger(this decimal val, int places = 8)
         {

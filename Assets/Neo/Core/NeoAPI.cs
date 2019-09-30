@@ -121,7 +121,7 @@ namespace Phantasma.Neo.Core
             {
                 if (entry.Key == symbol)
                 {
-                    return LuxUtils.ReverseHex(entry.Value).HexToBytes();
+                    return NeoUtils.ReverseHex(entry.Value).HexToBytes();
                 }
             }
 
@@ -143,7 +143,7 @@ namespace Phantasma.Neo.Core
             var result = SymbolFromAssetID(str);
             if (result == null)
             {
-                result = SymbolFromAssetID(LuxUtils.ReverseHex(str));
+                result = SymbolFromAssetID(NeoUtils.ReverseHex(str));
             }
 
             return result;
@@ -265,7 +265,7 @@ namespace Phantasma.Neo.Core
 
         public static string GetStringFromScriptHash(byte[] hash)
         {
-            return LuxUtils.ReverseHex(hash.ToHexString());
+            return NeoUtils.ReverseHex(hash.ToHexString());
         }
 
         protected static StackItem ParseStack(DataNode stack)
@@ -450,7 +450,7 @@ namespace Phantasma.Neo.Core
         {
             var from_script_hash = new UInt160(key.signatureHash.ToArray());
             var info = GetAssetsInfo();
-            var targetAssetID = LuxUtils.ReverseHex(info[symbol]).HexToBytes();
+            var targetAssetID = NeoUtils.ReverseHex(info[symbol]).HexToBytes();
             if (targets != null)
                 foreach (var t in targets)
                     if (t.assetID == null)
@@ -462,7 +462,7 @@ namespace Phantasma.Neo.Core
         public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
         {
             var info = GetAssetsInfo();
-            var targetAssetID = LuxUtils.ReverseHex(info[symbol]).HexToBytes();
+            var targetAssetID = NeoUtils.ReverseHex(info[symbol]).HexToBytes();
             if (targets != null)
                 foreach (var t in targets)
                     if (t.assetID == null)
@@ -493,7 +493,7 @@ namespace Phantasma.Neo.Core
             {
                 string assetName = "GAS";
                 string assetID = info[assetName];
-                var targetAssetID = LuxUtils.ReverseHex(assetID).HexToBytes();
+                var targetAssetID = NeoUtils.ReverseHex(assetID).HexToBytes();
                 if (!entries.ContainsKey(assetName))
                     throw new NeoException($"Not enough {assetName} in address {from_address}");
 
@@ -529,7 +529,7 @@ namespace Phantasma.Neo.Core
                 if (!entries.ContainsKey(assetName))
                     continue;
 
-                var targetAssetID = LuxUtils.ReverseHex(assetID).HexToBytes();
+                var targetAssetID = NeoUtils.ReverseHex(assetID).HexToBytes();
 
                 var thistargets = targets.Where(o => o.assetID.SequenceEqual(targetAssetID));
 
@@ -643,7 +643,7 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator GetTransaction(string hash, Action<Transaction> callback)
         {
-            var val = new UInt256(LuxUtils.ReverseHex(hash).HexToBytes());
+            var val = new UInt256(NeoUtils.ReverseHex(hash).HexToBytes());
             return GetTransaction(val, callback);
         }
 
@@ -859,7 +859,7 @@ namespace Phantasma.Neo.Core
                         {
                             var txid = entry.GetString("txid");
                             var val = entry.GetDecimal("value");
-                            var temp = new UnspentEntry() { hash = new UInt256(LuxUtils.ReverseHex(txid).HexToBytes()), value = val, index = entry.GetUInt32("n") };
+                            var temp = new UnspentEntry() { hash = new UInt256(NeoUtils.ReverseHex(txid).HexToBytes()), value = val, index = entry.GetUInt32("n") };
                             list.Add(temp);
                         }
                     }
@@ -894,7 +894,7 @@ namespace Phantasma.Neo.Core
                         var index = child.GetUInt32("n");
                         var value = child.GetDecimal("unclaimed");
 
-                        result.Add(new UnspentEntry() { hash = new UInt256(LuxUtils.ReverseHex(txid).HexToBytes()), index = index, value = value });
+                        result.Add(new UnspentEntry() { hash = new UInt256(NeoUtils.ReverseHex(txid).HexToBytes()), index = index, value = value });
                     }
 
                 }
