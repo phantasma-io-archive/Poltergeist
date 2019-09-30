@@ -22,9 +22,9 @@ public class ResourceManager : MonoBehaviour
 
     private Dictionary<string, Texture> _symbols = new Dictionary<string, Texture>();
 
+    //https://github.com/CityOfZion/neon-wallet/tree/dev/app/assets/nep5/png
     public Texture GetToken(string symbol)
     {
-        symbol = symbol.ToLower();
         if (_symbols.ContainsKey(symbol))
         {
             return _symbols[symbol];

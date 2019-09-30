@@ -3,10 +3,8 @@ using System.Collections;
 using System.Globalization;
 
 using UnityEngine;
-using UnityEngine.Networking;
 
 using LunarLabs.Parser;
-using LunarLabs.Parser.JSON;
 
 using Phantasma.Numerics;
 using Phantasma.Cryptography;
@@ -33,82 +31,7 @@ namespace Phantasma.SDK
             return node.GetBool(name);
         }
     }
-
-    internal class JSONRPC_Client
-    {
-        internal IEnumerator SendRequest(string url, string method, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback, 
-                                            Action<DataNode> callback, params object[] parameters)
-        {
-            string contents;
-
-            var paramData = DataNode.CreateArray("params");
-            
-            if (parameters!=null && parameters.Length > 0)
-            {
-                foreach (var obj in parameters)
-                {
-                    paramData.AddField(null, obj);
-                }
-            }
-
-            var jsonRpcData = DataNode.CreateObject(null);
-            jsonRpcData.AddField("jsonrpc", "2.0");
-            jsonRpcData.AddField("method", method);
-            jsonRpcData.AddField("id", "1");
-            jsonRpcData.AddNode(paramData);
-            
-            UnityWebRequest www;
-            string json;
-
-            try
-            {
-				json = JSONWriter.WriteToString(jsonRpcData);
-            }
-            catch (Exception e)
-            {
-                throw e;
-            }
-            
-            Debug.Log("www request json: " + json);
-
-            www = UnityWebRequest.Post(url, json);
-            yield return www.SendWebRequest();
-            
-            if (www.isNetworkError || www.isHttpError)
-            {
-                Debug.Log(www.error);
-				if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, www.error);			
-            }
-            else
-            {
-                Debug.Log(www.downloadHandler.text);
-				var root = JSONReader.ReadFromString(www.downloadHandler.text);
-				
-				if (root == null)
-				{
-					if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, "failed to parse JSON");
-				}
-				else 
-				if (root.HasNode("error")) {
-					var errorDesc = root["error"].GetString("message");
-					if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, errorDesc);
-				}
-				else
-				if (root.HasNode("result"))
-				{
-					var result = root["result"];
-					callback(result);
-				}
-				else {					
-					if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.MALFORMED_RESPONSE, "malformed response");
-				}				
-            }
-
-			yield break;
-        }		
-   }
-   
-   
+      
 	public struct Balance 
 	{
 		public string chain; //
@@ -792,19 +715,17 @@ namespace Phantasma.SDK
    
    public class API {	   
 		public readonly	string Host;
-		private static JSONRPC_Client _client;
 	   
 		public API(string host) 
 		{
 			this.Host = host;
-			_client = new JSONRPC_Client();
 		}
 	   
 		
 		//Returns the account name and balance of given address.
 		public IEnumerator GetAccount(string addressText, Action<Account> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getAccount", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getAccount", errorHandlingCallback, (node) => { 
 				var result = Account.FromNode(node);
 				callback(result);
 			} , addressText);		   
@@ -814,7 +735,7 @@ namespace Phantasma.SDK
 		//Returns the address that owns a given name.
 		public IEnumerator LookUpName(string name, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "lookUpName", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "lookUpName", errorHandlingCallback, (node) => { 
 				var result = node.Value;
 				callback(result);
 			} , name);		   
@@ -824,7 +745,7 @@ namespace Phantasma.SDK
 		//Returns the height of a chain.
 		public IEnumerator GetBlockHeight(string chainInput, Action<int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getBlockHeight", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getBlockHeight", errorHandlingCallback, (node) => { 
 				var result = int.Parse(node.Value);
 				callback(result);
 			} , chainInput);		   
@@ -834,7 +755,7 @@ namespace Phantasma.SDK
 		//Returns the number of transactions of given block hash or error if given hash is invalid or is not found.
 		public IEnumerator GetBlockTransactionCountByHash(string blockHash, Action<int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getBlockTransactionCountByHash", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getBlockTransactionCountByHash", errorHandlingCallback, (node) => { 
 				var result = int.Parse(node.Value);
 				callback(result);
 			} , blockHash);		   
@@ -844,7 +765,7 @@ namespace Phantasma.SDK
 		//Returns information about a block by hash.
 		public IEnumerator GetBlockByHash(string blockHash, Action<Block> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getBlockByHash", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getBlockByHash", errorHandlingCallback, (node) => { 
 				var result = Block.FromNode(node);
 				callback(result);
 			} , blockHash);		   
@@ -854,7 +775,7 @@ namespace Phantasma.SDK
 		//Returns a serialized string, containing information about a block by hash.
 		public IEnumerator GetRawBlockByHash(string blockHash, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getRawBlockByHash", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getRawBlockByHash", errorHandlingCallback, (node) => { 
 				var result = node.Value;
 				callback(result);
 			} , blockHash);		   
@@ -864,7 +785,7 @@ namespace Phantasma.SDK
 		//Returns information about a block by height and chain.
 		public IEnumerator GetBlockByHeight(string chainInput, uint height, Action<Block> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getBlockByHeight", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getBlockByHeight", errorHandlingCallback, (node) => { 
 				var result = Block.FromNode(node);
 				callback(result);
 			} , chainInput, height);		   
@@ -874,7 +795,7 @@ namespace Phantasma.SDK
 		//Returns a serialized string, in hex format, containing information about a block by height and chain.
 		public IEnumerator GetRawBlockByHeight(string chainInput, uint height, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getRawBlockByHeight", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getRawBlockByHeight", errorHandlingCallback, (node) => { 
 				var result = node.Value;
 				callback(result);
 			} , chainInput, height);		   
@@ -884,7 +805,7 @@ namespace Phantasma.SDK
 		//Returns the information about a transaction requested by a block hash and transaction index.
 		public IEnumerator GetTransactionByBlockHashAndIndex(string blockHash, int index, Action<Transaction> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getTransactionByBlockHashAndIndex", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getTransactionByBlockHashAndIndex", errorHandlingCallback, (node) => { 
 				var result = Transaction.FromNode(node);
 				callback(result);
 			} , blockHash, index);		   
@@ -895,7 +816,7 @@ namespace Phantasma.SDK
 		//This api call is paginated, multiple calls might be required to obtain a complete result 
 		public IEnumerator GetAddressTransactions(string addressText, uint page, uint pageSize, Action<AccountTransactions, int, int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getAddressTransactions", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getAddressTransactions", errorHandlingCallback, (node) => { 
 				var currentPage = node.GetInt32("page");
 				var totalPages = node.GetInt32("totalPages");
 				node = node.GetNode("result");
@@ -908,7 +829,7 @@ namespace Phantasma.SDK
 		//Get number of transactions in a specific address and chain
 		public IEnumerator GetAddressTransactionCount(string addressText, string chainInput, Action<int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getAddressTransactionCount", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getAddressTransactionCount", errorHandlingCallback, (node) => { 
 				var result = int.Parse(node.Value);
 				callback(result);
 			} , addressText, chainInput);		   
@@ -918,7 +839,7 @@ namespace Phantasma.SDK
 		//Allows to broadcast a signed operation on the network, but it&apos;s required to build it manually.
 		public IEnumerator SendRawTransaction(string txData, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "sendRawTransaction", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "sendRawTransaction", errorHandlingCallback, (node) => { 
 				var result = node.Value;
 				callback(result);
 			} , txData);		   
@@ -928,7 +849,7 @@ namespace Phantasma.SDK
 		//Allows to invoke script based on network state, without state changes.
 		public IEnumerator InvokeRawScript(string chainInput, string scriptData, Action<Script> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "invokeRawScript", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "invokeRawScript", errorHandlingCallback, (node) => { 
 				var result = Script.FromNode(node);
 				callback(result);
 			} , chainInput, scriptData);		   
@@ -938,7 +859,7 @@ namespace Phantasma.SDK
 		//Returns information about a transaction by hash.
 		public IEnumerator GetTransaction(string hashText, Action<Transaction> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getTransaction", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getTransaction", errorHandlingCallback, (node) => { 
 				var result = Transaction.FromNode(node);
 				callback(result);
 			} , hashText);		   
@@ -948,7 +869,7 @@ namespace Phantasma.SDK
 		//Removes a pending transaction from the mempool.
 		public IEnumerator CancelTransaction(string hashText, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "cancelTransaction", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "cancelTransaction", errorHandlingCallback, (node) => { 
 				var result = node.Value;
 				callback(result);
 			} , hashText);		   
@@ -958,7 +879,7 @@ namespace Phantasma.SDK
 		//Returns an array of all chains deployed in Phantasma.
 		public IEnumerator GetChains(Action<Chain[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getChains", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getChains", errorHandlingCallback, (node) => { 
 				var result = new Chain[node.ChildCount];
 				for (int i=0; i<result.Length; i++) { 
 					var child = node.GetNodeByIndex(i);
@@ -972,7 +893,7 @@ namespace Phantasma.SDK
 		//Returns an array of tokens deployed in Phantasma.
 		public IEnumerator GetTokens(Action<Token[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getTokens", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getTokens", errorHandlingCallback, (node) => { 
 				var result = new Token[node.ChildCount];
 				for (int i=0; i<result.Length; i++) { 
 					var child = node.GetNodeByIndex(i);
@@ -986,7 +907,7 @@ namespace Phantasma.SDK
 		//Returns info about a specific token deployed in Phantasma.
 		public IEnumerator GetToken(string symbol, Action<Token> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getToken", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getToken", errorHandlingCallback, (node) => { 
 				var result = Token.FromNode(node);
 				callback(result);
 			} , symbol);		   
@@ -996,7 +917,7 @@ namespace Phantasma.SDK
 		//Returns data of a non-fungible token, in hexadecimal format.
 		public IEnumerator GetTokenData(string symbol, string IDtext, Action<TokenData> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getTokenData", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getTokenData", errorHandlingCallback, (node) => { 
 				var result = TokenData.FromNode(node);
 				callback(result);
 			} , symbol, IDtext);		   
@@ -1007,7 +928,7 @@ namespace Phantasma.SDK
 		//This api call is paginated, multiple calls might be required to obtain a complete result 
 		public IEnumerator GetTokenTransfers(string tokenSymbol, uint page, uint pageSize, Action<Transaction[], int, int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getTokenTransfers", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getTokenTransfers", errorHandlingCallback, (node) => { 
 				var currentPage = node.GetInt32("page");
 				var totalPages = node.GetInt32("totalPages");
 				node = node.GetNode("result");
@@ -1024,7 +945,7 @@ namespace Phantasma.SDK
 		//Returns the number of transaction of a given token.
 		public IEnumerator GetTokenTransferCount(string tokenSymbol, Action<int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getTokenTransferCount", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getTokenTransferCount", errorHandlingCallback, (node) => { 
 				var result = int.Parse(node.Value);
 				callback(result);
 			} , tokenSymbol);		   
@@ -1034,7 +955,7 @@ namespace Phantasma.SDK
 		//Returns the balance for a specific token and chain, given an address.
 		public IEnumerator GetTokenBalance(string addressText, string tokenSymbol, string chainInput, Action<Balance> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getTokenBalance", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getTokenBalance", errorHandlingCallback, (node) => { 
 				var result = Balance.FromNode(node);
 				callback(result);
 			} , addressText, tokenSymbol, chainInput);		   
@@ -1044,7 +965,7 @@ namespace Phantasma.SDK
 		//Returns the number of active auctions.
 		public IEnumerator GetAuctionsCount(string chainAddressOrName, string symbol, Action<int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getAuctionsCount", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getAuctionsCount", errorHandlingCallback, (node) => { 
 				var result = int.Parse(node.Value);
 				callback(result);
 			} , chainAddressOrName, symbol);		   
@@ -1055,7 +976,7 @@ namespace Phantasma.SDK
 		//This api call is paginated, multiple calls might be required to obtain a complete result 
 		public IEnumerator GetAuctions(string chainAddressOrName, string symbol, uint page, uint pageSize, Action<Auction[], int, int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getAuctions", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getAuctions", errorHandlingCallback, (node) => { 
 				var currentPage = node.GetInt32("page");
 				var totalPages = node.GetInt32("totalPages");
 				node = node.GetNode("result");
@@ -1072,7 +993,7 @@ namespace Phantasma.SDK
 		//Returns the auction for a specific token.
 		public IEnumerator GetAuction(string chainAddressOrName, string symbol, string IDtext, Action<Auction> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getAuction", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getAuction", errorHandlingCallback, (node) => { 
 				var result = Auction.FromNode(node);
 				callback(result);
 			} , chainAddressOrName, symbol, IDtext);		   
@@ -1082,7 +1003,7 @@ namespace Phantasma.SDK
 		//Returns info about a specific archive.
 		public IEnumerator GetArchive(string hashText, Action<Archive> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getArchive", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getArchive", errorHandlingCallback, (node) => { 
 				var result = Archive.FromNode(node);
 				callback(result);
 			} , hashText);		   
@@ -1092,7 +1013,7 @@ namespace Phantasma.SDK
 		//Writes the contents of an incomplete archive.
 		public IEnumerator WriteArchive(string hashText, int blockIndex, string blockContent, Action<Boolean> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "writeArchive", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "writeArchive", errorHandlingCallback, (node) => { 
 				var result = Boolean.Parse(node.Value);
 				callback(result);
 			} , hashText, blockIndex, blockContent);		   
@@ -1102,7 +1023,7 @@ namespace Phantasma.SDK
 		//Returns the ABI interface of specific contract.
 		public IEnumerator GetABI(string chainAddressOrName, string contractName, Action<ABIContract> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getABI", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getABI", errorHandlingCallback, (node) => { 
 				var result = ABIContract.FromNode(node);
 				callback(result);
 			} , chainAddressOrName, contractName);		   
@@ -1112,7 +1033,7 @@ namespace Phantasma.SDK
 		//Returns list of known peers.
 		public IEnumerator GetPeers(Action<Peer[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getPeers", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getPeers", errorHandlingCallback, (node) => { 
 				var result = new Peer[node.ChildCount];
 				for (int i=0; i<result.Length; i++) { 
 					var child = node.GetNodeByIndex(i);
@@ -1126,7 +1047,7 @@ namespace Phantasma.SDK
 		//Writes a message to the relay network.
 		public IEnumerator RelaySend(string receiptHex, Action<Boolean> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "relaySend", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "relaySend", errorHandlingCallback, (node) => { 
 				var result = Boolean.Parse(node.Value);
 				callback(result);
 			} , receiptHex);		   
@@ -1136,7 +1057,7 @@ namespace Phantasma.SDK
 		//Receives messages from the relay network.
 		public IEnumerator RelayReceive(string accountInput, Action<Receipt[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "relayReceive", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "relayReceive", errorHandlingCallback, (node) => { 
 				var result = new Receipt[node.ChildCount];
 				for (int i=0; i<result.Length; i++) { 
 					var child = node.GetNodeByIndex(i);
@@ -1150,7 +1071,7 @@ namespace Phantasma.SDK
 		//Reads pending messages from the relay network.
 		public IEnumerator GetEvents(string accountInput, Action<Event[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getEvents", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getEvents", errorHandlingCallback, (node) => { 
 				var result = new Event[node.ChildCount];
 				for (int i=0; i<result.Length; i++) { 
 					var child = node.GetNodeByIndex(i);
@@ -1164,7 +1085,7 @@ namespace Phantasma.SDK
 		//Obtains a swap address mapping.
 		public IEnumerator GetSwapAddress(string accountInput, string platform, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getSwapAddress", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getSwapAddress", errorHandlingCallback, (node) => { 
 				var result = node.Value;
 				callback(result);
 			} , accountInput, platform);		   
@@ -1174,7 +1095,7 @@ namespace Phantasma.SDK
 		//Returns an array of available interop platforms.
 		public IEnumerator GetPlatforms(Action<Platform[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getPlatforms", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getPlatforms", errorHandlingCallback, (node) => { 
 				var result = new Platform[node.ChildCount];
 				for (int i=0; i<result.Length; i++) { 
 					var child = node.GetNodeByIndex(i);
@@ -1188,7 +1109,7 @@ namespace Phantasma.SDK
 		//Returns an array of available validators.
 		public IEnumerator GetValidators(Action<Validator[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
-			yield return _client.SendRequest(Host, "getValidators", errorHandlingCallback, (node) => { 
+			yield return WebClient.RPCRequest(Host, "getValidators", errorHandlingCallback, (node) => { 
 				var result = new Validator[node.ChildCount];
 				for (int i=0; i<result.Length; i++) { 
 					var child = node.GetNodeByIndex(i);
@@ -1200,7 +1121,7 @@ namespace Phantasma.SDK
 		
 		
 		
-        public IEnumerator SignAndSendTransaction(KeyPair keys, byte[] script, string chain, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator SignAndSendTransaction(PhantasmaKeys keys, byte[] script, string chain, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
             Debug.Log("Sending transaction...");
 

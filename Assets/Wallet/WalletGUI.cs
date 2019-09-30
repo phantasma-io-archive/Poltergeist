@@ -11,7 +11,7 @@ namespace Poltergeist
 {
     public enum GUIState
     {
-        Invalid,
+        Loading,
         Accounts,
         Balances,
         Transfer,
@@ -88,13 +88,13 @@ namespace Poltergeist
 
             defaultRect = new Rect(windowRect);
 
-            guiState = GUIState.Invalid;;
+            guiState = GUIState.Loading;;
         }
 
 #region UTILS
         private void PushState(GUIState state)
         {
-            if (guiState != GUIState.Invalid)
+            if (guiState != GUIState.Loading)
             {
                 stateStack.Push(guiState);
             }
@@ -119,6 +119,13 @@ namespace Poltergeist
             if (selectedAccountIndex == -1)
             {
                 callback(false);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(AccountManager.Instance.Accounts[selectedAccountIndex].password))
+            {
+                callback(true);
+                return;
             }
 
             passwordPromptResult = PromptResult.Waiting;
@@ -129,12 +136,12 @@ namespace Poltergeist
 
         private void Update()
         {
-            if (this.guiState == GUIState.Invalid && AccountManager.Instance.Ready && !HasAnimation)
+            if (this.guiState == GUIState.Loading && AccountManager.Instance.Ready && !HasAnimation)
             {
                 Animate(AnimationDirection.Up, true, () =>
                 {
                     stateStack.Clear();
-                    guiState = GUIState.Invalid;
+                    guiState = GUIState.Loading;
                     PushState(GUIState.Accounts);
                     Animate(AnimationDirection.Down, false);
                 });
@@ -226,8 +233,8 @@ namespace Poltergeist
 
             switch (guiState)
             {
-                case GUIState.Invalid:
-                    DrawCenteredText("Initializing wallet...");
+                case GUIState.Loading:
+                    DrawCenteredText(AccountManager.Instance.Status);
                     break;
 
                 case GUIState.Sending:
@@ -303,7 +310,9 @@ namespace Poltergeist
                 int halfWidth = (int)(rect.width / 2);
 
                 GUI.Label(new Rect(Units(2), curY + Units(1), Units(10), Units(2)), account.ToString());
-                if (GUI.Button(new Rect(windowRect.width - (btnWidth + Units(2)), curY + Units(2), btnWidth, Units(2)), "Select"))
+
+                GUI.enabled = accountManager.IsPlatformEnabled(account.platform);
+                if (GUI.Button(new Rect(windowRect.width - (btnWidth + Units(2)), curY + Units(2), btnWidth, Units(2)), "Open"))
                 {
                     selectedAccountIndex = i;
                     RequestPassword((sucess) =>
@@ -340,8 +349,9 @@ namespace Poltergeist
                         }
                     });
                 }
+                GUI.enabled = true;
 
-                curY += Units(1);
+                curY += Units(6);
             }
 
             // import account panel on bottom
@@ -412,8 +422,6 @@ namespace Poltergeist
             Rect rect;
             int panelHeight;
 
-            var address = Address.FromText(this.accountState.address);
-
             decimal feeBalance = 0;
 
             foreach (var balance in accountState.balances)
@@ -454,6 +462,8 @@ namespace Poltergeist
                         secondaryEnabled = this.accountState.stake == 0 && balance.Amount > 0;
                         secondaryCallback = () =>
                         {
+                            var address = Address.FromText(this.accountState.address);
+
                             var sb = new ScriptBuilder();
 
                             if (feeBalance > 0)
@@ -480,6 +490,8 @@ namespace Poltergeist
                         secondaryEnabled = this.accountState.claim > 0;
                         secondaryCallback = () =>
                         {
+                            var address = Address.FromText(this.accountState.address);
+
                             var sb = new ScriptBuilder();
                             sb.AllowGas(address, Address.Null, 1, 9999);
                             sb.CallContract("stake", "Claim", address, address);
