@@ -713,10 +713,10 @@ namespace Phantasma.SDK
 	}
 	
    
-   public class API {	   
+   public class PhantasmaAPI {	   
 		public readonly	string Host;
 	   
-		public API(string host) 
+		public PhantasmaAPI(string host) 
 		{
 			this.Host = host;
 		}

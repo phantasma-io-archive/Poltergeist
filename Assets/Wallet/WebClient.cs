@@ -108,27 +108,7 @@ namespace Phantasma.SDK
             {
                 Debug.Log(request.downloadHandler.text);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
-
-                if (root == null)
-                {
-                    if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, "failed to parse JSON");
-                }
-                else
-                if (root.HasNode("error"))
-                {
-                    var errorDesc = root["error"].GetString("message");
-                    if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, errorDesc);
-                }
-                else
-                if (root.HasNode("result"))
-                {
-                    var result = root["result"];
-                    callback(result);
-                }
-                else
-                {
-                    if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.MALFORMED_RESPONSE, "malformed response");
-                }
+                callback(root);
             }
 
             yield break;

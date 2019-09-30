@@ -11,20 +11,35 @@ using Phantasma.SDK;
 using Phantasma.Neo.Core;
 
 namespace Poltergeist
-{    
+{
+    public enum WalletState
+    {
+        Refreshing,
+        Ready,
+        Error
+    }
+
+    [Flags]
+    public enum PlatformKind
+    {
+        None = 0x0,
+        Phantasma = 0x1,
+        Neo = 0x2,
+    }
+
     public struct Account
     {
         public static readonly int MaxPasswordLength = 20;
 
         public string name;
-        public string platform;
+        public PlatformKind platforms;
         public string key;
         public string password;
         public string misc;
 
         public override string ToString()
         {
-            return $"{name.ToUpper()} [{platform}]";
+            return $"{name.ToUpper()} [{platforms}]";
         }
     }
 
@@ -55,35 +70,108 @@ namespace Poltergeist
 
     public class AccountManager : MonoBehaviour
     {
-        public const string neoscan_url = "http://mankinighost.phantasma.io:4000";
-        public const string neo_rpc = "http://mankinighost.phantasma.io:30333";
-        public const string phantasma_rpc_url = "http://localhost:7077/rpc";
+        public Settings Settings { get; private set; }
 
         public Account[] Accounts { get; private set; }
 
-        private Dictionary<string, Token> _tokens = null;
+        private Dictionary<string, Token> _tokenMap = null;
+        private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
+        public string CurrentTokenCurrency { get; private set; }
+
+        private int _selectedAccountIndex;
+        public Account CurrentAccount => HasSelection ? Accounts[_selectedAccountIndex] : new Account() { };
+
+        public bool HasSelection => _selectedAccountIndex < Accounts.Length;
+
+        private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
+
+        public PlatformKind CurrentPlatform { get; private set; }
+        public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
 
         public string Status { get; private set; }
         public bool Ready => Status == "ok";
+        public bool Refreshing => _accountRefreshCount > 0;
 
-        private Phantasma.SDK.API phantasmaApi;
+        private Phantasma.SDK.PhantasmaAPI phantasmaApi;
         private Phantasma.Neo.Core.NeoAPI neoApi;
 
-        private HashSet<string> supportedPlatforms = new HashSet<string>();
+        private const string cryptoCompareAPIKey = "50f6f9f5adbb0a2f0d60145e43fe873c5a7ea1d8221b210ba14ef725f4012ee9";
+
+        public static readonly PlatformKind[] AvailablePlatforms = new PlatformKind[] { PlatformKind.Phantasma, PlatformKind.Neo };
+
+        private Dictionary<string, string> _currencyMap = new Dictionary<string, string>();
+        public IEnumerable<string> Currencies => _currencyMap.Keys;
+
+        private DateTime _lastPriceUpdate = DateTime.MinValue;
+
+        private int _accountRefreshCount;
 
         private void Awake()
         {
             Instance = this;
+            Settings = new Settings();
+
             Status = "Initializing wallet...";
+
+            _currencyMap["USD"] = "$";
+            _currencyMap["EUR"] = "€";
+            _currencyMap["GBP"] = "£";
+            _currencyMap["YEN"] = "¥";
+        }
+
+        public string GetTokenWorth(string symbol, decimal amount)
+        {
+            bool hasLocalCurrency = !string.IsNullOrEmpty(CurrentTokenCurrency) && _currencyMap.ContainsKey(CurrentTokenCurrency);
+            if (_tokenPrices.ContainsKey(symbol) && hasLocalCurrency)
+            {
+                var price = _tokenPrices[symbol] * amount;
+                var ch = _currencyMap[CurrentTokenCurrency];
+                return $"{price} {ch}";
+            }
+            else
+            {
+                return "-";
+            }
+        }
+
+        private IEnumerator FetchTokenPrice(string symbol, string currency)
+        {
+            var url = $"https://min-api.cryptocompare.com/data/price?fsym={symbol}&tsyms={currency}&api_key={cryptoCompareAPIKey}";
+            return WebClient.RESTRequest(url, (error, msg) =>
+            {
+
+            },
+            (response) =>
+            {
+                try
+                {
+                    var price = response.GetDecimal(currency);
+                    SetTokenPrice(symbol, price);
+
+                    if (symbol == "SOUL")
+                    {
+                        SetTokenPrice("KCAL", price / 5);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning(e.ToString());
+                }
+            });
+        }
+
+        private void SetTokenPrice(string symbol, decimal price)
+        {
+            Debug.Log($"Got price for {symbol} => {price}");
+            _tokenPrices[symbol] = price;
         }
 
         // Start is called before the first frame update
         void Start()
         {
-            phantasmaApi = new Phantasma.SDK.API(phantasma_rpc_url);
-            neoApi = new NeoAPI(neo_rpc, neoscan_url);
+            Settings.Load();
 
             LoadNexus();
 
@@ -97,9 +185,9 @@ namespace Poltergeist
             else
             {
                 Accounts = new Account[] {
-                    new Account() { name = "demo", platform = "phantasma", key = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" },
-                    new Account() { name = "zion", platform = "neo", key = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H", password = "", misc = "" },
-                    new Account() { name = "master", platform = "neo", key = "KxDgvEKzgSBPPfuVfw67oPQBSjidEiqTHURKSDL1R7yGaGYAeYnr", password = "", misc = "" }
+                    new Account() { name = "demo", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" },
+                    new Account() { name = "zion", platforms = PlatformKind.Neo, key = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H", password = "", misc = "" },
+                    new Account() { name = "master", platforms = PlatformKind.Phantasma, key = "KxDgvEKzgSBPPfuVfw67oPQBSjidEiqTHURKSDL1R7yGaGYAeYnr", password = "", misc = "" }
                 };
             }
         }
@@ -110,19 +198,56 @@ namespace Poltergeist
         {
             Debug.Log($"Found {tokens.Length} tokens");
 
-            _tokens = new Dictionary<string, Token>();
+            CurrentTokenCurrency = "";
+
+            _tokenMap = new Dictionary<string, Token>();
             foreach (var token in tokens)
             {
-                _tokens[token.symbol] = token;
+                _tokenMap[token.symbol] = token;
             }
 
             Status = "ok";
         }
 
+        public void RefreshTokenPrices()
+        {
+            bool needRefresh = false;
+
+            if (CurrentTokenCurrency != Settings.currency)
+            {
+                needRefresh = true;
+            }
+            else
+            {
+                var diff = DateTime.UtcNow - _lastPriceUpdate;
+                if (diff.TotalMinutes >= 5)
+                {
+                    needRefresh = true;
+                }
+            }
+            
+
+            if (needRefresh)
+            {
+                CurrentTokenCurrency = Settings.currency;
+                _lastPriceUpdate = DateTime.UtcNow;
+
+                foreach (var symbol in _tokenMap.Keys)
+                {
+                    if (symbol == "KCAL")
+                    {
+                        continue;
+                    }
+
+                    StartCoroutine(FetchTokenPrice(symbol, CurrentTokenCurrency));
+                }
+            }
+        }
+
         private void LoadNexus()
         {
-            supportedPlatforms.Add("phantasma");
-            supportedPlatforms.Add("neo");
+            phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
+            neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanAPIURL);
 
             var tokenList = PlayerPrefs.GetString(TokenInfoTag, "");
 
@@ -157,17 +282,12 @@ namespace Poltergeist
 
         public int GetTokenDecimals(string symbol)
         {
-            if (_tokens.ContainsKey(symbol))
+            if (_tokenMap.ContainsKey(symbol))
             {
-                return _tokens[symbol].decimals;
+                return _tokenMap[symbol].decimals;
             }
 
             return -1;
-        }
-
-        public bool IsPlatformEnabled(string platform)
-        {
-            return supportedPlatforms.Contains(platform);
         }
 
         public decimal AmountFromString(string str, int decimals)
@@ -176,11 +296,13 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public IEnumerator SignAndSendTransaction(Account account, string chain, byte[] script, Action<Hash> callback)
+        public IEnumerator SignAndSendTransaction(string chain, byte[] script, Action<Hash> callback)
         {
-            switch (account.platform)
+            var account = this.CurrentAccount;
+
+            switch (account.platforms)
             {
-                case "phantasma":
+                case PlatformKind.Phantasma:
                     {
                         var keys = PhantasmaKeys.FromWIF(account.key);
                         return phantasmaApi.SignAndSendTransaction(keys, script, chain, (hashText) =>
@@ -199,78 +321,134 @@ namespace Poltergeist
             }
         }
 
-        public IEnumerator FetchBalances(Account account, Action<AccountState> callback)
+        private Action _refreshWalletCallback;
+
+        public List<PlatformKind> SplitFlags(PlatformKind kind)
         {
-            switch (account.platform)
+            var list = new List<PlatformKind>();
+            foreach (var platform in AvailablePlatforms)
             {
-                case "phantasma":
-                    {
-                        var keys = PhantasmaKeys.FromWIF(account.key);
-                        return phantasmaApi.GetAccount(keys.Address.Text, (x) =>
+                if (kind.HasFlag(platform))
+                {
+                    list.Add(kind);
+                }
+            }
+            return list;
+        }
+
+        public void SelectAccount(int index)
+        {
+            _selectedAccountIndex = index;
+            _states.Clear();
+            CurrentPlatform = SplitFlags(CurrentAccount.platforms).First();
+        }
+
+        public void UnselectAcount()
+        {
+            _selectedAccountIndex = -1;
+        }
+
+        private void ReportWalletStatus(PlatformKind platform, AccountState state)
+        {
+            _accountRefreshCount--;
+
+            if (state != null)
+            {
+                _states[platform] = state; 
+            }
+
+            if (_accountRefreshCount == 0)
+            {
+                var temp = _refreshWalletCallback;
+                _refreshWalletCallback = null;
+                temp?.Invoke();
+            }
+        }
+
+        public void RefreshBalances(Action callback)
+        {
+            _refreshWalletCallback = callback;
+
+            var platforms = SplitFlags(CurrentAccount.platforms);
+            _accountRefreshCount = platforms.Count;
+
+            var account = this.CurrentAccount;
+
+            foreach (var platform in platforms)
+            {
+                switch (platform)
+                {
+                    case PlatformKind.Phantasma:
                         {
-                            var state = new AccountState()
+                            var keys = PhantasmaKeys.FromWIF(account.key);
+                            StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (x) =>
                             {
-                                address = x.address,
-                                name = x.name,
-                                stake = AmountFromString(x.stake, GetTokenDecimals("SOUL")),
-                                claim = 0, // TODO support claimable KCAL
-                                balances = x.balances.Select(y => new Balance() { Symbol = y.symbol, Amount = AmountFromString(y.amount, GetTokenDecimals(y.symbol)), Chain = y.chain, Decimals = GetTokenDecimals(y.symbol) }).ToArray(),
-                                flags = AccountFlags.None
-                            };
-
-                            if (state.stake > 50000)
-                            {
-                                state.flags |= AccountFlags.Master;
-                            }
-
-                            callback(state);
-                        },
-                        (error, msg) =>
-                        {
-                            callback(null);
-                        });
-                    }
-
-                case "neo":
-                    {
-                        var keys = NeoKey.FromWIF(account.key);
-                        return neoApi.GetAssetBalancesOf(keys, (x) =>
-                        {
-                            var balances = new List<Balance>();
-
-                            foreach (var entry in x)
-                            {
-                                balances.Add(new Balance()
+                                var state = new AccountState()
                                 {
-                                    Symbol = entry.Key,
-                                    Amount = entry.Value,
-                                    Chain = "main",
-                                    Decimals = GetTokenDecimals(entry.Key)
-                                });
-                            }
+                                    address = x.address,
+                                    name = x.name,
+                                    stake = AmountFromString(x.stake, GetTokenDecimals("SOUL")),
+                                    claim = 0, // TODO support claimable KCAL
+                                    balances = x.balances.Select(y => new Balance() { Symbol = y.symbol, Amount = AmountFromString(y.amount, GetTokenDecimals(y.symbol)), Chain = y.chain, Decimals = GetTokenDecimals(y.symbol) }).ToArray(),
+                                    flags = AccountFlags.None
+                                };
 
-                            var state = new AccountState()
+                                if (state.stake > 50000)
+                                {
+                                    state.flags |= AccountFlags.Master;
+                                }
+
+                                ReportWalletStatus(platform, state);
+                            },
+                            (error, msg) =>
                             {
-                                address = keys.address,
-                                name = keys.address, // TODO support NNS
-                                stake = 0,
-                                claim = 0, // TODO support claimable GAS
-                                balances = balances.ToArray(),
-                                flags = AccountFlags.None
-                            };
+                                ReportWalletStatus(platform, null);
+                            }));
+                        }
+                        break;
 
-                            if (state.stake > 50000)
+                    case PlatformKind.Neo:
+                        {
+                            var keys = NeoKey.FromWIF(account.key);
+                            StartCoroutine(neoApi.GetAssetBalancesOf(keys, (x) =>
                             {
-                                state.flags |= AccountFlags.Master;
-                            }
+                                var balances = new List<Balance>();
 
-                            callback(state);
-                        });
-                    }
+                                foreach (var entry in x)
+                                {
+                                    balances.Add(new Balance()
+                                    {
+                                        Symbol = entry.Key,
+                                        Amount = entry.Value,
+                                        Chain = "main",
+                                        Decimals = GetTokenDecimals(entry.Key)
+                                    });
+                                }
 
-                default:
-                    callback(null);
-                    return null;
+                                var state = new AccountState()
+                                {
+                                    address = keys.address,
+                                    name = keys.address, // TODO support NNS
+                                    stake = 0,
+                                    claim = 0, // TODO support claimable GAS
+                                    balances = balances.ToArray(),
+                                    flags = AccountFlags.None
+                                };
+
+                                if (state.stake > 50000)
+                                {
+                                    state.flags |= AccountFlags.Master;
+                                }
+
+                                ReportWalletStatus(platform, state);
+                            }));
+                        }
+                        break;
+
+                    default:
+                        ReportWalletStatus(platform, null);
+                        break;
+                }
             }
         }
 

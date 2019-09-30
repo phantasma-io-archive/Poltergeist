@@ -6,6 +6,7 @@ using Phantasma.VM.Utils;
 using Phantasma.Cryptography;
 using Phantasma.Blockchain.Contracts;
 using Phantasma.Numerics;
+using System.Linq;
 
 namespace Poltergeist
 {
@@ -17,6 +18,7 @@ namespace Poltergeist
         Transfer,
         Sending,
         Confirming,
+        Settings,
     }
 
     public enum PromptResult
@@ -35,11 +37,12 @@ namespace Poltergeist
         Right
     }
 
-    public enum WalletState
+    public enum ModalState
     {
-        Refreshing,
-        Ready,
-        Error
+        None,
+        Message,
+        Input,
+        Password,
     }
 
     public class WalletGUI : MonoBehaviour
@@ -54,14 +57,6 @@ namespace Poltergeist
         private GUIState guiState;
         private Stack<GUIState> stateStack = new Stack<GUIState>();
 
-        private int selectedAccountIndex;
-        private Action<bool> passwordPromptCallback;
-        private string accountPasswordInput;
-        private PromptResult passwordPromptResult;
-
-        private AccountState accountState;
-        private WalletState walletState;
-
         private string transferSymbol;
         private Hash transactionHash;
 
@@ -72,7 +67,17 @@ namespace Poltergeist
 
         private bool HasAnimation => currentAnimation != AnimationDirection.None;
 
-        private int Units(int n)
+        private int currencyIndex;
+        private string[] currencyOptions;
+        private ComboBox currencyComboBox;
+
+        private int platformIndex;
+        private string[] platformOptions;
+        private ComboBox platformComboBox;
+
+        private GUIStyle listStyle;
+
+        public static int Units(int n)
         {
             return 16 * n;
         }
@@ -88,7 +93,10 @@ namespace Poltergeist
 
             defaultRect = new Rect(windowRect);
 
-            guiState = GUIState.Loading;;
+            guiState = GUIState.Loading;
+
+            currencyOptions = AccountManager.Instance.Currencies.ToArray();
+            currencyComboBox = new ComboBox();
         }
 
 #region UTILS
@@ -99,6 +107,26 @@ namespace Poltergeist
                 stateStack.Push(guiState);
             }
             guiState = state;
+
+            var accountManager = AccountManager.Instance;
+
+            switch (state)
+            {
+                case GUIState.Settings:
+                    {
+                        currencyComboBox.SelectedItemIndex = 0;
+                        for (int i=0; i<currencyOptions.Length; i++)
+                        {
+                            if (currencyOptions[i] == accountManager.Settings.currency)
+                            {
+                                currencyComboBox.SelectedItemIndex = i;
+                                break;
+                            }
+
+                        }
+                        break;
+                    }
+            }
         }
 
         private void PopState()
@@ -113,26 +141,62 @@ namespace Poltergeist
             currentAnimation = direction;
             animationCallback = callback;
         }
+        #endregion
+
+
+        #region MODAL PROMPTS
+        private ModalState modalState;
+        private Action<string> modalCallback;
+        private string modalInput;
+        private int modalInputLength;
+        private string modalCaption;
+        private string modalTitle;
+        private bool modalAllowCancel;
+        private PromptResult modalResult;
+
+        private void ShowModal(string title, string caption, ModalState state, int maxInputLength, bool allowCancel, Action<string> callback)
+        {
+            modalResult = PromptResult.Waiting;
+            modalInput = "";
+            modalState = state;
+            modalTitle = title;
+            modalInputLength = maxInputLength;
+            modalCaption = caption;
+            modalCallback = callback;
+            modalAllowCancel = allowCancel;
+        }
+
+        public void MessageBox(string caption, Action callback = null)
+        {
+            ShowModal("Attention", caption, ModalState.Message, 0, false, (input) =>
+            {
+                callback?.Invoke();
+            });
+        }
 
         public void RequestPassword(Action<bool> callback)
         {
-            if (selectedAccountIndex == -1)
+            var accountManager = AccountManager.Instance;
+
+            if (!accountManager.HasSelection)
             {
                 callback(false);
                 return;
             }
 
-            if (string.IsNullOrEmpty(AccountManager.Instance.Accounts[selectedAccountIndex].password))
+            if (string.IsNullOrEmpty(accountManager.CurrentAccount.password))
             {
                 callback(true);
                 return;
             }
 
-            passwordPromptResult = PromptResult.Waiting;
-            accountPasswordInput = "";
-            passwordPromptCallback = callback;
+            ShowModal("Account Authorization", "Account: " + accountManager.CurrentAccount.ToString()+"\nInsert password to proceed", ModalState.Password, Account.MaxPasswordLength, true, (input) =>
+            {
+                var success = !string.IsNullOrEmpty(input) && input == accountManager.CurrentAccount.password;
+                callback(success);
+            });
         }
-#endregion
+        #endregion
 
         private void Update()
         {
@@ -196,13 +260,14 @@ namespace Poltergeist
                 }
             }
 
-            if (passwordPromptResult != PromptResult.Waiting)
+            if (modalResult != PromptResult.Waiting)
             {
-                var temp = passwordPromptCallback;
-                var success = passwordPromptResult == PromptResult.Success;
-                passwordPromptCallback = null;
-                passwordPromptResult = PromptResult.Waiting;
-                temp?.Invoke(success);
+                var temp = modalCallback;
+                var success = modalResult == PromptResult.Success;
+                modalState = ModalState.None;
+                modalCallback = null;
+                modalResult = PromptResult.Waiting;
+                temp?.Invoke(success ? modalInput: null);
             }
         }
 
@@ -211,12 +276,12 @@ namespace Poltergeist
             GUI.skin = guiSkin;
             GUI.Window(0, windowRect, DoMainWindow, "Poltergeist Wallet");
 
-            if (passwordPromptCallback != null)
+            if (modalState != ModalState.None)
             {
                 var modalWidth = Units(30);
                 var modalHeight = Units(20);
                 modalRect = new Rect((Screen.width - modalWidth) / 2, (Screen.height - modalHeight) / 2, modalWidth, modalHeight);
-                modalRect = GUI.ModalWindow(0, modalRect, DoPasswordWindow, "Account Authorization");
+                modalRect = GUI.ModalWindow(0, modalRect, DoModalWindow, modalTitle);
             }
         }
 
@@ -234,7 +299,7 @@ namespace Poltergeist
             switch (guiState)
             {
                 case GUIState.Loading:
-                    DrawCenteredText(AccountManager.Instance.Status);
+                    DrawCenteredText(AccountManager.Instance.Ready ? "Starting...": AccountManager.Instance.Status);
                     break;
 
                 case GUIState.Sending:
@@ -249,6 +314,10 @@ namespace Poltergeist
                     DoAccountScreen();
                     break;
 
+                case GUIState.Settings:
+                    DoSettingsScreen();
+                    break;
+
                 case GUIState.Balances:
                     DoBalanceScreen();
                     break;
@@ -261,35 +330,51 @@ namespace Poltergeist
             //GUI.DragWindow(new Rect(0, 0, 10000, 10000));
         }
 
-        private void DoPasswordWindow(int windowID)
+        private void DoModalWindow(int windowID)
         {
             var accountManager = AccountManager.Instance;
-            var selectedAccount = accountManager.Accounts[this.selectedAccountIndex];
 
             int curY = Units(4);
 
             var rect = new Rect(Units(1), curY, modalRect.width - Units(2), modalRect.height - Units(2));
 
-            GUI.Label(new Rect(rect.x, curY, rect.width, Units(2)), "Account: "+selectedAccount.ToString());
-            curY += Units(2);
+            GUI.Label(new Rect(rect.x, curY, rect.width, Units(5)), modalCaption);
+            curY += Units(5);
 
-            GUI.Label(new Rect(rect.x, curY, rect.width, Units(2)), "Insert password to proceed");
-            curY += Units(3);
-
-            accountPasswordInput = GUI.PasswordField(new Rect(rect.x, curY, rect.width, Units(2)), accountPasswordInput, '*', Account.MaxPasswordLength);
-
-            int btnWidth = Units(11);
-            int halfWidth = (int)(rect.width / 2);
-
-            curY = (int)(rect.height - Units(2));
-            if (GUI.Button(new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Cancel"))
+            if (modalState == ModalState.Input)
             {
-                passwordPromptResult = PromptResult.Failure;
+                modalInput = GUI.TextField(new Rect(rect.x, curY, rect.width, Units(2)), modalInput, modalInputLength);
+            }
+            else
+            if (modalState == ModalState.Password)
+            {
+                modalInput = GUI.PasswordField(new Rect(rect.x, curY, rect.width, Units(2)), modalInput, '*', modalInputLength);
             }
 
-            if (GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm"))
+            int btnWidth = Units(11);
+
+            curY = (int)(rect.height - Units(2));
+
+            if (modalAllowCancel)
             {
-                passwordPromptResult = (accountPasswordInput == selectedAccount.password) ? PromptResult.Success : PromptResult.Failure;
+                int halfWidth = (int)(rect.width / 2);
+
+                if (GUI.Button(new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Cancel"))
+                {
+                    modalResult = PromptResult.Failure;
+                }
+
+                if (GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm"))
+                {
+                    modalResult = PromptResult.Success;
+                }
+            }
+            else
+            {
+                if (GUI.Button(new Rect((rect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Ok"))
+                {
+                    modalResult = PromptResult.Success;
+                }
             }
         }
 
@@ -309,47 +394,32 @@ namespace Poltergeist
                 int btnWidth = Units(11);
                 int halfWidth = (int)(rect.width / 2);
 
-                GUI.Label(new Rect(Units(2), curY + Units(1), Units(10), Units(2)), account.ToString());
+                GUI.Label(new Rect(Units(2), curY + Units(1), Units(25), Units(2)), account.ToString());
 
-                GUI.enabled = accountManager.IsPlatformEnabled(account.platform);
                 if (GUI.Button(new Rect(windowRect.width - (btnWidth + Units(2)), curY + Units(2), btnWidth, Units(2)), "Open"))
                 {
-                    selectedAccountIndex = i;
+                    accountManager.SelectAccount(i);
                     RequestPassword((sucess) =>
                     {
                         if (sucess)
                         {
-                            var selectedAccount = accountManager.Accounts[selectedAccountIndex];
-
-                            walletState = WalletState.Refreshing;
+                            accountManager.RefreshTokenPrices();
                             Animate(AnimationDirection.Down, true, () => {
                                 PushState(GUIState.Balances);
 
-                                StartCoroutine(accountManager.FetchBalances(selectedAccount, (state) =>
+                                accountManager.RefreshBalances(() =>
                                 {
-                                    if (state != null)
-                                    {
-                                        this.accountState = state;
-                                        walletState = WalletState.Ready;
-                                    }
-                                    else
-                                    {
-                                        walletState = WalletState.Error;
-                                    }
-                                }));
+                                });
 
                                 Animate(AnimationDirection.Up, false);
                             });
-
-
                         }
                         else
                         {
-                            selectedAccountIndex = -1;
+                            MessageBox($"Could not open '{account.name}' account");
                         }
                     });
                 }
-                GUI.enabled = true;
 
                 curY += Units(6);
             }
@@ -359,15 +429,24 @@ namespace Poltergeist
                 var panelHeight = Units(9);
                 curY = (int)(windowRect.height - panelHeight + Units(1));
                 var rect = GetExpandedRect(curY, panelHeight);
-                GUI.Box(rect, "Add account");
+                GUI.Box(rect, "");
 
                 int btnWidth = Units(11);
                 int halfWidth = (int)(rect.width / 2);
 
                 GUI.Label(new Rect(halfWidth - 10, curY + Units(3), 28, 20), "or");
 
-                GUI.Button(new Rect((halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Generate new wallet");
-                GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key");
+                GUI.Button(new Rect(-Units(2) + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Generate new wallet");
+                GUI.Button(new Rect((rect.width - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key");
+
+                if (GUI.Button(new Rect(Units(2) + halfWidth + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Settings"))
+                {
+                    Animate(AnimationDirection.Up, true, () =>
+                    {
+                        PushState(GUIState.Settings);
+                        Animate(AnimationDirection.Down, false);
+                    });
+                }
             }
         }
 
@@ -379,52 +458,127 @@ namespace Poltergeist
             GUI.Label(new Rect((windowRect.width - size.x) / 2, (windowRect.height - size.y) / 2, size.x, size.y), content);
         }
 
-        private void DoCloseButton()
+        private void DoCloseButton(Func<bool> callback = null)
         {
             if (GUI.Button(new Rect(windowRect.width - Units(3), Units(1), Units(2), Units(2)), "X"))
             {
-                Animate(AnimationDirection.Right, true, () =>
+                if (callback == null || callback())
                 {
-                    selectedAccountIndex = -1;
-                    accountState = null;
-                    stateStack.Clear();
-                    PushState(GUIState.Accounts);
-                    Animate(AnimationDirection.Left, false);
-                });
+                    Animate(AnimationDirection.Down, true, () =>
+                    {
+                        var accountManager = AccountManager.Instance;
+                        accountManager.UnselectAcount();
+                        stateStack.Clear();
+                        PushState(GUIState.Accounts);
+
+                        Animate(AnimationDirection.Up, false);
+                    });
+                }
             }
+        }
+
+        private void DoSettingsScreen()
+        {
+            var accountManager = AccountManager.Instance;
+            var settings = accountManager.Settings;
+
+            DoCloseButton(() =>
+            {
+                if (!settings.phantasmaRPCURL.IsValidURL())
+                {
+                    MessageBox("Invalid URL for Phantasma RPC URL\n" + settings.phantasmaRPCURL);
+                    return false;
+                }
+
+                if (!settings.neoRPCURL.IsValidURL())
+                {
+                    MessageBox("Invalid URL for Phantasma RPC URL\n" + settings.neoRPCURL);
+                    return false;
+                }
+
+                if (!settings.neoscanAPIURL.IsValidURL())
+                {
+                    MessageBox("Invalid URL for Phantasma RPC URL\n" + settings.neoscanAPIURL);
+                    return false;
+                }
+
+                accountManager.RefreshTokenPrices();
+                accountManager.Settings.Save();
+                return true;
+            });
+
+            if (listStyle == null)
+            {
+                listStyle = GUI.skin.customStyles[0];
+
+                listStyle.normal.textColor = Color.white;
+                listStyle.onHover.background =
+                listStyle.hover.background = new Texture2D(2, 2);
+                listStyle.padding.left =
+                listStyle.padding.right =
+                listStyle.padding.top =
+                listStyle.padding.bottom = Units(1);
+            }
+
+            int curY = Units(2);
+
+            int headerSize = Units(10);
+            GUI.Label(new Rect((windowRect.width - headerSize) / 2, curY, headerSize, Units(2)), "SETTINGS");
+            curY += Units(5);
+
+            var fieldWidth = Units(20);
+
+            GUI.Label(new Rect(Units(1), curY, Units(8), Units(2)), "Phantasma RPC URL");
+            settings.phantasmaRPCURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.phantasmaRPCURL);
+            curY += Units(3);
+
+            GUI.Label(new Rect(Units(1), curY, Units(8), Units(2)), "Neo RPC URL");
+            settings.neoRPCURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.neoRPCURL);
+            curY += Units(3);
+
+            GUI.Label(new Rect(Units(1), curY, Units(8), Units(2)), "Neoscan API URL");
+            settings.neoscanAPIURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.neoscanAPIURL);
+            curY += Units(3);
+
+            GUI.Label(new Rect(Units(1), curY, Units(8), Units(2)), "Currency");
+            currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions, listStyle);
+            accountManager.Settings.currency = currencyOptions[currencyIndex];
+            curY += Units(3);
         }
 
         private void DoBalanceScreen()
         {
-            switch (walletState)
-            {
-                case WalletState.Refreshing:
-                    DrawCenteredText("Fetching balances...");
-                    return;
+            var accountManager = AccountManager.Instance;
 
+            if (accountManager.Refreshing)
+            {
+                DrawCenteredText("Fetching balances...");
+                return;
+            }
+
+            /*
                 case WalletState.Error:
                     DrawCenteredText("Error fetching balances...");
                     DoCloseButton();
-                    return;
-            }
+                    */
 
             DoCloseButton();
 
-            int curY = Units(4);
+            int curY = Units(2);
 
             int headerSize = Units(10);
             GUI.Label(new Rect((windowRect.width - headerSize) / 2, curY, headerSize, Units(2)), "BALANCES");
-            curY += Units(3);
+            curY += Units(5);
 
-            var accountManager = AccountManager.Instance;
-            var selectedAccount = accountManager.Accounts[selectedAccountIndex];
 
             Rect rect;
             int panelHeight;
 
             decimal feeBalance = 0;
 
-            foreach (var balance in accountState.balances)
+            var state = accountManager.CurrentState;
+
+            foreach (var balance in state.balances)
             {
                 if (balance.Symbol == "KCAL")
                 {
@@ -434,7 +588,7 @@ namespace Poltergeist
 
             int btnWidth;
             int i = 0;
-            foreach (var balance in accountState.balances)
+            foreach (var balance in state.balances)
             {
                 var icon = ResourceManager.Instance.GetToken(balance.Symbol);
                 if (icon != null)
@@ -449,7 +603,7 @@ namespace Poltergeist
                 btnWidth = Units(11);
                 int halfWidth = (int)(rect.width / 2);
 
-                GUI.Label(new Rect(Units(5), curY + Units(1), Units(20), Units(2)), $"{balance.Amount} {balance.Symbol}");
+                GUI.Label(new Rect(Units(5), curY + Units(1), Units(20), Units(2)), $"{balance.Amount} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Amount)})");
 
                 string secondaryAction;
                 bool secondaryEnabled;
@@ -459,10 +613,10 @@ namespace Poltergeist
                 {
                     case "SOUL":
                         secondaryAction = "Stake";
-                        secondaryEnabled = this.accountState.stake == 0 && balance.Amount > 0;
+                        secondaryEnabled = state.stake == 0 && balance.Amount > 0;
                         secondaryCallback = () =>
                         {
-                            var address = Address.FromText(this.accountState.address);
+                            var address = Address.FromText(state.address);
 
                             var sb = new ScriptBuilder();
 
@@ -487,10 +641,10 @@ namespace Poltergeist
 
                     case "KCAL":
                         secondaryAction = "Claim";
-                        secondaryEnabled = this.accountState.claim > 0;
+                        secondaryEnabled = state.claim > 0;
                         secondaryCallback = () =>
                         {
-                            var address = Address.FromText(this.accountState.address);
+                            var address = Address.FromText(state.address);
 
                             var sb = new ScriptBuilder();
                             sb.AllowGas(address, Address.Null, 1, 9999);
@@ -499,6 +653,14 @@ namespace Poltergeist
                             var script = sb.EndScript();
 
                             SendTransaction(script, "main");
+                        };
+                        break;
+
+                    case "GAS":
+                        secondaryAction = "Claim";
+                        secondaryEnabled = state.claim > 0;
+                        secondaryCallback = () =>
+                        {
                         };
                         break;
 
@@ -544,7 +706,7 @@ namespace Poltergeist
             curY = (int)(windowRect.height - panelHeight + Units(1));
 
             rect = GetExpandedRect(curY, panelHeight);
-            GUI.Box(rect, this.accountState.address);
+            GUI.Box(rect, state.address);
 
             btnWidth = Units(11);
 
@@ -556,7 +718,7 @@ namespace Poltergeist
 
             if (GUI.Button(new Rect(leftoverWidth + (totalWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Copy Address"))
             {
-                EditorGUIUtility.systemCopyBuffer = this.accountState.address;
+                EditorGUIUtility.systemCopyBuffer = state.address;
             }
         }
 
@@ -571,7 +733,6 @@ namespace Poltergeist
             curY += Units(3);
 
             var accountManager = AccountManager.Instance;
-            var selectedAccount = accountManager.Accounts[selectedAccountIndex];
 
             DoBackButton();
         }
@@ -600,12 +761,11 @@ namespace Poltergeist
         private void SendTransaction(byte[] script, string chain)
         {
             var accountManager = AccountManager.Instance;
-            var selectedAccount = accountManager.Accounts[this.selectedAccountIndex];
 
             Animate(AnimationDirection.Right, true, () =>
             {
                 PushState(GUIState.Sending);
-                accountManager.SignAndSendTransaction(selectedAccount, "chain", script, (hash) =>
+                accountManager.SignAndSendTransaction("chain", script, (hash) =>
                 {
                     if (hash != Hash.Null)
                     {
