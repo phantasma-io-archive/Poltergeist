@@ -1,12 +1,14 @@
-﻿using Phantasma.Cryptography.ECC;
+﻿using Phantasma.Core;
+using Phantasma.Cryptography.ECC;
 using Phantasma.Neo.Cryptography;
 using Phantasma.Neo.Utils;
 using System;
 using System.Linq;
+using System.Text;
 
 namespace Phantasma.Neo.Core
 {
-    public class NeoKey 
+    public class NeoKeys 
     {
         public readonly byte[] PrivateKey;
         public readonly byte[] PublicKey;
@@ -18,7 +20,7 @@ namespace Phantasma.Neo.Core
         public readonly UInt160 signatureHash;
         public readonly byte[] signatureScript;
 
-        public NeoKey(byte[] privateKey)
+        public NeoKeys(byte[] privateKey)
         {
             if (privateKey.Length != 32 && privateKey.Length != 96 && privateKey.Length != 104)
                 throw new ArgumentException();
@@ -50,7 +52,7 @@ namespace Phantasma.Neo.Core
             this.WIF = GetWIF();
         }
 
-        public static NeoKey FromWIF(string wif)
+        public static NeoKeys FromWIF(string wif)
         {
             if (wif == null) throw new ArgumentNullException();
             byte[] data = wif.Base58CheckDecode();
@@ -59,19 +61,56 @@ namespace Phantasma.Neo.Core
             byte[] privateKey = new byte[32];
             Buffer.BlockCopy(data, 1, privateKey, 0, privateKey.Length);
             Array.Clear(data, 0, data.Length);
-            return new NeoKey(privateKey);
+            return new NeoKeys(privateKey);
+        }
+
+        public static NeoKeys FromNEP2(string nep2, string passphrase, int N = 16384, int r = 8, int p = 8)
+        {
+            Throw.IfNull(nep2, nameof(nep2));
+            Throw.IfNull(passphrase, nameof(passphrase));
+
+            byte[] data = nep2.Base58CheckDecode();
+            if (data.Length != 39 || data[0] != 0x01 || data[1] != 0x42 || data[2] != 0xe0)
+                throw new FormatException();
+
+            byte[] addressHash = new byte[4];
+            Buffer.BlockCopy(data, 3, addressHash, 0, 4);
+            byte[] datapassphrase = Encoding.UTF8.GetBytes(passphrase);
+            byte[] derivedkey = Phantasma.Cryptography.SCrypt.DeriveKey(datapassphrase, addressHash, N, r, p, 64);
+            Array.Clear(datapassphrase, 0, datapassphrase.Length);
+
+            byte[] derivedhalf1 = derivedkey.Take(32).ToArray();
+            byte[] derivedhalf2 = derivedkey.Skip(32).ToArray();
+            Array.Clear(derivedkey, 0, derivedkey.Length);
+
+            byte[] encryptedkey = new byte[32];
+            Buffer.BlockCopy(data, 7, encryptedkey, 0, 32);
+            Array.Clear(data, 0, data.Length);
+
+            byte[] prikey = XOR(encryptedkey.AES256Decrypt(derivedhalf2), derivedhalf1);
+            Array.Clear(derivedhalf1, 0, derivedhalf1.Length);
+            Array.Clear(derivedhalf2, 0, derivedhalf2.Length);
+
+            ECPoint pubkey = ECCurve.Secp256r1.G * prikey;
+            var keys = new NeoKeys(prikey);
+            var temp = Encoding.ASCII.GetBytes(keys.Address).Sha256().Sha256().Take(4).ToArray();
+            if (!temp.SequenceEqual(addressHash))
+            {
+                throw new FormatException("invalid passphrase when decrypting NEP2");
+            }
+            return keys;
         }
 
         private static System.Security.Cryptography.RandomNumberGenerator rnd = System.Security.Cryptography.RandomNumberGenerator.Create();
 
-        public static NeoKey Generate()
+        public static NeoKeys Generate()
         {
             var bytes = new byte[32];
             lock (rnd)
             {
                 rnd.GetBytes(bytes);
             }
-            return new NeoKey(bytes);
+            return new NeoKeys(bytes);
         }
 
         public static byte[] CreateSignatureScript(byte[] bytes)

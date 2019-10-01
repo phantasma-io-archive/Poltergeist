@@ -252,9 +252,7 @@ namespace Poltergeist
             tokens.Add(new Token() { symbol = "SWTH", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "PKC", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "ASA", hash = "a58b56b30425d3d1f8902034996fcac4168ef71d", decimals = 8, maxSupply = "342015750", name = "Asura World Coin", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "GUARD", hash = "591f92493cd6dd003470e41376f79a515abc707f", decimals = 8, maxSupply = "342015750", name = "Guardium", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "LX", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "808257693", name = "Moonlight Lux", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "710405560", name = "nOS", flags = nep5Flags });
 
             CurrentTokenCurrency = "";
 
@@ -525,7 +523,7 @@ namespace Poltergeist
 
                     case PlatformKind.Neo:
                         {
-                            var keys = NeoKey.FromWIF(account.key);
+                            var keys = NeoKeys.FromWIF(account.key);
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
@@ -634,7 +632,7 @@ namespace Poltergeist
 
                     case PlatformKind.Neo:
                         {
-                            var keys = NeoKey.FromWIF(account.key);
+                            var keys = NeoKeys.FromWIF(account.key);
                             var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
 
                             StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
@@ -702,7 +700,7 @@ namespace Poltergeist
             return symbol == "SOUL" || symbol == "NEO" || symbol == "GAS";
         }
 
-        public int CreateWallet(string name, PlatformKind platforms)
+        public int AddWallet(string name, PlatformKind platforms, string wif)
         {
             if (Accounts.Length >= 5)
             {
@@ -727,9 +725,8 @@ namespace Poltergeist
                 }
             }
 
-            var keys = PhantasmaKeys.Generate();
             var list = this.Accounts.ToList();
-            list.Add(new Account() { name = name, key = keys.ToWIF(), password = "", platforms = platforms, misc = "" });
+            list.Add(new Account() { name = name, key = wif, password = "", platforms = platforms, misc = "" });
 
             this.Accounts = list.ToArray();
             return Accounts.Length - 1;

@@ -68,7 +68,7 @@ namespace Phantasma.Neo.Core
             return BalanceOf(address.GetScriptHashFromAddress(), callback);
         }
 
-        public IEnumerator BalanceOf(NeoKey keys, Action<BigInteger> callback)
+        public IEnumerator BalanceOf(NeoKeys keys, Action<BigInteger> callback)
         {
             return BalanceOf(keys.Address, callback);
         }
@@ -87,17 +87,17 @@ namespace Phantasma.Neo.Core
             });
         }
 
-        public IEnumerator Transfer(UnspentEntries unspent, NeoKey from_key, string to_address, BigInteger amount, Action<Transaction> callback)
+        public IEnumerator Transfer(UnspentEntries unspent, NeoKeys from_key, string to_address, BigInteger amount, Action<Transaction> callback)
         {
             return Transfer(unspent, from_key, to_address.GetScriptHashFromAddress(), amount, callback);
         }
 
-        public IEnumerator Transfer(UnspentEntries unspent, NeoKey from_key, UInt160 to_address_hash, BigInteger amount, Action<Transaction> callback)
+        public IEnumerator Transfer(UnspentEntries unspent, NeoKeys from_key, UInt160 to_address_hash, BigInteger amount, Action<Transaction> callback)
         {
             return Transfer(unspent, from_key, to_address_hash.ToArray(), amount, callback);
         }
 
-        public IEnumerator Transfer(UnspentEntries unspent, NeoKey from_key, byte[] to_address_hash, BigInteger amount, Action<Transaction> callback)
+        public IEnumerator Transfer(UnspentEntries unspent, NeoKeys from_key, byte[] to_address_hash, BigInteger amount, Action<Transaction> callback)
         {
             var sender_address_hash = from_key.Address.GetScriptHashFromAddress();
             return api.CallContract(callback, unspent, from_key, ScriptHash, "transfer", new object[] { sender_address_hash, to_address_hash, amount});

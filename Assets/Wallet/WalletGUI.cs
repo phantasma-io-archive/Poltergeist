@@ -491,6 +491,26 @@ namespace Poltergeist
             });
         }
 
+        private void CreateWallet(string wif)
+        {
+            ShowModal("Wallet Name", "Enter name for your wallet", ModalState.Input, 32, true, (result, name) =>
+            {
+                if (result == PromptResult.Success)
+                {
+                    try
+                    {
+                        var accountManager = AccountManager.Instance;
+                        int walletIndex = accountManager.AddWallet(name, PlatformKind.Phantasma | PlatformKind.Neo, wif);
+                        LoginIntoAccount(walletIndex);
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox("Error creating account.\n" + e.Message);
+                    }
+                }
+            });
+        }
+
         private void DoAccountScreen()
         {
             int curY = Units(5);
@@ -531,26 +551,43 @@ namespace Poltergeist
 
                 if (GUI.Button(new Rect(-Units(2) + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Generate new wallet"))
                 {
-                    ShowModal("Create wallet", "Enter name for your new wallet", ModalState.Input, 32, true, (result, name) =>
+                    var keys = PhantasmaKeys.Generate();
+                    CreateWallet(keys.ToWIF());
+                }
+
+                if (GUI.Button(new Rect((rect.width - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key"))
+                {
+                    ShowModal("Wallet Import", "Enter your private key", ModalState.Input, 64, true, (result, key) =>
                     {
-                        if (result == PromptResult.Success)
+                        if (key.Length == 52 && (key.StartsWith("K") || key.StartsWith("L")))
                         {
-                            try
+                            CreateWallet(key);
+                        }
+                        else
+                        if (key.Length == 58 && key.StartsWith("6"))
+                        {
+                            ShowModal("NEP2 Encrypted Key", "Insert your wallet passphrase", ModalState.Password, 64, true, (auth, passphrase) =>
                             {
-                                int walletIndex = accountManager.CreateWallet(name, PlatformKind.Phantasma | PlatformKind.Neo);
-                                LoginIntoAccount(walletIndex);
-                            }
-                            catch (Exception e)
-                            {
-                                MessageBox("Error creating account.\n"+e.Message);
-                            }
+                                if (auth == PromptResult.Success)
+                                {
+                                    try
+                                    {
+                                        var decryptedKeys = Phantasma.Neo.Core.NeoKeys.FromNEP2(key, passphrase);
+                                        CreateWallet(decryptedKeys.WIF);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        MessageBox("Could not import wallet.\n"+e.Message);
+                                    }
+                                }
+                            });
+                        }
+                        else
+                        {
+                            MessageBox("Invalid private key");
                         }
                     });
                 }
-
-                GUI.enabled = false;
-                GUI.Button(new Rect((rect.width - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key");
-                GUI.enabled = true;
 
                 if (GUI.Button(new Rect(Units(2) + halfWidth + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Settings"))
                 {
