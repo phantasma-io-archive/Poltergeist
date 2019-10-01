@@ -847,13 +847,11 @@ namespace Poltergeist
 
             DrawHorizontalCenteredText(curY - 5, Units(2), state.address);
 
-#if UNITY_EDITOR
             if (GUI.Button(new Rect(windowRect.width - Units(6), curY + 5, Units(4), Units(1)), "Copy"))
             {
-                EditorGUIUtility.systemCopyBuffer = state.address;
+                GUIUtility.systemCopyBuffer = state.address;
                 MessageBox("Address copied to clipboard");
             }
-#endif
         }
 
         private void DrawBalanceLine(ref Rect subRect, string symbol, decimal amount, string caption)
