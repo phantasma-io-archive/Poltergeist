@@ -175,9 +175,10 @@ namespace Poltergeist
             }
         }
 
-        private IEnumerator FetchTokenPrice(string symbol, string currency)
+        private IEnumerator FetchTokenPrices(IEnumerable<string> symbols, string currency)
         {
-            var url = $"https://min-api.cryptocompare.com/data/price?fsym={symbol}&tsyms={currency}&api_key={cryptoCompareAPIKey}";
+            var symbolList = string.Join(",", symbols);
+            var url = $"https://min-api.cryptocompare.com/data/pricemulti?fsyms={symbolList}&tsyms={currency}&api_key={cryptoCompareAPIKey}";
             return WebClient.RESTRequest(url, (error, msg) =>
             {
 
@@ -186,12 +187,16 @@ namespace Poltergeist
             {
                 try
                 {
-                    var price = response.GetDecimal(currency);
-                    SetTokenPrice(symbol, price);
-
-                    if (symbol == "SOUL")
+                    foreach (var symbol in symbols)
                     {
-                        SetTokenPrice("KCAL", price / 5);
+                        var node = response.GetNode(symbol);
+                        var price = node.GetDecimal(currency);
+                        SetTokenPrice(symbol, price);
+
+                        if (symbol == "SOUL")
+                        {
+                            SetTokenPrice("KCAL", price / 5);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -235,9 +240,21 @@ namespace Poltergeist
 
         private const string TokenInfoTag = "info.tokens";
 
-        private void PrepareTokens(Token[] tokens)
+        private void PrepareTokens(Token[] tokenArray)
         {
-            Debug.Log($"Found {tokens.Length} tokens");
+            var tokens = tokenArray.ToList();
+
+            var nep5Flags = "Fungible";
+            tokens.Add(new Token() { symbol = "SOUL", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NEO", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 8, maxSupply = "100000000", name = "Neo", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "GAS", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "SWTH", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "PKC", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "ASA", hash = "a58b56b30425d3d1f8902034996fcac4168ef71d", decimals = 8, maxSupply = "342015750", name = "Asura World Coin", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "GUARD", hash = "591f92493cd6dd003470e41376f79a515abc707f", decimals = 8, maxSupply = "342015750", name = "Guardium", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "LX", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "808257693", name = "Moonlight Lux", flags = nep5Flags });
 
             CurrentTokenCurrency = "";
 
@@ -247,6 +264,7 @@ namespace Poltergeist
                 _tokenMap[token.symbol] = token;
             }
 
+            Debug.Log($"{_tokenMap.Count} tokens supported");
             Status = "ok";
         }
 
@@ -273,15 +291,8 @@ namespace Poltergeist
                 CurrentTokenCurrency = Settings.currency;
                 _lastPriceUpdate = DateTime.UtcNow;
 
-                foreach (var symbol in _tokenMap.Keys)
-                {
-                    if (symbol == "KCAL")
-                    {
-                        continue;
-                    }
-
-                    StartCoroutine(FetchTokenPrice(symbol, CurrentTokenCurrency));
-                }
+                var symbolList = _tokenMap.Keys.Where(x => x!="KCAL");
+                StartCoroutine(FetchTokenPrices(symbolList, CurrentTokenCurrency));
             }
         }
 
@@ -290,7 +301,9 @@ namespace Poltergeist
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
 
-            var tokenList = PlayerPrefs.GetString(TokenInfoTag, "");
+            PrepareTokens(new Token[] { });
+
+            /*var tokenList = PlayerPrefs.GetString(TokenInfoTag, "");
 
             if (!string.IsNullOrEmpty(tokenList))
             {
@@ -298,7 +311,6 @@ namespace Poltergeist
                     
                 var tokens = Serialization.Unserialize<Token[]>(tokenBytes);
 
-                PrepareTokens(tokens);
                 return;
             }
 
@@ -312,7 +324,7 @@ namespace Poltergeist
             (error, msg) =>
             {
                 Status = "Failed to fetch token list...";
-            }));
+            }));*/
         }
 
         // Update is called once per frame
@@ -329,6 +341,18 @@ namespace Poltergeist
             }
 
             return -1;
+        }
+
+        public bool GetToken(string symbol, out Token token)
+        {
+            if (_tokenMap.ContainsKey(symbol))
+            {
+                token = _tokenMap[symbol];
+                return true;
+            }
+
+            token = new Token();
+            return false;
         }
 
         public decimal AmountFromString(string str, int decimals)
@@ -502,19 +526,39 @@ namespace Poltergeist
                     case PlatformKind.Neo:
                         {
                             var keys = NeoKey.FromWIF(account.key);
-                            StartCoroutine(neoApi.GetAssetBalancesOf(keys, (x) =>
+
+                            var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
+
+                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            {
+                                ReportWalletBalance(platform, null);
+                            },
+                            (response) =>
                             {
                                 var balances = new List<Balance>();
 
-                                foreach (var entry in x)
+                                var balance = response.GetNode("balance");
+                                foreach (var entry in balance.Children)
                                 {
-                                    balances.Add(new Balance()
+                                    var hash = entry.GetString("asset_hash");
+                                    var symbol = entry.GetString("asset");
+                                    var amount = entry.GetDecimal("amount");
+
+                                    Token token;
+                                    
+                                    if (GetToken(symbol, out token))
                                     {
-                                        Symbol = entry.Key,
-                                        Amount = entry.Value,
-                                        Chain = "main",
-                                        Decimals = GetTokenDecimals(entry.Key)
-                                    });
+                                        if (hash == token.hash)
+                                        {
+                                            balances.Add(new Balance()
+                                            {
+                                                Symbol = symbol,
+                                                Amount = amount,
+                                                Chain = "main",
+                                                Decimals = token.decimals
+                                            });
+                                        }
+                                    }
                                 }
 
                                 var state = new AccountState()
@@ -526,11 +570,6 @@ namespace Poltergeist
                                     balances = balances.ToArray(),
                                     flags = AccountFlags.None
                                 };
-
-                                if (state.stake > 50000)
-                                {
-                                    state.flags |= AccountFlags.Master;
-                                }
 
                                 ReportWalletBalance(platform, state);
                             }));
