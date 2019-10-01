@@ -120,7 +120,7 @@ namespace Poltergeist
         public string name;
         public string address;
         public decimal stake;
-        public decimal claim;
+        public decimal unclaimed;
         public Balance[] balances;
         public AccountFlags flags;
 
@@ -405,6 +405,11 @@ namespace Poltergeist
 
         public decimal AmountFromString(string str, int decimals)
         {
+            if (string.IsNullOrEmpty(str))
+            {
+                return 0;
+            }
+
             var n = BigInteger.Parse(str);
             return UnitConversion.ToDecimal(n, decimals);
         }
@@ -552,7 +557,7 @@ namespace Poltergeist
                                     address = x.address,
                                     name = x.name,
                                     stake = AmountFromString(x.stake, GetTokenDecimals("SOUL")),
-                                    claim = 0, // TODO support claimable KCAL
+                                    unclaimed = AmountFromString(x.unclaimed, GetTokenDecimals("KCAL")),
                                     balances = x.balances.Select(y => new Balance() { Symbol = y.symbol, Amount = AmountFromString(y.amount, GetTokenDecimals(y.symbol)), Chain = y.chain, Decimals = GetTokenDecimals(y.symbol) }).ToArray(),
                                     flags = AccountFlags.None
                                 };
@@ -614,7 +619,7 @@ namespace Poltergeist
                                     address = keys.Address,
                                     name = keys.Address, // TODO support NNS
                                     stake = 0,
-                                    claim = 0, // TODO support claimable GAS
+                                    unclaimed = 0, // TODO support claimable GAS
                                     balances = balances.ToArray(),
                                     flags = AccountFlags.None
                                 };

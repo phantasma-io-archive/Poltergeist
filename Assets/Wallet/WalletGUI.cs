@@ -951,23 +951,29 @@ namespace Poltergeist
 
                     case "KCAL":
                         secondaryAction = "Claim";
-                        secondaryEnabled = state.claim > 0;
+                        secondaryEnabled = state.unclaimed > 0;
                         secondaryCallback = () =>
                         {
-                            var address = Address.FromText(state.address);
-                            var gasPrice = accountManager.Settings.feePrice;
-
-                            var sb = new ScriptBuilder();
-                            sb.AllowGas(address, Address.Null, gasPrice, 1);
-                            sb.CallContract("stake", "Claim", address, address);
-                            sb.SpendGas(address);
-                            var script = sb.EndScript();
-
-                            SendTransaction(script, "main", (hash) =>
+                            ConfirmBox($"Do you want to claim KCAL?\nThere is {state.unclaimed} KCAL available.", (result) =>
                             {
-                                if (hash != Hash.Null)
+                                if (result == PromptResult.Success)
                                 {
-                                    MessageBox("You claimed some KCAL!\nTransaction hash: " + hash);
+                                    var address = Address.FromText(state.address);
+                                    var gasPrice = accountManager.Settings.feePrice;
+
+                                    var sb = new ScriptBuilder();
+                                    sb.AllowGas(address, Address.Null, gasPrice, 1);
+                                    sb.CallContract("stake", "Claim", address, address);
+                                    sb.SpendGas(address);
+                                    var script = sb.EndScript();
+
+                                    SendTransaction(script, "main", (hash) =>
+                                    {
+                                        if (hash != Hash.Null)
+                                        {
+                                            MessageBox("You claimed some KCAL!\nTransaction hash: " + hash);
+                                        }
+                                    });
                                 }
                             });
                         };
@@ -975,7 +981,7 @@ namespace Poltergeist
 
                     case "GAS":
                         secondaryAction = "Claim";
-                        secondaryEnabled = state.claim > 0;
+                        secondaryEnabled = state.unclaimed > 0;
                         secondaryCallback = () =>
                         {
                         };

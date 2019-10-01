@@ -120,8 +120,9 @@ namespace Phantasma.SDK
 	{
 		public string address; //
 		public string name; //
-		public string stake; //
-		public string relay; //
+        public string stake; //
+        public string unclaimed; //
+        public string relay; //
 		public Balance[] balances; //
 		public Interop[] interops; //
 	   
@@ -130,9 +131,10 @@ namespace Phantasma.SDK
 			Account result;
 						
 			result.address = node.GetString("address");						
-			result.name = node.GetString("name");						
-			result.stake = node.GetString("stake");						
-			result.relay = node.GetString("relay");			
+			result.name = node.GetString("name");
+            result.stake = node.GetString("stake");
+            result.unclaimed = node.GetString("unclaimed");
+            result.relay = node.GetString("relay");			
 			var balances_array = node.GetNode("balances");
 			if (balances_array != null) {
 				result.balances = new Balance[balances_array.ChildCount];
