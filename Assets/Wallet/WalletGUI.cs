@@ -76,6 +76,8 @@ namespace Poltergeist
 
         private ComboBox platformComboBox = new ComboBox();
 
+        private ComboBox hintComboBox = new ComboBox();
+
         private int nexusIndex;
         private ComboBox nexusComboBox = new ComboBox();
 
@@ -181,9 +183,10 @@ namespace Poltergeist
         private string modalCaption;
         private string modalTitle;
         private bool modalAllowCancel;
+        private Dictionary<string, string> modalHints;
         private PromptResult modalResult;
 
-        private void ShowModal(string title, string caption, ModalState state, int maxInputLength, bool allowCancel, Action<PromptResult, string> callback)
+        private void ShowModal(string title, string caption, ModalState state, int maxInputLength, bool allowCancel, Dictionary<string, string> hints, Action<PromptResult, string> callback)
         {
             modalResult = PromptResult.Waiting;
             modalInput = "";
@@ -193,11 +196,13 @@ namespace Poltergeist
             modalCaption = caption;
             modalCallback = callback;
             modalAllowCancel = allowCancel;
+            modalHints = hints;
+            hintComboBox.SelectedItemIndex = -1;
         }
 
         public void ConfirmBox(string caption, Action<PromptResult> callback)
         {
-            ShowModal("Confirmation", caption, ModalState.Message, 0, true, (result, input) =>
+            ShowModal("Confirmation", caption, ModalState.Message, 0, true, null, (result, input) =>
             {
                 callback(result);
             });
@@ -205,7 +210,7 @@ namespace Poltergeist
 
         public void MessageBox(string caption, Action callback = null)
         {
-            ShowModal("Attention", caption, ModalState.Message, 0, false, (result, input) =>
+            ShowModal("Attention", caption, ModalState.Message, 0, false, null, (result, input) =>
             {
                 callback?.Invoke();
             });
@@ -227,7 +232,7 @@ namespace Poltergeist
                 return;
             }
 
-            ShowModal("Account Authorization", "Account: " + accountManager.CurrentAccount.ToString() + "\nInsert password to proceed", ModalState.Password, Account.MaxPasswordLength, true, (result, input) =>
+            ShowModal("Account Authorization", "Account: " + accountManager.CurrentAccount.ToString() + "\nInsert password to proceed", ModalState.Password, Account.MaxPasswordLength, true, null, (result, input) =>
             {
                 if (result == PromptResult.Success && !string.IsNullOrEmpty(input) && input == accountManager.CurrentAccount.password)
                 {
@@ -385,14 +390,25 @@ namespace Poltergeist
             GUI.Label(new Rect(rect.x, curY, rect.width, Units(5)), modalCaption);
             curY += Units(5);
 
+            var fieldWidth = rect.width;
+
+            bool hasHints = modalHints != null && modalHints.Count > 0;
+            int hintWidth = Units(10);
+            int hintY = curY;
+
+            if (hasHints)
+            {
+                fieldWidth -= hintWidth + Units(1);
+            }
+            
             if (modalState == ModalState.Input)
             {
-                modalInput = GUI.TextField(new Rect(rect.x, curY, rect.width, Units(2)), modalInput, modalInputLength);
+                modalInput = GUI.TextField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, modalInputLength);
             }
             else
             if (modalState == ModalState.Password)
             {
-                modalInput = GUI.PasswordField(new Rect(rect.x, curY, rect.width, Units(2)), modalInput, '*', modalInputLength);
+                modalInput = GUI.PasswordField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, '*', modalInputLength);
             }
 
             int btnWidth = Units(11);
@@ -420,6 +436,25 @@ namespace Poltergeist
                 if (GUI.Button(new Rect((rect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Ok"))
                 {
                     modalResult = PromptResult.Success;
+                }
+            }
+
+            if (hasHints)
+            {
+                curY = hintY;
+
+                int dropHeight;
+                var hintList = modalHints.Keys.ToList();
+
+                var prevHind = hintComboBox.SelectedItemIndex;
+                var hintIndex = hintComboBox.Show(new Rect(rect.width - hintWidth + 8, curY, hintWidth, Units(2)), hintList, out dropHeight, "...");
+                if (prevHind != hintIndex && hintIndex >= 0)
+                {
+                    var key = hintList[hintIndex];
+                    if (modalHints.ContainsKey(key))
+                    {
+                        modalInput = modalHints[key];
+                    }
                 }
             }
         }
@@ -493,7 +528,7 @@ namespace Poltergeist
 
         private void CreateWallet(string wif)
         {
-            ShowModal("Wallet Name", "Enter name for your wallet", ModalState.Input, 32, true, (result, name) =>
+            ShowModal("Wallet Name", "Enter name for your wallet", ModalState.Input, 32, true, null, (result, name) =>
             {
                 if (result == PromptResult.Success)
                 {
@@ -557,7 +592,7 @@ namespace Poltergeist
 
                 if (GUI.Button(new Rect((rect.width - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key"))
                 {
-                    ShowModal("Wallet Import", "Enter your private key", ModalState.Input, 64, true, (result, key) =>
+                    ShowModal("Wallet Import", "Enter your private key", ModalState.Input, 64, true, null, (result, key) =>
                     {
                         if (key.Length == 52 && (key.StartsWith("K") || key.StartsWith("L")))
                         {
@@ -566,7 +601,7 @@ namespace Poltergeist
                         else
                         if (key.Length == 58 && key.StartsWith("6"))
                         {
-                            ShowModal("NEP2 Encrypted Key", "Insert your wallet passphrase", ModalState.Password, 64, true, (auth, passphrase) =>
+                            ShowModal("NEP2 Encrypted Key", "Insert your wallet passphrase", ModalState.Password, 64, true, null, (auth, passphrase) =>
                             {
                                 if (auth == PromptResult.Success)
                                 {
@@ -1018,8 +1053,13 @@ namespace Poltergeist
                 {
                     transferSymbol = balance.Symbol;
                     var transferName = $"{transferSymbol} transfer";
-                    ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, (result, destAddress) =>
+                    ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, GetAccountHints(accountManager.CurrentPlatform.GetTransferTargets()), (result, destAddress) =>
                     {
+                        if (result == PromptResult.Failure)
+                        {
+                            return; // user canceled
+                        }
+
                         if (Address.IsValidAddress(destAddress))
                         {
                             if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
@@ -1073,7 +1113,6 @@ namespace Poltergeist
 
             DoBottomMenu();
         }
-
 
         private void DoHistoryScreen()
         {
@@ -1245,11 +1284,6 @@ namespace Poltergeist
         #region transfers
         private void ContinuePhantasmaTransfer(string transferName, string symbol, string destAddress)
         {
-            if (string.IsNullOrEmpty(destAddress))
-            {
-                return; // user cancelled
-            }
-
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
 
@@ -1262,9 +1296,9 @@ namespace Poltergeist
                 return;
             }
 
-            ShowModal(transferName, $"Enter {symbol} amount", ModalState.Input, 64, true, (result, temp) =>
+            ShowModal(transferName, $"Enter {symbol} amount", ModalState.Input, 64, true, null, (result, temp) =>
             {
-                if (string.IsNullOrEmpty(temp))
+                if (result == PromptResult.Failure)
                 {
                     return; // user cancelled
                 }
@@ -1440,6 +1474,37 @@ namespace Poltergeist
                  });
         }
         #endregion
+
+
+        private Dictionary<string, string> GetAccountHints(PlatformKind targets)
+        {
+            var accountManager = AccountManager.Instance;
+            var hints = new Dictionary<string, string>();
+
+            foreach (var account in accountManager.Accounts)
+            {
+                var platforms = account.platforms.Split();
+                foreach (var platform in platforms)
+                {
+                    if (account.name == accountManager.CurrentAccount.name && platform == accountManager.CurrentPlatform)
+                    {
+                        continue;
+                    }
+
+                    if (targets.HasFlag(platform))
+                    {
+                        var addr = account.GetAddress(platform);
+                        if (!string.IsNullOrEmpty(addr))
+                        {
+                            var key = $"{account.name} [{platform}]";
+                            hints[key] = addr;
+                        }
+                    }
+                }
+            }
+
+            return hints;
+        }
     }
 
 }

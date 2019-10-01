@@ -25,22 +25,21 @@ public class ComboBox
         this.boxStyle = boxStyle;
     }
 
-    public int Show<T>(Rect rect, IList<T> listContent, out int height)
+    public int Show<T>(Rect rect, IList<T> listContent, out int height, string caption = null)
     {
-        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray(), out height);
+        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray(), out height, caption);
     }
 
-    public int Show(Rect rect, IList<GUIContent> listContent, out int height)
+    public int Show(Rect rect, IList<GUIContent> listContent, out int height, string caption = null)
     {
         if (listStyle == null)
         {
             listStyle = GUI.skin.customStyles[0];
 
-            var normalTex = ResourceManager.TextureFromColor(new Color(0, 0, 0, 0.75f));
+            var normalTex = ResourceManager.TextureFromColor(new Color(0, 0, 0, 1));
             var hoverTex = ResourceManager.TextureFromColor(Color.white);
 
             listStyle.normal.textColor = Color.white;
-
             listStyle.normal.background = normalTex;
 
             listStyle.onHover.background =
@@ -73,7 +72,9 @@ public class ComboBox
                 break;
         }
 
-        var buttonContent = listContent[selectedItemIndex];
+        int offset = caption == null ? 0 : 1;
+
+        var buttonContent = caption == null ? listContent[selectedItemIndex - offset] : new GUIContent(caption);
         if (GUI.Button(rect, buttonContent, buttonStyle))
         {
             if (useControlID == -1)
@@ -94,18 +95,17 @@ public class ComboBox
         if (isClickedComboButton)
         {
             Rect listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2),
-                      rect.width, WalletGUI.Units(3) * listContent.Count);
+                      rect.width, WalletGUI.Units(3) * (listContent.Count - offset));
 
             //  GUI.Box(listRect, "");
 
-            height += WalletGUI.Units(2) * listContent.Count;
+            height += WalletGUI.Units(2) * (listContent.Count - offset);
             listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2), rect.width, height);
 
             int newSelectedItemIndex = GUI.SelectionGrid(listRect, selectedItemIndex, listContent.ToArray(), 1, listStyle);
             if (newSelectedItemIndex != selectedItemIndex)
             {
                 selectedItemIndex = newSelectedItemIndex;
-                buttonContent = listContent[selectedItemIndex];
             }
 
             height += WalletGUI.Units(2);

@@ -41,6 +41,32 @@ namespace Poltergeist
         {
             return $"{name.ToUpper()} [{platforms}]";
         }
+
+        public string GetAddress(PlatformKind platform)
+        {
+            if (!platforms.HasFlag(platform))
+            {
+                return null;
+            }
+
+            switch (platform)
+            {
+                case PlatformKind.Phantasma:
+                    {
+                        var keys = PhantasmaKeys.FromWIF(key);
+                        return keys.Address.Text;
+                    }
+
+                case PlatformKind.Neo:
+                    {
+                        var keys = NeoKeys.FromWIF(key);
+                        return keys.Address;
+                    }
+
+                default:
+                    return null;
+            }
+        }
     }
 
     public struct HistoryEntry
@@ -71,6 +97,22 @@ namespace Poltergeist
             }
             return list;
         }
+
+        public static PlatformKind GetTransferTargets(this PlatformKind kind)
+        {
+            switch (kind)
+            {
+                case PlatformKind.Phantasma:
+                    return PlatformKind.Phantasma | PlatformKind.Neo;
+
+                case PlatformKind.Neo:
+                    return PlatformKind.Phantasma | PlatformKind.Neo;
+
+                default:
+                    return PlatformKind.None;
+            }
+        }
+
     }
 
     public class AccountState
@@ -212,6 +254,8 @@ namespace Poltergeist
             _tokenPrices[symbol] = price;
         }
 
+        private const string WalletTag = "wallet.list";
+
         // Start is called before the first frame update
         void Start()
         {
@@ -219,7 +263,7 @@ namespace Poltergeist
 
             LoadNexus();
 
-            var wallets = PlayerPrefs.GetString("polterwallet", "");
+            var wallets = PlayerPrefs.GetString(WalletTag, "");
 
             if (!string.IsNullOrEmpty(wallets))
             {
@@ -236,6 +280,12 @@ namespace Poltergeist
                     new Account() { name = "monk", platforms = PlatformKind.Phantasma, key = "Kx4GzZxzGZsQNt8URu36SnvR5KGSzg8s8ZxH8cunzZGh2JLmxHsW", password = "", misc = "" },
                 };
             }
+        }
+
+        private void SaveAccounts()
+        {
+            var bytes = Serialization.Serialize(Accounts);
+            PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
         }
 
         private const string TokenInfoTag = "info.tokens";
@@ -729,8 +779,12 @@ namespace Poltergeist
             list.Add(new Account() { name = name, key = wif, password = "", platforms = platforms, misc = "" });
 
             this.Accounts = list.ToArray();
+
+#if !UNITY_EDITOR
+            SaveAccounts();
+#endif
+
             return Accounts.Length - 1;
         }
-
     }
 }
