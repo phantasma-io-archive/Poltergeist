@@ -12,12 +12,12 @@ public class ResourceManager : MonoBehaviour
     }
 
     public Texture WalletLogo { get; private set; }
-    public Texture CloseLogo { get; private set; }
+    public Texture MasterLogo { get; private set; }
 
     void Start()
     {
         WalletLogo = GetToken("soul");
-        CloseLogo = Resources.Load<Texture>("close");
+        MasterLogo = Resources.Load<Texture>("soul_master");
     }
 
     private Dictionary<string, Texture> _symbols = new Dictionary<string, Texture>();

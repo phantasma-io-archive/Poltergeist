@@ -119,19 +119,17 @@ namespace Poltergeist
     {
         public string name;
         public string address;
-        public decimal stake;
-        public decimal unclaimed;
         public Balance[] balances;
         public AccountFlags flags;
 
-        public decimal GetBalance(string symbol)
+        public decimal GetAvailableAmount(string symbol)
         {
             for (int i=0; i<balances.Length; i++)
             {
                 var entry = balances[i];
                 if (entry.Symbol == symbol)
                 {
-                    return entry.Amount;
+                    return entry.Available;
                 }
             }
 
@@ -139,12 +137,17 @@ namespace Poltergeist
         }
     }
 
-    public struct Balance
+    public class Balance
     {
         public string Symbol;
-        public decimal Amount;
+        public decimal Available;
+        public decimal Staked;
+        public decimal Pending;
+        public decimal Claimable;
         public string Chain;
         public int Decimals;
+
+        public decimal Total => Available + Staked + Pending + Claimable;
     }
 
     public class AccountManager : MonoBehaviour
@@ -185,6 +188,8 @@ namespace Poltergeist
         private Dictionary<string, string> _currencyMap = new Dictionary<string, string>();
         public IEnumerable<string> Currencies => _currencyMap.Keys;
 
+        public static readonly int SoulMasterStakeAmount = 50000;
+
         private DateTime _lastPriceUpdate = DateTime.MinValue;
 
         private int _pendingRequestCount;
@@ -209,7 +214,7 @@ namespace Poltergeist
             {
                 var price = _tokenPrices[symbol] * amount;
                 var ch = _currencyMap[CurrentTokenCurrency];
-                return $"{price.ToString("0.####")} {ch}";
+                return $"{price.ToString(WalletGUI.MoneyFormat)} {ch}";
             }
             else
             {
@@ -550,19 +555,84 @@ namespace Poltergeist
                     case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(account.key);
-                            StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (x) =>
+                            StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
                             {
+                                var balanceMap = new Dictionary<string, Balance>();
+
+                            foreach (var entry in acc.balances)
+                            {
+                                    balanceMap[entry.symbol] = new Balance()
+                                    {
+                                        Symbol = entry.symbol,
+                                        Available = AmountFromString(entry.amount, GetTokenDecimals(entry.symbol)),
+                                        Pending = 0,
+                                        Staked = 0,
+                                        Claimable = 0,
+                                        Chain = entry.chain,
+                                        Decimals = GetTokenDecimals(entry.symbol)
+                                    };
+                            }
+
+                                var stakedAmount = AmountFromString(acc.stake, GetTokenDecimals("SOUL"));
+                                var claimableAmount = AmountFromString(acc.unclaimed, GetTokenDecimals("KCAL"));
+
+                                if (stakedAmount > 0)
+                                {
+                                    var symbol = "SOUL";
+                                    if (balanceMap.ContainsKey(symbol))
+                                    {
+                                        var entry = balanceMap[symbol];
+                                        entry.Staked = stakedAmount;
+                                    }
+                                    else
+                                    {
+                                        var entry = new Balance()
+                                        {
+                                            Symbol = symbol,
+                                            Chain = "main",
+                                            Available = 0,
+                                            Staked = stakedAmount,
+                                            Claimable = 0,
+                                            Pending = 0,
+                                            Decimals = GetTokenDecimals(symbol)
+                                        };
+                                        balanceMap[symbol] = entry;
+                                    }
+                                }
+
+                                if (claimableAmount > 0)
+                                {
+                                    var symbol = "KCAL";
+                                    if (balanceMap.ContainsKey(symbol))
+                                    {
+                                        var entry = balanceMap[symbol];
+                                        entry.Claimable = claimableAmount;
+                                    }
+                                    else
+                                    {
+                                        var entry = new Balance()
+                                        {
+                                            Symbol = symbol,
+                                            Chain = "main",
+                                            Available = 0,
+                                            Staked = 0,
+                                            Claimable = claimableAmount,
+                                            Pending = 0,
+                                            Decimals = GetTokenDecimals(symbol)
+                                        };
+                                        balanceMap[symbol] = entry;
+                                    }
+                                }
+
                                 var state = new AccountState()
                                 {
-                                    address = x.address,
-                                    name = x.name,
-                                    stake = AmountFromString(x.stake, GetTokenDecimals("SOUL")),
-                                    unclaimed = AmountFromString(x.unclaimed, GetTokenDecimals("KCAL")),
-                                    balances = x.balances.Select(y => new Balance() { Symbol = y.symbol, Amount = AmountFromString(y.amount, GetTokenDecimals(y.symbol)), Chain = y.chain, Decimals = GetTokenDecimals(y.symbol) }).ToArray(),
+                                    address = acc.address,
+                                    name = acc.name,
+                                    balances = balanceMap.Values.ToArray(),                                    
                                     flags = AccountFlags.None
                                 };
 
-                                if (state.stake > 50000)
+                                if (stakedAmount >= SoulMasterStakeAmount)
                                 {
                                     state.flags |= AccountFlags.Master;
                                 }
@@ -606,7 +676,10 @@ namespace Poltergeist
                                             balances.Add(new Balance()
                                             {
                                                 Symbol = symbol,
-                                                Amount = amount,
+                                                Available = amount,
+                                                Pending = 0,
+                                                Claimable = 0, // TODO support claimable GAS
+                                                Staked = 0,
                                                 Chain = "main",
                                                 Decimals = token.decimals
                                             });
@@ -618,8 +691,6 @@ namespace Poltergeist
                                 {
                                     address = keys.Address,
                                     name = keys.Address, // TODO support NNS
-                                    stake = 0,
-                                    unclaimed = 0, // TODO support claimable GAS
                                     balances = balances.ToArray(),
                                     flags = AccountFlags.None
                                 };
