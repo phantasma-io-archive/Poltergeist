@@ -1328,6 +1328,14 @@ namespace Poltergeist
 
         private void SendTransaction(string description, byte[] script, string chain, Action<Hash> callback)
         {
+            if (script == null)
+            {
+                MessageBox("Null transaction script", () =>
+                {
+                    callback(Hash.Null);
+                });
+            }
+
             var accountManager = AccountManager.Instance;
             RequestPassword(description, accountManager.CurrentPlatform, (auth) =>
             {
@@ -1373,6 +1381,12 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+            {
+                MessageBox($"Current platform must be " + PlatformKind.Phantasma);
+                return;
+            }
 
             var source = Address.FromText(state.address);
             var destination = Address.FromText(destAddress);
@@ -1460,10 +1474,70 @@ namespace Poltergeist
             });
         }
 
-
         private void ContinueNeoTransfer(string transferName, string symbol, string destAddress)
         {
-            MessageBox("Not implemented :(");
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Neo)
+            {
+                MessageBox($"Current platform must be " + PlatformKind.Neo);
+                return;
+            }
+
+            var sourceAddress = accountManager.CurrentAccount.GetAddress(accountManager.CurrentPlatform);
+
+            if (sourceAddress == destAddress)
+            {
+                MessageBox($"Source and destination address must be different!");
+                return;
+            }
+
+            ShowModal(transferName, $"Enter {symbol} amount", ModalState.Input, 64, true, null, (result, temp) =>
+            {
+                if (result == PromptResult.Failure)
+                {
+                    return; // user cancelled
+                }
+
+                decimal amount;
+
+                if (decimal.TryParse(temp, out amount) && amount > 0)
+                {
+                    var balance = state.GetAvailableAmount(symbol);
+
+                    if (amount > balance)
+                    {
+                        MessageBox($"Not enough {symbol}!");
+                        return;
+                    }
+                    else
+                    {
+                            try
+                            {
+                            
+                            }
+                            catch (Exception e)
+                            {
+                                MessageBox("Something went wrong!\n" + e.Message);
+                                return;
+                            }
+
+                            SendTransaction($"Transfer {amount} {symbol}", null, "main", (hash) =>
+                            {
+                                if (hash != Hash.Null)
+                                {
+                                    MessageBox($"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                                }
+                            });
+                    }
+                }
+                else
+                {
+                    MessageBox("Invalid amount!");
+                    return;
+                }
+            });
         }
 
         private void ContinueSwapIn(string transferName, string symbol, string destAddress)
