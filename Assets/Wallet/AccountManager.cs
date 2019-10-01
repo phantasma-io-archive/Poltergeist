@@ -112,8 +112,16 @@ namespace Poltergeist
                     return PlatformKind.None;
             }
         }
-
     }
+
+    public struct TransferRequest
+    {
+        public PlatformKind platform;
+        public string key;
+        public string destination;
+        public string symbol;
+        public decimal amount;
+    } 
 
     public class AccountState
     {
@@ -156,7 +164,8 @@ namespace Poltergeist
 
         public Account[] Accounts { get; private set; }
 
-        private Dictionary<string, Token> _tokenMap = null;
+        private Dictionary<string, Token> _tokenSymbolMap = null;
+        private Dictionary<string, Token> _tokenHashMap = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
         public string CurrentTokenCurrency { get; private set; }
 
@@ -308,16 +317,19 @@ namespace Poltergeist
             tokens.Add(new Token() { symbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "PKC", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "710405560", name = "nOS", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "MKNI", hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = nep5Flags });
 
             CurrentTokenCurrency = "";
 
-            _tokenMap = new Dictionary<string, Token>();
+            _tokenSymbolMap = new Dictionary<string, Token>();
+            _tokenHashMap = new Dictionary<string, Token>();
             foreach (var token in tokens)
             {
-                _tokenMap[token.symbol] = token;
+                _tokenSymbolMap[token.symbol] = token;
+                _tokenHashMap[token.hash] = token;
             }
 
-            Debug.Log($"{_tokenMap.Count} tokens supported");
+            Debug.Log($"{_tokenSymbolMap.Count} tokens supported");
             Status = "ok";
         }
 
@@ -344,7 +356,7 @@ namespace Poltergeist
                 CurrentTokenCurrency = Settings.currency;
                 _lastPriceUpdate = DateTime.UtcNow;
 
-                var symbolList = _tokenMap.Keys.Where(x => x!="KCAL");
+                var symbolList = _tokenSymbolMap.Keys.Where(x => x!="KCAL");
                 StartCoroutine(FetchTokenPrices(symbolList, CurrentTokenCurrency));
             }
         }
@@ -388,19 +400,31 @@ namespace Poltergeist
 
         public int GetTokenDecimals(string symbol)
         {
-            if (_tokenMap.ContainsKey(symbol))
+            if (_tokenSymbolMap.ContainsKey(symbol))
             {
-                return _tokenMap[symbol].decimals;
+                return _tokenSymbolMap[symbol].decimals;
             }
 
             return -1;
         }
 
-        public bool GetToken(string symbol, out Token token)
+        public bool GetTokenBySymbol(string symbol, out Token token)
         {
-            if (_tokenMap.ContainsKey(symbol))
+            if (_tokenSymbolMap.ContainsKey(symbol))
             {
-                token = _tokenMap[symbol];
+                token = _tokenSymbolMap[symbol];
+                return true;
+            }
+
+            token = new Token();
+            return false;
+        }
+
+        public bool GetTokenByHash(string hash, out Token token)
+        {
+            if (_tokenHashMap.ContainsKey(hash))
+            {
+                token = _tokenHashMap[hash];
                 return true;
             }
 
@@ -423,21 +447,99 @@ namespace Poltergeist
         {
             var account = this.CurrentAccount;
 
-            if (CurrentPlatform == PlatformKind.Phantasma)
+            switch (CurrentPlatform)
             {
-                var keys = PhantasmaKeys.FromWIF(account.key);
-                StartCoroutine(phantasmaApi.SignAndSendTransaction(keys, script, chain, (hashText) =>
-                {
-                    var hash = Hash.Parse(hashText);
-                    callback(hash);
-                }, (error, msg) =>
-                {
-                    callback(Hash.Null);
-                }));
-            }
-            else
-            {
-                callback(Hash.Null);
+                case PlatformKind.Phantasma:
+                    {
+                        var keys = PhantasmaKeys.FromWIF(account.key);
+                        StartCoroutine(phantasmaApi.SignAndSendTransaction(keys, script, chain, (hashText) =>
+                        {
+                            var hash = Hash.Parse(hashText);
+                            callback(hash);
+                        }, (error, msg) =>
+                        {
+                            callback(Hash.Null);
+                        }));
+                        break;
+                    }
+
+                default:
+                    {
+                        try
+                        {
+                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+                            if (transfer.platform == CurrentPlatform)
+                            {
+                                switch (transfer.platform)
+                                {
+                                    case PlatformKind.Neo:
+                                        {
+                                            var keys = NeoKeys.FromWIF(transfer.key);
+
+                                            StartCoroutine(neoApi.GetUnspent(keys.Address, (unspent) =>
+                                            {
+                                                Debug.Log("Got unspents for " + keys.Address);
+
+                                                if (transfer.symbol == "NEO" || transfer.symbol == "GAS")
+                                                {
+                                                    neoApi.SendAsset((tx) =>
+                                                    {
+                                                        if (tx != null)
+                                                        {
+                                                            var hash = Hash.Parse(tx.Hash.ToString());
+                                                            callback(hash);
+                                                        }
+                                                        else
+                                                        {
+                                                            callback(Hash.Null);
+                                                        }
+                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount);
+                                                }
+                                                else
+                                                {
+                                                    Token token;
+
+                                                    if (GetTokenBySymbol(transfer.symbol, out token))
+                                                    {
+                                                        var amount = System.Numerics.BigInteger.Parse(UnitConversion.ToBigInteger(transfer.amount, token.decimals).ToString());
+
+                                                        var nep5 = new NEP5(neoApi, token.hash);
+                                                        nep5.Transfer(unspent, keys, transfer.destination, amount, 
+                                                        (tx) =>
+                                                        {
+                                                            if (tx != null)
+                                                            {
+                                                                var hash = Hash.Parse(tx.Hash.ToString());
+                                                                callback(hash);
+                                                            }
+                                                            else
+                                                            {
+                                                                callback(Hash.Null);
+                                                            }
+                                                        });
+                                                    }
+                                                    else
+                                                    {
+                                                        callback(Hash.Null);
+                                                    }
+                                                }
+
+                                            }));
+
+                                            break;
+                                        }
+                                }
+                                return;
+                            }
+                        }
+                        catch
+                        {
+                            // just continue
+                        }
+
+                        callback(Hash.Null);
+                        break;
+                    }
             }
         }
 
@@ -669,7 +771,7 @@ namespace Poltergeist
 
                                     Token token;
                                     
-                                    if (GetToken(symbol, out token))
+                                    if (GetTokenBySymbol(symbol, out token))
                                     {
                                         if (hash == token.hash)
                                         {

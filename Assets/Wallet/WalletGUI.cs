@@ -7,6 +7,7 @@ using Phantasma.Cryptography;
 using Phantasma.Blockchain.Contracts;
 using Phantasma.Numerics;
 using System.Linq;
+using Phantasma.Storage;
 
 namespace Poltergeist
 {
@@ -1513,23 +1514,24 @@ namespace Poltergeist
                     }
                     else
                     {
-                            try
-                            {
-                            
-                            }
-                            catch (Exception e)
-                            {
-                                MessageBox("Something went wrong!\n" + e.Message);
-                                return;
-                            }
+                        var transfer = new TransferRequest()
+                        {
+                            platform = PlatformKind.Neo,
+                            amount = amount,
+                            symbol = symbol,
+                            key = accountManager.CurrentAccount.key,
+                            destination = destAddress
+                        };
 
-                            SendTransaction($"Transfer {amount} {symbol}", null, "main", (hash) =>
+                        byte[] script = Serialization.Serialize(transfer);
+                          
+                        SendTransaction($"Transfer {amount} {symbol}", script, "main", (hash) =>
+                        {
+                            if (hash != Hash.Null)
                             {
-                                if (hash != Hash.Null)
-                                {
-                                    MessageBox($"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
-                                }
-                            });
+                                MessageBox($"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                            }
+                        });
                     }
                 }
                 else
