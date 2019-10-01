@@ -25,12 +25,12 @@ public class ComboBox
         this.boxStyle = boxStyle;
     }
 
-    public int Show<T>(Rect rect, IList<T> listContent, out int height, string caption = null)
+    public int Show<T>(Rect rect, IList<T> listContent, out int height, string caption = null, int offset = 0)
     {
-        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray(), out height, caption);
+        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray(), out height, caption, offset);
     }
 
-    public int Show(Rect rect, IList<GUIContent> listContent, out int height, string caption = null)
+    public int Show(Rect rect, IList<GUIContent> listContent, out int height, string caption = null, int offset = 0)
     {
         if (listStyle == null)
         {
@@ -72,9 +72,7 @@ public class ComboBox
                 break;
         }
 
-        int offset = caption == null ? 0 : 1;
-
-        var buttonContent = caption == null ? listContent[selectedItemIndex - offset] : new GUIContent(caption);
+        var buttonContent = caption == null ? listContent[selectedItemIndex] : new GUIContent(caption);
         if (GUI.Button(rect, buttonContent, buttonStyle))
         {
             if (useControlID == -1)
@@ -102,7 +100,7 @@ public class ComboBox
             height += WalletGUI.Units(2) * (listContent.Count - offset);
             listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2), rect.width, height);
 
-            int newSelectedItemIndex = GUI.SelectionGrid(listRect, selectedItemIndex, listContent.ToArray(), 1, listStyle);
+            int newSelectedItemIndex = GUI.SelectionGrid(listRect, selectedItemIndex - offset, listContent.Skip(offset).ToArray(), 1, listStyle) + offset;
             if (newSelectedItemIndex != selectedItemIndex)
             {
                 selectedItemIndex = newSelectedItemIndex;

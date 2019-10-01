@@ -5,6 +5,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using Phantasma.Neo.Cryptography;
+using Org.BouncyCastle.Asn1.Nist;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Security;
 
 namespace Phantasma.Neo.Utils
 {
@@ -78,64 +82,17 @@ namespace Phantasma.Neo.Utils
 
         public static byte[] Sign(byte[] message, byte[] prikey, byte[] pubkey)
         {
-            using (var ecdsa = ECDsa.Create(new ECParameters
-            {
-                Curve = ECCurve.NamedCurves.nistP256,
-                D = prikey,
-                Q = new ECPoint
-                {
-                    X = pubkey.Take(32).ToArray(),
-                    Y = pubkey.Skip(32).ToArray()
-                }
-            }))
-            {
-                return ecdsa.SignData(message, HashAlgorithmName.SHA256);
-            }
-        }
+            var signer = SignerUtilities.GetSigner("SHA256withECDSA");
+            var curve = NistNamedCurves.GetByName("P-256");
+            var dom = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
+            ECKeyParameters privateKeyParameters = new ECPrivateKeyParameters(new BigInteger(1, prikey), dom);
 
-        public static bool VerifySignature(byte[] message, byte[] signature, byte[] pubkey)
-        {
-            if (pubkey.Length == 33 && (pubkey[0] == 0x02 || pubkey[0] == 0x03))
-            {
-                try
-                {
-                    pubkey = Phantasma.Cryptography.ECC.ECPoint.DecodePoint(pubkey, Phantasma.Cryptography.ECC.ECCurve.Secp256r1).EncodePoint(false).Skip(1).ToArray();
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-            else if (pubkey.Length == 65 && pubkey[0] == 0x04)
-            {
-                pubkey = pubkey.Skip(1).ToArray();
-            }
-            else if (pubkey.Length != 64)
-            {
-                throw new ArgumentException();
-            }
-#if NET461
-            const int ECDSA_PUBLIC_P256_MAGIC = 0x31534345;
-            pubkey = BitConverter.GetBytes(ECDSA_PUBLIC_P256_MAGIC).Concat(BitConverter.GetBytes(32)).Concat(pubkey).ToArray();
-            using (CngKey key = CngKey.Import(pubkey, CngKeyBlobFormat.EccPublicBlob))
-            using (ECDsaCng ecdsa = new ECDsaCng(key))
-            {
-                return ecdsa.VerifyData(message, signature, HashAlgorithmName.SHA256);
-            }
-#else
-            using (var ecdsa = ECDsa.Create(new ECParameters
-            {
-                Curve = ECCurve.NamedCurves.nistP256,
-                Q = new ECPoint
-                {
-                    X = pubkey.Take(32).ToArray(),
-                    Y = pubkey.Skip(32).ToArray()
-                }
-            }))
-            {
-                return ecdsa.VerifyData(message, signature, HashAlgorithmName.SHA256);
-            }
-#endif
+            signer.Init(true, privateKeyParameters);
+            signer.BlockUpdate(message, 0, message.Length);
+            var sig = signer.GenerateSignature();
+
+            return TranscodeSignatureToConcat(sig, 64);
+
         }
 
         private static ThreadLocal<SHA256> _sha256 = new ThreadLocal<SHA256>(() => SHA256.Create());

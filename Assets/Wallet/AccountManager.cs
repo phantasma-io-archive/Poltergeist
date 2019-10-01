@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using Phantasma.SDK;
 using Phantasma.Neo.Core;
+using Phantasma.Domain;
 
 namespace Poltergeist
 {
@@ -121,7 +122,8 @@ namespace Poltergeist
         public string destination;
         public string symbol;
         public decimal amount;
-    } 
+        public string interop;
+    }
 
     public class AccountState
     {
@@ -132,7 +134,7 @@ namespace Poltergeist
 
         public decimal GetAvailableAmount(string symbol)
         {
-            for (int i=0; i<balances.Length; i++)
+            for (int i = 0; i < balances.Length; i++)
             {
                 var entry = balances[i];
                 if (entry.Symbol == symbol)
@@ -286,13 +288,7 @@ namespace Poltergeist
             }
             else
             {
-                Accounts = new Account[] {
-                    new Account() { name = "genesis", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" },
-                    //new Account() { name = "zion", platforms = PlatformKind.Neo, key = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H", password = "", misc = "" },
-                    new Account() { name = "master", platforms = PlatformKind.Neo, key = "KxDgvEKzgSBPPfuVfw67oPQBSjidEiqTHURKSDL1R7yGaGYAeYnr", password = "", misc = "" },
-                    new Account() { name = "other", platforms = PlatformKind.Phantasma, key = "Kweyrx8ypkoPfzMsxV4NtgH8vXCWC1s1Dn3c2KJ4WAzC5nkyNt3e", password = "", misc = "" },
-                    new Account() { name = "monk", platforms = PlatformKind.Phantasma, key = "Kx4GzZxzGZsQNt8URu36SnvR5KGSzg8s8ZxH8cunzZGh2JLmxHsW", password = "", misc = "" },
-                };
+                Accounts = new Account[] { };
             }
         }
 
@@ -308,16 +304,17 @@ namespace Poltergeist
         {
             var tokens = tokenArray.ToList();
 
-            var nep5Flags = "Fungible";
+            var nep5Flags = TokenFlags.Fungible.ToString() + "," + TokenFlags.External.ToString();
             tokens.Add(new Token() { symbol = "SOUL", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Fungible.ToString() });
             tokens.Add(new Token() { symbol = "NEO", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 8, maxSupply = "100000000", name = "Neo", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "GAS", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "SWTH", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "PKC", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "710405560", name = "nOS", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "MKNI", hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "MKNI", hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = TokenFlags.Fungible.ToString() });
+            tokens.Add(new Token() { symbol = "NACHO", hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = TokenFlags.Fungible.ToString() });
 
             CurrentTokenCurrency = "";
 
@@ -349,14 +346,15 @@ namespace Poltergeist
                     needRefresh = true;
                 }
             }
-            
+
 
             if (needRefresh)
             {
                 CurrentTokenCurrency = Settings.currency;
                 _lastPriceUpdate = DateTime.UtcNow;
 
-                var symbolList = _tokenSymbolMap.Keys.Where(x => x!="KCAL");
+                var expectedFlag = TokenFlags.External.ToString();
+                var symbolList = _tokenSymbolMap.Values.Where(x => x.flags.Contains(expectedFlag)).Select(x => x.symbol);
                 StartCoroutine(FetchTokenPrices(symbolList, CurrentTokenCurrency));
             }
         }
@@ -468,6 +466,12 @@ namespace Poltergeist
                         try
                         {
                             var transfer = Serialization.Unserialize<TransferRequest>(script);
+
+                            if (transfer.amount <=0)
+                            {
+                                callback(Hash.Null);
+                            }
+                            else
                             if (transfer.platform == CurrentPlatform)
                             {
                                 switch (transfer.platform)
@@ -482,7 +486,7 @@ namespace Poltergeist
 
                                                 if (transfer.symbol == "NEO" || transfer.symbol == "GAS")
                                                 {
-                                                    neoApi.SendAsset((tx) =>
+                                                    StartCoroutine(neoApi.SendAsset((tx) =>
                                                     {
                                                         if (tx != null)
                                                         {
@@ -493,7 +497,8 @@ namespace Poltergeist
                                                         {
                                                             callback(Hash.Null);
                                                         }
-                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount);
+                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop)
+                                                    );
                                                 }
                                                 else
                                                 {
@@ -504,7 +509,7 @@ namespace Poltergeist
                                                         var amount = System.Numerics.BigInteger.Parse(UnitConversion.ToBigInteger(transfer.amount, token.decimals).ToString());
 
                                                         var nep5 = new NEP5(neoApi, token.hash);
-                                                        nep5.Transfer(unspent, keys, transfer.destination, amount, 
+                                                        StartCoroutine(nep5.Transfer(unspent, keys, transfer.destination, amount, transfer.interop,
                                                         (tx) =>
                                                         {
                                                             if (tx != null)
@@ -516,7 +521,7 @@ namespace Poltergeist
                                                             {
                                                                 callback(Hash.Null);
                                                             }
-                                                        });
+                                                        }));
                                                     }
                                                     else
                                                     {
@@ -560,7 +565,7 @@ namespace Poltergeist
         {
             _selectedAccountIndex = -1;
         }
-        
+
         private void ReportWalletBalance(PlatformKind platform, AccountState state)
         {
             _pendingRequestCount--;
@@ -603,17 +608,39 @@ namespace Poltergeist
             }
         }
 
+        private const string TempConfirmError = "Something went wrong when confirming.\nThe transaction might have been succesful.\nCheck back later.";
+
         public void RequestConfirmation(string transactionHash, Action<string> callback)
         {
             switch (CurrentPlatform)
             {
                 case PlatformKind.Phantasma:
-                    StartCoroutine( phantasmaApi.GetTransaction(transactionHash, (tx) =>
+                    StartCoroutine(phantasmaApi.GetTransaction(transactionHash, (tx) =>
                     {
                         callback(null);
                     }, (error, msg) =>
                     {
                         callback(msg);
+                    }));
+                    break;
+
+                case PlatformKind.Neo:
+                    var url = GetNeoscanAPIUrl($"get_transaction/{transactionHash}");
+
+                    StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                    {
+                        callback(TempConfirmError);
+                    },
+                    (response) =>
+                    {
+                        if (response.HasNode("vouts"))
+                        {
+                            callback(null);
+                        }
+                        else
+                        {
+                            callback(TempConfirmError);
+                        }
                     }));
                     break;
 
@@ -661,8 +688,8 @@ namespace Poltergeist
                             {
                                 var balanceMap = new Dictionary<string, Balance>();
 
-                            foreach (var entry in acc.balances)
-                            {
+                                foreach (var entry in acc.balances)
+                                {
                                     balanceMap[entry.symbol] = new Balance()
                                     {
                                         Symbol = entry.symbol,
@@ -673,7 +700,7 @@ namespace Poltergeist
                                         Chain = entry.chain,
                                         Decimals = GetTokenDecimals(entry.symbol)
                                     };
-                            }
+                                }
 
                                 var stakedAmount = AmountFromString(acc.stake, GetTokenDecimals("SOUL"));
                                 var claimableAmount = AmountFromString(acc.unclaimed, GetTokenDecimals("KCAL"));
@@ -730,7 +757,7 @@ namespace Poltergeist
                                 {
                                     address = acc.address,
                                     name = acc.name,
-                                    balances = balanceMap.Values.ToArray(),                                    
+                                    balances = balanceMap.Values.ToArray(),
                                     flags = AccountFlags.None
                                 };
 
@@ -770,7 +797,7 @@ namespace Poltergeist
                                     var amount = entry.GetDecimal("amount");
 
                                     Token token;
-                                    
+
                                     if (GetTokenBySymbol(symbol, out token))
                                     {
                                         if (hash == token.hash)
@@ -807,6 +834,32 @@ namespace Poltergeist
                         break;
                 }
             }
+        }
+
+        internal void InitDemoAccounts(NexusKind nexusKind)
+        {
+            var accounts = new List<Account>();
+
+            if (nexusKind != NexusKind.Main_Net)
+            {
+                accounts.Add(new Account() { name = "genesis", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" });
+                accounts.Add(new Account() { name = "bill", platforms = PlatformKind.Neo, key = "KxDgvEKzgSBPPfuVfw67oPQBSjidEiqTHURKSDL1R7yGaGYAeYnr", password = "", misc = "" });
+            }
+            //new Account() { name = "zion", platforms = PlatformKind.Neo, key = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H", password = "", misc = "" },
+
+            if (nexusKind == NexusKind.Local_Net)
+            {
+                accounts.Add(new Account() { name = "other", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "Kweyrx8ypkoPfzMsxV4NtgH8vXCWC1s1Dn3c2KJ4WAzC5nkyNt3e", password = "", misc = "" });
+                accounts.Add(new Account() { name = "monk", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "Kx4GzZxzGZsQNt8URu36SnvR5KGSzg8s8ZxH8cunzZGh2JLmxHsW", password = "", misc = "" });
+            }
+
+            this.Accounts = accounts.ToArray();
+            SaveAccounts();
+        }
+
+        internal void DeleteAll()
+        {
+            this.Accounts = new Account[0];
         }
 
         public void RefreshHistory(bool force, Action callback = null)
@@ -945,7 +998,7 @@ namespace Poltergeist
                 throw new Exception("Name is too long.");
             }
 
-            for (int i=0; i<Accounts.Length; i++)
+            for (int i = 0; i < Accounts.Length; i++)
             {
                 if (Accounts[i].name.Equals(name, StringComparison.OrdinalIgnoreCase))
                 {
@@ -963,6 +1016,58 @@ namespace Poltergeist
 #endif
 
             return Accounts.Length - 1;
+        }
+
+        public static string DecodeNeoInteropAddress(Address address)
+        {
+            if (!address.IsInterop)
+            {
+                throw new Exception("not an interop address");
+            }
+
+            byte platformID;
+            byte[] scriptHash;
+            address.DecodeInterop(out platformID, out scriptHash);
+
+            if (scriptHash[0] != 23)
+            {
+                throw new Exception("invalid NEO address");
+            }
+
+            scriptHash = scriptHash.Take(21).ToArray();
+
+            return scriptHash.Base58CheckEncode();
+        }
+
+        private Dictionary<PlatformKind, string> _interopMap = new Dictionary<PlatformKind, string>();
+
+        internal void FindInteropAddress(PlatformKind platform, Action<string> callback)
+        {
+            if (_interopMap.ContainsKey(platform))
+            {
+                callback(_interopMap[platform]);
+                return;
+            }
+
+            StartCoroutine(phantasmaApi.GetPlatforms((platforms) =>
+            {
+                var platformName = platform.ToString().ToLower();
+                foreach (var entry in platforms)
+                {
+                    if (entry.platform == platformName)
+                    {
+                        string interopAddress = entry.interop[0].external;
+                        _interopMap[platform] = interopAddress;
+                        callback(interopAddress);
+                        return;
+                    }
+                }
+
+                callback(null);
+            }, (error, msg) =>
+            {
+                callback(null);
+            }));
         }
     }
 }

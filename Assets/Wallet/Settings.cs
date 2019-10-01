@@ -6,6 +6,7 @@ namespace Poltergeist
 {
     public enum NexusKind
     {
+        Unknown,
         Main_Net,
         Test_Net,
         Local_Net,
@@ -51,15 +52,10 @@ namespace Poltergeist
 
         public void Load()
         {
-#if UNITY_EDITOR
-            var defaultNexus = NexusKind.Custom;
-#else
-            var defaultNexus = NexusKind.Main_Net;
-#endif
-            var nexusKind = PlayerPrefs.GetString(NexusKindTag, defaultNexus.ToString());
+            var nexusKind = PlayerPrefs.GetString(NexusKindTag, NexusKind.Unknown.ToString());
             if (!Enum.TryParse<NexusKind>(nexusKind, true, out this.nexusKind))
             {
-                this.nexusKind = defaultNexus;
+                this.nexusKind = NexusKind.Unknown;
             }
 
             this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));

@@ -591,18 +591,18 @@ namespace Phantasma.Neo.Core
             }
         }
 
-        public IEnumerator CallContract(Action<Transaction> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, string operation, object[] args, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
+        public IEnumerator CallContract(Action<Transaction> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, string operation, object[] args, string interop, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
         {
-            return CallContract(callback, unspent, key, scriptHash, new object[] { operation, args }, attachSymbol, attachTargets);
+            return CallContract(callback, unspent, key, scriptHash, new object[] { operation, args }, interop, attachSymbol, attachTargets);
         }
 
-        public IEnumerator CallContract(Action<Transaction> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, object[] args, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
+        public IEnumerator CallContract(Action<Transaction> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, object[] args, string interop, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
         {
             var bytes = GenerateScript(scriptHash, args);
-            return CallContract(callback, unspent, key, scriptHash, bytes, attachSymbol, attachTargets);
+            return CallContract(callback, unspent, key, scriptHash, bytes, interop, attachSymbol, attachTargets);
         }
 
-        public IEnumerator CallContract(Action<Transaction> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, byte[] bytes, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
+        public IEnumerator CallContract(Action<Transaction> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, byte[] bytes, string interop, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
         {
             List<Transaction.Input> inputs = null;
             List<Transaction.Output> outputs = null;
@@ -630,7 +630,8 @@ namespace Phantasma.Neo.Core
                 gas = 0,
                 inputs = inputs != null ? inputs.ToArray() : null,
                 outputs = outputs != null ? outputs.ToArray() : null,
-                attributes = inputs == null ? (new TransactionAttribute[] { new TransactionAttribute(TransactionAttributeUsage.Script, key.Address.AddressToScriptHash()) } ) : null
+                attributes = inputs == null ? (new TransactionAttribute[] { new TransactionAttribute(TransactionAttributeUsage.Script, key.Address.AddressToScriptHash()) } ) : null,
+                interop = interop
             };
 
             transaction.Sign(key);
@@ -647,7 +648,7 @@ namespace Phantasma.Neo.Core
             return GetTransaction(val, callback);
         }
 
-        public IEnumerator SendAsset(Action<Transaction> callback, UnspentEntries unspent, NeoKeys fromKey, string toAddress, string symbol, decimal amount)
+        public IEnumerator SendAsset(Action<Transaction> callback, UnspentEntries unspent, NeoKeys fromKey, string toAddress, string symbol, decimal amount, string interop)
         {
             if (String.Equals(fromKey.Address, toAddress, StringComparison.OrdinalIgnoreCase))
             {
@@ -657,10 +658,10 @@ namespace Phantasma.Neo.Core
             var toScriptHash = toAddress.GetScriptHashFromAddress();
             var target = new Transaction.Output() { scriptHash = new UInt160(toScriptHash), value = amount };
             var targets = new List<Transaction.Output>() { target };
-            return SendAsset(callback, unspent, fromKey, symbol, targets);
+            return SendAsset(callback, unspent, fromKey, symbol, targets, interop);
         }
 
-        public IEnumerator SendAsset(Action<Transaction> callback, UnspentEntries unspent, NeoKeys fromKey, string symbol, IEnumerable<Transaction.Output> targets)
+        public IEnumerator SendAsset(Action<Transaction> callback, UnspentEntries unspent, NeoKeys fromKey, string symbol, IEnumerable<Transaction.Output> targets, string interop)
         {
             List<Transaction.Input> inputs;
             List<Transaction.Output> outputs;
@@ -674,7 +675,8 @@ namespace Phantasma.Neo.Core
                 script = null,
                 gas = -1,
                 inputs = inputs.ToArray(),
-                outputs = outputs.ToArray()
+                outputs = outputs.ToArray(),
+                interop = interop,
             };
 
             tx.Sign(fromKey);
@@ -907,17 +909,15 @@ namespace Phantasma.Neo.Core
             {
                 try
                 {
-                    var temp = response["result"];
-
                     bool result;
 
-                    if (temp.HasNode("succeed"))
+                    if (response.HasNode("succeed"))
                     {
-                        result = temp.GetBool("succeed");
+                        result = response.GetBool("succeed");
                     }
                     else
                     {
-                        result = temp.AsBool();
+                        result = response.AsBool();
                     }
 
                     callback(result);

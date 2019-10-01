@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Phantasma.Neo.Core
 {
@@ -164,6 +165,8 @@ namespace Phantasma.Neo.Core
         public Contract contractRegistration;
 
         public ECPoint enrollmentPublicKey;
+
+        public string interop;
 
         public uint nonce;
 
@@ -348,6 +351,16 @@ namespace Phantasma.Neo.Core
 
         public void Sign(NeoKeys key, IEnumerable<Witness> witnesses = null)
         {
+            // append Phantasma address to end of verification script
+            if (interop != null)
+            {
+                var interopBytes = Encoding.UTF8.GetBytes(interop);
+
+                var temp = this.attributes != null ? this.attributes.ToList() : new List<TransactionAttribute>();
+                temp.Add(new TransactionAttribute(TransactionAttributeUsage.Description, interopBytes));
+                this.attributes = temp.ToArray();
+            }
+
             var txdata = this.Serialize(false);
 
             var witList = new List<Witness>();
@@ -359,7 +372,13 @@ namespace Phantasma.Neo.Core
                 var signature = CryptoUtils.Sign(txdata, privkey, pubkey);
 
                 var invocationScript = new byte[] { (byte)OpCode.PUSHBYTES64 }.Concat(signature).ToArray();
-                var verificationScript = key.signatureScript;
+                var verificationScript = new byte[key.signatureScript.Length];
+
+                for (int i=0; i<verificationScript.Length; i++)
+                {
+                    verificationScript[i] = key.signatureScript[i];
+                }
+
                 witList.Add(new Witness() { invocationScript = invocationScript, verificationScript = verificationScript });
             }
 
