@@ -10,6 +10,8 @@ using System.Linq;
 using Phantasma.SDK;
 using Phantasma.Neo.Core;
 using Phantasma.Domain;
+using Phantasma.Core;
+using Phantasma.Core.Utils;
 
 namespace Poltergeist
 {
@@ -1106,6 +1108,17 @@ namespace Poltergeist
 #endif
 
             return Accounts.Length - 1;
+        }
+
+        public static Address EncodeNeoAddress(string addressText)
+        {
+            Throw.If(!Phantasma.Neo.Utils.NeoUtils.IsValidAddress(addressText), "invalid neo address");
+            var scriptHash = addressText.Base58CheckDecode();
+
+            var pubKey = new byte[33];
+            ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
+
+            return Address.FromInterop(1/*NeoID*/, pubKey);
         }
 
         public static string DecodeNeoInteropAddress(Address address)
