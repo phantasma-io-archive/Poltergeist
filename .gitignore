@@ -11,3 +11,5 @@ Temp/
 *.user
 packages/
 *launchSettings.json
+
+Assets/Audio/

@@ -1103,9 +1103,7 @@ namespace Poltergeist
 
             this.Accounts = list.ToArray();
 
-#if !UNITY_EDITOR
             SaveAccounts();
-#endif
 
             return Accounts.Length - 1;
         }

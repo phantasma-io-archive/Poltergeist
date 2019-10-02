@@ -73,6 +73,7 @@ namespace Poltergeist
     {
         public RawImage background;
 
+        public const string WalletTitle = "Poltergeist Wallet";
         public const string MoneyFormat = "0.####";
 
         public int Border => Units(1);
@@ -469,7 +470,7 @@ namespace Poltergeist
                 }
                 else
                 {
-                    GUI.Window(0, windowRect, DoMainWindow, "Poltergeist Wallet");
+                    GUI.Window(0, windowRect, DoMainWindow, WalletTitle);
                 }
             }
 
@@ -492,8 +493,21 @@ namespace Poltergeist
 
         private void DoMainWindow(int windowID)
         {
+            if (fullScreen)
+            {
+                var style = GUI.skin.label;
+                var tempSize = style.fontSize;
+                var tempStyle = style.fontStyle;
+
+                style.fontSize = 28;
+
+                DrawHorizontalCenteredText(4, Units(2), WalletTitle);
+
+                style.fontSize = tempSize;
+            }
+
             GUI.Box(new Rect(8, 8, windowRect.width - 16, Units(2)), "");
-            GUI.Label(new Rect(windowRect.width / 2 + Units(7), 0, 32, Units(2)), Application.version);
+            GUI.Label(new Rect(windowRect.width / 2 + Units(8) + 8, 4, 32, Units(2)), Application.version);
 
             if (currentTitle != null)
             {
@@ -582,7 +596,7 @@ namespace Poltergeist
                 GUI.enabled = modalState != ModalState.Input || modalInput.Length > 0;
                 if (GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm"))
                 {
-                    AudioManager.Instance.PlaySFX("click");
+                    AudioManager.Instance.PlaySFX("confirm");
                     modalResult = PromptResult.Success;
                 }
                 GUI.enabled = true;
@@ -591,6 +605,7 @@ namespace Poltergeist
             {
                 if (GUI.Button(new Rect((rect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Ok"))
                 {
+                    AudioManager.Instance.PlaySFX("click");
                     modalResult = PromptResult.Success;
                 }
             }
@@ -701,7 +716,6 @@ namespace Poltergeist
                 }
             });
         }
-
 
         private string[] accountOptions = new string[] { "Generate new wallet", "Import private key", "Settings" };
 
@@ -873,6 +887,7 @@ namespace Poltergeist
                 GUI.enabled = entry.enabled;
                 if (GUI.Button(btnRect, entry.label))
                 {
+                    AudioManager.Instance.PlaySFX("click");
                     hasSelection = true;
                     selected = (T)entry.value;
                 }
@@ -926,6 +941,7 @@ namespace Poltergeist
             {
                 if (callback == null || callback())
                 {
+                    AudioManager.Instance.PlaySFX("click");
                     CloseCurrentStack();
                 }
             }
@@ -1069,10 +1085,14 @@ namespace Poltergeist
                 {
                     ConfirmBox("All wallets and settings stored in this device will be lost.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", (result) =>
                     {
+                        AudioManager.Instance.PlaySFX("click");
                         accountManager.DeleteAll();
                         PlayerPrefs.DeleteAll();
                         accountManager.Settings.Load();
-                        MessageBox(MessageKind.Default, "All data removed from this device.");
+                        MessageBox(MessageKind.Default, "All data removed from this device.", () =>
+                        {
+                            CloseCurrentStack();
+                        });
                     });
                 }
                 curY += Units(3);
@@ -1086,6 +1106,7 @@ namespace Poltergeist
                 {
                     if (ValidateSettings())
                     {
+                        AudioManager.Instance.PlaySFX("confirm");
                         CloseCurrentStack();
                     }
                 }
@@ -1158,6 +1179,7 @@ namespace Poltergeist
 
             if (GUI.Button(new Rect(windowRect.width - Units(6), curY + 5, Units(4), Units(1)), "Copy"))
             {
+                AudioManager.Instance.PlaySFX("click");
                 GUIUtility.systemCopyBuffer = state.address;
                 MessageBox(MessageKind.Default, "Address copied to clipboard!");
             }
@@ -1464,16 +1486,19 @@ namespace Poltergeist
             if (!string.IsNullOrEmpty(secondaryAction))
             {
                 GUI.enabled = secondaryEnabled;
-                if (GUI.Button(new Rect(rect.x + rect.width - Units(12), curY + Units(1), Units(4) + 8, Units(2)), secondaryAction))
+                if (GUI.Button(new Rect(rect.x + rect.width - (Units(12)+8), curY + Units(1) + 8, Units(4) + 8, Units(2)), secondaryAction))
                 {
+                    AudioManager.Instance.PlaySFX("click");
                     secondaryCallback?.Invoke();
                 }
                 GUI.enabled = true;
             }
 
             GUI.enabled = balance.Available > 0;
-            if (GUI.Button(new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(2)), "Send"))
+            if (GUI.Button(new Rect(rect.x + rect.width - (Units(6) + 8), curY + Units(1) + 8, Units(4) + 8, Units(2)), "Send"))
             {
+                AudioManager.Instance.PlaySFX("click");
+
                 transferSymbol = balance.Symbol;
                 var transferName = $"{transferSymbol} transfer";
                 ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, GetAccountHints(accountManager.CurrentPlatform.GetTransferTargets()), (result, destAddress) =>
@@ -1575,6 +1600,7 @@ namespace Poltergeist
                     GUI.enabled = !string.IsNullOrEmpty(entry.url);
                     if (GUI.Button(new Rect(windowRect.width - Units(6), curY + 8, Units(4), Units(1)), "View"))
                     {
+                        AudioManager.Instance.PlaySFX("click");
                         Application.OpenURL(entry.url);
                     }
                     GUI.enabled = true;
@@ -1613,27 +1639,6 @@ namespace Poltergeist
             return posY;
         }
 
-        private void DoBackButton()
-        {
-            int panelHeight = Units(9);
-            int curY = (int)(windowRect.height - panelHeight + Units(1));
-
-            var rect = GetExpandedRect(curY, panelHeight);
-
-            int btnWidth = Units(11);
-
-            int totalWidth = (int)rect.width; // (int)(rect.width / 2);
-
-            //GUI.Button(new Rect((halfWidth - btnWidth) / 2, prevY + Units(3), btnWidth, Units(2)), "Something");
-
-            int leftoverWidth = (int)(rect.width - totalWidth);
-
-            if (GUI.Button(new Rect(leftoverWidth + (totalWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Back"))
-            {
-                PopState();
-            }
-        }
-
         private Action<Hash> transactionCallback;
 
         private void InvokeTransactionCallback(Hash hash)
@@ -1654,6 +1659,26 @@ namespace Poltergeist
             }
 
             var accountManager = AccountManager.Instance;
+            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+            {
+                BigInteger usedGas;
+
+                try
+                {
+                    var vm = new GasMachine(script);
+                    var result = vm.Execute();
+                    usedGas = vm.UsedGas;
+                }
+                catch
+                {
+                    usedGas = 400;
+                }
+
+                var estimatedFee = usedGas * accountManager.Settings.feePrice;
+                var feeDecimals = accountManager.GetTokenDecimals("KCAL");
+                description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
+            }
+
             RequestPassword(description, accountManager.CurrentPlatform, (auth) =>
             {
                 if (auth == PromptResult.Success)
@@ -1662,23 +1687,30 @@ namespace Poltergeist
                     {
                         PushState(GUIState.Sending);
 
-                        accountManager.SignAndSendTransaction(chain, script, (hash) =>
+                        Animate(AnimationDirection.Left, false, () =>
                         {
-                            if (hash != Hash.Null)
-                            {
-                                ShowConfirmationScreen(hash, callback);
-                            }
-                            else
-                            {
-                                PopState();
+                            var temp = $"Preparing Transaction...\n{description}";
 
-                                MessageBox(MessageKind.Error, "Error sending transaction", () =>
+                            MessageBox(MessageKind.Default, temp, () =>
+                            {
+                                accountManager.SignAndSendTransaction(chain, script, (hash) =>
                                 {
-                                    InvokeTransactionCallback(hash);
+                                    if (hash != Hash.Null)
+                                    {
+                                        ShowConfirmationScreen(hash, callback);
+                                    }
+                                    else
+                                    {
+                                        PopState();
+
+                                        MessageBox(MessageKind.Error, "Error sending transaction", () =>
+                                        {
+                                            InvokeTransactionCallback(hash);
+                                        });
+                                    }
                                 });
-                            }
+                            });
                         });
-                        Animate(AnimationDirection.Left, false);
                     });
                 }
                 else
