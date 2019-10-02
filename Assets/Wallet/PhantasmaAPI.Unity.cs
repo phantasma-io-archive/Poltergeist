@@ -131,8 +131,41 @@ namespace Phantasma.SDK
             return result;
         }
     }
-	
-	public struct Account 
+
+    public struct Swap
+    {
+        public string sourcePlatform; //
+        public string sourceChain; //
+        public string sourceHash; //
+        public string sourceAddress; //
+        public string destinationPlatform; //
+        public string destinationChain; //
+        public string destinationHash; //
+        public string destinationAddress; //
+        public string symbol; //
+        public string value; //
+
+        public static Swap FromNode(DataNode node)
+        {
+            Swap result;
+
+            result.sourcePlatform = node.GetString("sourcePlatform");
+            result.sourceChain = node.GetString("sourceChain");
+            result.sourceHash = node.GetString("sourceHash");
+            result.sourceAddress = node.GetString("sourceAddress");
+            result.destinationPlatform = node.GetString("destinationPlatform");
+            result.destinationChain = node.GetString("destinationChain");
+            result.destinationHash = node.GetString("destinationHash");
+            result.destinationAddress = node.GetString("destinationAddress");
+            result.symbol = node.GetString("symbol");
+            result.value = node.GetString("value");
+
+            return result;
+        }
+    }
+
+
+    public struct Account 
 	{
 		public string address; //
 		public string name; //
@@ -1098,20 +1131,36 @@ namespace Phantasma.SDK
 				callback(result);
 			} , accountInput);		   
 		}
-		
-		
-		//Obtains a swap address mapping.
-		public IEnumerator GetSwapAddress(string accountInput, string platform, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
-		{	   
-			yield return WebClient.RPCRequest(Host, "getSwapAddress", errorHandlingCallback, (node) => { 
-				var result = node.Value;
-				callback(result);
-			} , accountInput, platform);		   
-		}
-		
-		
-		//Returns an array of available interop platforms.
-		public IEnumerator GetPlatforms(Action<Platform[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
+
+
+        //Returns platform swaps for a specific address.
+        public IEnumerator SettleSwap(string sourcePlatform, string destPlatform, string hashText, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        {
+            yield return WebClient.RPCRequest(Host, "settleSwap", errorHandlingCallback, (node) => {
+                var result = node.Value;
+                callback(result);
+            }, sourcePlatform, destPlatform, hashText);
+        }
+
+
+        //Returns platform swaps for a specific address.
+        public IEnumerator GetSwapsForAddress(string accountInput, Action<Swap[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        {
+            yield return WebClient.RPCRequest(Host, "getSwapsForAddress", errorHandlingCallback, (node) => {
+                var result = new Swap[node.ChildCount];
+                for (int i = 0; i < result.Length; i++)
+                {
+                    var child = node.GetNodeByIndex(i);
+                    result[i] = Swap.FromNode(child);
+                }
+                callback(result);
+            }, accountInput);
+        }
+
+
+
+        //Returns an array of available interop platforms.
+        public IEnumerator GetPlatforms(Action<Platform[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
 			yield return WebClient.RPCRequest(Host, "getPlatforms", errorHandlingCallback, (node) => { 
 				var result = new Platform[node.ChildCount];

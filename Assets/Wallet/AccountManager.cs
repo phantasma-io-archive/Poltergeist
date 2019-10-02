@@ -156,6 +156,8 @@ namespace Poltergeist
         public decimal Claimable;
         public string Chain;
         public int Decimals;
+        public string PendingPlatform;
+        public string PendingHash;
 
         public decimal Total => Available + Staked + Pending + Claimable;
     }
@@ -307,7 +309,7 @@ namespace Poltergeist
             var nep5Flags = TokenFlags.Fungible.ToString() + "," + TokenFlags.External.ToString();
             tokens.Add(new Token() { symbol = "SOUL", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Fungible.ToString() });
-            tokens.Add(new Token() { symbol = "NEO", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 8, maxSupply = "100000000", name = "Neo", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NEO", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "GAS", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "SWTH", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
@@ -753,20 +755,33 @@ namespace Poltergeist
                                     }
                                 }
 
-                                var state = new AccountState()
+                                RequestPendings(keys.Address.Text, (swaps, error) =>
                                 {
-                                    address = acc.address,
-                                    name = acc.name,
-                                    balances = balanceMap.Values.ToArray(),
-                                    flags = AccountFlags.None
-                                };
+                                    if (swaps != null)
+                                    {
+                                        MergeSwaps(DomainSettings.PlatformName, balanceMap, swaps);
 
-                                if (stakedAmount >= SoulMasterStakeAmount)
-                                {
-                                    state.flags |= AccountFlags.Master;
-                                }
+                                        var state = new AccountState()
+                                        {
+                                            address = acc.address,
+                                            name = acc.name,
+                                            balances = balanceMap.Values.ToArray(),
+                                            flags = AccountFlags.None
+                                        };
 
-                                ReportWalletBalance(platform, state);
+                                        if (stakedAmount >= SoulMasterStakeAmount)
+                                        {
+                                            state.flags |= AccountFlags.Master;
+                                        }
+
+                                        ReportWalletBalance(platform, state);
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning(error);
+                                        ReportWalletBalance(platform, null);
+                                    }
+                                });
                             },
                             (error, msg) =>
                             {
@@ -816,15 +831,34 @@ namespace Poltergeist
                                     }
                                 }
 
-                                var state = new AccountState()
+                                RequestPendings(keys.Address, (swaps, error) =>
                                 {
-                                    address = keys.Address,
-                                    name = keys.Address, // TODO support NNS
-                                    balances = balances.ToArray(),
-                                    flags = AccountFlags.None
-                                };
+                                    if (swaps != null)
+                                    {
+                                        var balanceMap = new Dictionary<string, Balance>();
+                                        foreach (var entry in balances)
+                                        {
+                                            balanceMap[entry.Symbol] = entry;
+                                        }
 
-                                ReportWalletBalance(platform, state);
+                                        MergeSwaps("neo", balanceMap, swaps);
+                                        var state = new AccountState()
+                                        {
+                                            address = keys.Address,
+                                            name = keys.Address, // TODO support NNS
+                                            balances = balanceMap.Values.ToArray(),
+                                            flags = AccountFlags.None
+                                        };
+
+                                        ReportWalletBalance(platform, state);
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning(error);
+                                        ReportWalletBalance(platform, null);
+                                    }
+                                });
+
                             }));
                         }
                         break;
@@ -832,6 +866,51 @@ namespace Poltergeist
                     default:
                         ReportWalletBalance(platform, null);
                         break;
+                }
+            }
+        }
+
+        private void MergeSwaps(string platform, Dictionary<string, Balance> balanceMap, Swap[] swaps)
+        {
+            foreach (var swap in swaps)
+            {
+                if (swap.destinationPlatform != platform)
+                {
+                    continue;
+                }
+
+                if (swap.destinationHash != "pending")
+                {
+                    continue;
+                }
+
+                var decimals = GetTokenDecimals(swap.symbol);
+                var amount = AmountFromString(swap.value, decimals);
+
+                Debug.Log($"Found pending {platform} swap: {amount} {swap.symbol}");
+
+                if (balanceMap.ContainsKey(swap.symbol))
+                {
+                    var entry = balanceMap[swap.symbol];
+                    entry.Pending += amount;
+                    entry.PendingHash = swap.sourceHash;
+                    entry.PendingPlatform = swap.sourcePlatform;
+                }
+                else
+                {
+                    var entry = new Balance()
+                    {
+                        Symbol = swap.symbol,
+                        Chain = "main",
+                        Available = 0,
+                        Staked = 0,
+                        Claimable = 0,
+                        Pending = amount,
+                        Decimals = decimals,
+                        PendingHash = swap.sourceHash,
+                        PendingPlatform = swap.sourcePlatform,
+                    };
+                    balanceMap[swap.symbol] = entry;
                 }
             }
         }
@@ -951,6 +1030,17 @@ namespace Poltergeist
             }
         }
 
+        private void RequestPendings(string address, Action<Swap[], string> callback)
+        {
+            StartCoroutine(phantasmaApi.GetSwapsForAddress(address, (swaps) =>
+            {
+                callback(swaps, null);
+            }, (error, msg) =>
+            {
+                callback(null, msg);
+            }));
+        }
+
         private string GetNeoscanTransactionURL(string hash)
         {
             var url = Settings.neoscanURL;
@@ -1067,6 +1157,18 @@ namespace Poltergeist
             }, (error, msg) =>
             {
                 callback(null);
+            }));
+        }
+
+        internal void SettleSwap(string sourcePlatform, string destPlatform, string pendingHash, Action<Hash> callback)
+        {
+            StartCoroutine(phantasmaApi.SettleSwap(sourcePlatform, destPlatform, pendingHash, (hash) =>
+            {
+                callback(Hash.Parse(hash));
+            }, (msg, error) =>
+            {
+                Debug.LogWarning(msg);
+                callback(Hash.Null);
             }));
         }
     }

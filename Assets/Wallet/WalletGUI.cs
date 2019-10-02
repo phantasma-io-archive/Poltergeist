@@ -333,6 +333,7 @@ namespace Poltergeist
         void OnGUI()
         {
             GUI.skin = guiSkin;
+            GUI.enabled = true;
 
             if (guiState == GUIState.Loading)
             {
@@ -1009,47 +1010,72 @@ namespace Poltergeist
                 bool secondaryEnabled = false;
                 Action secondaryCallback = null;
 
+                if (balance.Pending > 0)
+                {
+                    secondaryAction = "Claim";
+                    secondaryEnabled = true;
+                    secondaryCallback = () =>
+                    {
+                        ConfirmBox($"You have {balance.Pending} {balance.Symbol} pending in your account.\nDo you want to claim it?", (result) =>
+                        {
+                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash) =>
+                            {
+                                ShowConfirmationScreen(settleHash, (hash) =>
+                                {
+                                    if (hash != Hash.Null)
+                                    {
+                                        MessageBox($"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
+                                    }
+                                    else
+                                    {
+                                        MessageBox("There was some error confirming the transaction...");
+                                    }
+                                });
+                            });
+                        });
+                    };
+                }
+                else
                 switch (balance.Symbol)
                 {
                     case "SOUL":
                         if (balance.Staked > 0)
                         {
-                            secondaryAction = "Unstake";
-                            secondaryEnabled = true;
-                            secondaryCallback = () =>
-                            {
-                                ConfirmBox($"Do you want to unstake {balance.Staked} SOUL?\nYou won't be able to claim KCAL anymore.", (result) =>
+                                secondaryAction = "Unstake";
+                                secondaryEnabled = true;
+                                secondaryCallback = () =>
                                 {
-                                    RequestKCAL("SOUL", (kcal) =>
+                                    ConfirmBox($"Do you want to unstake {balance.Staked} SOUL?\nYou won't be able to claim KCAL anymore.", (result) =>
                                     {
-                                        if (kcal == PromptResult.Success)
+                                        RequestKCAL("SOUL", (kcal) =>
                                         {
-                                            var address = Address.FromText(state.address);
-
-                                            var sb = new ScriptBuilder();
-                                            var gasPrice = accountManager.Settings.feePrice;
-
-                                            sb.AllowGas(address, Address.Null, gasPrice, 9999);
-                                            sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(balance.Staked, balance.Decimals));
-                                            sb.AllowGas(address, Address.Null, gasPrice, 9999);
-
-                                            sb.SpendGas(address);
-                                            var script = sb.EndScript();
-
-                                            SendTransaction($"Unstake {balance.Staked} SOUL", script, "main", (hash) =>
+                                            if (kcal == PromptResult.Success)
                                             {
-                                                if (hash != Hash.Null)
-                                                {
-                                                    MessageBox("Your SOUL was unstaked!\nTransaction hash: " + hash);
-                                                }
-                                            });
-                                        }
-                                    });
-                                });
+                                                var address = Address.FromText(state.address);
 
-                            };
-                        }
-                        else
+                                                var sb = new ScriptBuilder();
+                                                var gasPrice = accountManager.Settings.feePrice;
+
+                                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                                sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(balance.Staked, balance.Decimals));
+                                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
+
+                                                sb.SpendGas(address);
+                                                var script = sb.EndScript();
+
+                                                SendTransaction($"Unstake {balance.Staked} SOUL", script, "main", (hash) =>
+                                                {
+                                                    if (hash != Hash.Null)
+                                                    {
+                                                        MessageBox("Your SOUL was unstaked!\nTransaction hash: " + hash);
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    });
+                                };
+                            }
+                            else
                         {
                             secondaryAction = "Stake";
                             secondaryEnabled = balance.Available > 1.2m;
@@ -1180,6 +1206,7 @@ namespace Poltergeist
                     GUI.enabled = true;
                 }
 
+                GUI.enabled = balance.Available > 0;
                 if (GUI.Button(new Rect(rect.x + rect.width - (Units(5) + 8)- 4, curY + Units(1), Units(4)+8, Units(2)), "Send"))
                 {
                     transferSymbol = balance.Symbol;
@@ -1226,6 +1253,7 @@ namespace Poltergeist
                     });
                     break;
                 }
+                GUI.enabled = true;
 
                 curY += Units(6);
                 index++;
@@ -1403,11 +1431,7 @@ namespace Poltergeist
                         {
                             if (hash != Hash.Null)
                             {
-                                transactionCallback = callback;
-                                needsConfirmation = true;
-                                transactionHash = hash;
-                                lastTransactionConfirmation = DateTime.UtcNow;
-                                SetState(GUIState.Confirming);
+                                ShowConfirmationScreen(hash, callback);
                             }
                             else
                             {
@@ -1428,6 +1452,15 @@ namespace Poltergeist
                     MessageBox($"Authorization failed");
                 }
             });
+        }
+
+        private void ShowConfirmationScreen(Hash hash, Action<Hash> callback)
+        {
+            transactionCallback = callback;
+            needsConfirmation = true;
+            transactionHash = hash;
+            lastTransactionConfirmation = DateTime.UtcNow;
+            SetState(GUIState.Confirming);
         }
 
         #region transfers
@@ -1560,6 +1593,13 @@ namespace Poltergeist
                 return;
             }
 
+            var gasBalance = accountManager.CurrentState.GetAvailableAmount("GAS");
+            if (gasBalance <= 0)
+            {
+                MessageBox($"You will need at least a drop of GAS in this wallet to make a transaction.");
+                return;
+            }
+
             ShowModal(transferName, $"Enter {symbol} amount", ModalState.Input, 64, true, null, (result, temp) =>
             {
                 if (result == PromptResult.Failure)
@@ -1625,6 +1665,16 @@ namespace Poltergeist
             {
                 MessageBox($"Source and destination address must be different!");
                 return;
+            }
+
+            if (accountManager.CurrentPlatform == PlatformKind.Neo)
+            {
+                var gasBalance = accountManager.CurrentState.GetAvailableAmount("GAS");
+                if (gasBalance <= 0)
+                {
+                    MessageBox($"You will need at least a drop of GAS in this wallet to make a transaction.");
+                    return;
+                }
             }
 
             ShowModal(transferName, $"Enter {symbol} amount", ModalState.Input, 64, true, null, (result, temp) =>
