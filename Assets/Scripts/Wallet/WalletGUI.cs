@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using Phantasma.VM.Utils;
 using Phantasma.Cryptography;
@@ -9,9 +8,31 @@ using Phantasma.Numerics;
 using System.Linq;
 using Phantasma.Storage;
 using Phantasma.Domain;
+using UnityEngine.UI;
 
 namespace Poltergeist
 {
+    public enum MessageKind
+    {
+        Default,
+        Error,
+        Success
+    }
+
+    public struct MenuEntry
+    {
+        public readonly object value;
+        public readonly string label;
+        public readonly bool enabled;
+
+        public MenuEntry(object value, string label, bool enabled)
+        {
+            this.value = value;
+            this.label = label;
+            this.enabled = enabled;
+        }
+    }
+
     public enum GUIState
     {
         Loading,
@@ -50,7 +71,13 @@ namespace Poltergeist
 
     public class WalletGUI : MonoBehaviour
     {
+        public RawImage background;
+
         public const string MoneyFormat = "0.####";
+
+        public int Border => Units(1);
+        public int HalfBorder => Border/2;
+        public const bool fullScreen = true;
 
         public GUISkin guiSkin;
 
@@ -74,6 +101,8 @@ namespace Poltergeist
 
         private bool HasAnimation => currentAnimation != AnimationDirection.None;
 
+        private string currentTitle;
+
         private int currencyIndex;
         private string[] currencyOptions;
         private ComboBox currencyComboBox = new ComboBox();
@@ -87,6 +116,10 @@ namespace Poltergeist
 
         private NexusKind[] availableNexus = Enum.GetValues(typeof(NexusKind)).Cast<NexusKind>().ToArray();
 
+        private bool initialized;
+
+        private bool smallSize => windowRect.width <= 420;
+
         public static int Units(int n)
         {
             return 16 * n;
@@ -94,14 +127,7 @@ namespace Poltergeist
 
         void Start()
         {
-            int border = Units(4);
-            windowRect.width = Mathf.Min(800, Screen.width) - border;
-            windowRect.height = Mathf.Min(800, Screen.height) - border;
-
-            windowRect.x = (Screen.width - windowRect.width) / 2;
-            windowRect.y = (Screen.height - windowRect.height) / 2;
-
-            defaultRect = new Rect(windowRect);
+            initialized = false;
 
             guiState = GUIState.Loading;
 
@@ -125,18 +151,29 @@ namespace Poltergeist
 
             var accountManager = AccountManager.Instance;
 
+            currentTitle = null;
+
             switch (state)
             {
+                case GUIState.Accounts:
+                    currentTitle = "Accounts";
+                    accountScroll = Vector2.zero;
+                    break;
+
                 case GUIState.Balances:
+                    currentTitle = "Balances";
+                    balanceScroll = Vector2.zero;
                     accountManager.RefreshBalances(false);
                     break;
 
                 case GUIState.History:
+                    currentTitle = "History";
                     accountManager.RefreshHistory(false);
                     break;
 
                 case GUIState.Settings:
                     {
+                        currentTitle = accountManager.Settings.nexusKind != NexusKind.Unknown ? "Settings" : "Wallet Setup";
                         currencyComboBox.SelectedItemIndex = 0;
                         for (int i = 0; i < currencyOptions.Length; i++)
                         {
@@ -162,6 +199,11 @@ namespace Poltergeist
                         break;
                     }
             }
+
+            if (currentTitle != null)
+            {
+                currentTitle = currentTitle.ToUpper();
+            }
         }
 
         private void PopState()
@@ -180,6 +222,7 @@ namespace Poltergeist
 
 
         #region MODAL PROMPTS
+        private float modalTime;
         private ModalState modalState;
         private Action<PromptResult, string> modalCallback;
         private string modalInput;
@@ -193,6 +236,11 @@ namespace Poltergeist
 
         private void ShowModal(string title, string caption, ModalState state, int maxInputLength, bool allowCancel, Dictionary<string, string> hints, Action<PromptResult, string> callback)
         {
+            if (modalState == ModalState.None)
+            {
+                modalTime = Time.time;
+            }
+
             modalResult = PromptResult.Waiting;
             modalInput = "";
             modalState = state;
@@ -214,9 +262,27 @@ namespace Poltergeist
             });
         }
 
-        public void MessageBox(string caption, Action callback = null)
+        public void MessageBox(MessageKind kind, string caption, Action callback = null)
         {
-            ShowModal("Attention", caption, ModalState.Message, 0, false, null, (result, input) =>
+            string title;
+            switch (kind)
+            {
+                case MessageKind.Success:
+                    AudioManager.Instance.PlaySFX("positive");
+                    title = "Success";
+                    break;
+
+                case MessageKind.Error:
+                    AudioManager.Instance.PlaySFX("negative");
+                    title = "Error";
+                    break;
+
+                default:
+                    title = "Message";
+                    break;
+            }
+
+            ShowModal(title, caption, ModalState.Message, 0, false, null, (result, input) =>
             {
                 callback?.Invoke();
             });
@@ -238,6 +304,7 @@ namespace Poltergeist
                 return;
             }
 
+            AudioManager.Instance.PlaySFX("auth");
             ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, Account.MaxPasswordLength, true, null, (result, input) =>
             {
                 if (result == PromptResult.Success && !string.IsNullOrEmpty(input) && input == accountManager.CurrentAccount.password)
@@ -258,6 +325,8 @@ namespace Poltergeist
             {
                 Animate(AnimationDirection.Up, true, () =>
                 {
+                    AudioManager.Instance.PlaySFX("load");
+
                     stateStack.Clear();
                     PushState(GUIState.Accounts);
 
@@ -270,7 +339,7 @@ namespace Poltergeist
                 });
             }
 
-            if (currentAnimation != AnimationDirection.None)
+            if (initialized && currentAnimation != AnimationDirection.None)
             {
                 float animationDuration = 0.5f;
                 var delta = (Time.time - animationTime) / animationDuration;
@@ -318,6 +387,30 @@ namespace Poltergeist
                     temp?.Invoke();
                 }
             }
+            else
+            {
+                if (!initialized)
+                {
+                    initialized = true;
+                }
+
+                if (fullScreen)
+                {
+                    windowRect.width = Screen.width - Border * 2;
+                    windowRect.height = Screen.height - Border * 2;
+                }
+                else
+                {
+                    background.texture = null;
+                    windowRect.width = Mathf.Min(800, Screen.width) - Border * 2;
+                    windowRect.height = Mathf.Min(800, Screen.height) - Border * 2;
+                }
+
+                windowRect.x = (Screen.width - windowRect.width) / 2;
+                windowRect.y = (Screen.height - windowRect.height) / 2;
+
+                defaultRect = new Rect(windowRect);
+            }
 
             if (modalResult != PromptResult.Waiting)
             {
@@ -328,6 +421,11 @@ namespace Poltergeist
                 modalCallback = null;
                 modalResult = PromptResult.Waiting;
                 temp?.Invoke(result, success ? modalInput : null);
+
+                if (modalState == ModalState.None)
+                {
+                    modalTime = Time.time;
+                }
             }
         }
 
@@ -335,6 +433,26 @@ namespace Poltergeist
         {
             GUI.skin = guiSkin;
             GUI.enabled = true;
+
+            GUI.color = Color.white;
+
+            var duration = 0.333f;
+            var delta = (Time.time - modalTime) / duration;
+            if (delta > 1.0f)
+            {
+                delta = 1;
+            }
+
+            if (modalState == ModalState.None)
+            {
+                delta = 1 - delta;
+            }
+
+            if (modalState != ModalState.None)
+            {
+                var k = Mathf.Lerp(1, 0.4f, delta);
+                GUI.color = new Color(1, 1, 1, k);
+            }
 
             if (guiState == GUIState.Loading)
             {
@@ -345,8 +463,17 @@ namespace Poltergeist
             }
             else
             {
-                GUI.Window(0, windowRect, DoMainWindow, "Poltergeist Wallet");
+                if (fullScreen)
+                {
+                    DoMainWindow(0);
+                }
+                else
+                {
+                    GUI.Window(0, windowRect, DoMainWindow, "Poltergeist Wallet");
+                }
             }
+
+            GUI.color = Color.white;
 
             if (modalState != ModalState.None)
             {
@@ -359,15 +486,20 @@ namespace Poltergeist
 
         private Rect GetExpandedRect(int curY, int height)
         {
-            int border = Units(1);
-            var rect = new Rect(border, curY, windowRect.width - border * 2, height);
+            var rect = new Rect(Border, curY, windowRect.width - Border * 2, height);
             return rect;
         }
 
         private void DoMainWindow(int windowID)
         {
-            GUI.DrawTexture(new Rect(Units(1), Units(1) + 4, 32, 32), ResourceManager.Instance.WalletLogo);
-            GUI.Label(new Rect(windowRect.width / 2 + Units(7), 4, 32, 32), Application.version);
+            GUI.Box(new Rect(8, 8, windowRect.width - 16, Units(2)), "");
+            GUI.Label(new Rect(windowRect.width / 2 + Units(7), 0, 32, Units(2)), Application.version);
+
+            if (currentTitle != null)
+            {
+                int curY = Units(3);
+                DrawHorizontalCenteredText(curY, Units(2), currentTitle);
+            }
 
             switch (guiState)
             {
@@ -443,12 +575,14 @@ namespace Poltergeist
 
                 if (GUI.Button(new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Cancel"))
                 {
+                    AudioManager.Instance.PlaySFX("cancel");
                     modalResult = PromptResult.Failure;
                 }
 
                 GUI.enabled = modalState != ModalState.Input || modalInput.Length > 0;
                 if (GUI.Button(new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm"))
                 {
+                    AudioManager.Instance.PlaySFX("click");
                     modalResult = PromptResult.Success;
                 }
                 GUI.enabled = true;
@@ -515,7 +649,7 @@ namespace Poltergeist
                         else
                         {
                             PopState();
-                            MessageBox(msg, () =>
+                            MessageBox(MessageKind.Error, msg, () =>
                             {
                                 InvokeTransactionCallback(Hash.Null);
                             });
@@ -543,7 +677,7 @@ namespace Poltergeist
                 if (auth == PromptResult.Failure)
                 {
                     var account = accountManager.Accounts[index];
-                    MessageBox($"Could not open '{account.name}' account");
+                    MessageBox(MessageKind.Error, $"Could not open '{account.name}' account");
                 }
             });
         }
@@ -562,98 +696,192 @@ namespace Poltergeist
                     }
                     catch (Exception e)
                     {
-                        MessageBox("Error creating account.\n" + e.Message);
+                        MessageBox(MessageKind.Error, "Error creating account.\n" + e.Message);
                     }
                 }
             });
         }
 
+
+        private string[] accountOptions = new string[] { "Generate new wallet", "Import private key", "Settings" };
+
+        private Vector2 accountScroll;
+        private Vector2 balanceScroll;
+
         private void DoAccountScreen()
         {
-            int curY = Units(5);
-
-            var accountManager = AccountManager.Instance;
-            for (int i = 0; i < accountManager.Accounts.Length; i++)
+            int endY;
+            DoButtonGrid<int>(true, accountOptions.Length, out endY, (index) =>
             {
-                var account = accountManager.Accounts[i];
-
-                var panelHeight = Units(8);
-                var rect = GetExpandedRect(curY, panelHeight);
-                GUI.Box(rect, "");
-
-                int btnWidth = Units(7);
-                int halfWidth = (int)(rect.width / 2);
-
-                GUI.Label(new Rect(Units(2), curY + Units(1), Units(25), Units(2)), account.ToString());
-
-                if (GUI.Button(new Rect(windowRect.width - (btnWidth + Units(2) + 4), curY + Units(2) - 4, btnWidth, Units(2)), "Open"))
-                {
-                    LoginIntoAccount(i);
-                }
-
-                curY += Units(6);
-            }
-
-            // import account panel on bottom
+                return new MenuEntry(index, accountOptions[index], true);
+            },
+            (selected) =>
             {
-                var panelHeight = Units(9);
-                curY = (int)(windowRect.height - panelHeight + Units(1));
-                var rect = GetExpandedRect(curY, panelHeight);
-                GUI.Box(rect, "");
-
-                int btnWidth = Units(11);
-                int halfWidth = (int)(rect.width / 2);
-
-                GUI.Label(new Rect(halfWidth - 10, curY + Units(3), 28, 20), "or");
-
-                if (GUI.Button(new Rect(-Units(2) + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Generate new wallet"))
+                switch (selected)
                 {
-                    var keys = PhantasmaKeys.Generate();
-                    CreateWallet(keys.ToWIF());
-                }
-
-                if (GUI.Button(new Rect((rect.width - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Import private key"))
-                {
-                    ShowModal("Wallet Import", "Enter your private key", ModalState.Input, 64, true, null, (result, key) =>
-                    {
-                        if (key.Length == 52 && (key.StartsWith("K") || key.StartsWith("L")))
+                    case 0:
                         {
-                            CreateWallet(key);
+                            var keys = PhantasmaKeys.Generate();
+                            CreateWallet(keys.ToWIF());
+                            break;
                         }
-                        else
-                        if (key.Length == 58 && key.StartsWith("6"))
+
+                    case 1:
                         {
-                            ShowModal("NEP2 Encrypted Key", "Insert your wallet passphrase", ModalState.Password, 64, true, null, (auth, passphrase) =>
+                            ShowModal("Wallet Import", "Enter your private key", ModalState.Input, 64, true, null, (result, key) =>
                             {
-                                if (auth == PromptResult.Success)
+                                if (key.Length == 52 && (key.StartsWith("K") || key.StartsWith("L")))
                                 {
-                                    try
+                                    CreateWallet(key);
+                                }
+                                else
+                                if (key.Length == 58 && key.StartsWith("6"))
+                                {
+                                    ShowModal("NEP2 Encrypted Key", "Insert your wallet passphrase", ModalState.Password, 64, true, null, (auth, passphrase) =>
                                     {
-                                        var decryptedKeys = Phantasma.Neo.Core.NeoKeys.FromNEP2(key, passphrase);
-                                        CreateWallet(decryptedKeys.WIF);
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        MessageBox("Could not import wallet.\n" + e.Message);
-                                    }
+                                        if (auth == PromptResult.Success)
+                                        {
+                                            try
+                                            {
+                                                var decryptedKeys = Phantasma.Neo.Core.NeoKeys.FromNEP2(key, passphrase);
+                                                CreateWallet(decryptedKeys.WIF);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                MessageBox(MessageKind.Error, "Could not import wallet.\n" + e.Message);
+                                            }
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, "Invalid private key");
                                 }
                             });
+                            break;
                         }
-                        else
+
+                    case 2:
                         {
-                            MessageBox("Invalid private key");
+                            Animate(AnimationDirection.Up, true, () =>
+                            {
+                                PushState(GUIState.Settings);
+                                Animate(AnimationDirection.Down, false);
+                            });
+                            break;
                         }
-                    });
+                }
+            });
+
+            int smallOfs = smallSize ? 1 : 0;
+
+            var accountManager = AccountManager.Instance;
+
+            int startY = (int)(windowRect.y + Units(4));
+
+            int panelHeight = Units(6);
+
+            DoScrollArea<Account>(ref accountScroll, startY, endY, panelHeight, accountManager.Accounts,
+                (account, index, curY, rect) =>
+                {
+                    int btnWidth = Units(7);
+                    int halfWidth = (int)(rect.width / 2);
+
+                    GUI.Label(new Rect(Units(1), curY + Units(1) - 16 * smallOfs, Units(25), Units(2)), account.ToString());
+
+                    if (GUI.Button(new Rect(rect.width - (btnWidth + Units(2) + 4), curY + Units(2) - 4 + smallOfs * 8, btnWidth, Units(2)), "Open"))
+                    {
+                        LoginIntoAccount(index);
+                    }
+                });
+        }
+
+        // returns total items
+        private int DoScrollArea<T>(ref Vector2 scroll, int startY, int endY, int panelHeight, IEnumerable<T> items, Action<T, int, int, Rect> callback)
+        {
+            int panelWidth = (int)(windowRect.width - (Border * 2));
+
+            var itemCount = items.Count();
+            var insideRect = new Rect(0, 0, panelWidth, ((panelHeight + Border) * (itemCount - 1) + panelHeight));
+            var outsideRect = new Rect(Border, startY, panelWidth, endY - (startY + Border));
+
+            bool needsScroll = insideRect.height > outsideRect.height;
+            if (needsScroll)
+            {
+                panelWidth -= Border;
+                insideRect.width = panelWidth;
+            }
+
+            int curY = 0;
+
+            int i = 0;
+            scroll = GUI.BeginScrollView(outsideRect, scroll, insideRect);
+            foreach (var item in items)
+            {
+                var rect = new Rect(0, curY, insideRect.width, panelHeight);
+                GUI.Box(rect, "");
+
+                callback(item, i, curY, rect);
+
+                curY += panelHeight;
+                curY += Border;
+                i++;
+            }
+            GUI.EndScrollView();
+
+            return i;
+        }
+
+        private void DoButtonGrid<T>(bool showBackground, int buttonCount, out int posY, Func<int, MenuEntry> options, Action<T> callback)
+        {
+            bool vertical = smallSize;
+
+            var border = Units(1);
+
+            int panelHeight = vertical ? (Units(3) + 4) *  buttonCount : (border + Units(3));
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border*3));
+
+            var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
+            
+            if (showBackground)
+            {
+                GUI.Box(rect, "");
+            }
+
+            int divisionWidth = (int)(rect.width / buttonCount);
+            int btnWidth = (int)(divisionWidth * 0.8f);
+            int padding = (divisionWidth - btnWidth) / 2;
+
+            T selected = default(T);
+            bool hasSelection = false;
+
+            for (int i = 0; i < buttonCount; i++)
+            {
+                var entry = options(i);
+
+                Rect btnRect;
+
+                if (vertical)
+                {
+                    btnRect = new Rect(rect.x + border, rect.y + border + i * (Units(3)+4), rect.width - border * 2, Units(2));
+                }
+                else
+                {
+                    btnRect = new Rect((Units(1) / 2) + 4 + padding + i * divisionWidth, rect.y + border, btnWidth, Units(2));
                 }
 
-                if (GUI.Button(new Rect(Units(2) + halfWidth + (halfWidth - btnWidth) / 2, curY + Units(3), btnWidth, Units(2)), "Settings"))
+                GUI.enabled = entry.enabled;
+                if (GUI.Button(btnRect, entry.label))
                 {
-                    Animate(AnimationDirection.Up, true, () =>
-                    {
-                        PushState(GUIState.Settings);
-                        Animate(AnimationDirection.Down, false);
-                    });
+                    hasSelection = true;
+                    selected = (T)entry.value;
                 }
+                GUI.enabled = true;
+            }
+
+            if (hasSelection)
+            {
+                callback(selected);
             }
         }
 
@@ -694,7 +922,7 @@ namespace Poltergeist
 
         private void DoCloseButton(Func<bool> callback = null)
         {
-            if (GUI.Button(new Rect(windowRect.width - Units(3), Units(1), Units(2), Units(2)), "X"))
+            if (GUI.Button(new Rect(windowRect.width - Units(4), Units(1) + 2, Units(2) - 4, Units(1) - 4), "X"))
             {
                 if (callback == null || callback())
                 {
@@ -710,31 +938,31 @@ namespace Poltergeist
 
             if (settings.nexusKind == NexusKind.Unknown)
             {
-                MessageBox("Select a Phantasma network first\n" + settings.phantasmaRPCURL);
+                MessageBox(MessageKind.Error, "Select a Phantasma network first\n" + settings.phantasmaRPCURL);
                 return false;
             }
 
             if (!settings.phantasmaRPCURL.IsValidURL())
             {
-                MessageBox("Invalid URL for Phantasma RPC URL\n" + settings.phantasmaRPCURL);
+                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL\n" + settings.phantasmaRPCURL);
                 return false;
             }
 
             if (!settings.neoRPCURL.IsValidURL())
             {
-                MessageBox("Invalid URL for Phantasma RPC URL\n" + settings.neoRPCURL);
+                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL\n" + settings.neoRPCURL);
                 return false;
             }
 
             if (!settings.neoscanURL.IsValidURL())
             {
-                MessageBox("Invalid URL for Phantasma RPC URL\n" + settings.neoscanURL);
+                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL\n" + settings.neoscanURL);
                 return false;
             }
 
             if (settings.feePrice < 1)
             {
-                MessageBox("Invalid value for fee price\n" + settings.feePrice);
+                MessageBox(MessageKind.Error, "Invalid value for fee price\n" + settings.feePrice);
                 return false;
             }
 
@@ -755,11 +983,7 @@ namespace Poltergeist
                 DoCloseButton(ValidateSettings);
             }
 
-            int curY = Units(2);
-
-            int headerSize = Units(10);
-            GUI.Label(new Rect((windowRect.width - headerSize) / 2, curY, headerSize, Units(2)), settings.nexusKind != NexusKind.Unknown ? "SETTINGS" : "WALLET SETUP");
-            curY += Units(5);
+            int curY = Units(7);
 
             var fieldWidth = Units(20);
 
@@ -840,6 +1064,7 @@ namespace Poltergeist
 
             if (accountManager.Accounts.Length > 0)
             {
+                curY += Units(1);
                 if (GUI.Button(new Rect(Units(1), curY, Units(16), Units(2)), "Delete Everything"))
                 {
                     ConfirmBox("All wallets and settings stored in this device will be lost.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", (result) =>
@@ -847,7 +1072,7 @@ namespace Poltergeist
                         accountManager.DeleteAll();
                         PlayerPrefs.DeleteAll();
                         accountManager.Settings.Load();
-                        MessageBox("All data removed from this device.");
+                        MessageBox(MessageKind.Default, "All data removed from this device.");
                     });
                 }
                 curY += Units(3);
@@ -867,18 +1092,38 @@ namespace Poltergeist
             }
         }
 
-        private void DrawPlatformTopMenu(string caption)
+        private int DrawPlatformTopMenu(string caption)
         {
-            DoCloseButton();
-
             var accountManager = AccountManager.Instance;
+
+            string mainToken;
+
+            switch (accountManager.CurrentPlatform)
+            {
+                case PlatformKind.Phantasma:
+                    mainToken = "SOUL";
+                    break;
+
+                case PlatformKind.Neo:
+                    mainToken = "NEO";
+                    break;
+
+                default:
+                    mainToken = null;
+                    break;
+            }
+
+            if (mainToken != null)
+            {
+                GUI.DrawTexture(new Rect(Units(1) + 8, Units(1) - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
+            }
+
+            DoCloseButton();
 
             int currentPlatformIndex = 0;
             var platformList = accountManager.CurrentAccount.platforms.Split();
 
-            int curY = Units(2);
-
-            DrawHorizontalCenteredText(curY, Units(2), caption);
+            int curY = Units(1);
 
             if (platformList.Count > 1)
             {
@@ -893,7 +1138,7 @@ namespace Poltergeist
                 platformComboBox.SelectedItemIndex = currentPlatformIndex;
 
                 int dropHeight;
-                var platformIndex = platformComboBox.Show(new Rect(Units(3) + 8, curY - 8, Units(8), Units(2)), platformList, out dropHeight);
+                var platformIndex = platformComboBox.Show(new Rect(Units(3) + 8, curY, Units(8), Units(1)), platformList, out dropHeight);
 
                 if (platformIndex != currentPlatformIndex)
                 {
@@ -904,18 +1149,22 @@ namespace Poltergeist
             var state = accountManager.CurrentState;
             if (state == null)
             {
-                return;
+                return curY;
             }
 
-            curY += Units(5);
+            curY = Units(5);
 
             DrawHorizontalCenteredText(curY - 5, Units(2), state.address);
 
             if (GUI.Button(new Rect(windowRect.width - Units(6), curY + 5, Units(4), Units(1)), "Copy"))
             {
                 GUIUtility.systemCopyBuffer = state.address;
-                MessageBox("Address copied to clipboard");
+                MessageBox(MessageKind.Default, "Address copied to clipboard!");
             }
+
+            curY += Units(3);
+
+            return curY;
         }
 
         private void DrawBalanceLine(ref Rect subRect, string symbol, decimal amount, string caption)
@@ -946,17 +1195,8 @@ namespace Poltergeist
                 return;
             }
 
-            /*
-                case WalletState.Error:
-                    DrawCenteredText("Error fetching balances...");
-                    DoCloseButton();
-                    */
-
-
-            Rect rect;
-            int panelHeight;
-
-            DrawPlatformTopMenu("BALANCES");
+            var startY = DrawPlatformTopMenu("BALANCES");
+            var endY = DoBottomMenu();
 
             var state = accountManager.CurrentState;
 
@@ -968,197 +1208,207 @@ namespace Poltergeist
 
             if (state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
             {
-                GUI.DrawTexture(new Rect(Units(1), Units(5), Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
+                GUI.DrawTexture(new Rect(Units(1), Units(2), Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
             }
 
             int curY = Units(12);
 
             decimal feeBalance = state.GetAvailableAmount("KCAL");
 
-            int balanceCount = 0;
-            int btnWidth;
-            int index = 0;
-            foreach (var balance in state.balances)
+            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, Units(5), state.balances.Where(x => x.Total >= 0.001m), 
+                DoBalanceEntry);
+
+            if (balanceCount == 0)
             {
-                if (balance.Total < 0.001m)
+                DrawHorizontalCenteredText(curY, Units(2), $"No assets found in this {accountManager.CurrentPlatform} account.");
+            }
+        }
+
+        private void DoBalanceEntry(Balance balance, int index, int curY, Rect rect)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            var icon = ResourceManager.Instance.GetToken(balance.Symbol);
+            if (icon != null)
+            {
+                GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
+            }
+
+            int panelHeight = Units(8);
+            GUI.Box(rect, "");
+
+            int btnWidth = Units(11);
+            int halfWidth = (int)(rect.width / 2);
+
+            var posY = curY + Units(1) - 8;
+            GUI.Label(new Rect(Units(5), posY, Units(20), Units(2)), $"{balance.Available.ToString(MoneyFormat)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
+
+            var subRect = new Rect(Units(5), posY + Units(1) + 4, Units(20), Units(2));
+            DrawBalanceLine(ref subRect, balance.Symbol, balance.Staked, "staked");
+            DrawBalanceLine(ref subRect, balance.Symbol, balance.Pending, "pending");
+            DrawBalanceLine(ref subRect, balance.Symbol, balance.Claimable, "claimable");
+
+            string secondaryAction = null;
+            bool secondaryEnabled = false;
+            Action secondaryCallback = null;
+
+            if (balance.Pending > 0)
+            {
+                secondaryAction = "Claim";
+                secondaryEnabled = true;
+                secondaryCallback = () =>
                 {
-                    continue;
-                }
-
-                balanceCount++;
-                var icon = ResourceManager.Instance.GetToken(balance.Symbol);
-                if (icon != null)
-                {
-                    GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
-                }
-
-                panelHeight = Units(8);
-                rect = GetExpandedRect(curY, panelHeight);
-                GUI.Box(rect, "");
-
-                btnWidth = Units(11);
-                int halfWidth = (int)(rect.width / 2);
-
-                var posY = curY + Units(1) - 8;
-                GUI.Label(new Rect(Units(5), posY, Units(20), Units(2)), $"{balance.Available.ToString(MoneyFormat)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
-
-                var subRect = new Rect(Units(5), posY + Units(1) + 4, Units(20), Units(2));
-                DrawBalanceLine(ref subRect, balance.Symbol, balance.Staked, "staked");
-                DrawBalanceLine(ref subRect, balance.Symbol, balance.Pending, "pending");
-                DrawBalanceLine(ref subRect, balance.Symbol, balance.Claimable, "claimable");
-
-                string secondaryAction = null;
-                bool secondaryEnabled = false;
-                Action secondaryCallback = null;
-
-                if (balance.Pending > 0)
-                {
-                    secondaryAction = "Claim";
-                    secondaryEnabled = true;
-                    secondaryCallback = () =>
+                    ConfirmBox($"You have {balance.Pending} {balance.Symbol} pending in your account.\nDo you want to claim it?", (result) =>
                     {
-                        ConfirmBox($"You have {balance.Pending} {balance.Symbol} pending in your account.\nDo you want to claim it?", (result) =>
+                        accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash) =>
                         {
-                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash) =>
+                            ShowConfirmationScreen(settleHash, (hash) =>
                             {
-                                ShowConfirmationScreen(settleHash, (hash) =>
+                                if (hash != Hash.Null)
                                 {
-                                    if (hash != Hash.Null)
-                                    {
-                                        MessageBox($"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
-                                    }
-                                    else
-                                    {
-                                        MessageBox("There was some error confirming the transaction...");
-                                    }
-                                });
+                                    MessageBox(MessageKind.Success, $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, "There was some error confirming the transaction...");
+                                }
                             });
                         });
-                    };
-                }
-                else
-                    switch (balance.Symbol)
-                    {
-                        case "SOUL":
-                            if (balance.Staked > 0)
+                    });
+                };
+            }
+            else
+                switch (balance.Symbol)
+                {
+                    case "SOUL":
+                        if (balance.Staked > 0)
+                        {
+                            secondaryAction = "Unstake";
+                            secondaryEnabled = true;
+                            secondaryCallback = () =>
                             {
-                                secondaryAction = "Unstake";
-                                secondaryEnabled = true;
-                                secondaryCallback = () =>
-                                {
-                                    ConfirmBox($"Do you want to unstake {balance.Staked} SOUL?\nYou won't be able to claim KCAL anymore.", (result) =>
+                                RequireAmount("Unstake SOUL", "SOUL", balance.Staked,
+                                    (amount) =>
                                     {
-                                        RequestKCAL("SOUL", (kcal) =>
+                                        var line = amount == balance.Staked ? "You won't be able to claim KCAL anymore." : "The amount of KCAL that will be able to claim later will be reduced.";
+
+                                        ConfirmBox($"Do you want to unstake {amount} SOUL?\n{line}", (result) =>
                                         {
-                                            if (kcal == PromptResult.Success)
+                                            RequestKCAL("SOUL", (kcal) =>
                                             {
-                                                var address = Address.FromText(state.address);
-
-                                                var sb = new ScriptBuilder();
-                                                var gasPrice = accountManager.Settings.feePrice;
-
-                                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
-                                                sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(balance.Staked, balance.Decimals));
-                                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
-
-                                                sb.SpendGas(address);
-                                                var script = sb.EndScript();
-
-                                                SendTransaction($"Unstake {balance.Staked} SOUL", script, "main", (hash) =>
+                                                if (kcal == PromptResult.Success)
                                                 {
-                                                    if (hash != Hash.Null)
+                                                    var address = Address.FromText(state.address);
+
+                                                    var sb = new ScriptBuilder();
+                                                    var gasPrice = accountManager.Settings.feePrice;
+
+                                                    sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                                    sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(balance.Staked, balance.Decimals));
+                                                    sb.AllowGas(address, Address.Null, gasPrice, 9999);
+
+                                                    sb.SpendGas(address);
+                                                    var script = sb.EndScript();
+
+                                                    SendTransaction($"Unstake {balance.Staked} SOUL", script, "main", (hash) =>
                                                     {
-                                                        MessageBox("Your SOUL was unstaked!\nTransaction hash: " + hash);
-                                                    }
-                                                });
-                                            }
+                                                        if (hash != Hash.Null)
+                                                        {
+                                                            MessageBox(MessageKind.Success, "Your SOUL was unstaked!\nTransaction hash: " + hash);
+                                                        }
+                                                    });
+                                                }
+                                            });
                                         });
                                     });
-                                };
-                            }
-                            else
-                                if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                            };
+                        }
+                        else
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                        {
+                            secondaryAction = "Stake";
+                            secondaryEnabled = balance.Available > 1.2m;
+                            secondaryCallback = () =>
                             {
-                                secondaryAction = "Stake";
-                                secondaryEnabled = balance.Available > 1.2m;
-                                secondaryCallback = () =>
+                                var stakeAmount = Math.Min(balance.Available, AccountManager.SoulMasterStakeAmount);
+
+                                var expectedDailyKCAL = stakeAmount * 0.002m;
+
+                                ConfirmBox($"Do you want to stake {stakeAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.", (result) =>
                                 {
-                                    var stakeAmount = Math.Min(balance.Available, AccountManager.SoulMasterStakeAmount);
-
-                                    var expectedDailyKCAL = stakeAmount * 0.002m;
-
-                                    ConfirmBox($"Do you want to stake {stakeAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.", (result) =>
+                                    RequestKCAL("SOUL", (kcal) =>
                                     {
-                                        RequestKCAL("SOUL", (kcal) =>
-                                        {
-                                            if (kcal == PromptResult.Success)
-                                            {
-                                                var address = Address.FromText(state.address);
-
-                                                var sb = new ScriptBuilder();
-                                                var gasPrice = accountManager.Settings.feePrice;
-
-                                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
-                                                sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(stakeAmount, balance.Decimals));
-                                                sb.AllowGas(address, Address.Null, gasPrice, 9999);
-
-                                                sb.SpendGas(address);
-                                                var script = sb.EndScript();
-
-                                                SendTransaction($"Stake {stakeAmount} SOUL", script, "main", (hash) =>
-                                                {
-                                                    if (hash != Hash.Null)
-                                                    {
-                                                        MessageBox("Your SOUL was staked!\nTransaction hash: " + hash);
-                                                    }
-                                                });
-                                            }
-                                        });
-                                    });
-
-                                };
-                            }
-                            break;
-
-                        case "KCAL":
-                            if (balance.Claimable > 0)
-                            {
-                                secondaryAction = "Claim";
-                                secondaryEnabled = true;
-                                secondaryCallback = () =>
-                                {
-                                    ConfirmBox($"Do you want to claim KCAL?\nThere is {balance.Claimable} KCAL available.", (result) =>
-                                    {
-                                        if (result == PromptResult.Success)
+                                        if (kcal == PromptResult.Success)
                                         {
                                             var address = Address.FromText(state.address);
-                                            var gasPrice = accountManager.Settings.feePrice;
 
                                             var sb = new ScriptBuilder();
-                                            sb.AllowGas(address, Address.Null, gasPrice, 1);
-                                            sb.CallContract("stake", "Claim", address, address);
+                                            var gasPrice = accountManager.Settings.feePrice;
+
+                                            sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                            sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(stakeAmount, balance.Decimals));
+                                            sb.AllowGas(address, Address.Null, gasPrice, 9999);
+
                                             sb.SpendGas(address);
                                             var script = sb.EndScript();
 
-                                            SendTransaction($"Claim {balance.Claimable} KCAL", script, "main", (hash) =>
+                                            SendTransaction($"Stake {stakeAmount} SOUL", script, "main", (hash) =>
                                             {
                                                 if (hash != Hash.Null)
                                                 {
-                                                    MessageBox("You claimed some KCAL!\nTransaction hash: " + hash);
+                                                    MessageBox(MessageKind.Success, "Your SOUL was staked!\nTransaction hash: " + hash);
                                                 }
                                             });
                                         }
                                     });
-                                };
-                            }
-                            else
-                            if (balance.Available > 0)
+                                });
+
+                            };
+                        }
+                        break;
+
+                    case "KCAL":
+                        if (balance.Claimable > 0)
+                        {
+                            secondaryAction = "Claim";
+                            secondaryEnabled = true;
+                            secondaryCallback = () =>
                             {
-                                secondaryAction = "Burn";
-                                secondaryEnabled = true;
-                                secondaryCallback = () =>
+                                ConfirmBox($"Do you want to claim KCAL?\nThere is {balance.Claimable} KCAL available.", (result) =>
                                 {
-                                    var amountText = balance.Available.ToString(MoneyFormat);
+                                    if (result == PromptResult.Success)
+                                    {
+                                        var address = Address.FromText(state.address);
+                                        var gasPrice = accountManager.Settings.feePrice;
+
+                                        var sb = new ScriptBuilder();
+                                        sb.AllowGas(address, Address.Null, gasPrice, 1);
+                                        sb.CallContract("stake", "Claim", address, address);
+                                        sb.SpendGas(address);
+                                        var script = sb.EndScript();
+
+                                        SendTransaction($"Claim {balance.Claimable} KCAL", script, "main", (hash) =>
+                                        {
+                                            if (hash != Hash.Null)
+                                            {
+                                                MessageBox(MessageKind.Success, "You claimed some KCAL!\nTransaction hash: " + hash);
+                                            }
+                                        });
+                                    }
+                                });
+                            };
+                        }
+                        else
+                        if (balance.Available > 0)
+                        {
+                            secondaryAction = "Burn";
+                            secondaryEnabled = true;
+                            secondaryCallback = () =>
+                            {
+                                RequireAmount("Burning KCAL", "KCAL", balance.Available, (amount) =>
+                                {
+                                    var amountText = amount.ToString(MoneyFormat);
                                     ConfirmBox($"Do you want to burn {amountText} KCAL?\nIt will be sent to the SES energy bomb!", (result) =>
                                     {
                                         if (result == PromptResult.Success)
@@ -1170,8 +1420,15 @@ namespace Poltergeist
                                             var sb = new ScriptBuilder();
                                             var gasPrice = accountManager.Settings.feePrice;
 
-                                            sb.AllowGas(address, Address.Null, gasPrice, 9999);
-                                            sb.TransferBalance(balance.Symbol, address, burnAddress);
+                                            sb.AllowGas(address, Address.Null, gasPrice, 999);
+                                            if (amount <= 0.1m)
+                                            {
+                                                sb.TransferBalance(balance.Symbol, address, burnAddress);                                                
+                                            }
+                                            else
+                                            {
+                                                sb.TransferTokens(balance.Symbol, address, burnAddress, UnitConversion.ToBigInteger(amount, balance.Decimals));
+                                            }
                                             sb.SpendGas(address);
                                             var script = sb.EndScript();
 
@@ -1179,105 +1436,88 @@ namespace Poltergeist
                                             {
                                                 if (hash != Hash.Null)
                                                 {
-                                                    MessageBox("Your burned some KCAL!\nTransaction hash: " + hash);
+                                                    MessageBox(MessageKind.Success, "Your burned some KCAL!\nTransaction hash: " + hash);
                                                 }
                                             });
                                         }
                                     });
-                                };
-                            }
-                            break;
-
-                        case "GAS":
-                            {
-                                if (accountManager.CurrentPlatform == PlatformKind.Neo)
-                                {
-                                    secondaryAction = "Claim";
-                                    secondaryEnabled = balance.Claimable > 0;
-                                    secondaryCallback = () =>
-                                    {
-                                        MessageBox("Not supported yet");
-                                    };
-                                }
-                                break;
-                            }
-                    }
-
-                if (!string.IsNullOrEmpty(secondaryAction))
-                {
-                    GUI.enabled = secondaryEnabled;
-                    if (GUI.Button(new Rect(rect.x + rect.width - Units(11) - 4, curY + Units(1), Units(4) + 8, Units(2)), secondaryAction))
-                    {
-                        secondaryCallback?.Invoke();
-                    }
-                    GUI.enabled = true;
-                }
-
-                GUI.enabled = balance.Available > 0;
-                if (GUI.Button(new Rect(rect.x + rect.width - (Units(5) + 8) - 4, curY + Units(1), Units(4) + 8, Units(2)), "Send"))
-                {
-                    transferSymbol = balance.Symbol;
-                    var transferName = $"{transferSymbol} transfer";
-                    ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, GetAccountHints(accountManager.CurrentPlatform.GetTransferTargets()), (result, destAddress) =>
-                    {
-                        if (result == PromptResult.Failure)
-                        {
-                            return; // user canceled
+                                });
+                            };
                         }
+                        break;
 
-                        if (Address.IsValidAddress(destAddress))
-                        {
-                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                            {
-                                ContinuePhantasmaTransfer(transferName, transferSymbol, destAddress);
-                            }
-                            else
-                            {
-                                ContinueSwap(PlatformKind.Phantasma, transferName, transferSymbol, destAddress);
-                            }
-                        }
-                        else
-                        if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
+                    case "GAS":
                         {
                             if (accountManager.CurrentPlatform == PlatformKind.Neo)
                             {
-                                ContinueNeoTransfer(transferName, transferSymbol, destAddress);
+                                secondaryAction = "Claim";
+                                secondaryEnabled = balance.Claimable > 0;
+                                secondaryCallback = () =>
+                                {
+                                    MessageBox(MessageKind.Error, "Not supported yet");
+                                };
                             }
-                            else
-                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                            {
-                                ContinueSwap(PlatformKind.Neo, transferName, transferSymbol, destAddress);
-                            }
-                            else
-                            {
-                                MessageBox($"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported");
-                            }
+                            break;
+                        }
+                }
+
+            if (!string.IsNullOrEmpty(secondaryAction))
+            {
+                GUI.enabled = secondaryEnabled;
+                if (GUI.Button(new Rect(rect.x + rect.width - Units(12), curY + Units(1), Units(4) + 8, Units(2)), secondaryAction))
+                {
+                    secondaryCallback?.Invoke();
+                }
+                GUI.enabled = true;
+            }
+
+            GUI.enabled = balance.Available > 0;
+            if (GUI.Button(new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(2)), "Send"))
+            {
+                transferSymbol = balance.Symbol;
+                var transferName = $"{transferSymbol} transfer";
+                ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, GetAccountHints(accountManager.CurrentPlatform.GetTransferTargets()), (result, destAddress) =>
+                {
+                    if (result == PromptResult.Failure)
+                    {
+                        return; // user canceled
+                    }
+
+                    if (Address.IsValidAddress(destAddress))
+                    {
+                        if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                        {
+                            ContinuePhantasmaTransfer(transferName, transferSymbol, destAddress);
                         }
                         else
                         {
-                            MessageBox("Invalid destination address");
+                            ContinueSwap(PlatformKind.Phantasma, transferName, transferSymbol, destAddress);
                         }
-                    });
-                    break;
-                }
-                GUI.enabled = true;
-
-                curY += Units(6);
-                index++;
+                    }
+                    else
+                    if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
+                    {
+                        if (accountManager.CurrentPlatform == PlatformKind.Neo)
+                        {
+                            ContinueNeoTransfer(transferName, transferSymbol, destAddress);
+                        }
+                        else
+                        if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                        {
+                            ContinueSwap(PlatformKind.Neo, transferName, transferSymbol, destAddress);
+                        }
+                        else
+                        {
+                            MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported");
+                        }
+                    }
+                    else
+                    {
+                        MessageBox(MessageKind.Error, "Invalid destination address");
+                    }
+                });
             }
-
-
-            if (balanceCount == 0)
-            {
-                DrawHorizontalCenteredText(curY, Units(2), $"No assets found in this {accountManager.CurrentPlatform} account.");
-            }
-
-            if (guiState != GUIState.Balances)
-            {
-                return;
-            }
-
-            DoBottomMenu();
+            GUI.enabled = true;
         }
 
         private void DoHistoryScreen()
@@ -1357,32 +1597,20 @@ namespace Poltergeist
 
         private GUIState[] bottomMenu = new GUIState[] { GUIState.Balances, GUIState.History };
 
-        private void DoBottomMenu()
+        private int DoBottomMenu()
         {
-            int panelHeight = Units(9);
-            int curY = (int)(windowRect.height - panelHeight);
-
-            curY += Units(1);
-            var rect = GetExpandedRect(curY, panelHeight);
-
-            int buttonCount = bottomMenu.Length;
-
-            int divisionWidth = (int)(rect.width / buttonCount);
-            int btnWidth = (int)(divisionWidth * 0.8f);
-            int padding = (divisionWidth - btnWidth) / 2;
-
-            for (int i = 0; i < buttonCount; i++)
+            int posY;
+            DoButtonGrid<GUIState>(false, bottomMenu.Length, out posY, (index) =>
             {
-                var btnKind = bottomMenu[i];
+                var btnKind = bottomMenu[index];
+                return new MenuEntry(btnKind, btnKind.ToString(), btnKind != this.guiState);
+            },
+            (selected) =>
+            {
+                PushState(selected);
+            });
 
-                GUI.enabled = btnKind != this.guiState;
-                if (GUI.Button(new Rect((Units(1) / 2) + 4 + padding + i * divisionWidth, curY + Units(3), btnWidth, Units(2)), btnKind.ToString()))
-                {
-                    PushState(btnKind);
-                    return;
-                }
-                GUI.enabled = true;
-            }
+            return posY;
         }
 
         private void DoBackButton()
@@ -1419,7 +1647,7 @@ namespace Poltergeist
         {
             if (script == null)
             {
-                MessageBox("Null transaction script", () =>
+                MessageBox(MessageKind.Error, "Null transaction script", () =>
                 {
                     callback(Hash.Null);
                 });
@@ -1444,7 +1672,7 @@ namespace Poltergeist
                             {
                                 PopState();
 
-                                MessageBox("Error sending transaction", () =>
+                                MessageBox(MessageKind.Error, "Error sending transaction", () =>
                                 {
                                     InvokeTransactionCallback(hash);
                                 });
@@ -1456,7 +1684,7 @@ namespace Poltergeist
                 else
                 if (auth == PromptResult.Failure)
                 {
-                    MessageBox($"Authorization failed");
+                    MessageBox(MessageKind.Error, $"Authorization failed");
                 }
             });
         }
@@ -1467,7 +1695,15 @@ namespace Poltergeist
             needsConfirmation = true;
             transactionHash = hash;
             lastTransactionConfirmation = DateTime.UtcNow;
-            SetState(GUIState.Confirming);
+            
+            if (guiState == GUIState.Sending)
+            {
+                SetState(GUIState.Confirming);
+            }
+            else
+            {
+                PushState(GUIState.Confirming);
+            }
         }
 
         #region transfers
@@ -1478,7 +1714,7 @@ namespace Poltergeist
 
             if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
             {
-                MessageBox($"Current platform must be " + PlatformKind.Phantasma);
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
                 return;
             }
 
@@ -1487,84 +1723,60 @@ namespace Poltergeist
 
             if (source == destination)
             {
-                MessageBox($"Source and destination address must be different!");
+                MessageBox(MessageKind.Error, $"Source and destination address must be different!");
                 return;
             }
 
-            ShowModal(transferName, $"Enter {symbol} amount", ModalState.Input, 64, true, null, (result, temp) =>
+            var balance = state.GetAvailableAmount(symbol);
+            RequireAmount(transferName, symbol, balance, (amount) =>
             {
-                if (result == PromptResult.Failure)
+                RequestKCAL(symbol, (feeResult) =>
                 {
-                    return; // user cancelled
-                }
-
-                decimal amount;
-
-                if (decimal.TryParse(temp.Replace(',', '.'), out amount) && amount > 0 && ValidDecimals(amount, symbol))
-                {
-                    var balance = state.GetAvailableAmount(symbol);
-
-                    if (amount > balance)
+                    if (feeResult == PromptResult.Success)
                     {
-                        MessageBox($"Not enough {symbol}!");
-                        return;
-                    }
-                    else
-                    {
-                        RequestKCAL(symbol, (feeResult) =>
+                        byte[] script;
+
+                        try
                         {
-                            if (feeResult == PromptResult.Success)
+                            var decimals = accountManager.GetTokenDecimals(symbol);
+
+                            var gasPrice = accountManager.Settings.feePrice;
+
+                            var sb = new ScriptBuilder();
+                            sb.AllowGas(source, Address.Null, gasPrice, 300);
+
+                            if (symbol == "KCAL" && amount == balance)
                             {
-                                byte[] script;
-
-                                try
-                                {
-                                    var decimals = accountManager.GetTokenDecimals(symbol);
-
-                                    var gasPrice = accountManager.Settings.feePrice;
-
-                                    var sb = new ScriptBuilder();
-                                    sb.AllowGas(source, Address.Null, gasPrice, 300);
-
-                                    if (symbol == "KCAL" && amount == balance)
-                                    {
-                                        sb.TransferBalance(symbol, source, destination);
-                                    }
-                                    else
-                                    {
-                                        sb.TransferTokens(symbol, source, destination, UnitConversion.ToBigInteger(amount, decimals));
-                                    }
-
-                                    sb.SpendGas(source);
-                                    script = sb.EndScript();
-                                }
-                                catch (Exception e)
-                                {
-                                    MessageBox("Something went wrong!\n" + e.Message);
-                                    return;
-                                }
-
-                                SendTransaction($"Transfer {amount} {symbol}", script, "main", (hash) =>
-                                {
-                                    if (hash != Hash.Null)
-                                    {
-                                        MessageBox($"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
-                                    }
-                                });
+                                sb.TransferBalance(symbol, source, destination);
                             }
                             else
-                            if (feeResult == PromptResult.Failure)
                             {
-                                MessageBox($"KCAL is required to make transactions!");
+                                sb.TransferTokens(symbol, source, destination, UnitConversion.ToBigInteger(amount, decimals));
+                            }
+
+                            sb.SpendGas(source);
+                            script = sb.EndScript();
+                        }
+                        catch (Exception e)
+                        {
+                            MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                            return;
+                        }
+
+                        SendTransaction($"Transfer {amount} {symbol}", script, "main", (hash) =>
+                        {
+                            if (hash != Hash.Null)
+                            {
+                                MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
                             }
                         });
                     }
-                }
-                else
-                {
-                    MessageBox("Invalid amount!");
-                    return;
-                }
+                    else
+                    if (feeResult == PromptResult.Failure)
+                    {
+                        MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
+                    }
+                });
             });
         }
 
@@ -1581,33 +1793,11 @@ namespace Poltergeist
             return temp == 0;
         }
 
-        private void ContinueNeoTransfer(string transferName, string symbol, string destination)
+        private void RequireAmount(string description, string symbol, decimal max, Action<decimal> callback)
         {
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
-
-            if (accountManager.CurrentPlatform != PlatformKind.Neo)
-            {
-                MessageBox($"Current platform must be " + PlatformKind.Neo);
-                return;
-            }
-
-            var sourceAddress = accountManager.CurrentAccount.GetAddress(accountManager.CurrentPlatform);
-
-            if (sourceAddress == destination)
-            {
-                MessageBox($"Source and destination address must be different!");
-                return;
-            }
-
-            var gasBalance = accountManager.CurrentState.GetAvailableAmount("GAS");
-            if (gasBalance <= 0)
-            {
-                MessageBox($"You will need at least a drop of GAS in this wallet to make a transaction.");
-                return;
-            }
-
-            ShowModal(transferName, $"Enter {symbol} amount", ModalState.Input, 64, true, null, (result, temp) =>
+            ShowModal(description, $"Enter {symbol} amount", ModalState.Input, 64, true, null, (result, temp) =>
             {
                 if (result == PromptResult.Failure)
                 {
@@ -1618,40 +1808,71 @@ namespace Poltergeist
 
                 if (decimal.TryParse(temp.Replace(',', '.'), out amount) && amount > 0 && ValidDecimals(amount, symbol))
                 {
-                    var balance = state.GetAvailableAmount(symbol);
-
-                    if (amount > balance)
+                    if (amount > max)
                     {
-                        MessageBox($"Not enough {symbol}!");
+                        MessageBox(MessageKind.Error, $"Not enough {symbol}!");
                         return;
                     }
                     else
                     {
-                        var transfer = new TransferRequest()
-                        {
-                            platform = PlatformKind.Neo,
-                            amount = amount,
-                            symbol = symbol,
-                            key = accountManager.CurrentAccount.key,
-                            destination = destination
-                        };
-
-                        byte[] script = Serialization.Serialize(transfer);
-
-                        SendTransaction($"Transfer {amount} {symbol}", script, transfer.platform.ToString(), (hash) =>
-                        {
-                            if (hash != Hash.Null)
-                            {
-                                MessageBox($"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
-                            }
-                        });
+                        callback(amount);
                     }
                 }
                 else
                 {
-                    MessageBox("Invalid amount!");
+                    MessageBox(MessageKind.Error, "Invalid amount!");
                     return;
                 }
+            });
+        }
+
+        private void ContinueNeoTransfer(string transferName, string symbol, string destination)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Neo)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Neo);
+                return;
+            }
+
+            var sourceAddress = accountManager.CurrentAccount.GetAddress(accountManager.CurrentPlatform);
+
+            if (sourceAddress == destination)
+            {
+                MessageBox(MessageKind.Error, $"Source and destination address must be different!");
+                return;
+            }
+
+            var gasBalance = accountManager.CurrentState.GetAvailableAmount("GAS");
+            if (gasBalance <= 0)
+            {
+                MessageBox(MessageKind.Error, $"You will need at least a drop of GAS in this wallet to make a transaction.");
+                return;
+            }
+
+            var balance = state.GetAvailableAmount(symbol);
+            RequireAmount(transferName, symbol, balance, (amount) =>
+            {
+                var transfer = new TransferRequest()
+                {
+                    platform = PlatformKind.Neo,
+                    amount = amount,
+                    symbol = symbol,
+                    key = accountManager.CurrentAccount.key,
+                    destination = destination
+                };
+
+                byte[] script = Serialization.Serialize(transfer);
+
+                SendTransaction($"Transfer {amount} {symbol}", script, transfer.platform.ToString(), (hash) =>
+                {
+                    if (hash != Hash.Null)
+                    {
+                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                    }
+                });
             });
         }
 
@@ -1664,7 +1885,7 @@ namespace Poltergeist
 
             if (sourceAddress == destination)
             {
-                MessageBox($"Source and destination address must be different!");
+                MessageBox(MessageKind.Error, $"Source and destination address must be different!");
                 return;
             }
 
@@ -1673,7 +1894,7 @@ namespace Poltergeist
             var gasBalance = accountManager.CurrentState.GetAvailableAmount(feeSymbol);
             if (gasBalance <= 0)
             {
-                MessageBox($"You will need some {feeSymbol} in this wallet to make a swap.");
+                MessageBox(MessageKind.Error, $"You will need some {feeSymbol} in this wallet to make a swap.");
                 return;
             }
 
@@ -1692,7 +1913,7 @@ namespace Poltergeist
 
                     if (amount > balance)
                     {
-                        MessageBox($"Not enough {symbol}!");
+                        MessageBox(MessageKind.Error, $"Not enough {symbol}!");
                         return;
                     }
                     else
@@ -1708,7 +1929,7 @@ namespace Poltergeist
                                     break;
 
                                 default:
-                                    MessageBox($"Swaps to {destPlatform} are not possible yet.");
+                                    MessageBox(MessageKind.Error, $"Swaps to {destPlatform} are not possible yet.");
                                     break;
                             }
 
@@ -1736,7 +1957,7 @@ namespace Poltergeist
                                     }
                                     catch (Exception e)
                                     {
-                                        MessageBox("Something went wrong!\n" + e.Message);
+                                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
                                         return;
                                     }
 
@@ -1744,14 +1965,14 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
-                                            MessageBox($"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
+                                            MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
                                         }
                                     });
                                 }
                                 else
                                 if (feeResult == PromptResult.Failure)
                                 {
-                                    MessageBox($"KCAL is required to make transactions!");
+                                    MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
                                 }
                             });
                         }
@@ -1779,13 +2000,13 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
-                                            MessageBox($"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                                            MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
                                         }
                                     });
                                 }
                                 else
                                 {
-                                    MessageBox("Could not fetch interop address");
+                                    MessageBox(MessageKind.Error, "Could not fetch interop address");
                                 }
                             });
                         }
@@ -1793,7 +2014,7 @@ namespace Poltergeist
                 }
                 else
                 {
-                    MessageBox("Invalid amount!");
+                    MessageBox(MessageKind.Error, "Invalid amount!");
                     return;
                 }
             });
@@ -1825,41 +2046,50 @@ namespace Poltergeist
                 return;
             }
 
-            ConfirmBox($"Not enough KCAL for transaction fees.\nUse some {swapSymbol} to perform a cosmic swap?",
-                 (result) =>
-                 {
-                     if (result == PromptResult.Success)
+            var swapDecimals = accountManager.GetTokenDecimals(swapSymbol);
+
+            if (swapDecimals> 0)
+            {
+                ConfirmBox($"Not enough KCAL for transaction fees.\nUse some {swapSymbol} to perform a cosmic swap?",
+                     (result) =>
                      {
-                         byte[] script;
-
-                         try
+                         if (result == PromptResult.Success)
                          {
-                             var decimals = accountManager.GetTokenDecimals("KCAL");
+                             byte[] script;
 
-                             var gasPrice = accountManager.Settings.feePrice;
+                             try
+                             {
+                                 var decimals = accountManager.GetTokenDecimals("KCAL");
 
-                             var sb = new ScriptBuilder();
-                             sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimals));
-                             sb.AllowGas(source, Address.Null, gasPrice, 250);
-                             sb.SpendGas(source);
-                             script = sb.EndScript();
+                                 var gasPrice = accountManager.Settings.feePrice;
+
+                                 var sb = new ScriptBuilder();
+                                 sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimals));
+                                 sb.AllowGas(source, Address.Null, gasPrice, 250);
+                                 sb.SpendGas(source);
+                                 script = sb.EndScript();
+                             }
+                             catch (Exception e)
+                             {
+                                 MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                                 return;
+                             }
+
+                             SendTransaction($"Swap {swapSymbol} for KCAL", script, "main", (hash) =>
+                             {
+                                 callback(hash != Hash.Null ? PromptResult.Success : PromptResult.Failure);
+                             });
                          }
-                         catch (Exception e)
+                         else
                          {
-                             MessageBox("Something went wrong!\n" + e.Message);
-                             return;
+                             callback(result);
                          }
-
-                         SendTransaction($"Swap {swapSymbol} for KCAL", script, "main", (hash) =>
-                         {
-                             callback(hash != Hash.Null ? PromptResult.Success : PromptResult.Failure);
-                         });
-                     }
-                     else
-                     {
-                         callback(result);
-                     }
-                 });
+                     });
+            }
+            else
+            {
+                MessageBox(MessageKind.Error, $"Not enough KCAL for transaction fees.\nHowever {swapSymbol} is not supported currently in cosmic swaps.");
+            }
         }
         #endregion
 
