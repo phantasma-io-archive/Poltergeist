@@ -135,6 +135,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
+            PlayerPrefs.Save();
         }
 
         public void RestoreEndpoints()

@@ -36,12 +36,14 @@ namespace Poltergeist
     public enum GUIState
     {
         Loading,
-        Accounts,
+        Wallets,
         Balances,
         History,
+        Account,
         Sending,
         Confirming,
         Settings,
+        Exit
     }
 
     public enum PromptResult
@@ -148,6 +150,12 @@ namespace Poltergeist
 
         private void SetState(GUIState state)
         {
+            if (state == GUIState.Exit)
+            {
+                CloseCurrentStack();
+                return;
+            }
+
             guiState = state;
 
             var accountManager = AccountManager.Instance;
@@ -156,20 +164,24 @@ namespace Poltergeist
 
             switch (state)
             {
-                case GUIState.Accounts:
-                    currentTitle = "Accounts";
+                case GUIState.Wallets:
+                    currentTitle = "Wallet List";
                     accountScroll = Vector2.zero;
                     break;
 
                 case GUIState.Balances:
-                    currentTitle = "Balances";
+                    currentTitle = "Balances for " + accountManager.CurrentAccount.name;
                     balanceScroll = Vector2.zero;
                     accountManager.RefreshBalances(false);
                     break;
 
                 case GUIState.History:
-                    currentTitle = "History";
+                    currentTitle = "History for " + accountManager.CurrentAccount.name;
                     accountManager.RefreshHistory(false);
+                    break;
+
+                case GUIState.Account:
+                    currentTitle = "Account details for " + accountManager.CurrentAccount.name;
                     break;
 
                 case GUIState.Settings:
@@ -308,14 +320,14 @@ namespace Poltergeist
             AudioManager.Instance.PlaySFX("auth");
             ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, Account.MaxPasswordLength, true, null, (result, input) =>
             {
-                if (result == PromptResult.Success && !string.IsNullOrEmpty(input) && input == accountManager.CurrentAccount.password)
+                var auth = result;
+
+                if (auth == PromptResult.Success && input != accountManager.CurrentAccount.password)
                 {
-                    callback(PromptResult.Success);
+                    auth = PromptResult.Failure;
                 }
-                else
-                {
-                    callback(result);
-                }
+
+                callback(auth);                
             });
         }
         #endregion
@@ -329,7 +341,7 @@ namespace Poltergeist
                     AudioManager.Instance.PlaySFX("load");
 
                     stateStack.Clear();
-                    PushState(GUIState.Accounts);
+                    PushState(GUIState.Wallets);
 
                     if (AccountManager.Instance.Settings.nexusKind == NexusKind.Unknown)
                     {
@@ -525,8 +537,8 @@ namespace Poltergeist
                     DoConfirmingScreen();
                     break;
 
-                case GUIState.Accounts:
-                    DoAccountScreen();
+                case GUIState.Wallets:
+                    DoWalletsScreen();
                     break;
 
                 case GUIState.Settings:
@@ -539,6 +551,10 @@ namespace Poltergeist
 
                 case GUIState.History:
                     DoHistoryScreen();
+                    break;
+
+                case GUIState.Account:
+                    DoAccountScreen();
                     break;
             }
 
@@ -699,22 +715,94 @@ namespace Poltergeist
 
         private void CreateWallet(string wif)
         {
-            ShowModal("Wallet Name", "Enter name for your wallet", ModalState.Input, 32, true, null, (result, name) =>
+            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, 32, true, null, (result, name) =>
             {
                 if (result == PromptResult.Success)
                 {
-                    try
+                    ConfirmBox("Do you want to add a password to this wallet?\nThe password will be required to open the wallet.\nIt will also be prompted every time you do a transaction", (wantsPass) =>
                     {
-                        var accountManager = AccountManager.Instance;
-                        int walletIndex = accountManager.AddWallet(name, PlatformKind.Phantasma | PlatformKind.Neo, wif);
-                        LoginIntoAccount(walletIndex);
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox(MessageKind.Error, "Error creating account.\n" + e.Message);
-                    }
+                        if (wantsPass == PromptResult.Success)
+                        {
+                            TrySettingWalletPassword(name, wif);
+                        }
+                        else
+                        {
+                            FinishCreateAccount(name, wif, "");
+                        }
+                    });
                 }
             });
+        }
+
+        private string[] commonPasswords = new string[]
+        {
+            "password", "123456", "1234567", "12345678", "baseball", "football","letmein","monkey","696969",
+            "abc123","mustang","michael","shadow","master","jennifer","111111","jordan","superman","fuckme","hunter",
+            "fuckyou", "trustno1", "ranger","buster","thomas","robert","bitcoin","phantasma","wallet","crypto"
+        };
+
+        private const int MinPasswordChars = 6;
+
+        private bool IsGoodPassword(string name, string password)
+        {
+            if (password == null || password.Length < MinPasswordChars)
+            {
+                return false;
+            }
+
+            if (password.ToLowerInvariant().Contains(name.ToLowerInvariant()))
+            {
+                return false;
+            }
+
+            foreach (var common in commonPasswords)
+            {
+                if (name.Equals(common, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void TrySettingWalletPassword(string name, string wif)
+        {
+            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, 32, true, null, (passResult, password) =>
+            {
+                if (passResult == PromptResult.Success)
+                {
+                    if (IsGoodPassword(name, password))
+                    {
+                        FinishCreateAccount(name, wif, password);
+                    }
+                    else
+                    {
+                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {MinPasswordChars} characters and can't be easy to guess.", () =>
+                        {
+                            TrySettingWalletPassword(name, wif);
+                        });
+                    }
+                }
+                else
+                {
+                    FinishCreateAccount(name, wif, "");
+                }
+            });
+        }
+
+        private void FinishCreateAccount(string name, string wif, string password)
+        {
+            try
+            {
+                var accountManager = AccountManager.Instance;
+                int walletIndex = accountManager.AddWallet(name, PlatformKind.Phantasma | PlatformKind.Neo, wif, password);
+                LoginIntoAccount(walletIndex);
+            }
+            catch (Exception e)
+            {
+                MessageBox(MessageKind.Error, "Error creating account.\n" + e.Message);
+            }
         }
 
         private string[] accountOptions = new string[] { "Generate new wallet", "Import private key", "Settings" };
@@ -722,10 +810,10 @@ namespace Poltergeist
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
 
-        private void DoAccountScreen()
+        private void DoWalletsScreen()
         {
             int endY;
-            DoButtonGrid<int>(true, accountOptions.Length, out endY, (index) =>
+            DoButtonGrid<int>(true, accountOptions.Length, 0, out endY, (index) =>
             {
                 return new MenuEntry(index, accountOptions[index], true);
             },
@@ -846,14 +934,14 @@ namespace Poltergeist
             return i;
         }
 
-        private void DoButtonGrid<T>(bool showBackground, int buttonCount, out int posY, Func<int, MenuEntry> options, Action<T> callback)
+        private void DoButtonGrid<T>(bool showBackground, int buttonCount, int offset, out int posY, Func<int, MenuEntry> options, Action<T> callback)
         {
             bool vertical = smallSize;
 
             var border = Units(1);
 
             int panelHeight = vertical ? (Units(3) + 4) *  buttonCount : (border + Units(3));
-            posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border*3));
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border*3)) + offset;
 
             var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
             
@@ -929,7 +1017,7 @@ namespace Poltergeist
                 var accountManager = AccountManager.Instance;
                 accountManager.UnselectAcount();
                 stateStack.Clear();
-                PushState(GUIState.Accounts);
+                PushState(GUIState.Wallets);
 
                 Animate(AnimationDirection.Up, false);
             });
@@ -1039,7 +1127,7 @@ namespace Poltergeist
                 case NexusKind.Test_Net:
                     {
                         hasCustomEndPoints = false;
-                        hasCustomFee = true;
+                        hasCustomFee = false;
                         break;
                     }
 
@@ -1098,22 +1186,19 @@ namespace Poltergeist
                 curY += Units(3);
             }
 
-            if (accountManager.Accounts.Length == 0)
+            var btnWidth = Units(10);
+            curY = (int)(windowRect.height - Units(4));
+            if (GUI.Button(new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm"))
             {
-                var btnWidth = Units(10);
-                curY = (int)(windowRect.height - Units(4));
-                if (GUI.Button(new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Continue"))
+                if (ValidateSettings())
                 {
-                    if (ValidateSettings())
-                    {
-                        AudioManager.Instance.PlaySFX("confirm");
-                        CloseCurrentStack();
-                    }
+                    AudioManager.Instance.PlaySFX("confirm");
+                    CloseCurrentStack();
                 }
             }
         }
 
-        private int DrawPlatformTopMenu(string caption)
+        private int DrawPlatformTopMenu()
         {
             var accountManager = AccountManager.Instance;
 
@@ -1217,7 +1302,7 @@ namespace Poltergeist
                 return;
             }
 
-            var startY = DrawPlatformTopMenu("BALANCES");
+            var startY = DrawPlatformTopMenu();
             var endY = DoBottomMenu();
 
             var state = accountManager.CurrentState;
@@ -1555,7 +1640,7 @@ namespace Poltergeist
                 return;
             }
 
-            DrawPlatformTopMenu("TRANSACTION HISTORY");
+            DrawPlatformTopMenu();
             int curY = Units(10);
 
             Rect rect;
@@ -1621,12 +1706,89 @@ namespace Poltergeist
             DoBottomMenu();
         }
 
-        private GUIState[] bottomMenu = new GUIState[] { GUIState.Balances, GUIState.History };
+        private void DoAccountScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            var startY = DrawPlatformTopMenu();
+            var endY = DoBottomMenu();
+
+            int curY = startY;
+            int btnWidth = Units(8);
+            int centerX = (int)(windowRect.width - btnWidth) / 2;
+
+            curY = endY - Units(3);
+
+            int posY;
+            DoButtonGrid<int>(false, accountMenu.Length, -Units(4), out posY, (index) =>
+            {
+                return new MenuEntry(index, accountMenu[index], true);
+            },
+            (selected) =>
+            {
+                switch (selected)
+                {
+                    case 0:
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+                            GUIUtility.systemCopyBuffer = accountManager.CurrentAccount.WIF;
+                            MessageBox(MessageKind.Default, "WIF copied to the clipboard.");
+                            break;
+                        }
+
+                    case 1:
+                        {
+                            ShowModal("Account Rename", $"Enter new name", ModalState.Input, 16, true, null, (result, name) =>
+                            {
+                                if (result == PromptResult.Success)
+                                {
+                                    RequestPassword("Account Rename", accountManager.CurrentAccount.platforms, (auth) =>
+                                    {
+                                        if (auth == PromptResult.Success)
+                                        {
+                                            accountManager.RenameAccount(name);
+                                            SetState(guiState); // force updating the current UI
+                                            MessageBox(MessageKind.Default, "The account was renamed.");
+                                        }
+                                    });
+                                }
+                            });
+                            break;
+                        }
+
+                    case 2:
+                        {
+                            ConfirmBox("Are you sure you want to delete this account?\nYou can only restore it if you made a backup of the private keys.", (result) =>
+                            {
+                                if (result == PromptResult.Success)
+                                {
+                                    RequestPassword("Account Deletion", accountManager.CurrentAccount.platforms, (delete) =>
+                                    {
+                                        if (delete == PromptResult.Success)
+                                        {
+                                            accountManager.DeleteAccount(accountManager.CurrentIndex);
+                                            AudioManager.Instance.PlaySFX("click");
+                                            CloseCurrentStack();
+                                            MessageBox(MessageKind.Default, "The account was deleted.");
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        break;
+                }
+            });
+
+            DoBottomMenu();
+        }
+
+        private string[] accountMenu = new string[] { "Export WIF", "Rename Account", "Delete Account" };
+        private GUIState[] bottomMenu = new GUIState[] { GUIState.Balances, GUIState.History, GUIState.Account, GUIState.Exit };
 
         private int DoBottomMenu()
         {
             int posY;
-            DoButtonGrid<GUIState>(false, bottomMenu.Length, out posY, (index) =>
+            DoButtonGrid<GUIState>(false, bottomMenu.Length, 0, out posY, (index) =>
             {
                 var btnKind = bottomMenu[index];
                 return new MenuEntry(btnKind, btnKind.ToString(), btnKind != this.guiState);
@@ -1892,7 +2054,7 @@ namespace Poltergeist
                     platform = PlatformKind.Neo,
                     amount = amount,
                     symbol = symbol,
-                    key = accountManager.CurrentAccount.key,
+                    key = accountManager.CurrentAccount.WIF,
                     destination = destination
                 };
 
@@ -2021,7 +2183,7 @@ namespace Poltergeist
                                         platform = accountManager.CurrentPlatform,
                                         amount = amount,
                                         symbol = symbol,
-                                        key = accountManager.CurrentAccount.key,
+                                        key = accountManager.CurrentAccount.WIF,
                                         destination = interopAddress,
                                         interop = destination,
                                     };

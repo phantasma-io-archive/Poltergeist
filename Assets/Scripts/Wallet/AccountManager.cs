@@ -36,7 +36,7 @@ namespace Poltergeist
 
         public string name;
         public PlatformKind platforms;
-        public string key;
+        public string WIF;
         public string password;
         public string misc;
 
@@ -56,13 +56,13 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     {
-                        var keys = PhantasmaKeys.FromWIF(key);
+                        var keys = PhantasmaKeys.FromWIF(WIF);
                         return keys.Address.Text;
                     }
 
                 case PlatformKind.Neo:
                     {
-                        var keys = NeoKeys.FromWIF(key);
+                        var keys = NeoKeys.FromWIF(WIF);
                         return keys.Address;
                     }
 
@@ -176,6 +176,7 @@ namespace Poltergeist
         public string CurrentTokenCurrency { get; private set; }
 
         private int _selectedAccountIndex;
+        public int CurrentIndex => _selectedAccountIndex;
         public Account CurrentAccount => HasSelection ? Accounts[_selectedAccountIndex] : new Account() { };
 
         public bool HasSelection => _selectedAccountIndex < Accounts.Length;
@@ -300,6 +301,7 @@ namespace Poltergeist
         {
             var bytes = Serialization.Serialize(Accounts);
             PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
+            PlayerPrefs.Save();
         }
 
         private const string TokenInfoTag = "info.tokens";
@@ -453,7 +455,7 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     {
-                        var keys = PhantasmaKeys.FromWIF(account.key);
+                        var keys = PhantasmaKeys.FromWIF(account.WIF);
                         StartCoroutine(phantasmaApi.SignAndSendTransaction(keys, script, chain, (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
@@ -687,7 +689,7 @@ namespace Poltergeist
                 {
                     case PlatformKind.Phantasma:
                         {
-                            var keys = PhantasmaKeys.FromWIF(account.key);
+                            var keys = PhantasmaKeys.FromWIF(account.WIF);
                             StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
                             {
                                 var balanceMap = new Dictionary<string, Balance>();
@@ -762,27 +764,26 @@ namespace Poltergeist
                                     if (swaps != null)
                                     {
                                         MergeSwaps(DomainSettings.PlatformName, balanceMap, swaps);
-
-                                        var state = new AccountState()
-                                        {
-                                            address = acc.address,
-                                            name = acc.name,
-                                            balances = balanceMap.Values.ToArray(),
-                                            flags = AccountFlags.None
-                                        };
-
-                                        if (stakedAmount >= SoulMasterStakeAmount)
-                                        {
-                                            state.flags |= AccountFlags.Master;
-                                        }
-
-                                        ReportWalletBalance(platform, state);
                                     }
                                     else
                                     {
                                         Debug.LogWarning(error);
-                                        ReportWalletBalance(platform, null);
                                     }
+
+
+                                    var state = new AccountState()
+                                    {
+                                        address = acc.address,
+                                        name = acc.name,
+                                        balances = balanceMap.Values.ToArray(),
+                                        flags = AccountFlags.None
+                                    };
+
+                                    if (stakedAmount >= SoulMasterStakeAmount)
+                                    {
+                                        state.flags |= AccountFlags.Master;
+                                    }
+                                    ReportWalletBalance(platform, state);
                                 });
                             },
                             (error, msg) =>
@@ -794,7 +795,7 @@ namespace Poltergeist
 
                     case PlatformKind.Neo:
                         {
-                            var keys = NeoKeys.FromWIF(account.key);
+                            var keys = NeoKeys.FromWIF(account.WIF);
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
@@ -810,7 +811,7 @@ namespace Poltergeist
                                 foreach (var entry in balance.Children)
                                 {
                                     var hash = entry.GetString("asset_hash");
-                                    var symbol = entry.GetString("asset");
+                                    var symbol = entry.GetString("asset_symbol");
                                     var amount = entry.GetDecimal("amount");
 
                                     Token token;
@@ -835,30 +836,29 @@ namespace Poltergeist
 
                                 RequestPendings(keys.Address, (swaps, error) =>
                                 {
+                                    var balanceMap = new Dictionary<string, Balance>();
+                                    foreach (var entry in balances)
+                                    {
+                                        balanceMap[entry.Symbol] = entry;
+                                    }
+
                                     if (swaps != null)
                                     {
-                                        var balanceMap = new Dictionary<string, Balance>();
-                                        foreach (var entry in balances)
-                                        {
-                                            balanceMap[entry.Symbol] = entry;
-                                        }
-
                                         MergeSwaps("neo", balanceMap, swaps);
-                                        var state = new AccountState()
-                                        {
-                                            address = keys.Address,
-                                            name = keys.Address, // TODO support NNS
-                                            balances = balanceMap.Values.ToArray(),
-                                            flags = AccountFlags.None
-                                        };
-
-                                        ReportWalletBalance(platform, state);
                                     }
                                     else
                                     {
                                         Debug.LogWarning(error);
-                                        ReportWalletBalance(platform, null);
                                     }
+
+                                    var state = new AccountState()
+                                    {
+                                        address = keys.Address,
+                                        name = keys.Address, // TODO support NNS
+                                        balances = balanceMap.Values.ToArray(),
+                                        flags = AccountFlags.None
+                                    };
+                                    ReportWalletBalance(platform, state);
                                 });
 
                             }));
@@ -923,15 +923,15 @@ namespace Poltergeist
 
             if (nexusKind != NexusKind.Main_Net)
             {
-                accounts.Add(new Account() { name = "genesis", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" });
-                accounts.Add(new Account() { name = "bill", platforms = PlatformKind.Neo, key = "KxDgvEKzgSBPPfuVfw67oPQBSjidEiqTHURKSDL1R7yGaGYAeYnr", password = "", misc = "" });
+                accounts.Add(new Account() { name = "genesis", platforms = PlatformKind.Phantasma | PlatformKind.Neo, WIF = "L2LGgkZAdupN2ee8Rs6hpkc65zaGcLbxhbSDGq8oh6umUxxzeW25", password = "lol", misc = "" });
+                accounts.Add(new Account() { name = "bill", platforms = PlatformKind.Neo, WIF = "KxDgvEKzgSBPPfuVfw67oPQBSjidEiqTHURKSDL1R7yGaGYAeYnr", password = "mankini", misc = "" });
             }
             //new Account() { name = "zion", platforms = PlatformKind.Neo, key = "KwVG94yjfVg1YKFyRxAGtug93wdRbmLnqqrFV6Yd2CiA9KZDAp4H", password = "", misc = "" },
 
             if (nexusKind == NexusKind.Local_Net)
             {
-                accounts.Add(new Account() { name = "other", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "Kweyrx8ypkoPfzMsxV4NtgH8vXCWC1s1Dn3c2KJ4WAzC5nkyNt3e", password = "", misc = "" });
-                accounts.Add(new Account() { name = "monk", platforms = PlatformKind.Phantasma | PlatformKind.Neo, key = "Kx4GzZxzGZsQNt8URu36SnvR5KGSzg8s8ZxH8cunzZGh2JLmxHsW", password = "", misc = "" });
+                accounts.Add(new Account() { name = "other", platforms = PlatformKind.Phantasma | PlatformKind.Neo, WIF = "Kweyrx8ypkoPfzMsxV4NtgH8vXCWC1s1Dn3c2KJ4WAzC5nkyNt3e", password = "", misc = "" });
+                accounts.Add(new Account() { name = "monk", platforms = PlatformKind.Phantasma | PlatformKind.Neo, WIF = "Kx4GzZxzGZsQNt8URu36SnvR5KGSzg8s8ZxH8cunzZGh2JLmxHsW", password = "", misc = "" });
             }
 
             this.Accounts = accounts.ToArray();
@@ -968,7 +968,7 @@ namespace Poltergeist
                 {
                     case PlatformKind.Phantasma:
                         {
-                            var keys = PhantasmaKeys.FromWIF(account.key);
+                            var keys = PhantasmaKeys.FromWIF(account.WIF);
                             StartCoroutine(phantasmaApi.GetAddressTransactions(keys.Address.Text, 1, 20, (x, page, max) =>
                             {
                                 var history = new List<HistoryEntry>();
@@ -994,7 +994,7 @@ namespace Poltergeist
 
                     case PlatformKind.Neo:
                         {
-                            var keys = NeoKeys.FromWIF(account.key);
+                            var keys = NeoKeys.FromWIF(account.WIF);
                             var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
 
                             StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
@@ -1073,7 +1073,7 @@ namespace Poltergeist
             return symbol == "SOUL" || symbol == "NEO" || symbol == "GAS";
         }
 
-        public int AddWallet(string name, PlatformKind platforms, string wif)
+        public int AddWallet(string name, PlatformKind platforms, string wif, string password)
         {
             if (Accounts.Length >= 5)
             {
@@ -1099,7 +1099,7 @@ namespace Poltergeist
             }
 
             var list = this.Accounts.ToList();
-            list.Add(new Account() { name = name, key = wif, password = "", platforms = platforms, misc = "" });
+            list.Add(new Account() { name = name, WIF = wif, password = password, platforms = platforms, misc = "" });
 
             this.Accounts = list.ToArray();
 
@@ -1181,6 +1181,25 @@ namespace Poltergeist
                 Debug.LogWarning(msg);
                 callback(Hash.Null);
             }));
+        }
+
+        internal void DeleteAccount(int currentIndex)
+        {
+            if (currentIndex<0 || currentIndex >= Accounts.Length)
+            {
+                return;
+            }
+
+            var temp = Accounts.ToList();
+            temp.RemoveAt(currentIndex);
+            this.Accounts = temp.ToArray();
+            SaveAccounts();
+        }
+
+        public void RenameAccount(string newName)
+        {
+            Accounts[CurrentIndex].name = newName;
+            SaveAccounts();
         }
     }
 }
