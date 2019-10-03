@@ -1,14 +1,19 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
+
 using UnityEngine;
+using UnityEngine.UI;
+
 using Phantasma.VM.Utils;
 using Phantasma.Cryptography;
 using Phantasma.Blockchain.Contracts;
 using Phantasma.Numerics;
-using System.Linq;
 using Phantasma.Storage;
 using Phantasma.Domain;
-using UnityEngine.UI;
+
+using ZXing;
+using ZXing.QrCode;
 
 namespace Poltergeist
 {
@@ -43,6 +48,7 @@ namespace Poltergeist
         Sending,
         Confirming,
         Settings,
+        ScanQR,
         Exit
     }
 
@@ -74,6 +80,8 @@ namespace Poltergeist
     public class WalletGUI : MonoBehaviour
     {
         public RawImage background;
+
+        private Dictionary<PlatformKind, Texture2D> QRCodeTextures = new Dictionary<PlatformKind, Texture2D>();
 
         public const string WalletTitle = "Poltergeist Wallet";
         public const string MoneyFormat = "0.####";
@@ -123,6 +131,9 @@ namespace Poltergeist
 
         private bool smallSize => windowRect.width <= 420;
 
+        private int virtualWidth;
+        private int virtualHeight;
+
         public static int Units(int n)
         {
             return 16 * n;
@@ -150,6 +161,21 @@ namespace Poltergeist
 
         private void SetState(GUIState state)
         {
+            if (state == guiState)
+            {
+                return;
+            }
+
+            switch (guiState)
+            {
+                case GUIState.ScanQR:
+                    if (camTexture != null)
+                    {
+                        camTexture.Stop();
+                    }
+                    break;
+            }
+
             if (state == GUIState.Exit)
             {
                 CloseCurrentStack();
@@ -167,6 +193,13 @@ namespace Poltergeist
                 case GUIState.Wallets:
                     currentTitle = "Wallet List";
                     accountScroll = Vector2.zero;
+
+                    foreach (var tex in QRCodeTextures.Values)
+                    {
+                        Texture2D.Destroy(tex);
+                    }
+
+                    QRCodeTextures.Clear();
                     break;
 
                 case GUIState.Balances:
@@ -182,6 +215,17 @@ namespace Poltergeist
 
                 case GUIState.Account:
                     currentTitle = "Account details for " + accountManager.CurrentAccount.name;
+
+                    if (QRCodeTextures.Count == 0)
+                    {
+                        var platforms = accountManager.CurrentAccount.platforms.Split();
+                        foreach (var platform in platforms)
+                        {
+                            var address = accountManager.CurrentAccount.GetAddress(platform);
+                            var tex = GenerateQR($"{platform.ToString().ToLower()}://{address}");
+                            QRCodeTextures[platform] = tex;
+                        }
+                    }
                     break;
 
                 case GUIState.Settings:
@@ -211,16 +255,28 @@ namespace Poltergeist
 
                         break;
                     }
+
+
+                case GUIState.ScanQR:
+                    currentTitle = "QR scanning";
+                    cameraError = false;
+                    scanTime = Time.time;
+                    break;
             }
 
             if (currentTitle != null)
             {
-                currentTitle = currentTitle.ToUpper();
+             //   currentTitle = currentTitle.ToUpper();
             }
         }
 
         private void PopState()
         {
+            if (modalRedirected)
+            {
+                modalRedirected = false;
+            }
+
             guiState = stateStack.Pop();
         }
 
@@ -235,6 +291,7 @@ namespace Poltergeist
 
 
         #region MODAL PROMPTS
+        private bool modalRedirected;
         private float modalTime;
         private ModalState modalState;
         private Action<PromptResult, string> modalCallback;
@@ -332,8 +389,27 @@ namespace Poltergeist
         }
         #endregion
 
+        private const int MaxResolution = 1024;
+
         private void Update()
         {
+            if (Screen.width > Screen.height && Screen.width > MaxResolution)
+            {
+                virtualWidth = MaxResolution;
+                virtualHeight = (int)((MaxResolution * Screen.height) / (float)Screen.width);
+            }
+            else
+            if (Screen.height > MaxResolution)
+            {
+                virtualHeight = MaxResolution;
+                virtualWidth = (int)((MaxResolution * Screen.width) / (float)Screen.height);
+            }
+            else
+            {
+                virtualWidth = Screen.width;
+                virtualHeight = Screen.height;
+            }
+
             if (this.guiState == GUIState.Loading && AccountManager.Instance.Ready && !HasAnimation)
             {
                 Animate(AnimationDirection.Up, true, () =>
@@ -379,7 +455,7 @@ namespace Poltergeist
                         break;
 
                     case AnimationDirection.Right:
-                        windowRect.x = Mathf.Lerp(Screen.width + defaultRect.width, defaultRect.x, delta);
+                        windowRect.x = Mathf.Lerp(virtualWidth + defaultRect.width, defaultRect.x, delta);
                         break;
 
                     case AnimationDirection.Up:
@@ -387,7 +463,7 @@ namespace Poltergeist
                         break;
 
                     case AnimationDirection.Down:
-                        windowRect.y = Mathf.Lerp(Screen.height + defaultRect.height, defaultRect.y, delta);
+                        windowRect.y = Mathf.Lerp(virtualHeight + defaultRect.height, defaultRect.y, delta);
                         break;
                 }
 
@@ -409,18 +485,18 @@ namespace Poltergeist
 
                 if (fullScreen)
                 {
-                    windowRect.width = Screen.width - Border * 2;
-                    windowRect.height = Screen.height - Border * 2;
+                    windowRect.width = virtualWidth;
+                    windowRect.height = virtualHeight;
                 }
                 else
                 {
                     background.texture = null;
-                    windowRect.width = Mathf.Min(800, Screen.width) - Border * 2;
-                    windowRect.height = Mathf.Min(800, Screen.height) - Border * 2;
+                    windowRect.width = Mathf.Min(800, virtualWidth) - Border * 2;
+                    windowRect.height = Mathf.Min(800, virtualHeight) - Border * 2;
                 }
 
-                windowRect.x = (Screen.width - windowRect.width) / 2;
-                windowRect.y = (Screen.height - windowRect.height) / 2;
+                windowRect.x = (virtualWidth - windowRect.width) / 2;
+                windowRect.y = (virtualHeight - windowRect.height) / 2;
 
                 defaultRect = new Rect(windowRect);
             }
@@ -444,6 +520,10 @@ namespace Poltergeist
 
         void OnGUI()
         {
+            var scaleX = Screen.width / (float)virtualWidth;
+            var scaleY = Screen.height / (float)virtualHeight;
+            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleX, scaleY, 1.0f));
+
             GUI.skin = guiSkin;
             GUI.enabled = true;
 
@@ -456,16 +536,15 @@ namespace Poltergeist
                 delta = 1;
             }
 
-            if (modalState == ModalState.None)
+            bool hasModal = modalState != ModalState.None && !modalRedirected;
+
+            if (!hasModal)
             {
                 delta = 1 - delta;
             }
 
-            if (modalState != ModalState.None)
-            {
-                var k = Mathf.Lerp(1, 0.4f, delta);
-                GUI.color = new Color(1, 1, 1, k);
-            }
+            var k = Mathf.Lerp(1, 0.4f, delta);
+            GUI.color = new Color(1, 1, 1, k);
 
             if (guiState == GUIState.Loading)
             {
@@ -488,11 +567,11 @@ namespace Poltergeist
 
             GUI.color = Color.white;
 
-            if (modalState != ModalState.None)
+            if (modalState != ModalState.None && !modalRedirected)
             {
                 var modalWidth = Units(44);
                 var modalHeight = Units(26);
-                modalRect = new Rect((Screen.width - modalWidth) / 2, (Screen.height - modalHeight) / 2, modalWidth, modalHeight);
+                modalRect = new Rect((virtualWidth - modalWidth) / 2, (virtualHeight - modalHeight) / 2, modalWidth, modalHeight);
                 modalRect = GUI.ModalWindow(0, modalRect, DoModalWindow, modalTitle);
             }
         }
@@ -505,21 +584,8 @@ namespace Poltergeist
 
         private void DoMainWindow(int windowID)
         {
-            if (fullScreen)
-            {
-                var style = GUI.skin.label;
-                var tempSize = style.fontSize;
-                var tempStyle = style.fontStyle;
-
-                style.fontSize = 28;
-
-                DrawHorizontalCenteredText(4, Units(2), WalletTitle);
-
-                style.fontSize = tempSize;
-            }
-
-            GUI.Box(new Rect(8, 8, windowRect.width - 16, Units(2)), "");
-            GUI.Label(new Rect(windowRect.width / 2 + Units(8) + 8, 4, 32, Units(2)), Application.version);
+            GUI.Box(new Rect(8, 8, windowRect.width - 16, Units(2)), WalletTitle);
+            GUI.Label(new Rect(windowRect.width / 2 + Units(7), 8, 32, Units(2)), Application.version);
 
             if (currentTitle != null)
             {
@@ -555,6 +621,10 @@ namespace Poltergeist
 
                 case GUIState.Account:
                     DoAccountScreen();
+                    break;
+
+                case GUIState.ScanQR:
+                    DoScanQRScreen();
                     break;
             }
 
@@ -640,7 +710,26 @@ namespace Poltergeist
                     var key = hintList[hintIndex];
                     if (modalHints.ContainsKey(key))
                     {
-                        modalInput = modalHints[key];
+                        var temp = modalHints[key];
+                        if (temp.StartsWith("|"))
+                        {
+                            temp = temp.Substring(1);
+                            GUIState state;
+                            
+                            if (Enum.TryParse(temp, out state))
+                            {
+                                modalRedirected = true;
+                                PushState(state);
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Error, "Internal error decoding hint redirection.\nContact the developers.");
+                            }
+                        }
+                        else
+                        {
+                            modalInput = temp;
+                        }
                     }
                 }
             }
@@ -690,7 +779,7 @@ namespace Poltergeist
             }
         }
 
-        private void LoginIntoAccount(int index)
+        private void LoginIntoAccount(int index, bool isNewAccount)
         {
             var accountManager = AccountManager.Instance;
             accountManager.SelectAccount(index);
@@ -698,9 +787,13 @@ namespace Poltergeist
             {
                 if (auth == PromptResult.Success)
                 {
-                    accountManager.RefreshTokenPrices();
+                    if (!isNewAccount)
+                    {
+                        accountManager.RefreshTokenPrices();
+                    }
+
                     Animate(AnimationDirection.Down, true, () => {
-                        PushState(GUIState.Balances);
+                        PushState(isNewAccount ? GUIState.Account : GUIState.Balances);
                         Animate(AnimationDirection.Up, false);
                     });
                 }
@@ -797,7 +890,7 @@ namespace Poltergeist
             {
                 var accountManager = AccountManager.Instance;
                 int walletIndex = accountManager.AddWallet(name, PlatformKind.Phantasma | PlatformKind.Neo, wif, password);
-                LoginIntoAccount(walletIndex);
+                LoginIntoAccount(walletIndex, true);
             }
             catch (Exception e)
             {
@@ -879,7 +972,7 @@ namespace Poltergeist
 
             var accountManager = AccountManager.Instance;
 
-            int startY = (int)(windowRect.y + Units(4));
+            int startY = (int)(windowRect.y + Units(5));
 
             int panelHeight = Units(6);
 
@@ -889,11 +982,11 @@ namespace Poltergeist
                     int btnWidth = Units(7);
                     int halfWidth = (int)(rect.width / 2);
 
-                    GUI.Label(new Rect(Units(1), curY + Units(1) - 16 * smallOfs, Units(25), Units(2)), account.ToString());
+                    GUI.Label(new Rect(Border*2, curY + Units(1) - 16 * smallOfs, Units(25), Units(2)), account.ToString());
 
                     if (GUI.Button(new Rect(rect.width - (btnWidth + Units(2) + 4), curY + Units(2) - 4 + smallOfs * 8, btnWidth, Units(2)), "Open"))
                     {
-                        LoginIntoAccount(index);
+                        LoginIntoAccount(index, false);
                     }
                 });
         }
@@ -904,7 +997,7 @@ namespace Poltergeist
             int panelWidth = (int)(windowRect.width - (Border * 2));
 
             var itemCount = items.Count();
-            var insideRect = new Rect(0, 0, panelWidth, ((panelHeight + Border) * (itemCount - 1) + panelHeight));
+            var insideRect = new Rect(0, 0, panelWidth, Border + ((panelHeight + Border) * itemCount));
             var outsideRect = new Rect(Border, startY, panelWidth, endY - (startY + Border));
 
             bool needsScroll = insideRect.height > outsideRect.height;
@@ -914,7 +1007,7 @@ namespace Poltergeist
                 insideRect.width = panelWidth;
             }
 
-            int curY = 0;
+            int curY = Border;
 
             int i = 0;
             scroll = GUI.BeginScrollView(outsideRect, scroll, insideRect);
@@ -952,6 +1045,13 @@ namespace Poltergeist
 
             int divisionWidth = (int)(rect.width / buttonCount);
             int btnWidth = (int)(divisionWidth * 0.8f);
+
+            int maxBtnWidth = Units(8);
+            if (btnWidth > maxBtnWidth)
+            {
+                btnWidth = maxBtnWidth;
+            }
+
             int padding = (divisionWidth - btnWidth) / 2;
 
             T selected = default(T);
@@ -994,7 +1094,9 @@ namespace Poltergeist
             var temp = style.alignment;
             style.alignment = TextAnchor.MiddleCenter;
 
+            GUI.contentColor = Color.black;
             GUI.Label(new Rect(0, 0, windowRect.width, windowRect.height), caption);
+            GUI.contentColor = Color.white;
 
             style.alignment = temp;
         }
@@ -1023,7 +1125,7 @@ namespace Poltergeist
             });
         }
 
-        private void DoCloseButton(Func<bool> callback = null)
+        /*private void DoCloseButton(Func<bool> callback = null)
         {
             if (GUI.Button(new Rect(windowRect.width - Units(4), Units(1) + 2, Units(2) - 4, Units(1) - 4), "X"))
             {
@@ -1033,7 +1135,7 @@ namespace Poltergeist
                     CloseCurrentStack();
                 }
             }
-        }
+        }*/
 
         private bool ValidateSettings()
         {
@@ -1070,7 +1172,10 @@ namespace Poltergeist
                 return false;
             }
 
-            accountManager.InitDemoAccounts(settings.nexusKind);
+            if (accountManager.Accounts.Length == 0)
+            {
+                accountManager.InitDemoAccounts(settings.nexusKind);
+            }
 
             accountManager.RefreshTokenPrices();
             accountManager.Settings.Save();
@@ -1081,11 +1186,6 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
             var settings = accountManager.Settings;
-
-            if (settings.nexusKind != NexusKind.Unknown)
-            {
-                DoCloseButton(ValidateSettings);
-            }
 
             int curY = Units(7);
 
@@ -1221,10 +1321,8 @@ namespace Poltergeist
 
             if (mainToken != null)
             {
-                GUI.DrawTexture(new Rect(Units(1) + 8, Units(1) - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
+                GUI.DrawTexture(new Rect(Units(2), Units(1) - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
             }
-
-            DoCloseButton();
 
             int currentPlatformIndex = 0;
             var platformList = accountManager.CurrentAccount.platforms.Split();
@@ -1244,7 +1342,7 @@ namespace Poltergeist
                 platformComboBox.SelectedItemIndex = currentPlatformIndex;
 
                 int dropHeight;
-                var platformIndex = platformComboBox.Show(new Rect(Units(3) + 8, curY, Units(8), Units(1)), platformList, out dropHeight);
+                var platformIndex = platformComboBox.Show(new Rect(Units(4), curY, Units(8), Units(1)), platformList, out dropHeight);
 
                 if (platformIndex != currentPlatformIndex)
                 {
@@ -1292,6 +1390,88 @@ namespace Poltergeist
             }
         }
 
+        private WebCamTexture camTexture;
+        private bool cameraError;
+        private float scanTime;
+
+        private void DoScanQRScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            if (cameraError)
+            {
+                DrawCenteredText("Failed to initialize camera...");
+                return;
+            }
+
+            if (camTexture == null)
+            {
+                camTexture = new WebCamTexture();
+                camTexture.requestedHeight = virtualWidth / 2;
+
+                if (camTexture != null)
+                {
+                    camTexture.Play();
+                }
+                else
+                {
+                    cameraError = true;
+                }
+            }
+
+            var camHeight = windowRect.height - Units(12);
+            var camWidth  = (int)((camTexture.width * camHeight) / (float)camTexture.height);
+
+            var camRect = new Rect((windowRect.width - camWidth)/2, Border + Units(5), camWidth, camHeight);
+            DrawDropshadow(camRect);
+            GUI.DrawTexture(camRect, camTexture, ScaleMode.ScaleToFit);
+
+            var diff = Time.time - scanTime;
+            if (diff >= 1)
+            {
+                scanTime = Time.time;
+
+                try
+                {
+                    IBarcodeReader barcodeReader = new BarcodeReader();
+                    // decode the current frame
+                    var result = barcodeReader.Decode(camTexture.GetPixels32(),
+                      camTexture.width, camTexture.height);
+
+                    if (result != null)
+                    {
+                        Debug.Log("DECODED TEXT FROM QR: " +result.Text);
+
+                        foreach (var platform in AccountManager.AvailablePlatforms)
+                        {
+                            var tag = platform.ToString().ToLower()+"://";
+                            if (result.Text.StartsWith(tag))
+                            {
+                                AudioManager.Instance.PlaySFX("positive");
+                                modalInput = result.Text.Substring(tag.Length);
+                                PopState();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex) { Debug.LogWarning(ex.Message); }
+            }
+
+            DoBackButton();
+        }
+
+        private void DoBackButton()
+        {
+            int posY;
+            DoButtonGrid<bool>(false, 1, Border, out posY, (index) =>
+            {
+                return new MenuEntry(true, "Back", true);
+            }, (val) =>
+            {
+                PopState();
+            });
+        }
+
         private void DoBalanceScreen()
         {
             var accountManager = AccountManager.Instance;
@@ -1322,7 +1502,7 @@ namespace Poltergeist
 
             decimal feeBalance = state.GetAvailableAmount("KCAL");
 
-            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, Units(5), state.balances.Where(x => x.Total >= 0.001m), 
+            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, Units(5), state.balances.Where(x => x.Total >= 0.001m),
                 DoBalanceEntry);
 
             if (balanceCount == 0)
@@ -1336,14 +1516,14 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
 
+            int panelHeight = Units(8);
+            GUI.Box(rect, "");
+
             var icon = ResourceManager.Instance.GetToken(balance.Symbol);
             if (icon != null)
             {
                 GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
             }
-
-            int panelHeight = Units(8);
-            GUI.Box(rect, "");
 
             int btnWidth = Units(11);
             int halfWidth = (int)(rect.width / 2);
@@ -1714,8 +1894,23 @@ namespace Poltergeist
             var endY = DoBottomMenu();
 
             int curY = startY;
+            curY += Units(1);
+
             int btnWidth = Units(8);
             int centerX = (int)(windowRect.width - btnWidth) / 2;
+
+            var platform = accountManager.CurrentPlatform;
+            if (QRCodeTextures.ContainsKey(platform))
+            {
+                var qrTex = QRCodeTextures[platform];
+                var qrResolution = 200;
+                var qrRect = new Rect((windowRect.width - qrResolution) / 2, curY, qrResolution, qrResolution);
+
+                DrawDropshadow(qrRect);
+                GUI.DrawTexture(qrRect, qrTex);
+                curY += qrResolution;
+                curY += Units(1);
+            }
 
             curY = endY - Units(3);
 
@@ -1780,6 +1975,15 @@ namespace Poltergeist
             });
 
             DoBottomMenu();
+        }
+
+        private void DrawDropshadow(Rect rect)
+        {
+            float percent = 1/8f;
+            var padX = rect.width * percent;
+            var padY = rect.height * percent;
+            var dropRect = new Rect(rect.x - padX, rect.y - padY, rect.width + padX * 2, rect.height + padY * 2);
+            GUI.DrawTexture(dropRect, ResourceManager.Instance.Dropshadow);
         }
 
         private string[] accountMenu = new string[] { "Export WIF", "Rename Account", "Delete Account" };
@@ -2293,6 +2497,8 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
             var hints = new Dictionary<string, string>();
 
+            hints["Scan QR"] = $"|{GUIState.ScanQR}";
+
             foreach (var account in accountManager.Accounts)
             {
                 var platforms = account.platforms.Split();
@@ -2317,6 +2523,31 @@ namespace Poltergeist
 
             return hints;
         }
+
+        #region QR CODES
+        public Texture2D GenerateQR(string text)
+        {
+            var encoded = new Texture2D(256, 256);
+            var color32 = EncodeQR(text, encoded.width, encoded.height);
+            encoded.SetPixels32(color32);
+            encoded.Apply();
+            return encoded;
+        }
+
+        private static Color32[] EncodeQR(string textForEncoding, int width, int height)
+        {
+            var writer = new BarcodeWriter
+            {
+                Format = BarcodeFormat.QR_CODE,
+                Options = new QrCodeEncodingOptions
+                {
+                    Height = height,
+                    Width = width
+                }
+            };
+            return writer.Write(textForEncoding);
+        }
+        #endregion
     }
 
 }

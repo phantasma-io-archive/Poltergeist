@@ -13,11 +13,13 @@ public class ResourceManager : MonoBehaviour
 
     public Texture WalletLogo { get; private set; }
     public Texture MasterLogo { get; private set; }
+    public Texture Dropshadow { get; private set; }
 
     void Start()
     {
         WalletLogo = GetToken("soul");
         MasterLogo = Resources.Load<Texture>("soul_master");
+        Dropshadow = Resources.Load<Texture>("dropshadow");
     }
 
     private Dictionary<string, Texture> _symbols = new Dictionary<string, Texture>();
