@@ -89,6 +89,7 @@ namespace Poltergeist
         public int Border => Units(1);
         public int HalfBorder => Border/2;
         public const bool fullScreen = true;
+        public bool smallSize => virtualWidth < 420;
 
         public GUISkin guiSkin;
 
@@ -129,8 +130,6 @@ namespace Poltergeist
 
         private bool initialized;
 
-        private bool smallSize => windowRect.width <= 420;
-
         private int virtualWidth;
         private int virtualHeight;
 
@@ -145,6 +144,7 @@ namespace Poltergeist
 
             guiState = GUIState.Loading;
 
+            Debug.Log(Screen.width + " x " + Screen.height);
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
         }
 
@@ -262,11 +262,6 @@ namespace Poltergeist
                     cameraError = false;
                     scanTime = Time.time;
                     break;
-            }
-
-            if (currentTitle != null)
-            {
-             //   currentTitle = currentTitle.ToUpper();
             }
         }
 
@@ -572,6 +567,13 @@ namespace Poltergeist
             {
                 var modalWidth = Units(44);
                 var modalHeight = Units(26);
+
+                int maxModalWidth = virtualWidth - Border * 2;
+                if (modalWidth > maxModalWidth)
+                {
+                    modalWidth = maxModalWidth;
+                }
+
                 modalRect = new Rect((virtualWidth - modalWidth) / 2, (virtualHeight - modalHeight) / 2, modalWidth, modalHeight);
                 modalRect = GUI.ModalWindow(0, modalRect, DoModalWindow, modalTitle);
             }
@@ -586,9 +588,14 @@ namespace Poltergeist
         private void DoMainWindow(int windowID)
         {
             GUI.Box(new Rect(8, 8, windowRect.width - 16, Units(2)), WalletTitle);
-            GUI.Label(new Rect(windowRect.width / 2 + Units(7), 8, 32, Units(2)), Application.version);
 
-            if (currentTitle != null)
+            var style = GUI.skin.label;
+            var tempSize = style.fontSize;
+            style.fontSize = 14;
+            GUI.Label(new Rect(windowRect.width / 2 + Units(7) - 4, 12, 32, Units(2)), Application.version);
+            style.fontSize = tempSize;
+
+            if (currentTitle != null && this.currentAnimation == AnimationDirection.None)
             {
                 int curY = Units(3);
                 DrawHorizontalCenteredText(curY, Units(2), currentTitle);
@@ -656,6 +663,11 @@ namespace Poltergeist
             curY += Units(modalLineCount) + 4 * modalLineCount;
             int hintY = curY;
 
+            if (smallSize)
+            {
+                curY += Units(2);
+            }
+
             if (modalState == ModalState.Input)
             {
                 modalInput = GUI.TextField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, modalInputLength);
@@ -666,13 +678,18 @@ namespace Poltergeist
                 modalInput = GUI.PasswordField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, '*', modalInputLength);
             }
 
-            int btnWidth = Units(11);
+            int btnWidth = smallSize ? Units(7) : Units(11);
 
             curY = (int)(rect.height - Units(2));
 
             if (modalAllowCancel)
             {
                 int halfWidth = (int)(rect.width / 2);
+
+                if (smallSize)
+                {
+                    halfWidth += Units(1);
+                }
 
                 if (GUI.Button(new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Cancel"))
                 {
@@ -993,9 +1010,21 @@ namespace Poltergeist
                     int btnWidth = Units(7);
                     int halfWidth = (int)(rect.width / 2);
 
-                    GUI.Label(new Rect(Border*2, curY + Units(1) - 16 * smallOfs, Units(25), Units(2)), account.ToString());
+                    Rect btnRect;
 
-                    if (GUI.Button(new Rect(rect.width - (btnWidth + Units(2) + 4), curY + Units(2) - 4 + smallOfs * 8, btnWidth, Units(2)), "Open"))
+                    if (smallSize)
+                    {
+                        GUI.Label(new Rect(Border * 2, curY , windowRect.width - Border * 2, Units(2)), account.name);
+                        GUI.Label(new Rect(Border * 2, curY + Units(1), windowRect.width - Border * 2, Units(2)), $"[{account.platforms}]");
+                        btnRect = new Rect((rect.width - btnWidth)/2, curY + Units(3) + 4, btnWidth, Units(2));
+                    }
+                    else
+                    {
+                        GUI.Label(new Rect(Border * 2, curY + Units(1), windowRect.width - Border * 2, Units(2)), account.ToString());
+                        btnRect = new Rect(rect.width - (btnWidth + Units(2) + 4), curY + Units(2) - 4, btnWidth, Units(2));
+                    }
+
+                    if (GUI.Button(btnRect, "Open"))
                     {
                         LoginIntoAccount(index, false);
                     }
@@ -1044,8 +1073,8 @@ namespace Poltergeist
 
             var border = Units(1);
 
-            int panelHeight = vertical ? (Units(3) + 4) *  buttonCount : (border + Units(3));
-            posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border*3)) + offset;
+            int panelHeight = vertical ? Border * 2 + (Units(2)+4) *  buttonCount : (border + Units(3));
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border)) + offset;
 
             var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
             
@@ -1076,7 +1105,7 @@ namespace Poltergeist
 
                 if (vertical)
                 {
-                    btnRect = new Rect(rect.x + border, rect.y + border + i * (Units(3)+4), rect.width - border * 2, Units(2));
+                    btnRect = new Rect(rect.x + border*2, rect.y + border + i * (Units(2)+4), rect.width - border * 4, Units(2));
                 }
                 else
                 {
@@ -1115,12 +1144,16 @@ namespace Poltergeist
         private void DrawHorizontalCenteredText(int curY, float height, string caption)
         {
             var style = GUI.skin.label;
-            var temp = style.alignment;
+            var tempAlign = style.alignment;
+            var tempSize = style.fontSize;
+
+            style.fontSize = smallSize ? 18: 0;
             style.alignment = TextAnchor.MiddleCenter;
 
             GUI.Label(new Rect(0, curY, windowRect.width, height), caption);
 
-            style.alignment = temp;
+            style.fontSize = tempSize;
+            style.alignment = tempAlign;
         }
 
         private void CloseCurrentStack()
@@ -1330,15 +1363,15 @@ namespace Poltergeist
                     break;
             }
 
+            int curY = smallSize ? Units(6) : Units(1);
+
             if (mainToken != null)
             {
-                GUI.DrawTexture(new Rect(Units(2), Units(1) - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
+                GUI.DrawTexture(new Rect(Units(2), curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
             }
 
             int currentPlatformIndex = 0;
             var platformList = accountManager.CurrentAccount.platforms.Split();
-
-            int curY = Units(1);
 
             if (platformList.Count > 1)
             {
@@ -1367,11 +1400,13 @@ namespace Poltergeist
                 return curY;
             }
 
-            curY = Units(5);
+            curY += Units(smallSize ? 2 : 3);
+            DrawHorizontalCenteredText(curY - 5, Units(smallSize ? 3: 2), state.address);
 
-            DrawHorizontalCenteredText(curY - 5, Units(2), state.address);
+            curY += Units(3);
 
-            if (GUI.Button(new Rect(windowRect.width - Units(6), curY + 5, Units(4), Units(1)), "Copy"))
+            var btnWidth = Units(8);
+            if (GUI.Button(new Rect((windowRect.width - btnWidth)/2, curY, btnWidth, Units(1)), "Copy Address"))
             {
                 AudioManager.Instance.PlaySFX("click");
                 GUIUtility.systemCopyBuffer = state.address;
@@ -1391,7 +1426,7 @@ namespace Poltergeist
                 var tempSize = style.fontSize;
                 var tempColor = style.normal.textColor;
                 style.normal.textColor = new Color(1, 1, 1, 0.75f);
-                style.fontSize = 18;
+                style.fontSize = smallSize ? 16: 18;
 
                 GUI.Label(subRect, $"{amount.ToString(MoneyFormat)} {symbol} {caption} ({AccountManager.Instance.GetTokenWorth(symbol, amount)})");
                 style.fontSize = tempSize;
@@ -1506,14 +1541,20 @@ namespace Poltergeist
 
             if (state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
             {
-                GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
+                if (smallSize)
+                {
+                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), ResourceManager.Instance.MasterLogo);
+                }
+                else {
+                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
+                }
             }
 
             int curY = Units(12);
 
             decimal feeBalance = state.GetAvailableAmount("KCAL");
 
-            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, Units(5), state.balances.Where(x => x.Total >= 0.001m),
+            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, smallSize ? Units(6) : Units(5), state.balances.Where(x => x.Total >= 0.001m),
                 DoBalanceEntry);
 
             if (balanceCount == 0)
@@ -1527,22 +1568,36 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
 
-            int panelHeight = Units(8);
             GUI.Box(rect, "");
 
             var icon = ResourceManager.Instance.GetToken(balance.Symbol);
             if (icon != null)
             {
-                GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
+                if (smallSize)
+                {
+                    GUI.DrawTexture(new Rect(Units(1) + 4, curY + Units(4) - 4, Units(2), Units(2)), icon);
+                }
+                else
+                {
+                    GUI.DrawTexture(new Rect(Units(2), curY + Units(1), Units(2), Units(2)), icon);
+                }
             }
 
             int btnWidth = Units(11);
             int halfWidth = (int)(rect.width / 2);
 
             var posY = curY + Units(1) - 8;
-            GUI.Label(new Rect(Units(5), posY, Units(20), Units(2)), $"{balance.Available.ToString(MoneyFormat)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
 
-            var subRect = new Rect(Units(5), posY + Units(1) + 4, Units(20), Units(2));
+            int posX = smallSize ? Units(1) : Units(5);
+
+            var style = GUI.skin.label;
+            var tempSize = style.fontSize;
+
+            style.fontSize = smallSize ? 20 : 0;
+            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{balance.Available.ToString(MoneyFormat)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
+            style.fontSize = tempSize;
+
+            var subRect = new Rect(posX, posY + Units(1) + 4, Units(20), Units(2));
             DrawBalanceLine(ref subRect, balance.Symbol, balance.Staked, "staked");
             DrawBalanceLine(ref subRect, balance.Symbol, balance.Pending, "pending");
             DrawBalanceLine(ref subRect, balance.Symbol, balance.Claimable, "claimable");
@@ -1605,9 +1660,9 @@ namespace Poltergeist
                                                     var sb = new ScriptBuilder();
                                                     var gasPrice = accountManager.Settings.feePrice;
 
-                                                    sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                                    sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                                     sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(balance.Staked, balance.Decimals));
-                                                    sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                                    sb.SpendGas(address);
 
                                                     sb.SpendGas(address);
                                                     var script = sb.EndScript();
@@ -1653,9 +1708,9 @@ namespace Poltergeist
                                                         var sb = new ScriptBuilder();
                                                         var gasPrice = accountManager.Settings.feePrice;
 
-                                                        sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                                        sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                                         sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(selectedAmount, balance.Decimals));
-                                                        sb.AllowGas(address, Address.Null, gasPrice, 9999);
+                                                        sb.SpendGas(address);
 
                                                         sb.SpendGas(address);
                                                         var script = sb.EndScript();
@@ -1698,7 +1753,7 @@ namespace Poltergeist
                                         var gasPrice = accountManager.Settings.feePrice;
 
                                         var sb = new ScriptBuilder();
-                                        sb.AllowGas(address, Address.Null, gasPrice, 1);
+                                        sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                         sb.CallContract("stake", "Claim", address, address);
                                         sb.SpendGas(address);
                                         var script = sb.EndScript();
@@ -1735,7 +1790,7 @@ namespace Poltergeist
                                             var sb = new ScriptBuilder();
                                             var gasPrice = accountManager.Settings.feePrice;
 
-                                            sb.AllowGas(address, Address.Null, gasPrice, 999);
+                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                             if (amount <= 0.1m)
                                             {
                                                 sb.TransferBalance(balance.Symbol, address, burnAddress);                                                
@@ -1776,10 +1831,12 @@ namespace Poltergeist
                         }
                 }
 
+            int btnY = smallSize ? Units(4): Units(1) + 8;
+
             if (!string.IsNullOrEmpty(secondaryAction))
             {
                 GUI.enabled = secondaryEnabled;
-                if (GUI.Button(new Rect(rect.x + rect.width - (Units(12)+8), curY + Units(1) + 8, Units(4) + 8, Units(2)), secondaryAction))
+                if (GUI.Button(new Rect(rect.x + rect.width - (Units(12)+8), curY + btnY, Units(4) + 8, Units(2)), secondaryAction))
                 {
                     AudioManager.Instance.PlaySFX("click");
                     secondaryCallback?.Invoke();
@@ -1788,7 +1845,7 @@ namespace Poltergeist
             }
 
             GUI.enabled = balance.Available > 0;
-            if (GUI.Button(new Rect(rect.x + rect.width - (Units(6) + 8), curY + Units(1) + 8, Units(4) + 8, Units(2)), "Send"))
+            if (GUI.Button(new Rect(rect.x + rect.width - (Units(6) + 8), curY + btnY, Units(4) + 8, Units(2)), "Send"))
             {
                 AudioManager.Instance.PlaySFX("click");
 
@@ -1851,10 +1908,8 @@ namespace Poltergeist
                 return;
             }
 
-            DrawPlatformTopMenu();
-            int curY = Units(10);
-
-            Rect rect;
+            var startY = DrawPlatformTopMenu();
+            var endY = DoBottomMenu();
 
             var history = accountManager.CurrentHistory;
 
@@ -1864,6 +1919,21 @@ namespace Poltergeist
                 return;
             }
 
+            int curY = Units(12);
+
+            var historyCount = DoScrollArea<HistoryEntry>(ref balanceScroll, startY, endY, smallSize ? Units(4) : Units(3), history,
+                DoHistoryEntry);
+
+            if (historyCount == 0)
+            {
+                DrawHorizontalCenteredText(curY, Units(2), $"No transactions found for this {accountManager.CurrentPlatform} account.");
+            }
+
+            DoBottomMenu();
+        }
+
+        private void DoHistoryEntry(HistoryEntry entry, int index, int curY, Rect rect)
+        {
             int panelHeight = Units(3);
             int panelWidth = (int)(windowRect.width - Units(2));
             int padding = 8;
@@ -1872,50 +1942,26 @@ namespace Poltergeist
             int heightPerItem = panelHeight + padding;
             int maxEntries = availableHeight / heightPerItem;
 
-            if (history.Length > 0)
+            var accountManager = AccountManager.Instance;
+
+            var date = String.Format("{0:g}", entry.date);
+
+            int halfWidth = (int)(rect.width / 2);
+
+            GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), smallSize ? entry.hash.Substring(0, 16)+"...": entry.hash);
+            GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), date);
+
+            GUI.enabled = !string.IsNullOrEmpty(entry.url);
+            if (GUI.Button(new Rect(rect.x + rect.width - Units(6), curY + rect.height - (4 + Units(1)), Units(4), Units(1)), "View"))
             {
-                for (int i = 0; i < history.Length; i++)
-                {
-                    if (i >= maxEntries)
-                    {
-                        break;
-                    }
-
-                    var entry = history[i];
-
-                    var date = String.Format("{0:g}", entry.date);
-
-                    rect = new Rect(Units(1), curY, panelWidth, panelHeight);
-                    GUI.Box(rect, "");
-
-                    int halfWidth = (int)(rect.width / 2);
-
-                    GUI.Label(new Rect(Units(3), curY + 4, Units(20), Units(2)), entry.hash);
-                    GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), date);
-
-                    GUI.enabled = !string.IsNullOrEmpty(entry.url);
-                    if (GUI.Button(new Rect(windowRect.width - Units(7), curY, Units(4), Units(1)), "View"))
-                    {
-                        AudioManager.Instance.PlaySFX("click");
-                        Application.OpenURL(entry.url);
-                    }
-                    GUI.enabled = true;
-
-                    curY += panelHeight + padding;
-                }
+                AudioManager.Instance.PlaySFX("click");
+                Application.OpenURL(entry.url);
             }
-            else
-            {
-                DrawHorizontalCenteredText(curY, Units(2), $"No transactions found for this {accountManager.CurrentPlatform} account.");
-            }
+            GUI.enabled = true;
 
-            if (guiState != GUIState.History)
-            {
-                return;
-            }
-
-            DoBottomMenu();
+            curY += panelHeight + padding;
         }
+
 
         private void DoAccountScreen()
         {
@@ -1925,7 +1971,15 @@ namespace Poltergeist
             var endY = DoBottomMenu();
 
             int curY = startY;
-            curY += Units(1);
+
+            if (smallSize)
+            {
+                curY -= 8;
+            }
+            else
+            { 
+                curY += Units(1);
+            }
 
             int btnWidth = Units(8);
             int centerX = (int)(windowRect.width - btnWidth) / 2;
@@ -2172,7 +2226,7 @@ namespace Poltergeist
                             var gasPrice = accountManager.Settings.feePrice;
 
                             var sb = new ScriptBuilder();
-                            sb.AllowGas(source, Address.Null, gasPrice, 600);
+                            sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
 
                             if (symbol == "KCAL" && amount == balance)
                             {
@@ -2378,7 +2432,7 @@ namespace Poltergeist
                                             var gasPrice = accountManager.Settings.feePrice;
 
                                             var sb = new ScriptBuilder();
-                                            sb.AllowGas(source, Address.Null, gasPrice, 600);
+                                            sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                             sb.TransferTokens(symbol, source, destAddress, UnitConversion.ToBigInteger(amount, decimals));
                                             sb.SpendGas(source);
                                             script = sb.EndScript();
@@ -2501,7 +2555,7 @@ namespace Poltergeist
 
                                  var sb = new ScriptBuilder();
                                  sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.5m, decimals));
-                                 sb.AllowGas(source, Address.Null, gasPrice, 800);
+                                 sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                  sb.SpendGas(source);
                                  script = sb.EndScript();
                              }

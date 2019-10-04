@@ -171,6 +171,8 @@ namespace Poltergeist
 
     public class AccountManager : MonoBehaviour
     {
+        public static readonly int MinGasLimit = 800;
+
         public Settings Settings { get; private set; }
 
         public Account[] Accounts { get; private set; }
