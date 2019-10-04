@@ -570,7 +570,9 @@ namespace Poltergeist
             _lastBalanceRefresh = DateTime.MinValue;
             _lastHistoryRefresh = DateTime.MinValue;
             _selectedAccountIndex = index;
-            CurrentPlatform = PlatformKind.None;
+
+            var platforms = CurrentAccount.platforms.Split();
+            CurrentPlatform = platforms.FirstOrDefault();
             _states.Clear();
         }
 
@@ -588,7 +590,7 @@ namespace Poltergeist
                 Debug.Log("Received new state for " + platform);
                 _states[platform] = state;
 
-                if (CurrentPlatform == PlatformKind.None)
+                if (GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
                 {
                     CurrentPlatform = platform;
                 }
@@ -598,6 +600,22 @@ namespace Poltergeist
             {
                 InvokeRefreshCallback();
             }
+        }
+
+        private decimal GetWorthOfPlatform(PlatformKind platform)
+        {
+            if (!_states.ContainsKey(platform))
+            {
+                return 0;
+            }
+
+            decimal total = 0;
+            var state = _states[platform];
+            foreach (var balance in state.balances)
+            {
+                total += balance.Total;
+            }
+            return total;
         }
 
         private void ReportWalletHistory(PlatformKind platform, List<HistoryEntry> history)
