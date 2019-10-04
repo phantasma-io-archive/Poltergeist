@@ -101,8 +101,13 @@ namespace Poltergeist
             return list;
         }
 
-        public static PlatformKind GetTransferTargets(this PlatformKind kind)
+        public static PlatformKind GetTransferTargets(this PlatformKind kind, Token token)
         {
+            if (!token.flags.Contains("External"))
+            {
+                return kind;
+            }
+
             switch (kind)
             {
                 case PlatformKind.Phantasma:
@@ -297,7 +302,7 @@ namespace Poltergeist
             }
         }
 
-        private void SaveAccounts()
+        public void SaveAccounts()
         {
             var bytes = Serialization.Serialize(Accounts);
             PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
@@ -1075,11 +1080,6 @@ namespace Poltergeist
 
         public int AddWallet(string name, PlatformKind platforms, string wif, string password)
         {
-            if (Accounts.Length >= 5)
-            {
-                throw new Exception("No more open slots.");
-            }
-
             if (string.IsNullOrEmpty(name) || name.Length < 3)
             {
                 throw new Exception("Name is too short.");
@@ -1102,9 +1102,6 @@ namespace Poltergeist
             list.Add(new Account() { name = name, WIF = wif, password = password, platforms = platforms, misc = "" });
 
             this.Accounts = list.ToArray();
-
-            SaveAccounts();
-
             return Accounts.Length - 1;
         }
 
