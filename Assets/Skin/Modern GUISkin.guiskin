@@ -150,7 +150,7 @@ MonoBehaviour:
   m_toggle:
     m_Name: toggle
     m_Normal:
-      m_Background: {fileID: 2800000, guid: 61e524e1864b74f4089e1b28bbf0a165, type: 3}
+      m_Background: {fileID: 2800000, guid: 1a3a482818a8cc4408eef97ee0f103ca, type: 3}
       m_ScaledBackgrounds: []
       m_TextColor: {r: 0.89112896, g: 0.89112896, b: 0.89112896, a: 1}
     m_Hover:
@@ -158,23 +158,23 @@ MonoBehaviour:
       m_ScaledBackgrounds: []
       m_TextColor: {r: 1, g: 1, b: 1, a: 1}
     m_Active:
-      m_Background: {fileID: 2800000, guid: 61e524e1864b74f4089e1b28bbf0a165, type: 3}
+      m_Background: {fileID: 2800000, guid: 1a3a482818a8cc4408eef97ee0f103ca, type: 3}
       m_ScaledBackgrounds: []
       m_TextColor: {r: 1, g: 1, b: 1, a: 1}
     m_Focused:
-      m_Background: {fileID: 2800000, guid: f3fd607d90eed504cb7002933c4b1985, type: 3}
+      m_Background: {fileID: 2800000, guid: 3a005c7a3385e7e41b8439e4a5dcf20a, type: 3}
       m_ScaledBackgrounds: []
       m_TextColor: {r: 0, g: 0, b: 0, a: 1}
     m_OnNormal:
-      m_Background: {fileID: 2800000, guid: f3fd607d90eed504cb7002933c4b1985, type: 3}
+      m_Background: {fileID: 2800000, guid: 3096c4edfebdcca4b9b7e30d0f5368cb, type: 3}
       m_ScaledBackgrounds: []
       m_TextColor: {r: 0.8901961, g: 0.8901961, b: 0.8901961, a: 1}
     m_OnHover:
-      m_Background: {fileID: 2800000, guid: f3fd607d90eed504cb7002933c4b1985, type: 3}
+      m_Background: {fileID: 2800000, guid: c8e66d3db8a96a9438a89e8e749d3d00, type: 3}
       m_ScaledBackgrounds: []
       m_TextColor: {r: 1, g: 1, b: 1, a: 1}
     m_OnActive:
-      m_Background: {fileID: 2800000, guid: f3fd607d90eed504cb7002933c4b1985, type: 3}
+      m_Background: {fileID: 2800000, guid: c8e66d3db8a96a9438a89e8e749d3d00, type: 3}
       m_ScaledBackgrounds: []
       m_TextColor: {r: 1, g: 1, b: 1, a: 1}
     m_OnFocused:
@@ -187,29 +187,29 @@ MonoBehaviour:
       m_Top: 0
       m_Bottom: 0
     m_Margin:
-      m_Left: 4
-      m_Right: 4
-      m_Top: 4
-      m_Bottom: 4
+      m_Left: 0
+      m_Right: 0
+      m_Top: 0
+      m_Bottom: 0
     m_Padding:
-      m_Left: 17
-      m_Right: -17
-      m_Top: 3
+      m_Left: 0
+      m_Right: 0
+      m_Top: 4
       m_Bottom: 0
     m_Overflow:
-      m_Left: 10
-      m_Right: -85
-      m_Top: -2
-      m_Bottom: -4
-    m_Font: {fileID: 0}
-    m_FontSize: 0
+      m_Left: 0
+      m_Right: 0
+      m_Top: -4
+      m_Bottom: 4
+    m_Font: {fileID: 12800000, guid: e874aaeb51cbea945a83018967bbb48e, type: 3}
+    m_FontSize: 20
     m_FontStyle: 0
     m_Alignment: 0
     m_WordWrap: 0
     m_RichText: 1
     m_TextClipping: 1
     m_ImagePosition: 0
-    m_ContentOffset: {x: 0, y: 0}
+    m_ContentOffset: {x: 32, y: 0}
     m_FixedWidth: 0
     m_FixedHeight: 0
     m_StretchWidth: 1

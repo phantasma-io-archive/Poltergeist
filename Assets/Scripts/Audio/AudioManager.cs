@@ -33,6 +33,11 @@ namespace Poltergeist
 
         public void PlaySFX(string name)
         {
+            if (!AccountManager.Instance.Settings.sfx)
+            {
+                return;
+            }
+
             var clip = FindClip(name);
             if (clip == null)
             {

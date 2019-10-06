@@ -44,32 +44,6 @@ namespace Poltergeist
         {
             return $"{name.ToUpper()} [{platforms}]";
         }
-
-        public string GetAddress(PlatformKind platform)
-        {
-            if (!platforms.HasFlag(platform))
-            {
-                return null;
-            }
-
-            switch (platform)
-            {
-                case PlatformKind.Phantasma:
-                    {
-                        var keys = PhantasmaKeys.FromWIF(WIF);
-                        return keys.Address.Text;
-                    }
-
-                case PlatformKind.Neo:
-                    {
-                        var keys = NeoKeys.FromWIF(WIF);
-                        return keys.Address;
-                    }
-
-                default:
-                    return null;
-            }
-        }
     }
 
     public struct HistoryEntry
@@ -216,6 +190,8 @@ namespace Poltergeist
         private DateTime _lastPriceUpdate = DateTime.MinValue;
 
         private int _pendingRequestCount;
+
+        private bool _accountInitialized;
 
         private void Awake()
         {
@@ -372,10 +348,15 @@ namespace Poltergeist
             }
         }
 
-        private void LoadNexus()
+        public void UpdateAPIs()
         {
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
+        }
+
+        private void LoadNexus()
+        {
+            UpdateAPIs();
 
             PrepareTokens(new Token[] { });
 
@@ -571,6 +552,8 @@ namespace Poltergeist
             _lastHistoryRefresh = DateTime.MinValue;
             _selectedAccountIndex = index;
 
+            _accountInitialized = false;
+
             var platforms = CurrentAccount.platforms.Split();
             CurrentPlatform = platforms.FirstOrDefault();
             _states.Clear();
@@ -590,7 +573,7 @@ namespace Poltergeist
                 Debug.Log("Received new state for " + platform);
                 _states[platform] = state;
 
-                if (GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
+                if (!_accountInitialized && GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
                 {
                     CurrentPlatform = platform;
                 }
@@ -598,6 +581,7 @@ namespace Poltergeist
 
             if (_pendingRequestCount == 0)
             {
+                _accountInitialized = true;
                 InvokeRefreshCallback();
             }
         }
@@ -879,7 +863,7 @@ namespace Poltergeist
                                     var state = new AccountState()
                                     {
                                         address = keys.Address,
-                                        name = keys.Address, // TODO support NNS
+                                        name = "anonymous", // TODO support NNS
                                         balances = balanceMap.Values.ToArray(),
                                         flags = AccountFlags.None
                                     };
@@ -1005,6 +989,7 @@ namespace Poltergeist
                                     {
                                         hash = tx.hash,
                                         date = new DateTime(timeSpan.Ticks).ToLocalTime(),
+                                        url = GetPhantasmaTransactionURL(tx.hash)
                                     });
                                 }
 
@@ -1055,6 +1040,11 @@ namespace Poltergeist
                         break;
                 }
             }
+        }
+
+        private string GetPhantasmaTransactionURL(string hash)
+        {
+            return $"https://explorer.phantasma.io/tx/{hash}";
         }
 
         private void RequestPendings(string address, Action<Swap[], string> callback)
@@ -1213,10 +1203,66 @@ namespace Poltergeist
             SaveAccounts();
         }
 
-        public void RenameAccount(string newName)
+        public bool RenameAccount(string newName)
         {
+            foreach (var account in Accounts)
+            {
+                if (account.name.Equals(newName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
             Accounts[CurrentIndex].name = newName;
             SaveAccounts();
+            return true;
+        }
+
+        internal void ValidateAccountName(string name, Action<string> callback)
+        {
+            StartCoroutine(
+                this.phantasmaApi.LookUpName(name, (address) =>
+                {
+                    callback(address);
+                },
+                (error, msg) =>
+                {
+                    callback(null);
+                })
+            );
+        }
+
+        public string GetAddress(int index, PlatformKind platform)
+        {
+            if (index < 0 || index >= Accounts.Length)
+            {
+                return null;
+            }
+
+            if (index == _selectedAccountIndex)
+            {
+                foreach (var entry in _states)
+                {
+                    if (entry.Key == platform)
+                    {
+                        return entry.Value.address;
+                    }
+                }
+            }
+            else
+            {
+                var wif = Accounts[index].WIF;
+                switch (platform)
+                {
+                    case PlatformKind.Phantasma:
+                        return PhantasmaKeys.FromWIF(wif).Address.Text;
+
+                    case PlatformKind.Neo:
+                        return NeoKeys.FromWIF(wif).Address;
+                }
+            }
+
+            return null;
         }
     }
 }

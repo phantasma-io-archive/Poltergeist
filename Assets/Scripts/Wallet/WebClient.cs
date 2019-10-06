@@ -43,7 +43,7 @@ namespace Phantasma.SDK
                 throw e;
             }
 
-            Debug.Log($"JSON request\nurl:{url}\njson: {json}");
+            Debug.Log($"RPC request\nurl:{url}\njson: {json}");
 
             request = new UnityWebRequest(url, "POST");
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);

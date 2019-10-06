@@ -41,6 +41,7 @@ namespace Poltergeist
         public const string NexusKindTag = "settings.nexus.kind";
         public const string CurrencyTag = "settings.currency";
         public const string GasPriceTag = "settings.fee.price";
+        public const string SFXTag = "settings.sfx";
 
         public string phantasmaRPCURL;
         public string neoRPCURL;
@@ -49,6 +50,7 @@ namespace Poltergeist
         public string currency;
         public BigInteger feePrice;
         public NexusKind nexusKind;
+        public bool sfx;
 
         public void Load()
         {
@@ -64,6 +66,7 @@ namespace Poltergeist
             this.nexusName = PlayerPrefs.GetString(NexusNameTag, GetDefaultValue(NexusNameTag));
 
             this.currency = PlayerPrefs.GetString(CurrencyTag, "USD");
+            this.sfx = PlayerPrefs.GetInt(SFXTag, 1)!=0;
 
             var defaultGasPrice = 100000;
             if (!BigInteger.TryParse(PlayerPrefs.GetString(GasPriceTag, defaultGasPrice.ToString()), out feePrice))
@@ -79,6 +82,9 @@ namespace Poltergeist
                 case PhantasmaRPCTag:
                     switch (nexusKind)
                     {
+                        case NexusKind.Main_Net:
+                            return "http://207.148.17.86:7071/rpc";
+
                         case NexusKind.Local_Net:
                             return "http://localhost:7077/rpc";
 
@@ -135,6 +141,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
+            PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
             PlayerPrefs.Save();
         }
 
