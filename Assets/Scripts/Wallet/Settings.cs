@@ -97,8 +97,8 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            int index = (int)(DateTime.UtcNow.Ticks % 5);
-                            return $"http://seed{index}.neo.org:10332";
+                            int index = (int)(DateTime.UtcNow.Ticks % 8)+1;
+                            return $"https://seed{index}.cityofzion.io:443";
 
                         default:
                             return "http://mankinighost.phantasma.io:30333";
@@ -145,12 +145,16 @@ namespace Poltergeist
             PlayerPrefs.Save();
         }
 
-        public void RestoreEndpoints()
+        public void RestoreEndpoints(bool restoreName)
         {
             this.phantasmaRPCURL = this.GetDefaultValue(PhantasmaRPCTag);
             this.neoRPCURL = this.GetDefaultValue(NeoRPCTag);
             this.neoscanURL = this.GetDefaultValue(NeoscanAPITag);
-            this.nexusName = this.GetDefaultValue(NexusNameTag);
+
+            if (restoreName)
+            {
+                this.nexusName = this.GetDefaultValue(NexusNameTag);
+            }
         }
     }
 }

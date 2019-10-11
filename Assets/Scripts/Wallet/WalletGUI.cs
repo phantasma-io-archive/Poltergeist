@@ -108,6 +108,7 @@ namespace Poltergeist
         private string transferSymbol;
         private Hash transactionHash;
         private bool needsConfirmation;
+        private int confirmationCount;
         private DateTime lastTransactionConfirmation;
 
         private AnimationDirection currentAnimation;
@@ -677,7 +678,9 @@ namespace Poltergeist
             GUI.Label(new Rect(windowRect.width / 2 + Units(7) - 4, 12, 32, Units(2)), Application.version);
             style.fontSize = tempSize;
 
-            if (currentTitle != null && this.currentAnimation == AnimationDirection.None)
+            var accountManager = AccountManager.Instance;
+
+            if (currentTitle != null && this.currentAnimation == AnimationDirection.None && !accountManager.Refreshing)
             {
                 int curY = Units(3);
 
@@ -688,7 +691,6 @@ namespace Poltergeist
                     case GUIState.Account:
                     case GUIState.Balances:
                     case GUIState.History:
-                        var accountManager = AccountManager.Instance;
                         var state = accountManager.CurrentState;
                         if (state != null)
                         {
@@ -894,7 +896,8 @@ namespace Poltergeist
                 {
                     lastTransactionConfirmation = now;
                     needsConfirmation = false;
-                    accountManager.RequestConfirmation(transactionHash.ToString(), (msg) =>
+                    confirmationCount++;
+                    accountManager.RequestConfirmation(transactionHash.ToString(), confirmationCount, (msg) =>
                     {
                         if (msg == null)
                         {
@@ -935,7 +938,11 @@ namespace Poltergeist
             {
                 if (auth == PromptResult.Success)
                 {
-                    if (!isNewAccount)
+                    if (isNewAccount)
+                    {
+                        accountManager.BlankState();
+                    }
+                    else
                     {
                         accountManager.RefreshTokenPrices();
                     }
@@ -1067,8 +1074,7 @@ namespace Poltergeist
 
                 if (isNewWallet)
                 {
-                    string temp = password!=null ? password:"";
-                    var bip = new Bitcoin.BIP39.BIP39(128, temp);
+                    var bip = new Bitcoin.BIP39.BIP39(128, "", Bitcoin.BIP39.BIP39.Language.English);
                     seedPhrase = bip.MnemonicSentence;
                     var privKey = bip.SeedBytes.Take(32).ToArray();
                     var keys = new PhantasmaKeys(privKey);
@@ -1160,44 +1166,17 @@ namespace Poltergeist
                                     else
                                     if (key.Count(x => x == ' ') == 11)
                                     {
-                                        var importTitle = "Seed Phrase Import";
-                                        ConfirmBox("Seems you are importing a wallet from a seed phrase.\nWhen you created this wallet, did you also setup a password?", (hasPassword) =>
+                                        try
                                         {
-                                            if (hasPassword == PromptResult.Success)
-                                            {
-                                                ShowModal(importTitle, "Insert your previous wallet passphrase", ModalState.Password, 64, true, 1, (auth, passphrase) =>
-                                                {
-                                                    if (auth == PromptResult.Success)
-                                                    {
-                                                        try
-                                                        {
-                                                            var bip = new Bitcoin.BIP39.BIP39(key, passphrase);
-                                                            var privKey = bip.SeedBytes.Take(32).ToArray();
-                                                            var decryptedKeys = new PhantasmaKeys(privKey);
-                                                            ImportWallet(decryptedKeys.ToWIF(), passphrase);
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            MessageBox(MessageKind.Error, "Could not import wallet.\n" + e.Message);
-                                                        }
-                                                    }
-                                                });
-                                            }
-                                            else
-                                            {
-                                                try
-                                                {
-                                                    var bip = new Bitcoin.BIP39.BIP39(key, "");
-                                                    var privKey = bip.SeedBytes.Take(32).ToArray();
-                                                    var decryptedKeys = new PhantasmaKeys(privKey);
-                                                    ImportWallet(decryptedKeys.ToWIF(), "");
-                                                }
-                                                catch (Exception e)
-                                                {
-                                                    MessageBox(MessageKind.Error, "Could not import wallet.\n" + e.Message);
-                                                }
-                                            }
-                                        });
+                                            var bip = new Bitcoin.BIP39.BIP39(key, "", Bitcoin.BIP39.BIP39.Language.English);
+                                            var privKey = bip.SeedBytes.Take(32).ToArray();
+                                            var decryptedKeys = new PhantasmaKeys(privKey);
+                                            ImportWallet(decryptedKeys.ToWIF(), null);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            MessageBox(MessageKind.Error, "Could not import wallet.\n" + e.Message);
+                                        }
                                     }
                                     else
                                     {
@@ -1466,7 +1445,7 @@ namespace Poltergeist
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
-            if (settings.nexusKind != NexusKind.Main_Net)
+            if (settings.nexusKind != NexusKind.Main_Net && settings.nexusKind != NexusKind.Unknown)
             {
                 var style = GUI.skin.label;
                 var tempStyle = style.fontStyle;
@@ -1479,11 +1458,13 @@ namespace Poltergeist
 
             if (prevNexus != nexusIndex && settings.nexusKind != NexusKind.Custom)
             {
-                settings.RestoreEndpoints();
+                settings.RestoreEndpoints(true);
             }
 
             bool hasCustomEndPoints;
             bool hasCustomFee;
+
+            bool hasCustomName = settings.nexusKind == NexusKind.Custom;
 
             switch (settings.nexusKind)
             {
@@ -1495,17 +1476,11 @@ namespace Poltergeist
                         break;
                     }
 
-                case NexusKind.Test_Net:
-                    {
-                        hasCustomEndPoints = false;
-                        hasCustomFee = false;
-                        break;
-                    }
-
                 default:
                     {
                         hasCustomEndPoints = false;
                         hasCustomFee = false;
+                        hasCustomName = false;
                         break;
                     }
             }
@@ -1526,7 +1501,14 @@ namespace Poltergeist
             }
             else
             {
-                settings.RestoreEndpoints();
+                settings.RestoreEndpoints(!hasCustomName);
+            }
+
+            if (hasCustomName)
+            {
+                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Nexus Name");
+                settings.nexusName = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.nexusName);
+                curY += Units(3);
             }
 
             if (hasCustomFee)
@@ -1628,12 +1610,17 @@ namespace Poltergeist
                 return curY;
             }
 
+            var btnWidth = Units(8);
+            DoButton(true, new Rect(windowRect.width - (btnWidth+ Border*2), curY, btnWidth, Units(1)), "Refresh", () =>
+            {
+                SetState(this.guiState);
+            });
+
             curY += Units(VerticalLayout ? 2 : 3);
             DrawHorizontalCenteredText(curY - 5, Units(VerticalLayout ? 3: 2), state.address);
 
             curY += Units(3);
 
-            var btnWidth = Units(8);
             DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(1)), "Copy Address", () =>
               {
                   AudioManager.Instance.PlaySFX("click");
@@ -1978,6 +1965,11 @@ namespace Poltergeist
                                         (amount) =>
                                         {
                                             var line = amount == balance.Staked ? "You won't be able to claim KCAL anymore." : "The amount of KCAL that will be able to claim later will be reduced.";
+                                            
+                                            if (amount == balance.Staked  && accountManager.CurrentState.name != ValidationUtils.ANONYMOUS)
+                                            {
+                                                line += "\nYour account will also lose the current registed name.";
+                                            }
 
                                             ConfirmBox($"Do you want to unstake {amount} SOUL?\n{line}", (result) =>
                                             {
@@ -2283,11 +2275,11 @@ namespace Poltergeist
 
             int curY = startY;
 
-            curY = Units(7);
+            curY = Units(10);
 
             if (VerticalLayout)
             {
-                curY += Units(5) + 8;
+                curY += Units(2) + 8;
             }
 
             int btnWidth = Units(8);
@@ -2344,7 +2336,8 @@ namespace Poltergeist
 
                     case 1:
                         {
-                            var stake = accountManager.CurrentState.balances.Where(x => x.Symbol == DomainSettings.StakingTokenSymbol).Select(x => x.Staked).FirstOrDefault();
+                            var state = accountManager.CurrentState;
+                            decimal stake = state != null ? state.balances.Where(x => x.Symbol == DomainSettings.StakingTokenSymbol).Select(x => x.Staked).FirstOrDefault() : 0;
 
                             if (stake >= 1)
                             {
@@ -2354,66 +2347,60 @@ namespace Poltergeist
                                     {
                                         if (ValidationUtils.IsValidIdentifier(name))
                                         {
-                                            RequestPassword("Name Setup", accountManager.CurrentAccount.platforms, (auth) =>
+                                            RequestKCAL(null, (kcalResult) =>
                                             {
-                                                if (auth == PromptResult.Success)
+                                                if (kcalResult == PromptResult.Success)
                                                 {
-                                                    RequestKCAL(null, (kcalResult) =>
+                                                    byte[] script;
+
+                                                    try
                                                     {
-                                                        if (kcalResult == PromptResult.Success)
+                                                        var gasPrice = accountManager.Settings.feePrice;
+
+                                                        var source = Address.FromText(accountManager.CurrentState.address);
+
+                                                        var sb = new ScriptBuilder();
+                                                        sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                                        sb.CallContract("account", "RegisterName", source, name);
+                                                        sb.SpendGas(source);
+                                                        script = sb.EndScript();
+                                                    }
+                                                    catch (Exception e)
+                                                    {
+                                                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                                                        return;
+                                                    }
+
+                                                    SendTransaction($"Register address name\nName:{name}\nAddress:{accountManager.CurrentState.address}?", script, "main", (hash) =>
+                                                    {
+                                                        if (hash != Hash.Null)
                                                         {
-                                                            byte[] script;
+                                                            SetState(guiState); // force updating the current UI
 
-                                                            try
+                                                            if (AccountManager.Instance.CurrentAccount.name != name)
                                                             {
-                                                                var gasPrice = accountManager.Settings.feePrice;
-
-                                                                var source = Address.FromText(accountManager.CurrentState.address);
-
-                                                                var sb = new ScriptBuilder();
-                                                                sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                                                sb.CallContract("account", "RegisterName", source, name);
-                                                                sb.SpendGas(source);
-                                                                script = sb.EndScript();
-                                                            }
-                                                            catch (Exception e)
-                                                            {
-                                                                MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
-                                                                return;
-                                                            }
-
-                                                            SendTransaction($"Register address name\nName:{name}\nAddress:{accountManager.CurrentState.address}?", script, "main", (hash) =>
-                                                            {
-                                                                if (hash != Hash.Null)
+                                                                ConfirmBox("The address name was set successfully.\nDo you also want to change the local name for the account?\nThe local name is only visible in this device.", (localChange) =>
                                                                 {
-                                                                    SetState(guiState); // force updating the current UI
-
-                                                                    if (AccountManager.Instance.CurrentAccount.name != name)
+                                                                    if (localChange == PromptResult.Success)
                                                                     {
-                                                                        ConfirmBox("The address name was set successfully.\nDo you also want to change the local name for the account?\nThe local name is only visible in this device.", (localChange) =>
+                                                                        if (accountManager.RenameAccount(name))
                                                                         {
-                                                                            if (localChange == PromptResult.Success)
-                                                                            {
-                                                                                if (accountManager.RenameAccount(name))
-                                                                                {
-                                                                                    MessageBox(MessageKind.Default, $"The local account name was renamed '{name}'.");
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    MessageBox(MessageKind.Error, $"Was not possible to rename the local account.\nHowever the public address was renamed with success.");
-                                                                                }
-                                                                            }
-                                                                        });
+                                                                            MessageBox(MessageKind.Default, $"The local account name was renamed '{name}'.");
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            MessageBox(MessageKind.Error, $"Was not possible to rename the local account.\nHowever the public address was renamed with success.");
+                                                                        }
                                                                     }
-                                                                }
-                                                                else
-                                                                {
-                                                                    MessageBox(MessageKind.Error, "An error occured when trying to setup the address name.");
-                                                                }
-                                                            });
-
+                                                                });
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            MessageBox(MessageKind.Error, "An error occured when trying to setup the address name.");
                                                         }
                                                     });
+
                                                 }
                                             });
                                         }
@@ -2544,7 +2531,7 @@ namespace Poltergeist
 
                             MessageBox(MessageKind.Default, temp, () =>
                             {
-                                accountManager.SignAndSendTransaction(chain, script, (hash) =>
+                                accountManager.SignAndSendTransaction(chain, script, (hash, error) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
@@ -2554,7 +2541,7 @@ namespace Poltergeist
                                     {
                                         PopState();
 
-                                        MessageBox(MessageKind.Error, "Error sending transaction.", () =>
+                                        MessageBox(MessageKind.Error, $"Error sending transaction.\n{error}", () =>
                                         {
                                             InvokeTransactionCallback(hash);
                                         });
@@ -2576,6 +2563,7 @@ namespace Poltergeist
         {
             transactionCallback = callback;
             needsConfirmation = true;
+            confirmationCount = 0;
             transactionHash = hash;
             lastTransactionConfirmation = DateTime.UtcNow;
             
@@ -2748,7 +2736,7 @@ namespace Poltergeist
             }
 
             var balance = state.GetAvailableAmount(symbol);
-            RequireAmount(transferName, destAddress, symbol, 0.1m, balance, (amount) =>
+            RequireAmount(transferName, destAddress, symbol, 0.01m, balance, (amount) =>
             {
                 var transfer = new TransferRequest()
                 {
@@ -2786,11 +2774,12 @@ namespace Poltergeist
 
             var feeSymbol = "GAS";
 
-            RequestFee(symbol, feeSymbol, (gasResult) =>
+            var min = 0.001m;
+            RequestFee(symbol, feeSymbol, min, (gasResult) =>
             {
                 if (gasResult != PromptResult.Success)
                 {
-                    MessageBox(MessageKind.Error, $"Without {feeSymbol} it is not possible to perform this swap!");
+                    MessageBox(MessageKind.Error, $"Without at least {min} {feeSymbol} it is not possible to perform this swap!");
                     return;
                 }
 
@@ -2893,10 +2882,10 @@ namespace Poltergeist
 
         private void RequestKCAL(string swapSymbol, Action<PromptResult> callback)
         {
-            RequestFee(swapSymbol, "KCAL", callback);
+            RequestFee(swapSymbol, "KCAL", 0.1m, callback);
         }
 
-        private void RequestFee(string swapSymbol, string feeSymbol, Action<PromptResult> callback)
+        private void RequestFee(string swapSymbol, string feeSymbol, decimal min, Action<PromptResult> callback)
         {
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
@@ -2910,7 +2899,7 @@ namespace Poltergeist
 
             if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
             {
-                callback(feeBalance >= 0.1m ? PromptResult.Success : PromptResult.Failure);
+                callback(feeBalance >= min ? PromptResult.Success : PromptResult.Failure);
                 return;
             }
 
@@ -2920,7 +2909,7 @@ namespace Poltergeist
                 return;
             }
 
-            if (feeBalance > 0.1m)
+            if (feeBalance >= min)
             {
                 callback(PromptResult.Success);
                 return;
