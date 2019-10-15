@@ -165,54 +165,59 @@ namespace Phantasma.SDK
         }
     }
 
+    public struct Stake
+    {
+        public string amount; //
+        public uint time; //
+        public string unclaimed; //
+
+        public static Stake FromNode(DataNode node)
+        {
+            Stake result;
+
+            result.amount = node.GetString("amount");
+            result.time = node.GetUInt32("time");
+            result.unclaimed = node.GetString("unclaimed");
+
+            return result;
+        }
+    }
 
     public struct Account 
 	{
-		public string address; //
-		public string name; //
-        public string stake; //
-        public string unclaimed; //
+        public string address; //
+        public string name; //
+        public Stake stake; //
         public string relay; //
-		public Balance[] balances; //
-		public Interop[] interops; //
-	   
-		public static Account FromNode(DataNode node) 
-		{
-			Account result;
-						
-			result.address = node.GetString("address");						
-			result.name = node.GetString("name");
-            result.stake = node.GetString("stake");
-            result.unclaimed = node.GetString("unclaimed");
-            result.relay = node.GetString("relay");			
-			var balances_array = node.GetNode("balances");
-			if (balances_array != null) {
-				result.balances = new Balance[balances_array.ChildCount];
-				for (int i=0; i < balances_array.ChildCount; i++) {
-					
-					result.balances[i] = Balance.FromNode(balances_array.GetNodeByIndex(i));
-					
-				}
-			}
-			else {
-				result.balances = new Balance[0];
-			}
-						
-			var interops_array = node.GetNode("interops");
-			if (interops_array != null) {
-				result.interops = new Interop[interops_array.ChildCount];
-				for (int i=0; i < interops_array.ChildCount; i++) {
-					
-					result.interops[i] = Interop.FromNode(interops_array.GetNodeByIndex(i));
-					
-				}
-			}
-			else {
-				result.interops = new Interop[0];
-			}
-			
+        public string validator; //
+        public Balance[] balances; //
 
-			return result;			
+        public static Account FromNode(DataNode node) 
+		{
+            Account result;
+
+            result.address = node.GetString("address");
+            result.name = node.GetString("name");
+            result.stake = Stake.FromNode(node.GetNode("stakes"));
+            result.relay = node.GetString("relay");
+            result.validator = node.GetString("validator");
+            var balances_array = node.GetNode("balances");
+            if (balances_array != null)
+            {
+                result.balances = new Balance[balances_array.ChildCount];
+                for (int i = 0; i < balances_array.ChildCount; i++)
+                {
+
+                    result.balances[i] = Balance.FromNode(balances_array.GetNodeByIndex(i));
+
+                }
+            }
+            else
+            {
+                result.balances = new Balance[0];
+            }
+
+            return result;			
 		}
 	}
 	
@@ -248,29 +253,7 @@ namespace Phantasma.SDK
 			return result;			
 		}
 	}
-	
-	public struct App 
-	{
-		public string id; //
-		public string title; //
-		public string url; //
-		public string description; //
-		public string icon; //
-	   
-		public static App FromNode(DataNode node) 
-		{
-			App result;
-						
-			result.id = node.GetString("id");						
-			result.title = node.GetString("title");						
-			result.url = node.GetString("url");						
-			result.description = node.GetString("description");						
-			result.icon = node.GetString("icon");
-
-			return result;			
-		}
-	}
-	
+		
 	public struct Event 
 	{
 		public string address; //
