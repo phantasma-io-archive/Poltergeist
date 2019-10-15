@@ -15,6 +15,7 @@ using Phantasma.Domain;
 using ZXing;
 using ZXing.QrCode;
 using System.Globalization;
+using Phantasma.Core.Types;
 
 namespace Poltergeist
 {
@@ -75,7 +76,6 @@ namespace Poltergeist
     public enum ModalState
     {
         None,
-        Wait,
         Message,
         Input,
         Password,
@@ -189,11 +189,6 @@ namespace Poltergeist
 
         private void SetState(GUIState state)
         {
-            if (state == guiState)
-            {
-                return;
-            }
-
             switch (guiState)
             {
                 case GUIState.Backup:
@@ -327,21 +322,27 @@ namespace Poltergeist
 
 
         #region MODAL PROMPTS
+        private string[] ModalNone = new string[] { };
+        private string[] ModalOk = new string[] { "Ok" };
+        private string[] ModalConfirmCancel = new string[] { "Confirm" , "Cancel"};
+        private string[] ModalYesNo = new string[] { "Yes" , "No" };
+
+        private string[] modalOptions;
         private bool modalRedirected;
         private float modalTime;
         private ModalState modalState;
         private Action<PromptResult, string> modalCallback;
         private string modalInput;
-        private int modalInputLength;
+        private int modalMinInputLength;
+        private int modalMaxInputLength;
         private string modalCaption;
         private string modalTitle;
-        private bool modalAllowCancel;
         private int modalMaxLines;
         private Dictionary<string, string> modalHints;
         private PromptResult modalResult;
         private int modalLineCount;
 
-        private void ShowModal(string title, string caption, ModalState state, int maxInputLength, bool allowCancel, int multiLine, Action<PromptResult, string> callback)
+        private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback)
         {
             if (modalState == ModalState.None)
             {
@@ -352,10 +353,13 @@ namespace Poltergeist
             modalInput = "";
             modalState = state;
             modalTitle = title;
-            modalInputLength = maxInputLength;
+
+            modalMinInputLength = minInputLength;
+            modalMaxInputLength = maxInputLength;
+
             modalCaption = caption;
             modalCallback = callback;
-            modalAllowCancel = allowCancel;
+            modalOptions = options;
             modalHints = null;
             modalMaxLines = multiLine;
             hintComboBox.SelectedItemIndex = -1;
@@ -364,22 +368,22 @@ namespace Poltergeist
 
         public void BeginWaitingModal(string caption)
         {
-            ShowModal("Please wait...", caption, ModalState.Wait, 0, false, 1, (result, input) =>
+            ShowModal("Please wait...", caption, ModalState.Message, 0, 0, ModalNone, 1, (result, input) =>
             {
             });
         }
 
         public void EndWaitingModal()
         {
-            if (modalState == ModalState.Wait)
+            if (modalOptions.Length == 0)
             {
                 modalState = ModalState.None;
             }
         }
 
-        public void ConfirmBox(string caption, Action<PromptResult> callback)
+        public void PromptBox(string caption, string[] options, Action<PromptResult> callback)
         {
-            ShowModal("Confirmation", caption, ModalState.Message, 0, true, 1, (result, input) =>
+            ShowModal("Confirmation", caption, ModalState.Message, 0, 0, options, 1, (result, input) =>
             {
                 callback(result);
             });
@@ -405,7 +409,7 @@ namespace Poltergeist
                     break;
             }
 
-            ShowModal(title, caption, ModalState.Message, 0, false, 1, (result, input) =>
+            ShowModal(title, caption, ModalState.Message, 0, 0, ModalOk, 1, (result, input) =>
             {
                 callback?.Invoke();
             });
@@ -428,7 +432,7 @@ namespace Poltergeist
             }
 
             AudioManager.Instance.PlaySFX("auth");
-            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, Account.MaxPasswordLength, true, 1, (result, input) =>
+            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
             {
                 var auth = result;
 
@@ -794,24 +798,24 @@ namespace Poltergeist
             {
                 if (modalMaxLines > 1)
                 {
-                    modalInput = GUI.TextArea(new Rect(rect.x, curY, fieldWidth, Units(2) * modalMaxLines), modalInput, modalInputLength);
+                    modalInput = GUI.TextArea(new Rect(rect.x, curY, fieldWidth, Units(2) * modalMaxLines), modalInput, modalMaxInputLength);
                 }
                 else
                 {
-                    modalInput = GUI.TextField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, modalInputLength);
+                    modalInput = GUI.TextField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, modalMaxInputLength);
                 }
             }
             else
             if (modalState == ModalState.Password)
             {
-                modalInput = GUI.PasswordField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, '*', modalInputLength);               
+                modalInput = GUI.PasswordField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, '*', modalMaxInputLength);               
             }
 
             int btnWidth = VerticalLayout ? Units(7) : Units(11);
 
             curY = (int)(rect.height - Units(2));
 
-            if (modalAllowCancel)
+            if (modalOptions.Length > 1)
             {
                 int halfWidth = (int)(rect.width / 2);
 
@@ -820,23 +824,23 @@ namespace Poltergeist
                     halfWidth += Units(1);
                 }
 
-                DoButton(true, new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Cancel", () =>
+                DoButton(true, new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
                 {
                     AudioManager.Instance.PlaySFX("cancel");
                     modalResult = PromptResult.Failure;
                 });
 
                 DoButton(modalState != ModalState.Input || modalInput.Length > 0,
-                    new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm", () =>
+                    new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("confirm");
                     modalResult = PromptResult.Success;
                 });
             }
             else
-            if (modalState != ModalState.Wait)
+            if (modalOptions.Length > 0)
             {
-                DoButton(true, new Rect((rect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Ok", () =>
+                DoButton(true, new Rect((rect.width - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("click");
                     modalResult = PromptResult.Success;
@@ -983,13 +987,13 @@ namespace Poltergeist
                 }
             }
 
-            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, 32, true, 1, (result, name) =>
+            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, 3, 32, ModalConfirmCancel, 1, (result, name) =>
             {
                 if (result == PromptResult.Success)
                 {
                     if (password == null)
                     {
-                        ConfirmBox("Do you want to add a password to this wallet?\nThe password will be required to open the wallet.\nIt will also be prompted every time you do a transaction", (wantsPass) =>
+                        PromptBox("Do you want to add a password to this wallet?\nThe password will be required to open the wallet.\nIt will also be prompted every time you do a transaction", ModalYesNo, (wantsPass) =>
                         {
                             if (wantsPass == PromptResult.Success)
                             {
@@ -1016,11 +1020,11 @@ namespace Poltergeist
             "fuckyou", "trustno1", "ranger","buster","thomas","robert","bitcoin","phantasma","wallet","crypto"
         };
 
-        private const int MinPasswordChars = 6;
+        private const int MinPasswordLength = 6;
 
         private bool IsGoodPassword(string name, string password)
         {
-            if (password == null || password.Length < MinPasswordChars)
+            if (password == null || password.Length < MinPasswordLength)
             {
                 return false;
             }
@@ -1043,7 +1047,7 @@ namespace Poltergeist
 
         private void TrySettingWalletPassword(string name, string wif)
         {
-            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, 32, true, 1, (passResult, password) =>
+            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, MinPasswordLength, 32, ModalConfirmCancel, 1, (passResult, password) =>
             {
                 if (passResult == PromptResult.Success)
                 {
@@ -1053,7 +1057,7 @@ namespace Poltergeist
                     }
                     else
                     {
-                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {MinPasswordChars} characters and can't be easy to guess.", () =>
+                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {MinPasswordLength} characters and can't be easy to guess.", () =>
                         {
                             TrySettingWalletPassword(name, wif);
                         });
@@ -1129,7 +1133,7 @@ namespace Poltergeist
 
                     case 1:
                         {
-                            ShowModal("Wallet Import", "Supported inputs:\n12 word seed phrase\nPrivate key (HEX format)\nPrivate key (WIF format)\nEncrypted private key (NEP2)", ModalState.Input, 1024, true, 4, (result, key) =>
+                            ShowModal("Wallet Import", "Supported inputs:\n12 word seed phrase\nPrivate key (HEX format)\nPrivate key (WIF format)\nEncrypted private key (NEP2)", ModalState.Input, 32, 1024, ModalConfirmCancel, 4, (result, key) =>
                             {
                                 if (result == PromptResult.Success)
                                 {
@@ -1147,7 +1151,7 @@ namespace Poltergeist
                                     else
                                     if (key.Length == 58 && key.StartsWith("6"))
                                     {
-                                        ShowModal("NEP2 Encrypted Key", "Insert your wallet passphrase", ModalState.Password, 64, true, 1, (auth, passphrase) =>
+                                        ShowModal("NEP2 Encrypted Key", "Insert your wallet passphrase", ModalState.Password, 1, 64, ModalConfirmCancel, 1, (auth, passphrase) =>
                                         {
                                             if (auth == PromptResult.Success)
                                             {
@@ -1166,17 +1170,15 @@ namespace Poltergeist
                                     else
                                     if (key.Count(x => x == ' ') == 11)
                                     {
-                                        try
+                                        ShowModal("Seed import", "Enter seed password.\nIf you put a wrong password, the wrong public address will be generated.\nFor wallets created with v1.3 or later, it is ok to leave this blank.", ModalState.Input, 0, 64, ModalConfirmCancel, 1, (seedResult, password) =>
                                         {
-                                            var bip = new Bitcoin.BIP39.BIP39(key, "", Bitcoin.BIP39.BIP39.Language.English);
-                                            var privKey = bip.SeedBytes.Take(32).ToArray();
-                                            var decryptedKeys = new PhantasmaKeys(privKey);
-                                            ImportWallet(decryptedKeys.ToWIF(), null);
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            MessageBox(MessageKind.Error, "Could not import wallet.\n" + e.Message);
-                                        }
+                                            if (seedResult != PromptResult.Success)
+                                            {
+                                                return; // user canceled
+                                            }
+
+                                            ImportSeedPhrase(key, password);
+                                        });
                                     }
                                     else
                                     {
@@ -1230,6 +1232,22 @@ namespace Poltergeist
                         LoginIntoAccount(index);
                     });
                 });
+        }
+
+
+        private void ImportSeedPhrase(string key, string password)
+        {
+            try
+            {
+                var bip = new Bitcoin.BIP39.BIP39(key, password, Bitcoin.BIP39.BIP39.Language.English);
+                var privKey = bip.SeedBytes.Take(32).ToArray();
+                var decryptedKeys = new PhantasmaKeys(privKey);
+                ImportWallet(decryptedKeys.ToWIF(), null);
+            }
+            catch (Exception e)
+            {
+                MessageBox(MessageKind.Error, "Could not import wallet.\n" + e.Message);
+            }
         }
 
         // returns total items
@@ -1524,7 +1542,7 @@ namespace Poltergeist
                 curY += Units(1);
                 DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Delete Everything", () =>
                 {
-                    ConfirmBox("All wallets and settings stored in this device will be lost.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", (result) =>
+                    PromptBox("All wallets and settings stored in this device will be lost.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", ModalConfirmCancel, (result) =>
                     {
                         AudioManager.Instance.PlaySFX("click");
                         accountManager.DeleteAll();
@@ -1552,7 +1570,7 @@ namespace Poltergeist
             });
         }
 
-        private int DrawPlatformTopMenu()
+        private int DrawPlatformTopMenu(Action refresh)
         {
             var accountManager = AccountManager.Instance;
 
@@ -1611,10 +1629,21 @@ namespace Poltergeist
             }
 
             var btnWidth = Units(8);
-            DoButton(true, new Rect(windowRect.width - (btnWidth+ Border*2), curY, btnWidth, Units(1)), "Refresh", () =>
+
+            int refreshOffset = 2;
+
+            if (VerticalLayout)
             {
-                SetState(this.guiState);
-            });
+                refreshOffset += 3;
+            }
+
+            if (refresh != null)
+            {
+                DoButton(true, new Rect(windowRect.width - (btnWidth + Border * refreshOffset), curY, btnWidth, Units(1)), "Refresh", () =>
+                {
+                    refresh();
+                });
+            }
 
             curY += Units(VerticalLayout ? 2 : 3);
             DrawHorizontalCenteredText(curY - 5, Units(VerticalLayout ? 3: 2), state.address);
@@ -1749,7 +1778,7 @@ namespace Poltergeist
             DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Continue", () =>
             {
                 AudioManager.Instance.PlaySFX("confirm");
-                ConfirmBox("You confirm that you have backup your private key?\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.", (result) =>
+                PromptBox("You confirm that you have backup your private key?\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.", ModalConfirmCancel, (result) =>
                 {
                     if (result == PromptResult.Success)
                     {
@@ -1798,7 +1827,10 @@ namespace Poltergeist
                 return;
             }
 
-            var startY = DrawPlatformTopMenu();
+            var startY = DrawPlatformTopMenu(() =>
+            {
+                accountManager.RefreshBalances(true);
+            });
             var endY = DoBottomMenu();
 
             var state = accountManager.CurrentState;
@@ -1886,25 +1918,28 @@ namespace Poltergeist
                 secondaryEnabled = true;
                 secondaryCallback = () =>
                 {
-                    ConfirmBox($"You have {balance.Pending} {balance.Symbol} pending in your account.\nDo you want to claim it?", (result) =>
+                    PromptBox($"You have {balance.Pending} {balance.Symbol} pending in your account.\nDo you want to claim it?", ModalYesNo, (result) =>
                     {
-                        accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash) =>
+                        if (result == PromptResult.Success)
                         {
-                            if (settleHash != Hash.Null)
+                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash) =>
                             {
-                                ShowConfirmationScreen(settleHash, (hash) =>
+                                if (settleHash != Hash.Null)
                                 {
-                                    if (hash != Hash.Null)
+                                    ShowConfirmationScreen(settleHash, (hash) =>
                                     {
-                                        MessageBox(MessageKind.Success, $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
-                                    }
-                                });
-                            }
-                            else
-                            {
-                                MessageBox(MessageKind.Error, $"There was some error claiming your {balance.Symbol}...");
-                            }
-                        });
+                                        if (hash != Hash.Null)
+                                        {
+                                            MessageBox(MessageKind.Success, $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, $"There was some error claiming your {balance.Symbol}...");
+                                }
+                            });
+                        }
                     });
                 };
             }
@@ -1922,7 +1957,7 @@ namespace Poltergeist
                                 {
                                     var expectedDailyKCAL = (selectedAmount + balance.Staked) * 0.002m;
 
-                                    ConfirmBox($"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.", (result) =>
+                                    PromptBox($"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.", ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
                                         {
@@ -1958,7 +1993,7 @@ namespace Poltergeist
                             if (balance.Staked > 0)
                             {
                                 tertiaryAction = "Unstake";
-                                tertiaryEnabled = true;
+                                tertiaryEnabled = (Timestamp.Now - state.stakeTime) >= 86400;
                                 tertiaryCallback = () =>
                                 {
                                     RequireAmount("Unstake SOUL", null, "SOUL", 0.1m, balance.Staked,
@@ -1971,7 +2006,7 @@ namespace Poltergeist
                                                 line += "\nYour account will also lose the current registed name.";
                                             }
 
-                                            ConfirmBox($"Do you want to unstake {amount} SOUL?\n{line}", (result) =>
+                                            PromptBox($"Do you want to unstake {amount} SOUL?\n{line}", ModalYesNo, (result) =>
                                             {
                                                 RequestKCAL("SOUL", (kcal) =>
                                                 {
@@ -1983,7 +2018,7 @@ namespace Poltergeist
                                                         var gasPrice = accountManager.Settings.feePrice;
 
                                                         sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                                        sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(balance.Staked, balance.Decimals));
+                                                        sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(amount, balance.Decimals));
                                                         sb.SpendGas(address);
                                                         var script = sb.EndScript();
 
@@ -2011,7 +2046,7 @@ namespace Poltergeist
                             secondaryEnabled = true;
                             secondaryCallback = () =>
                             {
-                                ConfirmBox($"Do you want to claim KCAL?\nThere is {balance.Claimable} KCAL available.", (result) =>
+                                PromptBox($"Do you want to claim KCAL?\nThere is {balance.Claimable} KCAL available.", ModalYesNo, (result) =>
                                 {
                                     if (result == PromptResult.Success)
                                     {
@@ -2019,8 +2054,18 @@ namespace Poltergeist
                                         var gasPrice = accountManager.Settings.feePrice;
 
                                         var sb = new ScriptBuilder();
-                                        sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                        sb.CallContract("stake", "Claim", address, address);
+
+                                        if (balance.Available > 0)
+                                        {
+                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                            sb.CallContract("stake", "Claim", address, address);
+                                        }
+                                        else
+                                        {
+                                            sb.CallContract("stake", "Claim", address, address);
+                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                        }
+
                                         sb.SpendGas(address);
                                         var script = sb.EndScript();
 
@@ -2045,7 +2090,7 @@ namespace Poltergeist
                                 RequireAmount("Burning KCAL", null, "KCAL", 0.1m, balance.Available, (amount) =>
                                 {
                                     var amountText = amount.ToString(MoneyFormat);
-                                    ConfirmBox($"Do you want to burn {amountText} KCAL?\nIt will be sent to the SES energy bomb!", (result) =>
+                                    PromptBox($"Do you want to burn {amountText} KCAL?\nIt will be sent to the SES energy bomb!", ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
                                         {
@@ -2127,7 +2172,7 @@ namespace Poltergeist
 
                  accountManager.GetTokenBySymbol(transferSymbol, out transferToken);
                  
-                 ShowModal(transferName, "Enter destination address", ModalState.Input, 64, true, 1, (result, destAddress) =>
+                 ShowModal(transferName, "Enter destination address", ModalState.Input, 3, 64, ModalConfirmCancel, 1, (result, destAddress) =>
                  {
                      if (result == PromptResult.Failure)
                      {
@@ -2200,7 +2245,10 @@ namespace Poltergeist
                 return;
             }
 
-            var startY = DrawPlatformTopMenu();
+            var startY = DrawPlatformTopMenu(() =>
+            {
+                accountManager.RefreshHistory(true);
+            });
             var endY = DoBottomMenu();
 
             var history = accountManager.CurrentHistory;
@@ -2270,7 +2318,7 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
-            var startY = DrawPlatformTopMenu();
+            var startY = DrawPlatformTopMenu(null);
             var endY = DoBottomMenu();
 
             int curY = startY;
@@ -2314,10 +2362,26 @@ namespace Poltergeist
 
                 if (accountManager.CurrentState != null)
                 {
-                    if (index == 1 && (accountManager.CurrentPlatform != PlatformKind.Phantasma || accountManager.CurrentState.name != "anonymous"))
+                    switch (index)
                     {
-                        enabled = false;
+                        case 1:
+                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma || accountManager.CurrentState.name != "anonymous")
+                            {
+                                enabled = false;
+                            }
+                            break;
+
+                        case 2:
+                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma || !accountManager.CurrentState.flags.HasFlag(AccountFlags.Validator))
+                            {
+                                enabled = false;
+                            }
+                            break;
                     }
+                }
+                else
+                {
+                    enabled = false;
                 }
 
                 return new MenuEntry(index, accountMenu[index], enabled);
@@ -2341,7 +2405,7 @@ namespace Poltergeist
 
                             if (stake >= 1)
                             {
-                                ShowModal("Setup Name", $"Enter a name for the chain adddress.\nOther users will be able to transfer assets directly to this name.", ModalState.Input, 16, true, 1, (result, name) =>
+                                ShowModal("Setup Name", $"Enter a name for the chain address.\nOther users will be able to transfer assets directly to this name.", ModalState.Input, 3, 16, ModalConfirmCancel, 1, (result, name) =>
                                 {
                                     if (result == PromptResult.Success)
                                     {
@@ -2379,7 +2443,7 @@ namespace Poltergeist
 
                                                             if (AccountManager.Instance.CurrentAccount.name != name)
                                                             {
-                                                                ConfirmBox("The address name was set successfully.\nDo you also want to change the local name for the account?\nThe local name is only visible in this device.", (localChange) =>
+                                                                PromptBox("The address name was set successfully.\nDo you also want to change the local name for the account?\nThe local name is only visible in this device.", ModalYesNo, (localChange) =>
                                                                 {
                                                                     if (localChange == PromptResult.Success)
                                                                     {
@@ -2420,7 +2484,59 @@ namespace Poltergeist
 
                     case 2:
                         {
-                            ConfirmBox("Are you sure you want to delete this account?\nYou can only restore it if you made a backup of the private keys.", (result) =>
+                            ShowModal("Account migration", "Insert WIF of the target account", ModalState.Input, 32, 64, ModalConfirmCancel, 1, (wifResult, wif) =>
+                            {
+                                if (wifResult != PromptResult.Success)
+                                {
+                                    return; // user cancelled
+                                }
+
+                                var newKeys = PhantasmaKeys.FromWIF(wif);
+                                if (newKeys.Address.Text != accountManager.CurrentState.address)
+                                {
+                                    PromptBox("Are you sure you want to migrate this account?\nTarget address: "+newKeys.Address.Text, ModalYesNo, (result) =>
+                                    {
+                                        if (result == PromptResult.Success)
+                                        {
+                                            var address = Address.FromText(accountManager.CurrentState.address);
+
+                                            var sb = new ScriptBuilder();
+                                            var gasPrice = accountManager.Settings.feePrice;
+
+                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                            sb.CallContract("validator", "Migrate", address, newKeys.Address);
+                                            sb.SpendGas(address);
+                                            var script = sb.EndScript();
+
+                                            SendTransaction("Migrate account", script, DomainSettings.RootChainName, (hash) =>
+                                            {
+                                                if (hash != Hash.Null)
+                                                {
+                                                    accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif);
+                                                    AudioManager.Instance.PlaySFX("click");
+                                                    CloseCurrentStack();
+                                                    MessageBox(MessageKind.Default, "The account was migrated.");
+                                                }
+                                                else
+                                                {
+                                                    MessageBox(MessageKind.Error, "It was not possible to migrate the account.");
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, "You need to provide a different WIF.");
+                                }
+
+                            });
+                            break;
+                        }
+
+                    case 3:
+                        {
+                            PromptBox("Are you sure you want to delete this account?\nYou can only restore it if you made a backup of the private keys.", ModalConfirmCancel, (result) =>
                             {
                                 if (result == PromptResult.Success)
                                 {
@@ -2458,7 +2574,7 @@ namespace Poltergeist
             GUI.DrawTexture(dropRect, ResourceManager.Instance.Dropshadow);
         }
 
-        private string[] accountMenu = new string[] { "Export WIF", "Setup Name", "Delete Account" };
+        private string[] accountMenu = new string[] { "Export WIF", "Setup Name", "Migrate", "Delete Account" };
         private GUIState[] bottomMenu = new GUIState[] { GUIState.Balances, GUIState.History, GUIState.Account, GUIState.Exit };
 
         private int DoBottomMenu()
@@ -2674,7 +2790,7 @@ namespace Poltergeist
                 caption += $"\nDestination: {destination}";
             }
 
-            ShowModal(description, caption, ModalState.Input, 64, true, 1, (result, temp) =>
+            ShowModal(description, caption, ModalState.Input, 1, 64, ModalConfirmCancel, 1, (result, temp) =>
             {
                 if (result == PromptResult.Failure)
                 {
@@ -2929,7 +3045,7 @@ namespace Poltergeist
 
             if (swapDecimals> 0 || swapBalance > 1)
             {
-                ConfirmBox($"Not enough {feeSymbol} for transaction fees.\nUse some {swapSymbol} to perform a cosmic swap?",
+                PromptBox($"Not enough {feeSymbol} for transaction fees.\nUse some {swapSymbol} to perform a cosmic swap?", ModalYesNo,
                      (result) =>
                      {
                          if (result == PromptResult.Success)
@@ -2940,12 +3056,19 @@ namespace Poltergeist
                              {
                                  var source = Address.FromText(state.address);
 
-                                 var decimals = accountManager.GetTokenDecimals("KCAL");
-
                                  var gasPrice = accountManager.Settings.feePrice;
 
+                                 var decimals = accountManager.GetTokenDecimals(feeSymbol);
+
                                  var sb = new ScriptBuilder();
-                                 sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(0.5m, decimals));
+                                 if (feeSymbol == "KCAL")
+                                 {
+                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(0.5m, decimals));
+                                 }
+                                 else
+                                 {
+                                     sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.5m, decimals));
+                                 }
                                  sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                  sb.SpendGas(source);
                                  script = sb.EndScript();
@@ -2956,7 +3079,7 @@ namespace Poltergeist
                                  return;
                              }
 
-                             SendTransaction($"Swap {swapSymbol} for KCAL", script, "main", (hash) =>
+                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, "main", (hash) =>
                              {
                                  callback(hash != Hash.Null ? PromptResult.Success : PromptResult.Failure);
                              });
