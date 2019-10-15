@@ -12,6 +12,7 @@ using Phantasma.Neo.Core;
 using Phantasma.Domain;
 using Phantasma.Core;
 using Phantasma.Core.Utils;
+using Phantasma.Core.Types;
 
 namespace Poltergeist
 {
@@ -112,6 +113,7 @@ namespace Poltergeist
         public string address;
         public Balance[] balances;
         public AccountFlags flags;
+        public Timestamp stakeTime;
 
         public decimal GetAvailableAmount(string symbol)
         {
@@ -760,9 +762,11 @@ namespace Poltergeist
                                     };
                                 }
 
-                                var stakedAmount = AmountFromString(acc.stake, GetTokenDecimals("SOUL"));
-                                var claimableAmount = AmountFromString(acc.unclaimed, GetTokenDecimals("KCAL"));
+                                var stakedAmount = AmountFromString(acc.stake.amount, GetTokenDecimals("SOUL"));
+                                var claimableAmount = AmountFromString(acc.stake.unclaimed, GetTokenDecimals("KCAL"));
 
+                                var stakeTimestamp = new Timestamp(acc.stake.time);
+                                
                                 if (stakedAmount > 0)
                                 {
                                     var symbol = "SOUL";
@@ -835,6 +839,14 @@ namespace Poltergeist
                                     {
                                         state.flags |= AccountFlags.Master;
                                     }
+
+                                    if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
+                                    {
+                                        state.flags |= AccountFlags.Validator;
+                                    }
+
+                                    state.stakeTime = stakeTimestamp;
+
                                     ReportWalletBalance(platform, state);
                                 });
                             },
@@ -1260,6 +1272,17 @@ namespace Poltergeist
             var temp = Accounts.ToList();
             temp.RemoveAt(currentIndex);
             this.Accounts = temp.ToArray();
+            SaveAccounts();
+        }
+
+        internal void ReplaceAccountWIF(int currentIndex, string wif)
+        {
+            if (currentIndex < 0 || currentIndex >= Accounts.Length)
+            {
+                return;
+            }
+
+            Accounts[currentIndex].WIF = wif;
             SaveAccounts();
         }
 
