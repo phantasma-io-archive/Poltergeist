@@ -1250,15 +1250,15 @@ namespace Poltergeist
             }));
         }
 
-        internal void SettleSwap(string sourcePlatform, string destPlatform, string pendingHash, Action<Hash> callback)
+        internal void SettleSwap(string sourcePlatform, string destPlatform, string pendingHash, Action<Hash, string> callback)
         {
             StartCoroutine(phantasmaApi.SettleSwap(sourcePlatform, destPlatform, pendingHash, (hash) =>
             {
-                callback(Hash.Parse(hash));
-            }, (msg, error) =>
+                callback(Hash.Parse(hash), null);
+            }, (error, msg) =>
             {
                 Debug.LogWarning(msg);
-                callback(Hash.Null);
+                callback(Hash.Null, msg);
             }));
         }
 

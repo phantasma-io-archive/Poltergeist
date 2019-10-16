@@ -1922,7 +1922,7 @@ namespace Poltergeist
                     {
                         if (result == PromptResult.Success)
                         {
-                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash) =>
+                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash, error) =>
                             {
                                 if (settleHash != Hash.Null)
                                 {
@@ -1936,7 +1936,7 @@ namespace Poltergeist
                                 }
                                 else
                                 {
-                                    MessageBox(MessageKind.Error, $"There was some error claiming your {balance.Symbol}...");
+                                    MessageBox(MessageKind.Error, $"There was some error claiming your {balance.Symbol}...\n{error}");
                                 }
                             });
                         }
@@ -2947,7 +2947,10 @@ namespace Poltergeist
                                 {
                                     if (hash != Hash.Null)
                                     {
-                                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
+                                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash, () =>
+                                        {
+                                            accountManager.RefreshBalances(false);
+                                        });
                                     }
                                 });
                             }
