@@ -830,7 +830,7 @@ namespace Poltergeist
                     modalResult = PromptResult.Failure;
                 });
 
-                DoButton(modalState != ModalState.Input || modalInput.Length > 0,
+                DoButton(modalState != ModalState.Input || modalInput.Length >= modalMinInputLength,
                     new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("confirm");
@@ -1170,7 +1170,7 @@ namespace Poltergeist
                                     else
                                     if (key.Count(x => x == ' ') == 11)
                                     {
-                                        ShowModal("Seed import", "Enter seed password.\nIf you put a wrong password, the wrong public address will be generated.\nFor wallets created with v1.3 or later, it is ok to leave this blank.", ModalState.Input, 0, 64, ModalConfirmCancel, 1, (seedResult, password) =>
+                                        ShowModal("Seed import", "Enter seed password.\nIf you put a wrong password, the wrong public address will be generated.\n\nFor wallets created with v1.3 or later, it is ok to leave this blank.\n", ModalState.Input, 0, 64, ModalConfirmCancel, 1, (seedResult, password) =>
                                         {
                                             if (seedResult != PromptResult.Success)
                                             {
@@ -2352,7 +2352,7 @@ namespace Poltergeist
 
             if (VerticalLayout)
             {
-                btnOffset += Units(5)+8;
+                btnOffset += Units(6);
             }
 
             int posY;
