@@ -71,6 +71,11 @@ namespace Phantasma.Neo.Utils
                 return false;
             }
 
+            if (!address.StartsWith("A"))
+            {
+                return false;
+            }
+
             if (address.Length != 34)
             {
                 return false;
