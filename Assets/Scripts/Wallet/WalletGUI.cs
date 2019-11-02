@@ -2022,7 +2022,7 @@ namespace Poltergeist
                                                         sb.SpendGas(address);
                                                         var script = sb.EndScript();
 
-                                                        SendTransaction($"Unstake {balance.Staked} SOUL", script, "main", (hash) =>
+                                                        SendTransaction($"Unstake {amount} SOUL", script, "main", (hash) =>
                                                         {
                                                             if (hash != Hash.Null)
                                                             {
@@ -2823,6 +2823,8 @@ namespace Poltergeist
                     return;
                 }
             });
+
+            modalHints = new Dictionary<string, string>() { { $"Max ({max} {symbol})", max.ToString() } };
         }
 
         private void ContinueNeoTransfer(string transferName, string symbol, string destAddress)
