@@ -2231,7 +2231,7 @@ namespace Poltergeist
                      }
                  });
 
-                 GetAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
+                 modalHints = GenerateAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
              });
         }
 
@@ -3102,8 +3102,7 @@ namespace Poltergeist
         }
         #endregion
 
-
-        private void GetAccountHints(PlatformKind targets)
+        private Dictionary<string, string> GenerateAccountHints(PlatformKind targets)
         {
             var accountManager = AccountManager.Instance;
             var hints = new Dictionary<string, string>();
@@ -3134,7 +3133,7 @@ namespace Poltergeist
                 }
             }
 
-            modalHints = hints;
+            return hints;
         }
 
         #region QR CODES
