@@ -16,6 +16,7 @@ using ZXing;
 using ZXing.QrCode;
 using System.Globalization;
 using Phantasma.Core.Types;
+using Tetrochain;
 
 namespace Poltergeist
 {
@@ -52,6 +53,7 @@ namespace Poltergeist
         Settings,
         ScanQR,
         Backup,
+        Dapps,
         Exit,
         Fatal
     }
@@ -81,7 +83,7 @@ namespace Poltergeist
         Password,
     }
 
-    public class WalletGUI : MonoBehaviour
+    public class WalletGUI : MonoBehaviour, IWalletConnector
     {
         public RawImage background;
 
@@ -142,9 +144,16 @@ namespace Poltergeist
 
         private string fatalError;
 
+        public static WalletGUI Instance { get; private set; }
+
         public static int Units(int n)
         {
             return 16 * n;
+        }
+
+        private void Awake()
+        {
+            Instance = this;
         }
 
         void Start()
@@ -202,6 +211,10 @@ namespace Poltergeist
                         camTexture = null;
                     }
                     break;
+
+                case GUIState.Dapps:
+                    EmulatorManager.Instance.UnloadROM();
+                    break;
             }
 
             if (state == GUIState.Exit)
@@ -220,6 +233,11 @@ namespace Poltergeist
             {
                 case GUIState.Fatal:
                     currentTitle = "Fatal Error";
+                    break;
+
+                case GUIState.Dapps:
+                    currentTitle = "Dapps";
+                    EmulatorManager.Instance.LoadROM();
                     break;
 
                 case GUIState.Wallets:
@@ -749,6 +767,10 @@ namespace Poltergeist
 
                 case GUIState.Backup:
                     DoBackupScreen();
+                    break;
+
+                case GUIState.Dapps:
+                    DoDappScreen();
                     break;
 
                 case GUIState.Fatal:
@@ -1751,6 +1773,27 @@ namespace Poltergeist
             DoBackButton();
         }
 
+        private void DoDappScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            var dappTexture = EmulatorManager.Instance.screenTexture;
+
+            /*            var dappHeight = windowRect.height - Units(12);
+                        var dappWidth = (int)((dappTexture.width * dappHeight) / (float)dappTexture.height);
+                        */
+
+            var scale = 2;
+            var dappWidth = dappTexture.width * scale;
+            var dappHeight = dappTexture.height * scale;
+
+            var camRect = new Rect((windowRect.width - dappWidth) / 2, (windowRect.height - dappHeight) / 2, dappWidth, dappHeight);
+            DrawDropshadow(camRect);
+            GUI.DrawTexture(camRect, dappTexture, ScaleMode.ScaleToFit);
+
+            DoBackButton();
+        }
+
         private void DoBackupScreen()
         {
             int curY;
@@ -1946,6 +1989,18 @@ namespace Poltergeist
             else
                 switch (balance.Symbol)
                 {
+                    case "MKNI":
+                        if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                        {
+                            secondaryAction = "Dapps";
+                            secondaryEnabled = true;
+                            secondaryCallback = () =>
+                            {
+                                PushState(GUIState.Dapps);
+                            };
+                        }
+                        break;
+
                     case "SOUL":
                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                         {
@@ -2102,7 +2157,7 @@ namespace Poltergeist
                                             var gasPrice = accountManager.Settings.feePrice;
 
                                             sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                            if (amount <= 0.1m)
+                                            if (amount <= 0.1m && balance.Available <= 0.1m)
                                             {
                                                 sb.TransferBalance(balance.Symbol, address, burnAddress);                                                
                                             }
@@ -3173,6 +3228,28 @@ namespace Poltergeist
 
             return -1;
         }
+
+        #region DAPP Interface
+        public Address GetAddress()
+        {
+            return Address.FromText(AccountManager.Instance.CurrentState.address);
+        }
+
+        public Dictionary<string, decimal>  GetBalances(string chain)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ExecuteTransaction(string description, byte[] script, string chain, Action<Hash> callback)
+        {
+            this.SendTransaction(description, script, chain, callback);
+        }
+
+        public void InvokeScript(string chain, byte[] script, Action<byte[]> callback)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
     }
 
 }

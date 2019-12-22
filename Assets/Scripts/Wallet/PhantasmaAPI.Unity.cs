@@ -20,7 +20,7 @@ namespace Phantasma.SDK
         MALFORMED_RESPONSE
     }
 
-	internal static class APIUtils
+	internal static class PhantasmaAPIUtils
     {
         internal static long GetInt64(this DataNode node, string name)
         {

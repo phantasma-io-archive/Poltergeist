@@ -179,7 +179,7 @@ namespace Poltergeist
         public bool Ready => Status == "ok";
         public bool Refreshing => _pendingRequestCount > 0;
 
-        private Phantasma.SDK.PhantasmaAPI phantasmaApi;
+        public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
         private Phantasma.Neo.Core.NeoAPI neoApi;
 
         private const string cryptoCompareAPIKey = "50f6f9f5adbb0a2f0d60145e43fe873c5a7ea1d8221b210ba14ef725f4012ee9";
