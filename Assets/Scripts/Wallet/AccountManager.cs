@@ -297,7 +297,7 @@ namespace Poltergeist
         {
             var tokens = tokenArray.ToList();
 
-            var nep5Flags = TokenFlags.Fungible.ToString() + "," + TokenFlags.External.ToString();
+            var nep5Flags = TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString();
             tokens.Add(new Token() { symbol = "SOUL", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Fungible.ToString() });
             tokens.Add(new Token() { symbol = "NEO", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = nep5Flags });
@@ -370,7 +370,7 @@ namespace Poltergeist
                 CurrentTokenCurrency = Settings.currency;
                 _lastPriceUpdate = DateTime.UtcNow;
 
-                var expectedFlag = TokenFlags.External.ToString();
+                var expectedFlag = TokenFlags.Foreign.ToString();
                 var symbolList = _tokenSymbolMap.Values.Where(x => x.flags.Contains(expectedFlag)).Select(x => x.symbol);
                 StartCoroutine(FetchTokenPrices(symbolList, CurrentTokenCurrency));
             }
