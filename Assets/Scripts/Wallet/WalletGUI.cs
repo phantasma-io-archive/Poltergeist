@@ -2135,7 +2135,7 @@ namespace Poltergeist
                                 });
                             };
                         }
-                        else
+                        /*else
                         if (balance.Available > 0)
                         {
                             secondaryAction = "Burn";
@@ -2179,7 +2179,7 @@ namespace Poltergeist
                                     });
                                 });
                             };
-                        }
+                        }*/
                         break;
 
                     case "GAS":
