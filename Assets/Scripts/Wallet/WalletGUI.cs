@@ -1419,21 +1419,21 @@ namespace Poltergeist
                 return false;
             }
 
-            if (!settings.phantasmaRPCURL.IsValidURL())
+            if (!settings.phantasmaBPURL.IsValidURL())
             {
-                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL.\n" + settings.phantasmaRPCURL);
+                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL.\n" + settings.phantasmaBPURL);
                 return false;
             }
 
             if (!settings.neoRPCURL.IsValidURL())
             {
-                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL.\n" + settings.neoRPCURL);
+                MessageBox(MessageKind.Error, "Invalid URL for NEO RPC URL.\n" + settings.neoRPCURL);
                 return false;
             }
 
             if (!settings.neoscanURL.IsValidURL())
             {
-                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL.\n" + settings.neoscanURL);
+                MessageBox(MessageKind.Error, "Invalid URL for Neoscan API URL.\n" + settings.neoscanURL);
                 return false;
             }
 
@@ -1447,6 +1447,8 @@ namespace Poltergeist
             {
                 accountManager.InitDemoAccounts(settings.nexusKind);
             }
+
+            accountManager.UpdateRPCURL();
 
             accountManager.RefreshTokenPrices();
             accountManager.UpdateAPIs();
@@ -1528,7 +1530,7 @@ namespace Poltergeist
             if (hasCustomEndPoints)
             {
                 GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Phantasma RPC URL");
-                settings.phantasmaRPCURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.phantasmaRPCURL);
+                settings.phantasmaBPURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
                 curY += Units(3);
 
                 GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Neo RPC URL");

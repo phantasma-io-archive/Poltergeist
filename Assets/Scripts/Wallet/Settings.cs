@@ -1,4 +1,5 @@
 ﻿using Phantasma.Numerics;
+using Phantasma.SDK;
 using System;
 using UnityEngine;
 
@@ -33,7 +34,8 @@ namespace Poltergeist
 
     public class Settings
     {
-        public const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
+        //public const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
+        public const string PhantasmaBPTag = "settings.phantasma.bp.url";
         public const string NeoRPCTag = "settings.neo.rpc.url";
         public const string NeoscanAPITag = "settings.neoscan.url";
         public const string NexusNameTag = "settings.nexus.name";
@@ -44,6 +46,7 @@ namespace Poltergeist
         public const string SFXTag = "settings.sfx";
 
         public string phantasmaRPCURL;
+        public string phantasmaBPURL;
         public string neoRPCURL;
         public string neoscanURL;
         public string nexusName;
@@ -60,13 +63,16 @@ namespace Poltergeist
                 this.nexusKind = NexusKind.Unknown;
             }
 
-            this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
+            //this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
+            this.phantasmaBPURL = PlayerPrefs.GetString(PhantasmaBPTag, GetDefaultValue(PhantasmaBPTag));
             this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));
             this.neoscanURL = PlayerPrefs.GetString(NeoscanAPITag, GetDefaultValue(NeoscanAPITag));
             this.nexusName = PlayerPrefs.GetString(NexusNameTag, GetDefaultValue(NexusNameTag));
 
             this.currency = PlayerPrefs.GetString(CurrencyTag, "USD");
             this.sfx = PlayerPrefs.GetInt(SFXTag, 1)!=0;
+
+            this.phantasmaRPCURL = this.phantasmaBPURL;
 
             var defaultGasPrice = 100000;
             if (!BigInteger.TryParse(PlayerPrefs.GetString(GasPriceTag, defaultGasPrice.ToString()), out feePrice))
@@ -79,16 +85,31 @@ namespace Poltergeist
         {
             switch (tag)
             {
-                case PhantasmaRPCTag:
+                /*case PhantasmaRPCTag:
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            return "http://207.148.17.86:7071/rpc";
+                            return "auto";
 
                         case NexusKind.Local_Net:
                             return "http://localhost:7077/rpc";
 
-                        default: 
+                        default:
+                            return "http://45.76.88.140:7076/rpc";
+                    }
+                    break;
+                    */
+
+                case PhantasmaBPTag:
+                    switch (nexusKind)
+                    {
+                        case NexusKind.Main_Net:
+                            return "http://207.148.17.86:7077/rpc";
+
+                        case NexusKind.Local_Net:
+                            return "http://localhost:7077/rpc";
+
+                        default:
                             return "http://45.76.88.140:7076/rpc";
                     }
                     break;
@@ -135,7 +156,8 @@ namespace Poltergeist
         public void Save()
         {
             PlayerPrefs.SetString(NexusKindTag, nexusKind.ToString());
-            PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
+            //PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
+            PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
             PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
             PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
@@ -147,7 +169,8 @@ namespace Poltergeist
 
         public void RestoreEndpoints(bool restoreName)
         {
-            this.phantasmaRPCURL = this.GetDefaultValue(PhantasmaRPCTag);
+            //this.phantasmaRPCURL = this.GetDefaultValue(PhantasmaRPCTag);
+            this.phantasmaBPURL = this.GetDefaultValue(PhantasmaBPTag);
             this.neoRPCURL = this.GetDefaultValue(NeoRPCTag);
             this.neoscanURL = this.GetDefaultValue(NeoscanAPITag);
 

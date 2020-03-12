@@ -264,10 +264,35 @@ namespace Poltergeist
 
         private const string WalletTag = "wallet.list";
 
+        public void UpdateRPCURL()
+        {
+            var url = $"http://soul.neoeconomy.io/getpeers.json";
+            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+
+            StartCoroutine(
+                WebClient.RESTRequest(url, (error, msg) =>
+                {
+                    Debug.Log("auto error => " + error);
+                },
+                (response) =>
+                {
+                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % response.ChildCount;
+                    var node = response.GetNodeByIndex(index);
+                    var result = node.GetString("url") + "/rpc";
+                   
+                    Settings.phantasmaRPCURL = result;
+                    Debug.Log($"changed RPC url {index} => {result}");
+                    UpdateAPIs();
+                })
+            );
+        }
+
         // Start is called before the first frame update
         void Start()
         {
             Settings.Load();
+
+            UpdateRPCURL();
 
             LoadNexus();
 
@@ -378,6 +403,7 @@ namespace Poltergeist
 
         public void UpdateAPIs()
         {
+            Debug.Log("reinit APIs => " + Settings.phantasmaRPCURL);
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
         }
