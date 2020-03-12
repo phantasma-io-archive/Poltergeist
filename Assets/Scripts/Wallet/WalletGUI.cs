@@ -2228,7 +2228,19 @@ namespace Poltergeist
                  Phantasma.SDK.Token transferToken;
 
                  accountManager.GetTokenBySymbol(transferSymbol, out transferToken);
-                 
+
+                 if (string.IsNullOrEmpty(transferToken.flags))
+                 {
+                     MessageBox(MessageKind.Error, $"Operations with token {transferSymbol} are not supported yet in this version.");
+                     return;
+                 }
+
+                 if (!transferToken.flags.Contains(TokenFlags.Transferable.ToString()))
+                 {
+                     MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
+                     return;
+                 }
+
                  ShowModal(transferName, "Enter destination address", ModalState.Input, 3, 64, ModalConfirmCancel, 1, (result, destAddress) =>
                  {
                      if (result == PromptResult.Failure)
