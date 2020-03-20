@@ -323,6 +323,7 @@ namespace Poltergeist
             var tokens = tokenArray.ToList();
 
             var nep5Flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString()+ ","+TokenFlags.Divisible.ToString();
+            var pepFlags = TokenFlags.Fungible.ToString();
             var nftFlags = TokenFlags.None.ToString();
             tokens.Add(new Token() { symbol = "SOUL", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + ","+ TokenFlags.Divisible.ToString() });
@@ -332,9 +333,10 @@ namespace Poltergeist
             tokens.Add(new Token() { symbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "PKC", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "710405560", name = "nOS", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "MKNI", hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = TokenFlags.Fungible.ToString() });
-            tokens.Add(new Token() { symbol = "NACHO", hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = TokenFlags.Fungible.ToString() });
+            tokens.Add(new Token() { symbol = "MKNI", hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags });
+            tokens.Add(new Token() { symbol = "NACHO", hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags });
             tokens.Add(new Token() { symbol = "TTRS", hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "1000000", name = "22series", flags = nftFlags });
+            tokens.Add(new Token() { symbol = "GOATI", hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "1000000", name = "GOATi", flags = pepFlags });
             tokens.Add(new Token() { symbol = "TKY", hash = "132947096727c84c7f9e076c90f08fec3bc17f18", decimals = 8, maxSupply = "1000000000", name = "The Key", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "CGAS", hash = "74f2dc36a68fdc4682034178eb2220729231db76", decimals = 8, maxSupply = "1000000000", name = "NEP5 GAS", flags = nep5Flags });
             tokens.Add(new Token() { symbol = "MCT", hash = "a87cc2a513f5d8b4a42432343687c2127c60bc3f", decimals = 8, maxSupply = "1000000000", name = "Master Contract", flags = nep5Flags });
