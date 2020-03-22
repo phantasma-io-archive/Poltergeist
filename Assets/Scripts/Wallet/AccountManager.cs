@@ -269,6 +269,9 @@ namespace Poltergeist
             var url = $"http://soul.neoeconomy.io/getpeers.json";
             Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
 
+            if (Settings.nexusKind == NexusKind.Custom)
+                return; // No need to change RPC, it is set by custom settings.
+
             StartCoroutine(
                 WebClient.RESTRequest(url, (error, msg) =>
                 {
