@@ -266,11 +266,17 @@ namespace Poltergeist
 
         public void UpdateRPCURL()
         {
-            var url = $"http://soul.neoeconomy.io/getpeers.json";
             Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
 
             if (Settings.nexusKind == NexusKind.Custom)
                 return; // No need to change RPC, it is set by custom settings.
+
+            if (Settings.nexusName != "mainnet")
+            {
+                return; // HACK getpeers only for mainnet
+            }
+
+            var url = $"http://soul.neoeconomy.io/getpeers.json";
 
             StartCoroutine(
                 WebClient.RESTRequest(url, (error, msg) =>
