@@ -1097,11 +1097,10 @@ namespace Poltergeist
 
                                 foreach (var tx in x.txs)
                                 {
-                                    var timeSpan = TimeSpan.FromSeconds(tx.timestamp);
                                     history.Add(new HistoryEntry()
                                     {
                                         hash = tx.hash,
-                                        date = new DateTime(timeSpan.Ticks).ToLocalTime(),
+                                        date = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(tx.timestamp).ToLocalTime(),
                                         url = GetPhantasmaTransactionURL(tx.hash)
                                     });
                                 }
@@ -1133,12 +1132,11 @@ namespace Poltergeist
                                 {
                                     var hash = entry.GetString("txid");
                                     var time = entry.GetUInt32("time");
-                                    var timeSpan = TimeSpan.FromSeconds(time);
 
                                     history.Add(new HistoryEntry()
                                     {
                                         hash = hash,
-                                        date = new DateTime(timeSpan.Ticks).ToLocalTime(),
+                                        date = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(time).ToLocalTime(),
                                         url = GetNeoscanTransactionURL(hash),
                                     });
                                 }
