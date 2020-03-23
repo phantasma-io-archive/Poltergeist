@@ -57,7 +57,7 @@ namespace Poltergeist
 
         public void Load()
         {
-            var nexusKind = PlayerPrefs.GetString(NexusKindTag, NexusKind.Unknown.ToString());
+            var nexusKind = PlayerPrefs.GetString(NexusKindTag, NexusKind.Main_Net.ToString());
             if (!Enum.TryParse<NexusKind>(nexusKind, true, out this.nexusKind))
             {
                 this.nexusKind = NexusKind.Unknown;
