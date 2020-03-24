@@ -156,6 +156,7 @@ namespace Poltergeist
         public Account[] Accounts { get; private set; }
 
         private Dictionary<string, Token> _tokenSymbolMap = null;
+        private Dictionary<string, Token> _tokenCryptoCompareSymbolMap = null;
         private Dictionary<string, Token> _tokenHashMap = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
         public string CurrentTokenCurrency { get; private set; }
@@ -237,10 +238,12 @@ namespace Poltergeist
             {
                 try
                 {
-                    foreach (var symbol in symbols)
+                    foreach (var cryptoCompareSymbol in symbols)
                     {
-                        var node = response.GetNode(symbol);
+                        var node = response.GetNode(cryptoCompareSymbol);
                         var price = node.GetDecimal(currency);
+
+                        var symbol = GetTokenSymbolByCryptoCompareSymbol(cryptoCompareSymbol);
                         SetTokenPrice(symbol, price);
 
                         if (symbol == "SOUL")
@@ -334,50 +337,52 @@ namespace Poltergeist
             var nep5Flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString()+ ","+TokenFlags.Divisible.ToString();
             var pepFlags = TokenFlags.Fungible.ToString();
             var nftFlags = TokenFlags.None.ToString();
-            tokens.Add(new Token() { symbol = "SOUL", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + ","+ TokenFlags.Divisible.ToString() });
-            tokens.Add(new Token() { symbol = "NEO", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "GAS", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "SWTH", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "PKC", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "710405560", name = "nOS", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "MKNI", hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags });
-            tokens.Add(new Token() { symbol = "NACHO", hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags });
-            tokens.Add(new Token() { symbol = "TTRS", hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "1000000", name = "22series", flags = nftFlags });
-            tokens.Add(new Token() { symbol = "GOATI", hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "1000000", name = "GOATi", flags = pepFlags });
-            tokens.Add(new Token() { symbol = "TKY", hash = "132947096727c84c7f9e076c90f08fec3bc17f18", decimals = 8, maxSupply = "1000000000", name = "The Key", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "CGAS", hash = "74f2dc36a68fdc4682034178eb2220729231db76", decimals = 8, maxSupply = "1000000000", name = "NEP5 GAS", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "MCT", hash = "a87cc2a513f5d8b4a42432343687c2127c60bc3f", decimals = 8, maxSupply = "1000000000", name = "Master Contract", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "SOUL", cryptoCompareSymbol = "GOST", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "KCAL", cryptoCompareSymbol = "KCAL", hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + ","+ TokenFlags.Divisible.ToString() });
+            tokens.Add(new Token() { symbol = "NEO", cryptoCompareSymbol = "NEO", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "GAS", cryptoCompareSymbol = "GAS", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "SWTH", cryptoCompareSymbol = "SWTH", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NEX", cryptoCompareSymbol = "NEX", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "PKC", cryptoCompareSymbol = "PKC", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NOS", cryptoCompareSymbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "710405560", name = "nOS", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "MKNI", cryptoCompareSymbol = "MKNI", hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags });
+            tokens.Add(new Token() { symbol = "NACHO", cryptoCompareSymbol = "NACHO", hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags });
+            tokens.Add(new Token() { symbol = "TTRS", cryptoCompareSymbol = "TTRS", hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "1000000", name = "22series", flags = nftFlags });
+            tokens.Add(new Token() { symbol = "GOATI", cryptoCompareSymbol = "GOATI", hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "1000000", name = "GOATi", flags = pepFlags });
+            tokens.Add(new Token() { symbol = "TKY", cryptoCompareSymbol = "TKY", hash = "132947096727c84c7f9e076c90f08fec3bc17f18", decimals = 8, maxSupply = "1000000000", name = "The Key", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "CGAS", cryptoCompareSymbol = "CGAS", hash = "74f2dc36a68fdc4682034178eb2220729231db76", decimals = 8, maxSupply = "1000000000", name = "NEP5 GAS", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "MCT", cryptoCompareSymbol = "MCT", hash = "a87cc2a513f5d8b4a42432343687c2127c60bc3f", decimals = 8, maxSupply = "1000000000", name = "Master Contract", flags = nep5Flags });
 
-            tokens.Add(new Token() { symbol = "DBC", hash = "b951ecbbc5fe37a9c280a76cb0ce0014827294cf", decimals = 8, maxSupply = "1000000000", name = "DeepBrain Coin", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "FTW", hash = "11dbc2316f35ea031449387f615d9e4b0cbafe8b", decimals = 8, maxSupply = "1000000000", name = "For The Win", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "ZPT", hash = "ac116d4b8d4ca55e6b6d4ecce2192039b51cccc5", decimals = 8, maxSupply = "1000000000", name = "Zeepin Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "ACAT", hash = "7f86d61ff377f1b12e589a5907152b57e2ad9a7a", decimals = 8, maxSupply = "1000000000", name = "Alphacat", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "QLC", hash = "0d821bd7b6d53f5c2b40e217c6defc8bbe896cf5", decimals = 8, maxSupply = "1000000000", name = "Qlink Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "TNC", hash = "08e8c4400f1af2c20c28e0018f29535eb85d15b6", decimals = 8, maxSupply = "1000000000", name = "Trinity Network Credit", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "PHX", hash = "1578103c13e39df15d0d29826d957e85d770d8c9", decimals = 8, maxSupply = "1000000000", name = "Red Pulse Phoenix", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "APH", hash = "a0777c3ce2b169d4a23bcba4565e3225a0122d95", decimals = 8, maxSupply = "1000000000", name = "Aphelion", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "GALA", hash = "9577c3f972d769220d69d1c4ddbd617c44d067aa", decimals = 8, maxSupply = "1000000000", name = "Galaxy Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "AVA", hash = "de2ed49b691e76754c20fe619d891b78ef58e537", decimals = 8, maxSupply = "1000000000", name = "Travala", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "NKN", hash = "c36aee199dbba6c3f439983657558cfb67629599", decimals = 8, maxSupply = "1000000000", name = "NKN", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "LRN", hash = "06fa8be9b6609d963e8fc63977b9f8dc5f10895f", decimals = 8, maxSupply = "1000000000", name = "Loopring Neo Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "ASA", hash = "a58b56b30425d3d1f8902034996fcac4168ef71d", decimals = 8, maxSupply = "1000000000", name = "Asura World Coin", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "OBT", hash = "0e86a40588f715fcaf7acd1812d50af478e6e917", decimals = 8, maxSupply = "1000000000", name = "Orbis", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "NRVE", hash = "a721d5893480260bd28ca1f395f2c465d0b5b1c2", decimals = 8, maxSupply = "1000000000", name = "Narrative Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "RHT", hash = "2328008e6f6c7bd157a342e789389eb034d9cbc4", decimals = 8, maxSupply = "1000000000", name = "HashPuppy Token", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "1000000000", name = "Neo Operating System", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "LX", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "1000000000", name = "Moonlight Lux", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "TOLL", hash = "78fd589f7894bf9642b4a573ec0e6957dfd84c48", decimals = 8, maxSupply = "1000000000", name = "Bridge Protocol", flags = nep5Flags });
-            tokens.Add(new Token() { symbol = "", hash = "e9a85bc36e409e3f5cca5c43bc3bff338d7ada08", decimals = 8, maxSupply = "1000000000", name = "imusify Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "DBC", cryptoCompareSymbol = "DBC", hash = "b951ecbbc5fe37a9c280a76cb0ce0014827294cf", decimals = 8, maxSupply = "1000000000", name = "DeepBrain Coin", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "FTW", cryptoCompareSymbol = "FTW", hash = "11dbc2316f35ea031449387f615d9e4b0cbafe8b", decimals = 8, maxSupply = "1000000000", name = "For The Win", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "ZPT", cryptoCompareSymbol = "ZPT", hash = "ac116d4b8d4ca55e6b6d4ecce2192039b51cccc5", decimals = 8, maxSupply = "1000000000", name = "Zeepin Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "ACAT", cryptoCompareSymbol = "ACAT", hash = "7f86d61ff377f1b12e589a5907152b57e2ad9a7a", decimals = 8, maxSupply = "1000000000", name = "Alphacat", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "QLC", cryptoCompareSymbol = "QLC", hash = "0d821bd7b6d53f5c2b40e217c6defc8bbe896cf5", decimals = 8, maxSupply = "1000000000", name = "Qlink Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "TNC", cryptoCompareSymbol = "TNC", hash = "08e8c4400f1af2c20c28e0018f29535eb85d15b6", decimals = 8, maxSupply = "1000000000", name = "Trinity Network Credit", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "PHX", cryptoCompareSymbol = "PHX", hash = "1578103c13e39df15d0d29826d957e85d770d8c9", decimals = 8, maxSupply = "1000000000", name = "Red Pulse Phoenix", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "APH", cryptoCompareSymbol = "APH", hash = "a0777c3ce2b169d4a23bcba4565e3225a0122d95", decimals = 8, maxSupply = "1000000000", name = "Aphelion", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "GALA", cryptoCompareSymbol = "GALA", hash = "9577c3f972d769220d69d1c4ddbd617c44d067aa", decimals = 8, maxSupply = "1000000000", name = "Galaxy Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "AVA", cryptoCompareSymbol = "AVA", hash = "de2ed49b691e76754c20fe619d891b78ef58e537", decimals = 8, maxSupply = "1000000000", name = "Travala", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NKN", cryptoCompareSymbol = "NKN", hash = "c36aee199dbba6c3f439983657558cfb67629599", decimals = 8, maxSupply = "1000000000", name = "NKN", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "LRN", cryptoCompareSymbol = "LRN", hash = "06fa8be9b6609d963e8fc63977b9f8dc5f10895f", decimals = 8, maxSupply = "1000000000", name = "Loopring Neo Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "ASA", cryptoCompareSymbol = "ASA", hash = "a58b56b30425d3d1f8902034996fcac4168ef71d", decimals = 8, maxSupply = "1000000000", name = "Asura World Coin", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "OBT", cryptoCompareSymbol = "OBT", hash = "0e86a40588f715fcaf7acd1812d50af478e6e917", decimals = 8, maxSupply = "1000000000", name = "Orbis", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NRVE", cryptoCompareSymbol = "NRVE", hash = "a721d5893480260bd28ca1f395f2c465d0b5b1c2", decimals = 8, maxSupply = "1000000000", name = "Narrative Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "RHT", cryptoCompareSymbol = "RHT", hash = "2328008e6f6c7bd157a342e789389eb034d9cbc4", decimals = 8, maxSupply = "1000000000", name = "HashPuppy Token", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "NOS", cryptoCompareSymbol = "NOS", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "1000000000", name = "Neo Operating System", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "LX", cryptoCompareSymbol = "LX", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "1000000000", name = "Moonlight Lux", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "TOLL", cryptoCompareSymbol = "TOLL", hash = "78fd589f7894bf9642b4a573ec0e6957dfd84c48", decimals = 8, maxSupply = "1000000000", name = "Bridge Protocol", flags = nep5Flags });
+            tokens.Add(new Token() { symbol = "", cryptoCompareSymbol = "", hash = "e9a85bc36e409e3f5cca5c43bc3bff338d7ada08", decimals = 8, maxSupply = "1000000000", name = "imusify Token", flags = nep5Flags });
 
             CurrentTokenCurrency = "";
 
             _tokenSymbolMap = new Dictionary<string, Token>();
+            _tokenCryptoCompareSymbolMap = new Dictionary<string, Token>();
             _tokenHashMap = new Dictionary<string, Token>();
             foreach (var token in tokens)
             {
                 _tokenSymbolMap[token.symbol] = token;
+                _tokenCryptoCompareSymbolMap[token.cryptoCompareSymbol] = token;
                 _tokenHashMap[token.hash] = token;
             }
 
@@ -409,7 +414,7 @@ namespace Poltergeist
                 _lastPriceUpdate = DateTime.UtcNow;
 
                 var expectedFlag = TokenFlags.Foreign.ToString();
-                var symbolList = _tokenSymbolMap.Values.Where(x => x.flags.Contains(expectedFlag)).Select(x => x.symbol);
+                var symbolList = _tokenCryptoCompareSymbolMap.Values.Where(x => x.flags.Contains(expectedFlag)).Select(x => x.cryptoCompareSymbol);
                 StartCoroutine(FetchTokenPrices(symbolList, CurrentTokenCurrency));
             }
         }
@@ -489,6 +494,16 @@ namespace Poltergeist
 
             token = new Token();
             return false;
+        }
+
+        public string GetTokenSymbolByCryptoCompareSymbol(string cryptoCompareSymbol)
+        {
+            if (_tokenCryptoCompareSymbolMap.ContainsKey(cryptoCompareSymbol))
+            {
+                return _tokenCryptoCompareSymbolMap[cryptoCompareSymbol].symbol;
+            }
+
+            return "";
         }
 
         public decimal AmountFromString(string str, int decimals)

@@ -389,6 +389,7 @@ namespace Phantasma.SDK
 	public struct Token 
 	{
 		public string symbol; //
+		public string cryptoCompareSymbol; // CryptoCompare symbols may differ, example - "GOST" for "SOUL".
 		public string name; //
 		public int decimals; //
 		public string currentSupply; //
@@ -401,7 +402,8 @@ namespace Phantasma.SDK
 		{
 			Token result;
 						
-			result.symbol = node.GetString("symbol");						
+			result.symbol = node.GetString("symbol");
+			result.cryptoCompareSymbol = node.GetString("cryptoCompareSymbol");
 			result.name = node.GetString("name");						
 			result.decimals = node.GetInt32("decimals");						
 			result.currentSupply = node.GetString("currentSupply");						
