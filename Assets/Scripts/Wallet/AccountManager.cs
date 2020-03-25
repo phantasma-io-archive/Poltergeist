@@ -78,7 +78,7 @@ namespace Poltergeist
 
         public static PlatformKind GetTransferTargets(this PlatformKind kind, Token token)
         {
-            if (!token.flags.Contains("External"))
+            if (!token.flags.Contains("Foreign"))
             {
                 return kind;
             }
