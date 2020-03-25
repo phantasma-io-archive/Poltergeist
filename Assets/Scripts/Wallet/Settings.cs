@@ -110,7 +110,7 @@ namespace Poltergeist
                             return "http://localhost:7077/rpc";
 
                         default:
-                            return "http://45.76.88.140:7076/rpc";
+                            return "http://207.148.17.86:7077/rpc";
                     }
                     break;
 
