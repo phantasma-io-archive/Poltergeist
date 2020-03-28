@@ -3014,7 +3014,7 @@ namespace Poltergeist
                                     return;
                                 }
 
-                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destAddress}", script, "main", (hash) =>
+                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, "main", (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
