@@ -1820,7 +1820,14 @@ namespace Poltergeist
 
             var btnWidth = Units(10);
             curY = (int)(windowRect.height - Units(VerticalLayout ? 6: 7));
-            DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Continue", () =>
+            DoButton(true, new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, Units(2)), "Copy to clipboard", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                GUIUtility.systemCopyBuffer = seedPhrase;
+                MessageBox(MessageKind.Default, "Seed phrase copied to the clipboard.");
+            });
+
+            DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Continue", () =>
             {
                 AudioManager.Instance.PlaySFX("confirm");
                 PromptBox("You confirm that you have backup your private key?\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.", ModalConfirmCancel, (result) =>
