@@ -1009,7 +1009,7 @@ namespace Poltergeist
                 }
             }
 
-            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, 3, 32, ModalConfirmCancel, 1, (result, name) =>
+            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, 3, 16, ModalConfirmCancel, 1, (result, name) =>
             {
                 if (result == PromptResult.Success)
                 {
