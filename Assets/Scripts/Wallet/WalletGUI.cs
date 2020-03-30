@@ -1584,7 +1584,20 @@ namespace Poltergeist
 
             var btnWidth = Units(10);
             curY = (int)(windowRect.height - Units(6));
-            DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), "Confirm", () =>
+            DoButton(true, new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, Units(2)), "Cancel", () =>
+            {
+                AudioManager.Instance.PlaySFX("cancel");
+
+                // Resetting changes by restoring current settings.
+                settings.Load();
+
+                // Restoring combos' selected items.
+                // If they are not restored, following calls of DoSettingsScreen() will change them again.
+                SetState(GUIState.Settings);
+
+                CloseCurrentStack();
+            });
+            DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Confirm", () =>
             {
                 if (ValidateSettings())
                 {
