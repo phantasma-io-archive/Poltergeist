@@ -1140,20 +1140,27 @@ namespace Poltergeist
                             },
                             (response) =>
                             {
+                                var alreadyAddedHashes = new List<string>(); // Neoscan sends some transactions twice, should filter them.
+
                                 var history = new List<HistoryEntry>();
 
                                 var entries = response.GetNode("entries");
                                 foreach (var entry in entries.Children)
                                 {
                                     var hash = entry.GetString("txid");
-                                    var time = entry.GetUInt32("time");
-
-                                    history.Add(new HistoryEntry()
+                                    if (alreadyAddedHashes.Contains(hash) == false)
                                     {
-                                        hash = hash,
-                                        date = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(time).ToLocalTime(),
-                                        url = GetNeoscanTransactionURL(hash),
-                                    });
+                                        var time = entry.GetUInt32("time");
+
+                                        history.Add(new HistoryEntry()
+                                        {
+                                            hash = hash,
+                                            date = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(time).ToLocalTime(),
+                                            url = GetNeoscanTransactionURL(hash),
+                                        });
+
+                                        alreadyAddedHashes.Add(hash);
+                                    }
                                 }
 
                                 ReportWalletHistory(platform, history);
