@@ -57,6 +57,8 @@ namespace Poltergeist
 
         public void Load()
         {
+            Log.Write("Settings: Loading...");
+
             var nexusKind = PlayerPrefs.GetString(NexusKindTag, NexusKind.Main_Net.ToString());
             if (!Enum.TryParse<NexusKind>(nexusKind, true, out this.nexusKind))
             {
@@ -79,6 +81,17 @@ namespace Poltergeist
             {
                 this.feePrice = 100000;
             }
+
+            Log.Write("Settings: Load: Nexus kind: " + this.nexusKind.ToString() + "\n" +
+                      "                Phantasma BP: " + this.phantasmaBPURL + "\n" +
+                      "                Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
+                      "                Neo RPC: " + this.neoRPCURL + "\n" +
+                      "                Neoscan: " + this.neoscanURL + "\n" +
+                      "                Nexus name: " + this.nexusName + "\n" +
+                      "                Currency: " + this.currency + "\n" +
+                      "                Sfx: " + this.sfx + "\n" +
+                      "                Fee price: " + this.feePrice
+                     );
         }
 
         public string GetDefaultValue(string tag)
@@ -104,13 +117,25 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            return "http://207.148.17.86:7077/rpc";
+                            {
+                                string _return_value = "http://207.148.17.86:7077/rpc";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
 
                         case NexusKind.Local_Net:
-                            return "http://localhost:7077/rpc";
+                            {
+                                string _return_value = "http://localhost:7077/rpc";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Local_Net): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
 
                         default:
-                            return "http://207.148.17.86:7077/rpc";
+                            {
+                                string _return_value = "http://207.148.17.86:7077/rpc";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
                     }
                     break;
 
@@ -118,11 +143,19 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            int index = (int)(DateTime.UtcNow.Ticks % 8)+1;
-                            return $"https://seed{index}.cityofzion.io:443";
+                            {
+                                int index = (int)(DateTime.UtcNow.Ticks % 8)+1;
+                                string _return_value = $"https://seed{index}.cityofzion.io:443";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
 
                         default:
-                            return "http://mankinighost.phantasma.io:30333";
+                            {
+                                string _return_value = "http://mankinighost.phantasma.io:30333";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
                     }
                     break;
                     
@@ -130,10 +163,18 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            return "https://neoscan.io";
+                            {
+                                string _return_value = "https://neoscan.io";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
 
                         default:
-                            return "http://mankinighost.phantasma.io:4000";
+                            {
+                                string _return_value = "http://mankinighost.phantasma.io:4000";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
                     }
                     break;
 
@@ -141,10 +182,18 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            return "mainnet";
+                            {
+                                string _return_value = "mainnet";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
 
                         default:
-                            return "simnet";
+                            {
+                                string _return_value = "simnet";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                return _return_value;
+                            }
                     }
                     break;
 
@@ -165,6 +214,16 @@ namespace Poltergeist
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
             PlayerPrefs.Save();
+
+            Log.Write("Settings: Save: Nexus kind: " + nexusKind.ToString() + "\n" +
+                      "                Phantasma BP: " + phantasmaBPURL + "\n" +
+                      "                Neo RPC: " + neoRPCURL + "\n" +
+                      "                Neoscan: " + neoscanURL + "\n" +
+                      "                Nexus name: " + nexusName + "\n" +
+                      "                Currency: " + currency + "\n" +
+                      "                Sfx: " + sfx + "\n" +
+                      "                Fee price: " + feePrice
+                     );
         }
 
         public void RestoreEndpoints(bool restoreName)
@@ -178,6 +237,13 @@ namespace Poltergeist
             {
                 this.nexusName = this.GetDefaultValue(NexusNameTag);
             }
+
+            Log.Write("Settings: Restore endpoints: restoreName mode: " + restoreName + "\n" +
+                      "                             Phantasma BP: " + this.phantasmaBPURL + "\n" +
+                      "                             Neo RPC: " + this.neoRPCURL + "\n" +
+                      "                             Neoscan: " + this.neoscanURL + "\n" +
+                      "                             Nexus name: " + this.nexusName,
+                      Log.DetailsLevel.LowLevel1);
         }
     }
 }
