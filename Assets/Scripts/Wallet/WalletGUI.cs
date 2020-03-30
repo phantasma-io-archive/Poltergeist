@@ -1127,6 +1127,7 @@ namespace Poltergeist
             }
             catch (Exception e)
             {
+                seedPhrase = null; // seedPhrase is used to determine value of isNewWallet global flag, and should be reset in case of error.
                 MessageBox(MessageKind.Error, "Error creating account.\n" + e.Message);
             }
         }
