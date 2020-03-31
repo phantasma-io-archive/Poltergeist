@@ -836,7 +836,7 @@ namespace Poltergeist
             {
                 GUI.SetNextControlName("PoltergeistModalPasswordField");
                 modalInput = GUI.PasswordField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, '*', modalMaxInputLength);
-                GUI.FocusControl("PoltergeistModalTextField");
+                GUI.FocusControl("PoltergeistModalPasswordField");
             }
 
             int btnWidth = VerticalLayout ? Units(7) : Units(11);
