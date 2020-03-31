@@ -15,17 +15,22 @@ public static class Log
         LowLevel3
     }
 
-    private static string FilePath = "uninitialized.log";
+    private static string FilePath;
     private static DetailsLevel MaxDetailsLevel = DetailsLevel.NetworkingLevel;
     private static bool OverwriteOldContent = false;
     private static bool CompactMode = false;
 
-    public static void Init(string filePath, DetailsLevel maxDetailsLevel, bool overwriteOldContent = false)
+    public static void Init(string fileName, DetailsLevel maxDetailsLevel, bool forceWorkingFolderUsage = false, bool overwriteOldContent = false)
     {
-        FilePath = filePath;
         MaxDetailsLevel = maxDetailsLevel;
 
         OverwriteOldContent = overwriteOldContent;
+
+        FilePath = Application.persistentDataPath;
+        if (forceWorkingFolderUsage)
+            FilePath = Path.GetFullPath(".");
+
+        FilePath = Path.Combine(FilePath, fileName);
     }
 
     public static void SwitchToCompactMode(bool compactMode)

@@ -162,24 +162,35 @@ namespace Poltergeist
             string[] _args = System.Environment.GetCommandLineArgs();
 
             Log.DetailsLevel _logDetailsLevel = Log.DetailsLevel.NetworkingLevel; // Default value.
+            bool _logForceWorkingFolderUsage = false;
             string _logDetailsLevelString = "NetworkingLevel";
 
-            // Checking if log details level is set.
+            // Checking if log options are set.
             for (int i = 0; i < _args.Length; i++)
             {
-                if (_args[ i ] == "--log-level")
+                switch (_args[i])
                 {
-                    if (i + 1 < _args.Length)
-                    {
-                        _logDetailsLevelString = _args[i + 1];
-                        _logDetailsLevel = (Log.DetailsLevel)Enum.Parse(typeof(Log.DetailsLevel), _logDetailsLevelString);
-                    }
+                    case "--log-level":
+                        {
+                            if (i + 1 < _args.Length)
+                            {
+                                _logDetailsLevelString = _args[i + 1];
+                                _logDetailsLevel = (Log.DetailsLevel)Enum.Parse(typeof(Log.DetailsLevel), _logDetailsLevelString);
+                            }
 
-                    break;
+                            break;
+                        }
+
+                    case "--log-force-working-folder-usage":
+                        {
+                            _logForceWorkingFolderUsage = true;
+
+                            break;
+                        }
                 }
             }
 
-            Log.Init("poltergeist.log", _logDetailsLevel, true);
+            Log.Init("poltergeist.log", _logDetailsLevel, _logForceWorkingFolderUsage, true);
             Log.Write("********************************************************\n" +
                        "************** Poltergeist Wallet started **************\n" +
                        "********************************************************\n" +
