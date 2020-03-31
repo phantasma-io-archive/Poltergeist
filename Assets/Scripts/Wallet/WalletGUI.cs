@@ -162,8 +162,8 @@ namespace Poltergeist
             string[] _args = System.Environment.GetCommandLineArgs();
 
             Log.DetailsLevel _logDetailsLevel = Log.DetailsLevel.NetworkingLevel; // Default value.
-            bool _logForceWorkingFolderUsage = false;
             string _logDetailsLevelString = "NetworkingLevel";
+            bool _logForceWorkingFolderUsage = false;
 
             // Checking if log options are set.
             for (int i = 0; i < _args.Length; i++)
@@ -175,7 +175,12 @@ namespace Poltergeist
                             if (i + 1 < _args.Length)
                             {
                                 _logDetailsLevelString = _args[i + 1];
-                                _logDetailsLevel = (Log.DetailsLevel)Enum.Parse(typeof(Log.DetailsLevel), _logDetailsLevelString);
+
+                                if (!Enum.TryParse<Log.DetailsLevel>(_logDetailsLevelString, true, out _logDetailsLevel))
+                                {
+                                    _logDetailsLevel = Log.DetailsLevel.NetworkingLevel;
+                                    _logDetailsLevelString = "NetworkingLevel";
+                                }
                             }
 
                             break;
