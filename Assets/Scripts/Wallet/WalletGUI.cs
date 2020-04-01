@@ -464,6 +464,7 @@ namespace Poltergeist
                 case MessageKind.Error:
                     AudioManager.Instance.PlaySFX("negative");
                     title = "Error";
+                    Log.Write($"Error MessageBox: {caption}");
                     break;
 
                 default:
@@ -1888,6 +1889,8 @@ namespace Poltergeist
 
         private void DoFatalScreen()
         {
+            Log.Write($"Fatal error: {fatalError}");
+
             int curY;
 
             curY = Units(5);
