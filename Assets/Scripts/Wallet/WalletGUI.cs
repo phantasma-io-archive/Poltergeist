@@ -325,6 +325,7 @@ namespace Poltergeist
                 case GUIState.Settings:
                     {
                         currentTitle = accountManager.Settings.nexusKind != NexusKind.Unknown ? "Settings" : "Wallet Setup";
+                        settingsScroll = Vector2.zero;
                         currencyComboBox.SelectedItemIndex = 0;
                         for (int i = 0; i < currencyOptions.Length; i++)
                         {
@@ -1189,6 +1190,7 @@ namespace Poltergeist
 
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
+        private Vector2 settingsScroll;
 
         private void DoWalletsScreen()
         {
@@ -1521,9 +1523,30 @@ namespace Poltergeist
 
             int dropHeight;
 
-            GUI.Box(new Rect(Border, curY - Border, windowRect.width - Border * 2, windowRect.height - (Border*2 + curY)), "");
+            // startY: Vertical starting position of "Settings" box.
+            int startY = (int)(curY - Border);
+            // boxWidth, boxHeight: Size of "Settings" box.
+            int boxWidth = (int)(windowRect.width - (Border * 2));
+            int boxHeight = (int)(windowRect.height - (Border * 2 + curY));
 
+            GUI.Box(new Rect(Border, startY, boxWidth, boxHeight), "");
+
+            // Height calculation: 10 elements with (height + spacing) = Units(3), last element has additional Units(1) spacing before it.
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 10 + Units(1));
+            // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
+            var outsideRect = new Rect(Border, startY, boxWidth, boxHeight - Units(4));
+
+            bool needsScroll = insideRect.height > outsideRect.height;
+            if (needsScroll)
+            {
+                insideRect.width -= Border;
+            }
+
+            settingsScroll = GUI.BeginScrollView(outsideRect, settingsScroll, insideRect);
+            
             var posX = Units(3);
+
+            curY = Units(1); // Vertical position inside scroll view.
 
             GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Currency");
             currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions, out dropHeight);
@@ -1635,6 +1658,8 @@ namespace Poltergeist
 
                 curY += Units(3);
             }
+            
+            GUI.EndScrollView();
 
             var btnWidth = Units(10);
             curY = (int)(windowRect.height - Units(6));
