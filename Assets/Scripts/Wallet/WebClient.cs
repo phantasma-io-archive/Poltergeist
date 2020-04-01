@@ -44,6 +44,7 @@ namespace Phantasma.SDK
             }
 
             Debug.Log($"RPC request\nurl:{url}\njson: {json}");
+            Log.Write($"RPC request\nurl: {url}\njson: {json}", Log.DetailsLevel.NetworkingLevel);
 
             request = new UnityWebRequest(url, "POST");
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
@@ -51,26 +52,32 @@ namespace Phantasma.SDK
             request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
 
+            DateTime startTime = DateTime.Now;
             yield return request.SendWebRequest();
+            TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
+                Log.Write($"RPC error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
             }
             else
             {
                 Debug.Log(request.downloadHandler.text);
+                Log.Write($"RPC response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
 
                 if (root == null)
                 {
+                    Log.Write("RPC response\nurl: {url}\nFailed to parse JSON", Log.DetailsLevel.NetworkingLevel);
                     if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, "failed to parse JSON");
                 }
                 else
                 if (root.HasNode("error"))
                 {
                     var errorDesc = root["error"].GetString("message");
+                    Log.Write($"RPC response\nurl: {url}\nError node found: {errorDesc}", Log.DetailsLevel.NetworkingLevel);
                     if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, errorDesc);
                 }
                 else
@@ -93,20 +100,25 @@ namespace Phantasma.SDK
             UnityWebRequest request;
 
             Debug.Log($"REST request\nurl:{url}");
+            Log.Write($"REST request\nurl: {url}", Log.DetailsLevel.NetworkingLevel);
 
             request = new UnityWebRequest(url, "GET");
             request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
 
+            DateTime startTime = DateTime.Now;
             yield return request.SendWebRequest();
+            TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
+                Log.Write($"REST error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
             }
             else
             {
                 Debug.Log(request.downloadHandler.text);
+                Log.Write($"REST response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
                 callback(root);
             }

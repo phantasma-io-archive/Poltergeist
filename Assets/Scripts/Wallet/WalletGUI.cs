@@ -158,6 +158,50 @@ namespace Poltergeist
 
         void Start()
         {
+            // Getting wallet's command line args.
+            string[] _args = System.Environment.GetCommandLineArgs();
+
+            Log.DetailsLevel _logDetailsLevel = Log.DetailsLevel.NetworkingLevel; // Default value.
+            string _logDetailsLevelString = "NetworkingLevel";
+            bool _logForceWorkingFolderUsage = false;
+
+            // Checking if log options are set.
+            for (int i = 0; i < _args.Length; i++)
+            {
+                switch (_args[i])
+                {
+                    case "--log-level":
+                        {
+                            if (i + 1 < _args.Length)
+                            {
+                                _logDetailsLevelString = _args[i + 1];
+
+                                if (!Enum.TryParse<Log.DetailsLevel>(_logDetailsLevelString, true, out _logDetailsLevel))
+                                {
+                                    _logDetailsLevel = Log.DetailsLevel.NetworkingLevel;
+                                    _logDetailsLevelString = "NetworkingLevel";
+                                }
+                            }
+
+                            break;
+                        }
+
+                    case "--log-force-working-folder-usage":
+                        {
+                            _logForceWorkingFolderUsage = true;
+
+                            break;
+                        }
+                }
+            }
+
+            Log.Init("poltergeist.log", _logDetailsLevel, _logForceWorkingFolderUsage, true);
+            Log.Write("********************************************************\n" +
+                       "************** Poltergeist Wallet started **************\n" +
+                       "********************************************************\n" +
+                       "Wallet version: " + UnityEngine.Application.version + "\n" +
+                       "Log details level: " + _logDetailsLevelString);
+
             initialized = false;
 
             guiState = GUIState.Loading;
@@ -420,6 +464,7 @@ namespace Poltergeist
                 case MessageKind.Error:
                     AudioManager.Instance.PlaySFX("negative");
                     title = "Error";
+                    Log.Write($"Error MessageBox: {caption}");
                     break;
 
                 default:
@@ -955,6 +1000,8 @@ namespace Poltergeist
 
         private void LoginIntoAccount(int index, Action<bool> callback = null)
         {
+            Log.Write("Login into account initiated.");
+
             var isNewAccount = !string.IsNullOrEmpty(seedPhrase);
 
             var accountManager = AccountManager.Instance;
@@ -1843,6 +1890,8 @@ namespace Poltergeist
 
         private void DoFatalScreen()
         {
+            Log.Write($"Fatal error: {fatalError}");
+
             int curY;
 
             curY = Units(5);
