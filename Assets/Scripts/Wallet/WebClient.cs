@@ -59,7 +59,7 @@ namespace Phantasma.SDK
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
-                Log.Write($"RPC error\nurl: {url}\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
+                Log.Write($"RPC error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
             }
             else
@@ -112,7 +112,7 @@ namespace Phantasma.SDK
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
-                Log.Write($"REST error\nurl: {url}\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
+                Log.Write($"REST error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
             }
             else
