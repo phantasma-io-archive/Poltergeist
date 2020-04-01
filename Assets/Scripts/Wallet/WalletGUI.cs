@@ -865,17 +865,23 @@ namespace Poltergeist
             {
                 if (modalMaxLines > 1)
                 {
+                    GUI.SetNextControlName("PoltergeistModalTextArea");
                     modalInput = GUI.TextArea(new Rect(rect.x, curY, fieldWidth, Units(2) * modalMaxLines), modalInput, modalMaxInputLength);
+                    GUI.FocusControl("PoltergeistModalTextArea");
                 }
                 else
                 {
+                    GUI.SetNextControlName("PoltergeistModalTextField");
                     modalInput = GUI.TextField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, modalMaxInputLength);
+                    GUI.FocusControl("PoltergeistModalTextField");
                 }
             }
             else
             if (modalState == ModalState.Password)
             {
-                modalInput = GUI.PasswordField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, '*', modalMaxInputLength);               
+                GUI.SetNextControlName("PoltergeistModalPasswordField");
+                modalInput = GUI.PasswordField(new Rect(rect.x, curY, fieldWidth, Units(2)), modalInput, '*', modalMaxInputLength);
+                GUI.FocusControl("PoltergeistModalPasswordField");
             }
 
             int btnWidth = VerticalLayout ? Units(7) : Units(11);
