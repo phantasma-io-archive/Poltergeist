@@ -52,7 +52,9 @@ namespace Phantasma.SDK
             request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
 
+            DateTime startTime = DateTime.Now;
             yield return request.SendWebRequest();
+            TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)
             {
@@ -63,7 +65,7 @@ namespace Phantasma.SDK
             else
             {
                 Debug.Log(request.downloadHandler.text);
-                Log.Write($"RPC response\nurl: {url}\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
+                Log.Write($"RPC response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
 
                 if (root == null)
@@ -103,7 +105,9 @@ namespace Phantasma.SDK
             request = new UnityWebRequest(url, "GET");
             request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
 
+            DateTime startTime = DateTime.Now;
             yield return request.SendWebRequest();
+            TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)
             {
@@ -114,7 +118,7 @@ namespace Phantasma.SDK
             else
             {
                 Debug.Log(request.downloadHandler.text);
-                Log.Write($"REST response\nurl: {url}\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
+                Log.Write($"REST response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
                 callback(root);
             }
