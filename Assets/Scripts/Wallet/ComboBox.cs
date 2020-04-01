@@ -16,6 +16,8 @@ public class ComboBox
 
     private static GUIStyle listStyle;
 
+    public Vector2 ListScroll = Vector2.zero;
+
     public ComboBox() : this("button", "box")
     {
     }
@@ -26,12 +28,12 @@ public class ComboBox
         this.boxStyle = boxStyle;
     }
 
-    public int Show<T>(Rect rect, IList<T> listContent, out int height, string caption = null, int offset = 0)
+    public int Show<T>(Rect rect, IList<T> listContent, int maxAvailableHeight, out int height, string caption = null, int offset = 0)
     {
-        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray(), out height, caption, offset);
+        return Show(rect, listContent.Select(x => new GUIContent(x.ToString())).ToArray(), maxAvailableHeight, out height, caption, offset);
     }
 
-    public int Show(Rect rect, IList<GUIContent> listContent, out int height, string caption = null, int offset = 0)
+    public int Show(Rect rect, IList<GUIContent> listContent, int maxAvailableHeight, out int height, string caption = null, int offset = 0)
     {
         if (listStyle == null)
         {
@@ -93,18 +95,38 @@ public class ComboBox
         height = WalletGUI.Units(2);
         if (isClickedComboButton)
         {
-            Rect listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2),
-                      rect.width, WalletGUI.Units(3) * (listContent.Count - offset));
-
-            //  GUI.Box(listRect, "");
-
             height += WalletGUI.Units(2) * (listContent.Count - offset);
-            listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2), rect.width, height);
+            if (maxAvailableHeight > 0)
+            {
+                height = Math.Min(maxAvailableHeight, height);
+            }
+
+            var insideRect = new Rect(0, 0, rect.width, WalletGUI.Units(2) * (listContent.Count - offset));
+            var outsideRect = new Rect(rect.x, rect.y + WalletGUI.Units(2), rect.width, height);
+
+            bool needsScroll = insideRect.height > outsideRect.height;
+            if (needsScroll)
+            {
+                insideRect.width -= WalletGUI.Units(1);
+            }
+
+            Rect listRect = new Rect(rect.x, rect.y + WalletGUI.Units(2), rect.width, height);
+
+            if (needsScroll)
+            {
+                ListScroll = GUI.BeginScrollView(outsideRect, ListScroll, insideRect);
+                listRect = insideRect;
+            }
 
             int newSelectedItemIndex = GUI.SelectionGrid(listRect, selectedItemIndex - offset, listContent.Skip(offset).ToArray(), 1, listStyle) + offset;
             if (newSelectedItemIndex != selectedItemIndex)
             {
                 selectedItemIndex = newSelectedItemIndex;
+            }
+
+            if (needsScroll)
+            {
+                GUI.EndScrollView();
             }
 
             height += WalletGUI.Units(2);
