@@ -839,7 +839,7 @@ namespace Poltergeist
 
             if (modalOptions.Length > 1)
             {
-                int halfWidth = (int)(rect.width / 2);
+                int halfWidth = (int)(modalRect.width / 2);
 
                 if (VerticalLayout)
                 {
@@ -1323,7 +1323,7 @@ namespace Poltergeist
                 GUI.Box(rect, "");
             }
 
-            int divisionWidth = (int)(rect.width / buttonCount);
+            int divisionWidth = (int)(windowRect.width / buttonCount);
             int btnWidth = (int)(divisionWidth * 0.8f);
 
             int maxBtnWidth = Units(8 + buttonCount * 2);
@@ -1349,7 +1349,7 @@ namespace Poltergeist
                 }
                 else
                 {
-                    btnRect = new Rect((Units(1) / 2) + 4 + padding + i * divisionWidth, rect.y + border, btnWidth, Units(2));
+                    btnRect = new Rect(divisionWidth * i + (divisionWidth - btnWidth) / 2, rect.y + border, btnWidth, Units(2));
                 }
 
                 DoButton(entry.enabled, btnRect, entry.label, () =>
