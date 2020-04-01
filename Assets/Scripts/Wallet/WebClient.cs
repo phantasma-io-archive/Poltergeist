@@ -59,8 +59,8 @@ namespace Phantasma.SDK
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
-                Log.Write($"RPC error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
-                if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
+                Log.Write($"RPC error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}\nresponseCode: {request.responseCode}", Log.DetailsLevel.NetworkingLevel);
+                if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error + $"\nURL: {url}\nIs network error: {request.isNetworkError}\nIs HTTP error: {request.isHttpError}\nResponse code: {request.responseCode}");
             }
             else
             {
@@ -112,8 +112,8 @@ namespace Phantasma.SDK
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
-                Log.Write($"REST error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
-                if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
+                Log.Write($"REST error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}\nresponseCode: {request.responseCode}", Log.DetailsLevel.NetworkingLevel);
+                if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error + $"\nURL: {url}\nIs network error: {request.isNetworkError}\nIs HTTP error: {request.isHttpError}\nResponse code: {request.responseCode}");
             }
             else
             {
