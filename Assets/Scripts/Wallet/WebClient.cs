@@ -57,24 +57,25 @@ namespace Phantasma.SDK
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
+                Log.Write($"RPC error\nurl: {url}\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
             }
             else
             {
                 Debug.Log(request.downloadHandler.text);
-                Log.Write($"RPC request result:\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
+                Log.Write($"RPC response\nurl: {url}\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
 
                 if (root == null)
                 {
-                    Log.Write("Failed to parse JSON", Log.DetailsLevel.NetworkingLevel);
+                    Log.Write("RPC response\nurl: {url}\nFailed to parse JSON", Log.DetailsLevel.NetworkingLevel);
                     if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, "failed to parse JSON");
                 }
                 else
                 if (root.HasNode("error"))
                 {
                     var errorDesc = root["error"].GetString("message");
-                    Log.Write($"ERROR: {errorDesc}", Log.DetailsLevel.NetworkingLevel);
+                    Log.Write($"RPC response\nurl: {url}\nError node found: {errorDesc}", Log.DetailsLevel.NetworkingLevel);
                     if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, errorDesc);
                 }
                 else
@@ -107,13 +108,13 @@ namespace Phantasma.SDK
             if (request.isNetworkError || request.isHttpError)
             {
                 Debug.Log(request.error);
-                Log.Write($"ERROR: {request.error}", Log.DetailsLevel.NetworkingLevel);
+                Log.Write($"REST error\nurl: {url}\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}", Log.DetailsLevel.NetworkingLevel);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error);
             }
             else
             {
                 Debug.Log(request.downloadHandler.text);
-                Log.Write($"REST request result:\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
+                Log.Write($"REST response\nurl: {url}\n{request.downloadHandler.text}", Log.DetailsLevel.NetworkingLevel);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
                 callback(root);
             }
