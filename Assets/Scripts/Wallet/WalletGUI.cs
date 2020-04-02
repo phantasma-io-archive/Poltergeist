@@ -1519,22 +1519,29 @@ namespace Poltergeist
 
             int curY = Units(7);
 
-            var fieldWidth = Units(20);
+            var labelWidth = Units(8);
+            var fieldX = Units(11); // X for fields and combos.
+            var fieldWidth = Units(20); // Width of text fields.
+            var comboWidth = Units(8); // Width of combo fields.
 
             int dropHeight;
 
-            // startY: Vertical starting position of "Settings" box.
+            // startX, startY: Starting position of "Settings" box.
+            int startX = Border;
             int startY = (int)(curY - Border);
             // boxWidth, boxHeight: Size of "Settings" box.
             int boxWidth = (int)(windowRect.width - (Border * 2));
             int boxHeight = (int)(windowRect.height - (Border * 2 + curY));
+            
+            fieldWidth = Math.Min(fieldWidth, boxWidth - fieldX - Units(3));
+            comboWidth = Math.Min(comboWidth, boxWidth - fieldX - Units(3));
 
-            GUI.Box(new Rect(Border, startY, boxWidth, boxHeight), "");
+            GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation: 10 elements with (height + spacing) = Units(3), last element has additional Units(1) spacing before it.
             var insideRect = new Rect(0, 0, boxWidth, Units(3) * 10 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
-            var outsideRect = new Rect(Border, startY, boxWidth, boxHeight - Units(4));
+            var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
             bool needsScroll = insideRect.height > outsideRect.height;
             if (needsScroll)
@@ -1548,8 +1555,8 @@ namespace Poltergeist
 
             curY = Units(1); // Vertical position inside scroll view.
 
-            GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Currency");
-            currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Currency");
+            currencyIndex = currencyComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), currencyOptions, out dropHeight);
             settings.currency = currencyOptions[currencyIndex];
             curY += dropHeight + Units(1);
 
@@ -1557,20 +1564,20 @@ namespace Poltergeist
             GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Sound Effects");
             curY += Units(3);
 
-            GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Nexus");
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus");
             var nexusList = availableNexus.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             var prevNexus = nexusIndex;
-            nexusIndex = nexusComboBox.Show(new Rect(posX + Units(10), curY, Units(8), Units(2)), nexusList, out dropHeight, null, 1);
+            nexusIndex = nexusComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), nexusList, out dropHeight, null, 1);
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
-            if (settings.nexusKind != NexusKind.Main_Net && settings.nexusKind != NexusKind.Unknown)
+            if (settings.nexusKind != NexusKind.Main_Net && settings.nexusKind != NexusKind.Custom && settings.nexusKind != NexusKind.Unknown)
             {
                 var style = GUI.skin.label;
                 var tempStyle = style.fontStyle;
                 style.fontStyle = FontStyle.Italic;
-                var warningHeight = Units(VerticalLayout ? 6: 2);
-                GUI.Label(new Rect(posX, curY, windowRect.width - (posX +Border*2), warningHeight), "WARNING - Use this network only if you are a developer or tester.\nAll assets used here are only for development, not real.");
+                var warningHeight = Units(VerticalLayout ? 6: 4);
+                GUI.Label(new Rect(posX, curY, boxWidth - (posX + Border*2), warningHeight), "WARNING - Use this network only if you are a developer or tester.\nAll assets used here are only for development, not real.");
                 style.fontStyle = tempStyle;
                 curY += warningHeight + Units(1);
             }
@@ -1606,16 +1613,16 @@ namespace Poltergeist
 
             if (hasCustomEndPoints)
             {
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Phantasma RPC URL");
-                settings.phantasmaBPURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Phantasma RPC URL");
+                settings.phantasmaBPURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Neo RPC URL");
-                settings.neoRPCURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.neoRPCURL);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neo RPC URL");
+                settings.neoRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoRPCURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Neoscan API URL");
-                settings.neoscanURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.neoscanURL);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neoscan API URL");
+                settings.neoscanURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoscanURL);
                 curY += Units(3);
             }
             else
@@ -1625,15 +1632,15 @@ namespace Poltergeist
 
             if (hasCustomName)
             {
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Nexus Name");
-                settings.nexusName = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.nexusName);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus Name");
+                settings.nexusName = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.nexusName);
                 curY += Units(3);
             }
 
             if (hasCustomFee)
             {
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Fee price");
-                var fee = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.feePrice.ToString());
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Fee price");
+                var fee = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.feePrice.ToString());
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
@@ -1662,8 +1669,25 @@ namespace Poltergeist
             GUI.EndScrollView();
 
             var btnWidth = Units(10);
+            var btnHeight = Units(2);
+            var btnVerticalSpacing = 4;
             curY = (int)(windowRect.height - Units(6));
-            DoButton(true, new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, Units(2)), "Cancel", () =>
+
+            Rect cancelBtnRect;
+            Rect confirmBtnRect;
+
+            if (VerticalLayout)
+            {
+                cancelBtnRect = new Rect(startX + Border * 2, startY + boxHeight - btnHeight - Border, boxWidth - Border * 4, btnHeight);
+                confirmBtnRect = new Rect(startX + Border * 2, startY + boxHeight - btnHeight * 2 - Border - btnVerticalSpacing, boxWidth - Border * 4, btnHeight);
+            }
+            else
+            {
+                cancelBtnRect = new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, btnHeight);
+                confirmBtnRect = new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, btnHeight);
+            }
+
+            DoButton(true, cancelBtnRect, "Cancel", () =>
             {
                 AudioManager.Instance.PlaySFX("cancel");
 
@@ -1676,7 +1700,7 @@ namespace Poltergeist
 
                 CloseCurrentStack();
             });
-            DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Confirm", () =>
+            DoButton(true, confirmBtnRect, "Confirm", () =>
             {
                 if (ValidateSettings())
                 {
