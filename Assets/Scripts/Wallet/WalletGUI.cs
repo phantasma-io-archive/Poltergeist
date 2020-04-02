@@ -1645,14 +1645,17 @@ namespace Poltergeist
                 {
                     PromptBox("All wallets and settings stored in this device will be lost.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", ModalConfirmCancel, (result) =>
                     {
-                        AudioManager.Instance.PlaySFX("click");
-                        accountManager.DeleteAll();
-                        PlayerPrefs.DeleteAll();
-                        accountManager.Settings.Load();
-                        MessageBox(MessageKind.Default, "All data removed from this device.", () =>
+                        if (result == PromptResult.Success)
                         {
-                            CloseCurrentStack();
-                        });
+                            AudioManager.Instance.PlaySFX("click");
+                            accountManager.DeleteAll();
+                            PlayerPrefs.DeleteAll();
+                            accountManager.Settings.Load();
+                            MessageBox(MessageKind.Default, "All data removed from this device.", () =>
+                            {
+                                CloseCurrentStack();
+                            });
+                        }
                     });
                 });
 
