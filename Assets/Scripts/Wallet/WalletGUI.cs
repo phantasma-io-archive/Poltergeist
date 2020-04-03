@@ -1819,7 +1819,8 @@ namespace Poltergeist
                 style.fontSize = tempSize;
                 style.normal.textColor = tempColor;
 
-                subRect.y += 12;
+                // For vertical layout making a height correction proportional to font size difference.
+                subRect.y += VerticalLayout ? (int)(Units(1) * (double)16 / 18) + 4 : Units(1) + 4;
             }
         }
 
@@ -2029,7 +2030,7 @@ namespace Poltergeist
 
             decimal feeBalance = state.GetAvailableAmount("KCAL");
 
-            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, VerticalLayout ? Units(6) : Units(5), state.balances.Where(x => x.Total >= 0.001m),
+            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, VerticalLayout ? Units(7) : Units(6), state.balances.Where(x => x.Total >= 0.001m),
                 DoBalanceEntry);
 
             if (balanceCount == 0)
@@ -2050,7 +2051,12 @@ namespace Poltergeist
             {
                 if (VerticalLayout)
                 {
-                    GUI.DrawTexture(new Rect(Units(1) + 4, curY + Units(4) - 4, Units(2), Units(2)), icon);
+                    var iconY = curY;
+                    iconY += Units(1); // Adding border height
+                    iconY += Units(1); // Adding first label height
+                    iconY += (int)((Units(1) * (double)16 / 18)) * 2; // Adding 2nd and 3rd label heights
+                    iconY += 4 * 3; // Adding 3 spacings
+                    GUI.DrawTexture(new Rect(Units(1) + 4, iconY, Units(2), Units(2)), icon);
                 }
                 else
                 {
@@ -2327,7 +2333,7 @@ namespace Poltergeist
                         }
                 }
 
-            int btnY = VerticalLayout ? Units(4): Units(1) + 8;
+            int btnY = VerticalLayout ? Units(4) + 8: Units(2);
 
             if (!string.IsNullOrEmpty(tertiaryAction))
             {
