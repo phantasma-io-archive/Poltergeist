@@ -893,11 +893,6 @@ namespace Poltergeist
             {
                 int halfWidth = (int)(modalRect.width / 2);
 
-                if (VerticalLayout)
-                {
-                    halfWidth += Units(1);
-                }
-
                 DoButton(true, new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
                 {
                     AudioManager.Instance.PlaySFX("cancel");
@@ -914,7 +909,7 @@ namespace Poltergeist
             else
             if (modalOptions.Length > 0)
             {
-                DoButton(true, new Rect((rect.width - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
+                DoButton(true, new Rect((modalRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("click");
                     modalResult = PromptResult.Success;
