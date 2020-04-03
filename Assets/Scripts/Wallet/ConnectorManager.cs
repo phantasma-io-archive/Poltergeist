@@ -36,6 +36,7 @@ namespace Poltergeist
             this.link = new WalletConnector();
 
             Debug.Log("Starting websocket server for Phantasma wallet connector at port " + Port);
+            Log.Write("Starting websocket server for Phantasma wallet connector at port " + Port);
 
             this.StartTime = DateTime.Now;
 
@@ -59,6 +60,7 @@ namespace Poltergeist
             catch (Exception e)
             {
                 Debug.LogError(e.ToString());
+                Log.Write(e.ToString());
                 return;
             }
 
@@ -91,12 +93,14 @@ namespace Poltergeist
             catch (Exception e)
             {
                 Debug.LogError(e.ToString());
+                Log.Write(e.ToString());
             }
         }
 
         private void OnDestroy()
         {
             Debug.Log("Stopping websocket server");
+            Log.Write("Stopping websocket server");
 
             if (listener != null)
             {
@@ -128,6 +132,7 @@ namespace Poltergeist
         private void OnClientConnect(System.IAsyncResult result)
         {
             Debug.Log("Incoming client connecting");
+            Log.Write("Incoming client connecting");
 
             Socket client;
             try
@@ -137,6 +142,7 @@ namespace Poltergeist
             catch (System.Exception e)
             {
                 Debug.LogError("Exception when accepting incoming connection: " + e);
+                Log.Write("Exception when accepting incoming connection: " + e);
                 return;
             }
 
@@ -147,6 +153,7 @@ namespace Poltergeist
             catch (System.Exception e)
             {
                 Debug.LogError("Exception when starting new accept process: " + e);
+                Log.Write("Exception when starting new accept process: " + e);
             }
 
             try
@@ -203,6 +210,7 @@ namespace Poltergeist
 
                                             var temp = line.ToString();
                                             Debug.Log(temp);
+                                            Log.Write(temp, Log.DetailsLevel.LowLevel1);
 
                                             if (temp.Contains("\0"))
                                             {
@@ -272,6 +280,7 @@ namespace Poltergeist
                                             request.url = s[1];
 
                                             Debug.Log(request.method.ToString() + " " + s[1]);
+                                            Log.Write(request.method.ToString() + " " + s[1], Log.DetailsLevel.LowLevel1);
 
                                             if (isWebSocket)
                                             {
@@ -347,17 +356,20 @@ namespace Poltergeist
                                             else
                                             {
                                                 Debug.LogError("Not a valid websocket request");
+                                                Log.Write("Not a valid websocket request");
                                             }
                                         }
                                         else
                                         {
                                             Debug.LogError("Failed parsing request method");
+                                            Log.Write("Failed parsing request method");
                                         }
 
                                     }
                                     else
                                     {
                                         Debug.LogError("Failed parsing request data");
+                                        Log.Write("Failed parsing request data");
                                     }
 
                                     requestCount++;
@@ -370,6 +382,7 @@ namespace Poltergeist
             catch (Exception e)
             {
                 Debug.Log(e.ToString());
+                Log.Write(e.ToString());
             }
             finally
             {
