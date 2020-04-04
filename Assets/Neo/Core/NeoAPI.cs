@@ -785,6 +785,15 @@ namespace Phantasma.Neo.Core
             UnityEngine.Debug.LogError(type + ": " + msg);
         }
 
+        private void ErrorHandlerWithThrow(Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE type, string msg)
+        {
+            // This handler uses Debug.Log() instead of Debug.LogError() to avoid getting to fatal error screen.
+            UnityEngine.Debug.Log(type + ": " + msg);
+            // We throw exception to be catched by StartThrowingCoroutine(),
+            // so that it could be processed by calling code.
+            throw new Exception(type + ": " + msg);
+        }
+
         public IEnumerator GetAssetBalancesOf(NeoKeys key, Action<Dictionary<string, decimal>> callback)
         {
             return GetAssetBalancesOf(key.Address, callback);
@@ -927,7 +936,7 @@ namespace Phantasma.Neo.Core
                     callback(e.ToString());
                 }
             },
-            ErrorHandler, "sendrawtransaction", new object[] { hexTx });
+            ErrorHandlerWithThrow, "sendrawtransaction", new object[] { hexTx });
         }
 
         protected IEnumerator SendTransaction(Transaction tx, Action<string> callback)
