@@ -894,11 +894,6 @@ namespace Poltergeist
             {
                 int halfWidth = (int)(modalRect.width / 2);
 
-                if (VerticalLayout)
-                {
-                    halfWidth += Units(1);
-                }
-
                 DoButton(true, new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
                 {
                     AudioManager.Instance.PlaySFX("cancel");
@@ -915,7 +910,7 @@ namespace Poltergeist
             else
             if (modalOptions.Length > 0)
             {
-                DoButton(true, new Rect((rect.width - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
+                DoButton(true, new Rect((modalRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("click");
                     modalResult = PromptResult.Success;
@@ -1520,22 +1515,29 @@ namespace Poltergeist
 
             int curY = Units(7);
 
-            var fieldWidth = Units(20);
+            var labelWidth = Units(8);
+            var fieldX = Units(11); // X for fields and combos.
+            var fieldWidth = Units(20); // Width of text fields.
+            var comboWidth = Units(8); // Width of combo fields.
 
             int dropHeight;
 
-            // startY: Vertical starting position of "Settings" box.
+            // startX, startY: Starting position of "Settings" box.
+            int startX = Border;
             int startY = (int)(curY - Border);
             // boxWidth, boxHeight: Size of "Settings" box.
             int boxWidth = (int)(windowRect.width - (Border * 2));
             int boxHeight = (int)(windowRect.height - (Border * 2 + curY));
+            
+            fieldWidth = Math.Min(fieldWidth, boxWidth - fieldX - Units(3));
+            comboWidth = Math.Min(comboWidth, boxWidth - fieldX - Units(3));
 
-            GUI.Box(new Rect(Border, startY, boxWidth, boxHeight), "");
+            GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation: 10 elements with (height + spacing) = Units(3), last element has additional Units(1) spacing before it.
             var insideRect = new Rect(0, 0, boxWidth, Units(3) * 10 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
-            var outsideRect = new Rect(Border, startY, boxWidth, boxHeight - Units(4));
+            var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
             bool needsScroll = insideRect.height > outsideRect.height;
             if (needsScroll)
@@ -1558,20 +1560,22 @@ namespace Poltergeist
             GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Sound Effects");
             curY += Units(3);
 
-            GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Nexus");
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus");
             var nexusList = availableNexus.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             var prevNexus = nexusIndex;
+
             nexusIndex = nexusComboBox.Show(new Rect(posX + Units(10), curY, Units(8), Units(2)), nexusList, 0, out dropHeight, null, 1);
+
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
-            if (settings.nexusKind != NexusKind.Main_Net && settings.nexusKind != NexusKind.Unknown)
+            if (settings.nexusKind != NexusKind.Main_Net && settings.nexusKind != NexusKind.Custom && settings.nexusKind != NexusKind.Unknown)
             {
                 var style = GUI.skin.label;
                 var tempStyle = style.fontStyle;
                 style.fontStyle = FontStyle.Italic;
-                var warningHeight = Units(VerticalLayout ? 6: 2);
-                GUI.Label(new Rect(posX, curY, windowRect.width - (posX +Border*2), warningHeight), "WARNING - Use this network only if you are a developer or tester.\nAll assets used here are only for development, not real.");
+                var warningHeight = Units(VerticalLayout ? 6: 4);
+                GUI.Label(new Rect(posX, curY, boxWidth - (posX + Border*2), warningHeight), "WARNING - Use this network only if you are a developer or tester.\nAll assets used here are only for development, not real.");
                 style.fontStyle = tempStyle;
                 curY += warningHeight + Units(1);
             }
@@ -1607,16 +1611,16 @@ namespace Poltergeist
 
             if (hasCustomEndPoints)
             {
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Phantasma RPC URL");
-                settings.phantasmaBPURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Phantasma RPC URL");
+                settings.phantasmaBPURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Neo RPC URL");
-                settings.neoRPCURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.neoRPCURL);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neo RPC URL");
+                settings.neoRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoRPCURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Neoscan API URL");
-                settings.neoscanURL = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.neoscanURL);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neoscan API URL");
+                settings.neoscanURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoscanURL);
                 curY += Units(3);
             }
             else
@@ -1626,15 +1630,15 @@ namespace Poltergeist
 
             if (hasCustomName)
             {
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Nexus Name");
-                settings.nexusName = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.nexusName);
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus Name");
+                settings.nexusName = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.nexusName);
                 curY += Units(3);
             }
 
             if (hasCustomFee)
             {
-                GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Fee price");
-                var fee = GUI.TextField(new Rect(Units(11), curY, fieldWidth, Units(2)), settings.feePrice.ToString());
+                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Fee price");
+                var fee = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.feePrice.ToString());
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
@@ -1646,14 +1650,17 @@ namespace Poltergeist
                 {
                     PromptBox("All wallets and settings stored in this device will be lost.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", ModalConfirmCancel, (result) =>
                     {
-                        AudioManager.Instance.PlaySFX("click");
-                        accountManager.DeleteAll();
-                        PlayerPrefs.DeleteAll();
-                        accountManager.Settings.Load();
-                        MessageBox(MessageKind.Default, "All data removed from this device.", () =>
+                        if (result == PromptResult.Success)
                         {
-                            CloseCurrentStack();
-                        });
+                            AudioManager.Instance.PlaySFX("click");
+                            accountManager.DeleteAll();
+                            PlayerPrefs.DeleteAll();
+                            accountManager.Settings.Load();
+                            MessageBox(MessageKind.Default, "All data removed from this device.", () =>
+                            {
+                                CloseCurrentStack();
+                            });
+                        }
                     });
                 });
 
@@ -1663,8 +1670,25 @@ namespace Poltergeist
             GUI.EndScrollView();
 
             var btnWidth = Units(10);
+            var btnHeight = Units(2);
+            var btnVerticalSpacing = 4;
             curY = (int)(windowRect.height - Units(6));
-            DoButton(true, new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, Units(2)), "Cancel", () =>
+
+            Rect cancelBtnRect;
+            Rect confirmBtnRect;
+
+            if (VerticalLayout)
+            {
+                cancelBtnRect = new Rect(startX + Border * 2, startY + boxHeight - btnHeight - Border, boxWidth - Border * 4, btnHeight);
+                confirmBtnRect = new Rect(startX + Border * 2, startY + boxHeight - btnHeight * 2 - Border - btnVerticalSpacing, boxWidth - Border * 4, btnHeight);
+            }
+            else
+            {
+                cancelBtnRect = new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, btnHeight);
+                confirmBtnRect = new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, btnHeight);
+            }
+
+            DoButton(true, cancelBtnRect, "Cancel", () =>
             {
                 AudioManager.Instance.PlaySFX("cancel");
 
@@ -1677,7 +1701,7 @@ namespace Poltergeist
 
                 CloseCurrentStack();
             });
-            DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Confirm", () =>
+            DoButton(true, confirmBtnRect, "Confirm", () =>
             {
                 if (ValidateSettings())
                 {
@@ -1793,7 +1817,8 @@ namespace Poltergeist
                 style.fontSize = tempSize;
                 style.normal.textColor = tempColor;
 
-                subRect.y += 12;
+                // For vertical layout making a height correction proportional to font size difference.
+                subRect.y += VerticalLayout ? (int)(Units(1) * (double)16 / 18) + 4 : Units(1) + 4;
             }
         }
 
@@ -2003,7 +2028,7 @@ namespace Poltergeist
 
             decimal feeBalance = state.GetAvailableAmount("KCAL");
 
-            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, VerticalLayout ? Units(6) : Units(5), state.balances.Where(x => x.Total >= 0.001m),
+            var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, VerticalLayout ? Units(7) : Units(6), state.balances.Where(x => x.Total >= 0.001m),
                 DoBalanceEntry);
 
             if (balanceCount == 0)
@@ -2024,7 +2049,12 @@ namespace Poltergeist
             {
                 if (VerticalLayout)
                 {
-                    GUI.DrawTexture(new Rect(Units(1) + 4, curY + Units(4) - 4, Units(2), Units(2)), icon);
+                    var iconY = curY;
+                    iconY += Units(1); // Adding border height
+                    iconY += Units(1); // Adding first label height
+                    iconY += (int)((Units(1) * (double)16 / 18)) * 2; // Adding 2nd and 3rd label heights
+                    iconY += 4 * 3; // Adding 3 spacings
+                    GUI.DrawTexture(new Rect(Units(1) + 4, iconY, Units(2), Units(2)), icon);
                 }
                 else
                 {
@@ -2301,7 +2331,7 @@ namespace Poltergeist
                         }
                 }
 
-            int btnY = VerticalLayout ? Units(4): Units(1) + 8;
+            int btnY = VerticalLayout ? Units(4) + 8: Units(2);
 
             if (!string.IsNullOrEmpty(tertiaryAction))
             {
