@@ -2124,7 +2124,8 @@ namespace Poltergeist
                 switch (balance.Symbol)
                 {
                     case "MKNI":
-                        if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                        // Temporary hide this button because of a crash in dapp.
+                        /*if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                         {
                             secondaryAction = "Dapps";
                             secondaryEnabled = true;
@@ -2132,7 +2133,7 @@ namespace Poltergeist
                             {
                                 PushState(GUIState.Dapps);
                             };
-                        }
+                        }*/
                         break;
 
                     case "SOUL":
