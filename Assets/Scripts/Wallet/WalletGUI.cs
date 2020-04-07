@@ -426,6 +426,7 @@ namespace Poltergeist
             modalHints = null;
             modalMaxLines = multiLine;
             hintComboBox.SelectedItemIndex = -1;
+            hintComboBox.ListScroll = Vector2.zero;
             modalLineCount = 1 + modalCaption.Where(x => x == '\n').Count();
         }
 
@@ -924,7 +925,7 @@ namespace Poltergeist
                 var hintList = modalHints.Keys.ToList();
 
                 var prevHind = hintComboBox.SelectedItemIndex;
-                var hintIndex = hintComboBox.Show(new Rect(rect.width - hintWidth + 8, curY, hintWidth, Units(2)), hintList, out dropHeight, "...");
+                var hintIndex = hintComboBox.Show(new Rect(rect.width - hintWidth + 8, curY, hintWidth, Units(2)), hintList, (int)modalRect.height - (curY + Units(2)) - Border, out dropHeight, "...");
                 if (prevHind != hintIndex && hintIndex >= 0)
                 {
                     var key = hintList[hintIndex];
@@ -1550,8 +1551,8 @@ namespace Poltergeist
 
             curY = Units(1); // Vertical position inside scroll view.
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Currency");
-            currencyIndex = currencyComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), currencyOptions, out dropHeight);
+            GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Currency");
+            currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions, 0, out dropHeight);
             settings.currency = currencyOptions[currencyIndex];
             curY += dropHeight + Units(1);
 
@@ -1562,7 +1563,9 @@ namespace Poltergeist
             GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus");
             var nexusList = availableNexus.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             var prevNexus = nexusIndex;
-            nexusIndex = nexusComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), nexusList, out dropHeight, null, 1);
+
+            nexusIndex = nexusComboBox.Show(new Rect(posX + Units(10), curY, Units(8), Units(2)), nexusList, 0, out dropHeight, null, 1);
+
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
@@ -1752,7 +1755,7 @@ namespace Poltergeist
                 platformComboBox.SelectedItemIndex = currentPlatformIndex;
 
                 int dropHeight;
-                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, curY, Units(8), Units(1)), platformList, out dropHeight);
+                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, curY, Units(8), Units(1)), platformList, 0, out dropHeight);
 
                 if (platformIndex != currentPlatformIndex)
                 {
