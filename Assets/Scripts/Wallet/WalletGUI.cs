@@ -3335,6 +3335,32 @@ namespace Poltergeist
 
             hints["Scan QR"] = $"|{GUIState.ScanQR}";
 
+            // Adding this account addresses at the beggining of item list.
+            var platformsForCurrentAccount = accountManager.CurrentAccount.platforms.Split();
+
+            foreach (var platform in platformsForCurrentAccount)
+            {
+                if (platform == accountManager.CurrentPlatform)
+                {
+                    continue;
+                }
+
+                if (targets.HasFlag(platform))
+                {
+                    var addr = accountManager.GetAddress(accountManager.CurrentIndex, platform);
+                    if (!string.IsNullOrEmpty(addr))
+                    {
+                        var shortenedPlatform = platform.ToString();
+                        if (platform.ToString() == "Phantasma")
+                        {
+                            shortenedPlatform = "Pha";
+                        }
+                        var key = $"{accountManager.CurrentAccount.name} [{shortenedPlatform}]";
+                        hints[key] = addr;
+                    }
+                }
+            }
+
             for (int index=0; index< accountManager.Accounts.Length; index++)
             {
                 var account = accountManager.Accounts[index];
@@ -3342,7 +3368,7 @@ namespace Poltergeist
 
                 foreach (var platform in platforms)
                 {
-                    if (account.name == accountManager.CurrentAccount.name && platform == accountManager.CurrentPlatform)
+                    if (account.name == accountManager.CurrentAccount.name)
                     {
                         continue;
                     }
@@ -3352,7 +3378,12 @@ namespace Poltergeist
                         var addr = accountManager.GetAddress(index, platform);
                         if (!string.IsNullOrEmpty(addr))
                         {
-                            var key = $"{account.name} [{platform}]";
+                            var shortenedPlatform = platform.ToString();
+                            if (platform.ToString() == "Phantasma")
+                            {
+                                shortenedPlatform = "Pha";
+                            }
+                            var key = $"{account.name} [{shortenedPlatform}]";
                             hints[key] = addr;
                         }
                     }
