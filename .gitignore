@@ -11,5 +11,5 @@ Temp/
 *.user
 packages/
 *launchSettings.json
-
+poltergeist.keystore
 Assets/Audio/

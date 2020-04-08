@@ -8,6 +8,8 @@ using Phantasma.Cryptography;
 using Phantasma.Domain;
 using Phantasma.SDK;
 using Phantasma.Numerics;
+using System.IO;
+using Phantasma.Core.Types;
 
 namespace Poltergeist
 {
@@ -47,6 +49,9 @@ namespace Poltergeist
                 };
             }
 
+            // TODO should return an error to plink here!!!
+            Debug.LogError("not logged in, pls implement this case!");
+
             return new Account()
             {
                 name = "Unknown",
@@ -75,9 +80,9 @@ namespace Poltergeist
         {
         }
 
-        protected override void InvokeScript(string script, int id, Action<int, DataNode, bool> callback)
+        protected override void InvokeScript(byte[] script, int id, Action<int, DataNode, bool> callback)
         {
-            api.InvokeRawScript("main", script, (x) =>
+            api.InvokeRawScript("main", Base16.Encode(script), (x) =>
             {
                 var root = Phantasma.Domain.APIUtils.FromAPIResult(new Invocation()
                 {
@@ -90,6 +95,47 @@ namespace Poltergeist
                 var root = Phantasma.Domain.APIUtils.FromAPIResult(new Error() { message = log });
                 callback(id, root, false);
             });
+        }
+
+        protected override Hash SignTransaction(string nexus, string chain, byte[] script, int id, Action<int, DataNode, bool> callback)
+        {
+            var state = AccountManager.Instance.CurrentState;
+            if (state == null)
+            {
+                // TODO should return an error here!!!
+                Debug.LogError("not logged in, pls implement this case!");
+
+                return Hash.Null;
+            }
+
+            var account = AccountManager.Instance.CurrentAccount;
+
+            if (account.platforms.HasFlag(PlatformKind.Phantasma))
+            {
+                Debug.Log("Signing incoming tx from Phantasma link. Script => "+Base16.Encode(script));
+
+                var expiration = (Timestamp)DateTime.UtcNow.AddMinutes(3);
+                var tx = new Phantasma.Blockchain.Transaction(nexus, chain, script, expiration, AccountManager.WalletIdentifier);
+
+                var keys = PhantasmaKeys.FromWIF(account.WIF);
+                tx.Sign(keys);
+
+                var txBytes = tx.ToByteArray(true);
+                api.SendRawTransaction(Base16.Encode(txBytes), (x) =>
+                {
+
+                }, (errorType, errorMsg) =>
+                {
+                    Debug.LogError("api error:" + errorMsg);
+                });
+
+                return tx.Hash;
+            }
+            else
+            {               
+                Debug.LogError("phantasma wallet not available in this account, pls implement this case!");
+                return Hash.Null;
+            }
         }
     }
 }
