@@ -6,24 +6,24 @@ using UnityEngine;
 
 public static class Log
 {
-    public enum DetailsLevel
+    public enum Level
     {
         Disabled,
-        LogicLevel,
-        NetworkingLevel,
-        LowLevel1,
-        LowLevel2,
-        LowLevel3
+        Logic,
+        Networking,
+        Debug1,
+        Debug2,
+        Debug3
     }
 
     private static string FilePath;
-    private static DetailsLevel MaxDetailsLevel = DetailsLevel.NetworkingLevel;
+    private static Level MaxLevel = Level.Networking;
     private static bool OverwriteOldContent = false;
     private static bool CompactMode = false;
 
-    public static void Init(string fileName, DetailsLevel maxDetailsLevel, bool forceWorkingFolderUsage = false, bool overwriteOldContent = false)
+    public static void Init(string fileName, Level maxLevel, bool forceWorkingFolderUsage = false, bool overwriteOldContent = false)
     {
-        MaxDetailsLevel = maxDetailsLevel;
+        MaxLevel = maxLevel;
 
         OverwriteOldContent = overwriteOldContent;
 
@@ -39,9 +39,9 @@ public static class Log
         CompactMode = compactMode;
     }
 
-    public static void Write(string message, DetailsLevel detailsLevel = DetailsLevel.LogicLevel)
+    public static void Write(string message, Level level = Level.Logic)
     {
-        if(MaxDetailsLevel == DetailsLevel.Disabled || detailsLevel > MaxDetailsLevel)
+        if(MaxLevel == Level.Disabled || level > MaxLevel)
             return;
 
         FileMode _fileMode = FileMode.Append;
@@ -59,20 +59,20 @@ public static class Log
                 DateTime _now = DateTime.Now;
 
                 string _additional_padding = "";
-                switch (detailsLevel)
+                switch (level)
                 {
-                    case DetailsLevel.LogicLevel:
+                    case Level.Logic:
                         break;
-                    case DetailsLevel.NetworkingLevel:
+                    case Level.Networking:
                         _additional_padding = "<-> ";
                         break;
-                    case DetailsLevel.LowLevel1:
+                    case Level.Debug1:
                         _additional_padding = new String(' ', 8);
                         break;
-                    case DetailsLevel.LowLevel2:
+                    case Level.Debug2:
                         _additional_padding = new String(' ', 12);
                         break;
-                    case DetailsLevel.LowLevel3:
+                    case Level.Debug3:
                         _additional_padding = new String(' ', 16);
                         break;
                 }

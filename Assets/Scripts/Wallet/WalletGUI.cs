@@ -140,7 +140,7 @@ namespace Poltergeist
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
-        private Log.DetailsLevel[] availableLogLevels = Enum.GetValues(typeof(Log.DetailsLevel)).Cast<Log.DetailsLevel>().ToArray();
+        private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
 
         private bool initialized;
 
@@ -170,7 +170,7 @@ namespace Poltergeist
             // to initialize log properly.
             AccountManager.Instance.Settings.LoadLogSettings();
 
-            Log.DetailsLevel _logDetailsLevel = AccountManager.Instance.Settings.logLevel;
+            Log.Level _logLevel = AccountManager.Instance.Settings.logLevel;
             var _logOverwriteMode = AccountManager.Instance.Settings.logOverwriteMode;
             bool _logForceWorkingFolderUsage = false;
 
@@ -184,7 +184,7 @@ namespace Poltergeist
                         {
                             if (i + 1 < _args.Length)
                             {
-                                Enum.TryParse<Log.DetailsLevel>(_args[i + 1], true, out _logDetailsLevel);
+                                Enum.TryParse<Log.Level>(_args[i + 1], true, out _logLevel);
                             }
 
                             break;
@@ -199,12 +199,12 @@ namespace Poltergeist
                 }
             }
 
-            Log.Init("poltergeist.log", _logDetailsLevel, _logForceWorkingFolderUsage, _logOverwriteMode);
+            Log.Init("poltergeist.log", _logLevel, _logForceWorkingFolderUsage, _logOverwriteMode);
             Log.Write("********************************************************\n" +
                        "************** Poltergeist Wallet started **************\n" +
                        "********************************************************\n" +
                        "Wallet version: " + UnityEngine.Application.version + "\n" +
-                       "Log details level: " + _logDetailsLevel.ToString());
+                       "Log level: " + _logLevel.ToString());
 
             initialized = false;
 

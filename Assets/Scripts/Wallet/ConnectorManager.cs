@@ -210,7 +210,7 @@ namespace Poltergeist
 
                                             var temp = line.ToString();
                                             Debug.Log(temp);
-                                            Log.Write(temp, Log.DetailsLevel.LowLevel1);
+                                            Log.Write(temp, Log.Level.Debug1);
 
                                             if (temp.Contains("\0"))
                                             {
@@ -280,7 +280,7 @@ namespace Poltergeist
                                             request.url = s[1];
 
                                             Debug.Log(request.method.ToString() + " " + s[1]);
-                                            Log.Write(request.method.ToString() + " " + s[1], Log.DetailsLevel.LowLevel1);
+                                            Log.Write(request.method.ToString() + " " + s[1], Log.Level.Debug1);
 
                                             if (isWebSocket)
                                             {
