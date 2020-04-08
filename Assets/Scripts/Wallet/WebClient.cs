@@ -43,7 +43,6 @@ namespace Phantasma.SDK
                 throw e;
             }
 
-            Debug.Log($"RPC request\nurl:{url}\njson: {json}");
             Log.Write($"RPC request\nurl: {url}\njson: {json}", Log.Level.Networking);
 
             request = new UnityWebRequest(url, "POST");
@@ -58,13 +57,11 @@ namespace Phantasma.SDK
 
             if (request.isNetworkError || request.isHttpError)
             {
-                Debug.Log(request.error);
                 Log.Write($"RPC error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}\nresponseCode: {request.responseCode}", Log.Level.Networking);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error + $"\nURL: {url}\nIs network error: {request.isNetworkError}\nIs HTTP error: {request.isHttpError}\nResponse code: {request.responseCode}");
             }
             else
             {
-                Debug.Log(request.downloadHandler.text);
                 Log.Write($"RPC response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
 
@@ -99,7 +96,6 @@ namespace Phantasma.SDK
         {
             UnityWebRequest request;
 
-            Debug.Log($"REST request\nurl:{url}");
             Log.Write($"REST request\nurl: {url}", Log.Level.Networking);
 
             request = new UnityWebRequest(url, "GET");
@@ -111,13 +107,11 @@ namespace Phantasma.SDK
 
             if (request.isNetworkError || request.isHttpError)
             {
-                Debug.Log(request.error);
                 Log.Write($"REST error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}\nresponseCode: {request.responseCode}", Log.Level.Networking);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error + $"\nURL: {url}\nIs network error: {request.isNetworkError}\nIs HTTP error: {request.isHttpError}\nResponse code: {request.responseCode}");
             }
             else
             {
-                Debug.Log(request.downloadHandler.text);
                 Log.Write($"REST response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
                 var root = JSONReader.ReadFromString(request.downloadHandler.text);
                 callback(root);

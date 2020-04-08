@@ -254,14 +254,14 @@ namespace Poltergeist
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning(e.ToString());
+                    Log.WriteWarning(e.ToString());
                 }
             });
         }
 
         private void SetTokenPrice(string symbol, decimal price)
         {
-            Debug.Log($"Got price for {symbol} => {price}");
+            Log.Write($"Got price for {symbol} => {price}");
             _tokenPrices[symbol] = price;
         }
 
@@ -284,7 +284,7 @@ namespace Poltergeist
             StartCoroutine(
                 WebClient.RESTRequest(url, (error, msg) =>
                 {
-                    Debug.Log("auto error => " + error);
+                    Log.Write("auto error => " + error);
                 },
                 (response) =>
                 {
@@ -293,7 +293,7 @@ namespace Poltergeist
                     var result = node.GetString("url") + "/rpc";
                    
                     Settings.phantasmaRPCURL = result;
-                    Debug.Log($"changed RPC url {index} => {result}");
+                    Log.Write($"changed RPC url {index} => {result}");
                     UpdateAPIs();
                 })
             );
@@ -386,7 +386,7 @@ namespace Poltergeist
                 _tokenHashMap[token.hash] = token;
             }
 
-            Debug.Log($"{_tokenSymbolMap.Count} tokens supported");
+            Log.Write($"{_tokenSymbolMap.Count} tokens supported");
             Status = "ok";
         }
 
@@ -421,7 +421,7 @@ namespace Poltergeist
 
         public void UpdateAPIs()
         {
-            Debug.Log("reinit APIs => " + Settings.phantasmaRPCURL);
+            Log.Write("reinit APIs => " + Settings.phantasmaRPCURL);
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
         }
@@ -558,7 +558,7 @@ namespace Poltergeist
 
                                             StartCoroutine(neoApi.GetUnspent(keys.Address, (unspent) =>
                                             {
-                                                Debug.Log("Got unspents for " + keys.Address);
+                                                Log.Write("Got unspents for " + keys.Address);
 
                                                 if (transfer.symbol == "NEO" || transfer.symbol == "GAS")
                                                 {
@@ -658,7 +658,7 @@ namespace Poltergeist
 
             if (state != null)
             {
-                Debug.Log("Received new state for " + platform);
+                Log.Write("Received new state for " + platform);
                 _states[platform] = state;
 
                 if (!_accountInitialized && GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
@@ -696,7 +696,7 @@ namespace Poltergeist
 
             if (history != null)
             {
-                Debug.Log("Received new history for " + platform);
+                Log.Write("Received new history for " + platform);
                 _history[platform] = history.ToArray();
 
                 if (CurrentPlatform == PlatformKind.None)
@@ -882,7 +882,7 @@ namespace Poltergeist
                                     }
                                     else
                                     {
-                                        Debug.LogWarning(error);
+                                        Log.WriteWarning(error);
                                     }
 
 
@@ -971,7 +971,7 @@ namespace Poltergeist
                                     }
                                     else
                                     {
-                                        Debug.LogWarning(error);
+                                        Log.WriteWarning(error);
                                     }
 
                                     var state = new AccountState()
@@ -1029,7 +1029,7 @@ namespace Poltergeist
                 var decimals = GetTokenDecimals(swap.symbol);
                 var amount = AmountFromString(swap.value, decimals);
 
-                Debug.Log($"Found pending {platform} swap: {amount} {swap.symbol}");
+                Log.Write($"Found pending {platform} swap: {amount} {swap.symbol}");
 
                 if (balanceMap.ContainsKey(swap.symbol))
                 {
@@ -1321,7 +1321,7 @@ namespace Poltergeist
                 callback(Hash.Parse(hash), null);
             }, (error, msg) =>
             {
-                Debug.LogWarning(msg);
+                Log.WriteWarning(msg);
                 callback(Hash.Null, msg);
             }));
         }

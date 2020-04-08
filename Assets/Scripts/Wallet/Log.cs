@@ -16,6 +16,13 @@ public static class Log
         Debug3
     }
 
+    public enum UnityDebugLogMode
+    {
+        Normal,
+        Warning,
+        Error
+    }
+
     private static string FilePath;
     private static Level MaxLevel = Level.Networking;
     private static bool OverwriteOldContent = false;
@@ -39,8 +46,34 @@ public static class Log
         CompactMode = compactMode;
     }
 
-    public static void Write(string message, Level level = Level.Logic)
+    // WriteWarning() and WriteError() are two Write() wrappers,
+    // corresponding to Unity Debug.LogWarning() and Debug.LogError().
+    // They are made for better visibility in code.
+    public static void WriteWarning(string message, Level level = Level.Logic)
     {
+        Write(message, level, UnityDebugLogMode.Warning);
+    }
+
+    public static void WriteError(string message, Level level = Level.Logic)
+    {
+        Write(message, level, UnityDebugLogMode.Error);
+    }
+
+    public static void Write(string message, Level level = Level.Logic, UnityDebugLogMode unityDebugLogMode = UnityDebugLogMode.Normal)
+    {
+        switch (unityDebugLogMode)
+        {
+            case UnityDebugLogMode.Normal:
+                Debug.Log(message);
+                break;
+            case UnityDebugLogMode.Warning:
+                Debug.LogWarning(message);
+                break;
+            case UnityDebugLogMode.Error:
+                Debug.LogError(message);
+                break;
+        }
+
         if(MaxLevel == Level.Disabled || level > MaxLevel)
             return;
 

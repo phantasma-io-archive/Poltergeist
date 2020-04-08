@@ -210,7 +210,7 @@ namespace Poltergeist
 
             guiState = GUIState.Loading;
 
-            Debug.Log(Screen.width + " x " + Screen.height);
+            Log.Write(Screen.width + " x " + Screen.height);
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
         }
 
@@ -1898,7 +1898,7 @@ namespace Poltergeist
 
                     if (result != null)
                     {
-                        Debug.Log("DECODED TEXT FROM QR: " +result.Text);
+                        Log.Write("DECODED TEXT FROM QR: " + result.Text);
 
                         foreach (var platform in AccountManager.AvailablePlatforms)
                         {
@@ -1912,7 +1912,7 @@ namespace Poltergeist
                         }
                     }
                 }
-                catch (Exception ex) { Debug.LogWarning(ex.Message); }
+                catch (Exception ex) { Log.WriteWarning(ex.Message); }
             }
 
             DoBackButton();
@@ -3196,7 +3196,7 @@ namespace Poltergeist
                         {
                             if (!string.IsNullOrEmpty(interopAddress))
                             {
-                                Debug.Log("Found interop address: " + interopAddress);
+                                Log.Write("Found interop address: " + interopAddress);
 
                                 var transfer = new TransferRequest()
                                 {

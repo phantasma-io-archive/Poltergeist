@@ -1185,7 +1185,7 @@ namespace Phantasma.SDK
 
         public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, string nexus, byte[] script, string chain, byte[] payload, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            Debug.Log("Sending transaction...");
+			Log.Write("Sending transaction...");
 
             var tx = new Blockchain.Transaction(nexus, chain, script, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
             tx.Sign(keys);

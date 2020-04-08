@@ -122,7 +122,7 @@ namespace LunarLabs.WebSockets
 
         private void _logger(string s)
         {
-            UnityEngine.Debug.Log(s);
+            Log.Write(s);
         }
 
         public WebSocket(Func<MemoryStream> recycledStreamFactory, Stream stream, int keepAliveInterval, string secWebSocketExtensions, bool includeExceptionInCloseResponse, bool isClient, string subProtocol)

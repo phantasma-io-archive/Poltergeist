@@ -782,13 +782,13 @@ namespace Phantasma.Neo.Core
 
         private void ErrorHandler(Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE type, string msg)
         {
-            UnityEngine.Debug.LogError(type + ": " + msg);
+            Log.WriteError(type + ": " + msg);
         }
 
         private void ErrorHandlerWithThrow(Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE type, string msg)
         {
             // This handler uses Debug.Log() instead of Debug.LogError() to avoid getting to fatal error screen.
-            UnityEngine.Debug.Log(type + ": " + msg);
+            Log.Write(type + ": " + msg);
             // We throw exception to be catched by StartThrowingCoroutine(),
             // so that it could be processed by calling code.
             throw new Exception(type + ": " + msg);
