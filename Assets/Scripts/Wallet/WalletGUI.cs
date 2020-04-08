@@ -2023,29 +2023,30 @@ namespace Poltergeist
                 return;
             }
 
+            var state = accountManager.CurrentState;
+
+            if (state != null && state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
+            {
+                if (VerticalLayout)
+                {
+                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), ResourceManager.Instance.MasterLogo);
+                }
+                else
+                {
+                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
+                }
+            }
+
             var startY = DrawPlatformTopMenu(() =>
             {
                 accountManager.RefreshBalances(true);
             });
             var endY = DoBottomMenu();
 
-            var state = accountManager.CurrentState;
-
             if (state == null)
             {
                 DrawCenteredText("Temporary error, cannot display balances...");
                 return;
-            }
-
-            if (state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
-            {
-                if (VerticalLayout)
-                {
-                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), ResourceManager.Instance.MasterLogo);
-                }
-                else {
-                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
-                }
             }
 
             int curY = Units(12);
