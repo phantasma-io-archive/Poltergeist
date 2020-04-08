@@ -50,7 +50,7 @@ namespace Poltergeist
             }
 
             // TODO should return an error to plink here!!!
-            Debug.LogError("not logged in, pls implement this case!");
+            Log.WriteError("not logged in, pls implement this case!");
 
             return new Account()
             {
@@ -103,7 +103,7 @@ namespace Poltergeist
             if (state == null)
             {
                 // TODO should return an error here!!!
-                Debug.LogError("not logged in, pls implement this case!");
+                Log.WriteError("not logged in, pls implement this case!");
 
                 return Hash.Null;
             }
@@ -112,7 +112,7 @@ namespace Poltergeist
 
             if (account.platforms.HasFlag(PlatformKind.Phantasma))
             {
-                Debug.Log("Signing incoming tx from Phantasma link. Script => "+Base16.Encode(script));
+                Log.Write("Signing incoming tx from Phantasma link. Script => "+Base16.Encode(script));
 
                 var expiration = (Timestamp)DateTime.UtcNow.AddMinutes(3);
                 var tx = new Phantasma.Blockchain.Transaction(nexus, chain, script, expiration, AccountManager.WalletIdentifier);
@@ -126,14 +126,14 @@ namespace Poltergeist
 
                 }, (errorType, errorMsg) =>
                 {
-                    Debug.LogError("api error:" + errorMsg);
+                    Log.WriteError("api error:" + errorMsg);
                 });
 
                 return tx.Hash;
             }
             else
-            {               
-                Debug.LogError("phantasma wallet not available in this account, pls implement this case!");
+            {
+                Log.WriteError("phantasma wallet not available in this account, pls implement this case!");
                 return Hash.Null;
             }
         }
