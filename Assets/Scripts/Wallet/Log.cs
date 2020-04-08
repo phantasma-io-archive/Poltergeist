@@ -8,6 +8,7 @@ public static class Log
 {
     public enum DetailsLevel
     {
+        Disabled,
         LogicLevel,
         NetworkingLevel,
         LowLevel1,
@@ -40,7 +41,7 @@ public static class Log
 
     public static void Write(string message, DetailsLevel detailsLevel = DetailsLevel.LogicLevel)
     {
-        if(detailsLevel > MaxDetailsLevel)
+        if(MaxDetailsLevel == DetailsLevel.Disabled || detailsLevel > MaxDetailsLevel)
             return;
 
         FileMode _fileMode = FileMode.Append;

@@ -45,6 +45,9 @@ namespace Poltergeist
         public const string GasPriceTag = "settings.fee.price";
         public const string SFXTag = "settings.sfx";
 
+        public const string LogLevelTag = "log.level";
+        public const string LogOverwriteModeTag = "log.overwrite.mode";
+
         public string phantasmaRPCURL;
         public string phantasmaBPURL;
         public string neoRPCURL;
@@ -54,6 +57,19 @@ namespace Poltergeist
         public BigInteger feePrice;
         public NexusKind nexusKind;
         public bool sfx;
+        public Log.DetailsLevel logLevel;
+        public bool logOverwriteMode;
+
+        public void LoadLogSettings()
+        {
+            var logLevel = PlayerPrefs.GetString(LogLevelTag, Log.DetailsLevel.NetworkingLevel.ToString());
+            if (!Enum.TryParse<Log.DetailsLevel>(logLevel, true, out this.logLevel))
+            {
+                this.logLevel = Log.DetailsLevel.NetworkingLevel;
+            }
+
+            this.logOverwriteMode = PlayerPrefs.GetInt(LogOverwriteModeTag, 1) != 0;
+        }
 
         public void Load()
         {
@@ -82,6 +98,8 @@ namespace Poltergeist
                 this.feePrice = 100000;
             }
 
+            LoadLogSettings();
+
             Log.Write("Settings: Load: Nexus kind: " + this.nexusKind.ToString() + "\n" +
                       "                Phantasma BP: " + this.phantasmaBPURL + "\n" +
                       "                Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
@@ -90,7 +108,9 @@ namespace Poltergeist
                       "                Nexus name: " + this.nexusName + "\n" +
                       "                Currency: " + this.currency + "\n" +
                       "                Sfx: " + this.sfx + "\n" +
-                      "                Fee price: " + this.feePrice
+                      "                Fee price: " + this.feePrice + "\n" +
+                      "                Log level: " + this.logLevel + "\n" +
+                      "                Log overwrite: " + this.logOverwriteMode
                      );
         }
 
@@ -213,6 +233,8 @@ namespace Poltergeist
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
+            PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
+            PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save: Nexus kind: " + nexusKind.ToString() + "\n" +
@@ -222,7 +244,9 @@ namespace Poltergeist
                       "                Nexus name: " + nexusName + "\n" +
                       "                Currency: " + currency + "\n" +
                       "                Sfx: " + sfx + "\n" +
-                      "                Fee price: " + feePrice
+                      "                Fee price: " + feePrice + "\n" +
+                      "                Log level: " + logLevel.ToString() + "\n" +
+                      "                Log overwrite: " + logOverwriteMode
                      );
         }
 

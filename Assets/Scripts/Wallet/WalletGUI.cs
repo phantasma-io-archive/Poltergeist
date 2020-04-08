@@ -137,6 +137,11 @@ namespace Poltergeist
 
         private NexusKind[] availableNexus = Enum.GetValues(typeof(NexusKind)).Cast<NexusKind>().ToArray();
 
+        private int logLevelIndex;
+        private ComboBox logLevelComboBox = new ComboBox();
+
+        private Log.DetailsLevel[] availableLogLevels = Enum.GetValues(typeof(Log.DetailsLevel)).Cast<Log.DetailsLevel>().ToArray();
+
         private bool initialized;
 
         private int virtualWidth;
@@ -161,11 +166,16 @@ namespace Poltergeist
             // Getting wallet's command line args.
             string[] _args = System.Environment.GetCommandLineArgs();
 
-            Log.DetailsLevel _logDetailsLevel = Log.DetailsLevel.NetworkingLevel; // Default value.
-            string _logDetailsLevelString = "NetworkingLevel";
+            // We have to get these settings prior to Settings.Load() call,
+            // to initialize log properly.
+            AccountManager.Instance.Settings.LoadLogSettings();
+
+            Log.DetailsLevel _logDetailsLevel = AccountManager.Instance.Settings.logLevel;
+            var _logOverwriteMode = AccountManager.Instance.Settings.logOverwriteMode;
             bool _logForceWorkingFolderUsage = false;
 
-            // Checking if log options are set.
+            // Checking if log options are set in command line.
+            // They override settings (for debug purposes).
             for (int i = 0; i < _args.Length; i++)
             {
                 switch (_args[i])
@@ -174,13 +184,7 @@ namespace Poltergeist
                         {
                             if (i + 1 < _args.Length)
                             {
-                                _logDetailsLevelString = _args[i + 1];
-
-                                if (!Enum.TryParse<Log.DetailsLevel>(_logDetailsLevelString, true, out _logDetailsLevel))
-                                {
-                                    _logDetailsLevel = Log.DetailsLevel.NetworkingLevel;
-                                    _logDetailsLevelString = "NetworkingLevel";
-                                }
+                                Enum.TryParse<Log.DetailsLevel>(_args[i + 1], true, out _logDetailsLevel);
                             }
 
                             break;
@@ -195,12 +199,12 @@ namespace Poltergeist
                 }
             }
 
-            Log.Init("poltergeist.log", _logDetailsLevel, _logForceWorkingFolderUsage, true);
+            Log.Init("poltergeist.log", _logDetailsLevel, _logForceWorkingFolderUsage, _logOverwriteMode);
             Log.Write("********************************************************\n" +
                        "************** Poltergeist Wallet started **************\n" +
                        "********************************************************\n" +
                        "Wallet version: " + UnityEngine.Application.version + "\n" +
-                       "Log details level: " + _logDetailsLevelString);
+                       "Log details level: " + _logDetailsLevel.ToString());
 
             initialized = false;
 
@@ -347,6 +351,17 @@ namespace Poltergeist
                             }
                         }
                         nexusComboBox.SelectedItemIndex = nexusIndex;
+
+                        logLevelIndex = 0;
+                        for (int i = 0; i < availableLogLevels.Length; i++)
+                        {
+                            if (availableLogLevels[i] == accountManager.Settings.logLevel)
+                            {
+                                logLevelIndex = i;
+                                break;
+                            }
+                        }
+                        logLevelComboBox.SelectedItemIndex = logLevelIndex;
 
                         break;
                     }
@@ -1534,8 +1549,11 @@ namespace Poltergeist
 
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
-            // Height calculation: 10 elements with (height + spacing) = Units(3), last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 10 + Units(1));
+            // Height calculation:
+            // 1) 12 elements with total height of (element height + spacing) * 12 = Units(3) * 12.
+            // 2) Dropdown space for log level combo: Units(2) * 3.
+            // 3) Last element has additional Units(1) spacing before it.
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 12 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1551,8 +1569,8 @@ namespace Poltergeist
 
             curY = Units(1); // Vertical position inside scroll view.
 
-            GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Currency");
-            currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions, 0, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Currency");
+            currencyIndex = currencyComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), currencyOptions, 0, out dropHeight);
             settings.currency = currencyOptions[currencyIndex];
             curY += dropHeight + Units(1);
 
@@ -1563,9 +1581,7 @@ namespace Poltergeist
             GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus");
             var nexusList = availableNexus.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             var prevNexus = nexusIndex;
-
-            nexusIndex = nexusComboBox.Show(new Rect(posX + Units(10), curY, Units(8), Units(2)), nexusList, 0, out dropHeight, null, 1);
-
+            nexusIndex = nexusComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), nexusList, 0, out dropHeight, null, 1);
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
@@ -1642,6 +1658,15 @@ namespace Poltergeist
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
+
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Log level");
+            var logLevelIndex = logLevelComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
+            settings.logLevel = availableLogLevels[logLevelIndex];
+            curY += dropHeight + Units(1);
+
+            settings.logOverwriteMode = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.logOverwriteMode, "");
+            GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Overwrite log at start");
+            curY += Units(3);
 
             if (accountManager.Accounts.Length > 0)
             {
