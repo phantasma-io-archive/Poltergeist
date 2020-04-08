@@ -109,6 +109,7 @@ namespace Poltergeist
 
     public class AccountState
     {
+        public PlatformKind platform;
         public string name;
         public string address;
         public Balance[] balances;
@@ -888,6 +889,7 @@ namespace Poltergeist
 
                                     var state = new AccountState()
                                     {
+                                        platform = platform,
                                         address = acc.address,
                                         name = acc.name,
                                         balances = balanceMap.Values.ToArray(),
@@ -976,6 +978,7 @@ namespace Poltergeist
 
                                     var state = new AccountState()
                                     {
+                                        platform = platform,
                                         address = keys.Address,
                                         name = ValidationUtils.ANONYMOUS, // TODO support NNS
                                         balances = balanceMap.Values.ToArray(),
@@ -1004,6 +1007,7 @@ namespace Poltergeist
             {
                 _states[platform] = new AccountState()
                 {
+                    platform = platform,
                     address = GetAddress(CurrentIndex, platform),
                     balances = new Balance[0],
                     flags = AccountFlags.None,
