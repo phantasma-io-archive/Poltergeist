@@ -224,6 +224,7 @@ namespace Poltergeist
             if (type == LogType.Exception || type == LogType.Error)
             {
                 fatalError = condition + "\nStack trace:\n" + stackTrace;
+                Log.Write($"Fatal error: {fatalError}");
                 SetState(GUIState.Fatal);
             }
         }
@@ -1985,8 +1986,6 @@ namespace Poltergeist
 
         private void DoFatalScreen()
         {
-            Log.Write($"Fatal error: {fatalError}");
-
             int curY;
 
             curY = Units(5);
