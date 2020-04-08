@@ -17,7 +17,7 @@ namespace Poltergeist
 
     public class ConnectorManager : MonoBehaviour
     {
-        public int Port = 7080;
+        public int Port = 7090;
 
         private WalletConnector link;
 
