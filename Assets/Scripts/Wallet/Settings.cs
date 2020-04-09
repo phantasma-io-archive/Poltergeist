@@ -45,6 +45,9 @@ namespace Poltergeist
         public const string GasPriceTag = "settings.fee.price";
         public const string SFXTag = "settings.sfx";
 
+        public const string LogLevelTag = "log.level";
+        public const string LogOverwriteModeTag = "log.overwrite.mode";
+
         public string phantasmaRPCURL;
         public string phantasmaBPURL;
         public string neoRPCURL;
@@ -54,6 +57,19 @@ namespace Poltergeist
         public BigInteger feePrice;
         public NexusKind nexusKind;
         public bool sfx;
+        public Log.Level logLevel;
+        public bool logOverwriteMode;
+
+        public void LoadLogSettings()
+        {
+            var logLevel = PlayerPrefs.GetString(LogLevelTag, Log.Level.Networking.ToString());
+            if (!Enum.TryParse<Log.Level>(logLevel, true, out this.logLevel))
+            {
+                this.logLevel = Log.Level.Networking;
+            }
+
+            this.logOverwriteMode = PlayerPrefs.GetInt(LogOverwriteModeTag, 1) != 0;
+        }
 
         public void Load()
         {
@@ -82,6 +98,8 @@ namespace Poltergeist
                 this.feePrice = 100000;
             }
 
+            LoadLogSettings();
+
             Log.Write("Settings: Load: Nexus kind: " + this.nexusKind.ToString() + "\n" +
                       "                Phantasma BP: " + this.phantasmaBPURL + "\n" +
                       "                Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
@@ -90,7 +108,9 @@ namespace Poltergeist
                       "                Nexus name: " + this.nexusName + "\n" +
                       "                Currency: " + this.currency + "\n" +
                       "                Sfx: " + this.sfx + "\n" +
-                      "                Fee price: " + this.feePrice
+                      "                Fee price: " + this.feePrice + "\n" +
+                      "                Log level: " + this.logLevel + "\n" +
+                      "                Log overwrite: " + this.logOverwriteMode
                      );
         }
 
@@ -119,21 +139,21 @@ namespace Poltergeist
                         case NexusKind.Main_Net:
                             {
                                 string _return_value = "http://207.148.17.86:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
 
                         case NexusKind.Local_Net:
                             {
                                 string _return_value = "http://localhost:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Local_Net): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Local_Net): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
 
                         default:
                             {
                                 string _return_value = "http://207.148.17.86:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
                     }
@@ -146,14 +166,14 @@ namespace Poltergeist
                             {
                                 int index = (int)(DateTime.UtcNow.Ticks % 8)+1;
                                 string _return_value = $"https://seed{index}.cityofzion.io:443";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
 
                         default:
                             {
                                 string _return_value = "http://mankinighost.phantasma.io:30333";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
                     }
@@ -165,14 +185,14 @@ namespace Poltergeist
                         case NexusKind.Main_Net:
                             {
                                 string _return_value = "https://neoscan.io";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
 
                         default:
                             {
                                 string _return_value = "http://mankinighost.phantasma.io:4000";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
                     }
@@ -184,14 +204,14 @@ namespace Poltergeist
                         case NexusKind.Main_Net:
                             {
                                 string _return_value = "mainnet";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
 
                         default:
                             {
                                 string _return_value = "simnet";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.DetailsLevel.LowLevel2);
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }
                     }
@@ -213,6 +233,8 @@ namespace Poltergeist
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
+            PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
+            PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save: Nexus kind: " + nexusKind.ToString() + "\n" +
@@ -222,7 +244,9 @@ namespace Poltergeist
                       "                Nexus name: " + nexusName + "\n" +
                       "                Currency: " + currency + "\n" +
                       "                Sfx: " + sfx + "\n" +
-                      "                Fee price: " + feePrice
+                      "                Fee price: " + feePrice + "\n" +
+                      "                Log level: " + logLevel.ToString() + "\n" +
+                      "                Log overwrite: " + logOverwriteMode
                      );
         }
 
@@ -243,7 +267,7 @@ namespace Poltergeist
                       "                             Neo RPC: " + this.neoRPCURL + "\n" +
                       "                             Neoscan: " + this.neoscanURL + "\n" +
                       "                             Nexus name: " + this.nexusName,
-                      Log.DetailsLevel.LowLevel1);
+                      Log.Level.Debug1);
         }
     }
 }

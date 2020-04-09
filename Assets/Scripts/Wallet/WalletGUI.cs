@@ -137,6 +137,11 @@ namespace Poltergeist
 
         private NexusKind[] availableNexus = Enum.GetValues(typeof(NexusKind)).Cast<NexusKind>().ToArray();
 
+        private int logLevelIndex;
+        private ComboBox logLevelComboBox = new ComboBox();
+
+        private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
+
         private bool initialized;
 
         private int virtualWidth;
@@ -161,11 +166,16 @@ namespace Poltergeist
             // Getting wallet's command line args.
             string[] _args = System.Environment.GetCommandLineArgs();
 
-            Log.DetailsLevel _logDetailsLevel = Log.DetailsLevel.NetworkingLevel; // Default value.
-            string _logDetailsLevelString = "NetworkingLevel";
+            // We have to get these settings prior to Settings.Load() call,
+            // to initialize log properly.
+            AccountManager.Instance.Settings.LoadLogSettings();
+
+            Log.Level _logLevel = AccountManager.Instance.Settings.logLevel;
+            var _logOverwriteMode = AccountManager.Instance.Settings.logOverwriteMode;
             bool _logForceWorkingFolderUsage = false;
 
-            // Checking if log options are set.
+            // Checking if log options are set in command line.
+            // They override settings (for debug purposes).
             for (int i = 0; i < _args.Length; i++)
             {
                 switch (_args[i])
@@ -174,13 +184,7 @@ namespace Poltergeist
                         {
                             if (i + 1 < _args.Length)
                             {
-                                _logDetailsLevelString = _args[i + 1];
-
-                                if (!Enum.TryParse<Log.DetailsLevel>(_logDetailsLevelString, true, out _logDetailsLevel))
-                                {
-                                    _logDetailsLevel = Log.DetailsLevel.NetworkingLevel;
-                                    _logDetailsLevelString = "NetworkingLevel";
-                                }
+                                Enum.TryParse<Log.Level>(_args[i + 1], true, out _logLevel);
                             }
 
                             break;
@@ -195,18 +199,18 @@ namespace Poltergeist
                 }
             }
 
-            Log.Init("poltergeist.log", _logDetailsLevel, _logForceWorkingFolderUsage, true);
+            Log.Init("poltergeist.log", _logLevel, _logForceWorkingFolderUsage, _logOverwriteMode);
             Log.Write("********************************************************\n" +
                        "************** Poltergeist Wallet started **************\n" +
                        "********************************************************\n" +
                        "Wallet version: " + UnityEngine.Application.version + "\n" +
-                       "Log details level: " + _logDetailsLevelString);
+                       "Log level: " + _logLevel.ToString());
 
             initialized = false;
 
             guiState = GUIState.Loading;
 
-            Debug.Log(Screen.width + " x " + Screen.height);
+            Log.Write(Screen.width + " x " + Screen.height);
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
         }
 
@@ -220,6 +224,7 @@ namespace Poltergeist
             if (type == LogType.Exception || type == LogType.Error)
             {
                 fatalError = condition + "\nStack trace:\n" + stackTrace;
+                Log.Write($"Fatal error: {fatalError}");
                 SetState(GUIState.Fatal);
             }
         }
@@ -347,6 +352,17 @@ namespace Poltergeist
                             }
                         }
                         nexusComboBox.SelectedItemIndex = nexusIndex;
+
+                        logLevelIndex = 0;
+                        for (int i = 0; i < availableLogLevels.Length; i++)
+                        {
+                            if (availableLogLevels[i] == accountManager.Settings.logLevel)
+                            {
+                                logLevelIndex = i;
+                                break;
+                            }
+                        }
+                        logLevelComboBox.SelectedItemIndex = logLevelIndex;
 
                         break;
                     }
@@ -1534,8 +1550,11 @@ namespace Poltergeist
 
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
-            // Height calculation: 10 elements with (height + spacing) = Units(3), last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 10 + Units(1));
+            // Height calculation:
+            // 1) 12 elements with total height of (element height + spacing) * 12 = Units(3) * 12.
+            // 2) Dropdown space for log level combo: Units(2) * 3.
+            // 3) Last element has additional Units(1) spacing before it.
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 12 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1551,8 +1570,8 @@ namespace Poltergeist
 
             curY = Units(1); // Vertical position inside scroll view.
 
-            GUI.Label(new Rect(posX, curY, Units(8), Units(2)), "Currency");
-            currencyIndex = currencyComboBox.Show(new Rect(Units(11), curY, Units(8), Units(2)), currencyOptions, 0, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Currency");
+            currencyIndex = currencyComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), currencyOptions, 0, out dropHeight);
             settings.currency = currencyOptions[currencyIndex];
             curY += dropHeight + Units(1);
 
@@ -1563,9 +1582,7 @@ namespace Poltergeist
             GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus");
             var nexusList = availableNexus.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             var prevNexus = nexusIndex;
-
-            nexusIndex = nexusComboBox.Show(new Rect(posX + Units(10), curY, Units(8), Units(2)), nexusList, 0, out dropHeight, null, 1);
-
+            nexusIndex = nexusComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), nexusList, 0, out dropHeight, null, 1);
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
@@ -1642,6 +1659,15 @@ namespace Poltergeist
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
+
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Log level");
+            var logLevelIndex = logLevelComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
+            settings.logLevel = availableLogLevels[logLevelIndex];
+            curY += dropHeight + Units(1);
+
+            settings.logOverwriteMode = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.logOverwriteMode, "");
+            GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Overwrite log at start");
+            curY += Units(3);
 
             if (accountManager.Accounts.Length > 0)
             {
@@ -1873,7 +1899,7 @@ namespace Poltergeist
 
                     if (result != null)
                     {
-                        Debug.Log("DECODED TEXT FROM QR: " +result.Text);
+                        Log.Write("DECODED TEXT FROM QR: " + result.Text);
 
                         foreach (var platform in AccountManager.AvailablePlatforms)
                         {
@@ -1887,7 +1913,7 @@ namespace Poltergeist
                         }
                     }
                 }
-                catch (Exception ex) { Debug.LogWarning(ex.Message); }
+                catch (Exception ex) { Log.WriteWarning(ex.Message); }
             }
 
             DoBackButton();
@@ -1960,8 +1986,6 @@ namespace Poltergeist
 
         private void DoFatalScreen()
         {
-            Log.Write($"Fatal error: {fatalError}");
-
             int curY;
 
             curY = Units(5);
@@ -1999,29 +2023,30 @@ namespace Poltergeist
                 return;
             }
 
+            var state = accountManager.CurrentState;
+
+            if (state != null && state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
+            {
+                if (VerticalLayout)
+                {
+                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), ResourceManager.Instance.MasterLogo);
+                }
+                else
+                {
+                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
+                }
+            }
+
             var startY = DrawPlatformTopMenu(() =>
             {
                 accountManager.RefreshBalances(true);
             });
             var endY = DoBottomMenu();
 
-            var state = accountManager.CurrentState;
-
             if (state == null)
             {
                 DrawCenteredText("Temporary error, cannot display balances...");
                 return;
-            }
-
-            if (state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
-            {
-                if (VerticalLayout)
-                {
-                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), ResourceManager.Instance.MasterLogo);
-                }
-                else {
-                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
-                }
             }
 
             int curY = Units(12);
@@ -3171,7 +3196,7 @@ namespace Poltergeist
                         {
                             if (!string.IsNullOrEmpty(interopAddress))
                             {
-                                Debug.Log("Found interop address: " + interopAddress);
+                                Log.Write("Found interop address: " + interopAddress);
 
                                 var transfer = new TransferRequest()
                                 {
@@ -3311,6 +3336,32 @@ namespace Poltergeist
 
             hints["Scan QR"] = $"|{GUIState.ScanQR}";
 
+            // Adding this account addresses at the beggining of item list.
+            var platformsForCurrentAccount = accountManager.CurrentAccount.platforms.Split();
+
+            foreach (var platform in platformsForCurrentAccount)
+            {
+                if (platform == accountManager.CurrentPlatform)
+                {
+                    continue;
+                }
+
+                if (targets.HasFlag(platform))
+                {
+                    var addr = accountManager.GetAddress(accountManager.CurrentIndex, platform);
+                    if (!string.IsNullOrEmpty(addr))
+                    {
+                        var shortenedPlatform = platform.ToString();
+                        if (platform.ToString() == "Phantasma")
+                        {
+                            shortenedPlatform = "Pha";
+                        }
+                        var key = $"{accountManager.CurrentAccount.name} [{shortenedPlatform}]";
+                        hints[key] = addr;
+                    }
+                }
+            }
+
             for (int index=0; index< accountManager.Accounts.Length; index++)
             {
                 var account = accountManager.Accounts[index];
@@ -3318,7 +3369,7 @@ namespace Poltergeist
 
                 foreach (var platform in platforms)
                 {
-                    if (account.name == accountManager.CurrentAccount.name && platform == accountManager.CurrentPlatform)
+                    if (account.name == accountManager.CurrentAccount.name)
                     {
                         continue;
                     }
@@ -3328,7 +3379,12 @@ namespace Poltergeist
                         var addr = accountManager.GetAddress(index, platform);
                         if (!string.IsNullOrEmpty(addr))
                         {
-                            var key = $"{account.name} [{platform}]";
+                            var shortenedPlatform = platform.ToString();
+                            if (platform.ToString() == "Phantasma")
+                            {
+                                shortenedPlatform = "Pha";
+                            }
+                            var key = $"{account.name} [{shortenedPlatform}]";
                             hints[key] = addr;
                         }
                     }

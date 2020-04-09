@@ -6,23 +6,31 @@ using UnityEngine;
 
 public static class Log
 {
-    public enum DetailsLevel
+    public enum Level
     {
-        LogicLevel,
-        NetworkingLevel,
-        LowLevel1,
-        LowLevel2,
-        LowLevel3
+        Disabled,
+        Logic,
+        Networking,
+        Debug1,
+        Debug2,
+        Debug3
+    }
+
+    public enum UnityDebugLogMode
+    {
+        Normal,
+        Warning,
+        Error
     }
 
     private static string FilePath;
-    private static DetailsLevel MaxDetailsLevel = DetailsLevel.NetworkingLevel;
+    private static Level MaxLevel = Level.Networking;
     private static bool OverwriteOldContent = false;
     private static bool CompactMode = false;
 
-    public static void Init(string fileName, DetailsLevel maxDetailsLevel, bool forceWorkingFolderUsage = false, bool overwriteOldContent = false)
+    public static void Init(string fileName, Level maxLevel, bool forceWorkingFolderUsage = false, bool overwriteOldContent = false)
     {
-        MaxDetailsLevel = maxDetailsLevel;
+        MaxLevel = maxLevel;
 
         OverwriteOldContent = overwriteOldContent;
 
@@ -38,78 +46,104 @@ public static class Log
         CompactMode = compactMode;
     }
 
-    public static void Write(string message, DetailsLevel detailsLevel = DetailsLevel.LogicLevel)
+    // WriteWarning() and WriteError() are two Write() wrappers,
+    // corresponding to Unity Debug.LogWarning() and Debug.LogError().
+    // They are made for better visibility in code.
+    public static void WriteWarning(string message, Level level = Level.Logic)
     {
-        if(detailsLevel > MaxDetailsLevel)
-            return;
+        Write(message, level, UnityDebugLogMode.Warning);
+    }
 
-        FileMode _fileMode = FileMode.Append;
+    public static void WriteError(string message, Level level = Level.Logic)
+    {
+        Write(message, level, UnityDebugLogMode.Error);
+    }
 
-        if (OverwriteOldContent)
+    public static void Write(string message, Level level = Level.Logic, UnityDebugLogMode unityDebugLogMode = UnityDebugLogMode.Normal)
+    {
+        if (MaxLevel != Level.Disabled && level <= MaxLevel)
         {
-            _fileMode = FileMode.Create;
-            OverwriteOldContent = false;
-        }
+            FileMode _fileMode = FileMode.Append;
 
-        using (FileStream _fileStream = File.Open(FilePath, _fileMode, FileAccess.Write, FileShare.Read))
-        {
-            using (StreamWriter _streamWriter = new StreamWriter(_fileStream))
+            if (OverwriteOldContent)
             {
-                DateTime _now = DateTime.Now;
+                _fileMode = FileMode.Create;
+                OverwriteOldContent = false;
+            }
 
-                string _additional_padding = "";
-                switch (detailsLevel)
+            using (FileStream _fileStream = File.Open(FilePath, _fileMode, FileAccess.Write, FileShare.Read))
+            {
+                using (StreamWriter _streamWriter = new StreamWriter(_fileStream))
                 {
-                    case DetailsLevel.LogicLevel:
-                        break;
-                    case DetailsLevel.NetworkingLevel:
-                        _additional_padding = "<-> ";
-                        break;
-                    case DetailsLevel.LowLevel1:
-                        _additional_padding = new String(' ', 8);
-                        break;
-                    case DetailsLevel.LowLevel2:
-                        _additional_padding = new String(' ', 12);
-                        break;
-                    case DetailsLevel.LowLevel3:
-                        _additional_padding = new String(' ', 16);
-                        break;
-                }
+                    DateTime _now = DateTime.Now;
 
-                // Prefix length: 28 symbols.
-                string _timestamp_prefix_local = "[" + _now.ToString("yyyy.MM.dd HH:mm:ss:ffff") + "]: " + _additional_padding;
-                string _timestamp_prefix_utc = "[" + _now.ToUniversalTime().ToString("yyyy.MM.dd HH:mm") + " UTC    ]  " + _additional_padding;
-                string _empty_prefix = new String(' ', 28) + _additional_padding;
-
-                int _line_count = 0;
-                foreach (var _line in message.Split(new string[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    _line_count++;
-
-                    switch (_line_count)
+                    string _additional_padding = "";
+                    switch (level)
                     {
-                        case 1:
-                            _streamWriter.WriteLine(_timestamp_prefix_local + _line);
+                        case Level.Logic:
                             break;
-                        case 2:
-                            _streamWriter.WriteLine(_timestamp_prefix_utc + _line);
+                        case Level.Networking:
+                            _additional_padding = "<-> ";
                             break;
-                        default:
-                            _streamWriter.WriteLine(_empty_prefix + _line);
+                        case Level.Debug1:
+                            _additional_padding = new String(' ', 8);
+                            break;
+                        case Level.Debug2:
+                            _additional_padding = new String(' ', 12);
+                            break;
+                        case Level.Debug3:
+                            _additional_padding = new String(' ', 16);
                             break;
                     }
+
+                    // Prefix length: 28 symbols.
+                    string _timestamp_prefix_local = "[" + _now.ToString("yyyy.MM.dd HH:mm:ss:ffff") + "]: " + _additional_padding;
+                    string _timestamp_prefix_utc = "[" + _now.ToUniversalTime().ToString("yyyy.MM.dd HH:mm") + " UTC    ]  " + _additional_padding;
+                    string _empty_prefix = new String(' ', 28) + _additional_padding;
+
+                    int _line_count = 0;
+                    foreach (var _line in message.Split(new string[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        _line_count++;
+
+                        switch (_line_count)
+                        {
+                            case 1:
+                                _streamWriter.WriteLine(_timestamp_prefix_local + _line);
+                                break;
+                            case 2:
+                                _streamWriter.WriteLine(_timestamp_prefix_utc + _line);
+                                break;
+                            default:
+                                _streamWriter.WriteLine(_empty_prefix + _line);
+                                break;
+                        }
+                    }
+
+                    if (!CompactMode)
+                    {
+                        if (_line_count < 2)
+                            _streamWriter.WriteLine(_timestamp_prefix_utc);
+
+                        _streamWriter.WriteLine("");
+                    }
+
+                    _streamWriter.Flush();
                 }
-
-                if (!CompactMode)
-                {
-                    if (_line_count < 2)
-                        _streamWriter.WriteLine(_timestamp_prefix_utc);
-
-                    _streamWriter.WriteLine("");
-                }
-
-                _streamWriter.Flush();
             }
+        }
+
+        switch (unityDebugLogMode)
+        {
+            case UnityDebugLogMode.Normal:
+                Debug.Log(message);
+                break;
+            case UnityDebugLogMode.Warning:
+                Debug.LogWarning(message);
+                break;
+            case UnityDebugLogMode.Error:
+                Debug.LogError(message);
+                break;
         }
     }
 }
