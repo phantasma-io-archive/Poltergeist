@@ -166,7 +166,7 @@ namespace Poltergeist
         public int CurrentIndex => _selectedAccountIndex;
         public Account CurrentAccount => HasSelection ? Accounts[_selectedAccountIndex] : new Account() { };
 
-        public bool HasSelection => _selectedAccountIndex < Accounts.Length;
+        public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Length;
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
         private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
@@ -651,6 +651,10 @@ namespace Poltergeist
         public void UnselectAcount()
         {
             _selectedAccountIndex = -1;
+
+            _accountInitialized = false;
+
+            _states.Clear();
         }
 
         private void ReportWalletBalance(PlatformKind platform, AccountState state)
