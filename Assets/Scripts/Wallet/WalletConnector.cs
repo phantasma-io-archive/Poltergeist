@@ -80,62 +80,81 @@ namespace Poltergeist
         {
         }
 
-        protected override void InvokeScript(byte[] script, int id, Action<int, DataNode, bool> callback)
+        protected override void InvokeScript(byte[] script, int id, Action<byte[], string> callback)
         {
-            api.InvokeRawScript("main", Base16.Encode(script), (x) =>
+            WalletGUI.Instance.CallOnUIThread(() =>
             {
-                var root = Phantasma.Domain.APIUtils.FromAPIResult(new Invocation()
+                api.InvokeRawScript("main", Base16.Encode(script), (x) =>
                 {
-                    result = x.result // TODO support multiple results
-                });
-                callback(id, root, true);
+                    callback(Base16.Decode(x.result), null);
 
-            }, (error, log) =>
-            {
-                var root = Phantasma.Domain.APIUtils.FromAPIResult(new Error() { message = log });
-                callback(id, root, false);
+                }, (error, log) =>
+                {
+                    callback(null, log);
+                });
             });
         }
 
-        protected override Hash SignTransaction(string nexus, string chain, byte[] script, int id, Action<int, DataNode, bool> callback)
+        protected override void SignTransaction(string nexus, string chain, byte[] script, int id, Action<Hash, string> callback)
         {
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
             {
-                // TODO should return an error here!!!
-                Log.WriteError("not logged in, pls implement this case!");
+                callback(Hash.Null, "not logged in");
+                return;
+            }
 
-                return Hash.Null;
+            var expectedNexus = AccountManager.Instance.Settings.nexusName;
+            if (nexus != expectedNexus)
+            {
+                callback(Hash.Null, "nexus mismatch, expected: " + expectedNexus);
+                return;
             }
 
             var account = AccountManager.Instance.CurrentAccount;
 
             if (account.platforms.HasFlag(PlatformKind.Phantasma))
             {
-                Log.Write("Signing incoming tx from Phantasma link. Script => "+Base16.Encode(script));
-
-                var expiration = (Timestamp)DateTime.UtcNow.AddMinutes(3);
-                var tx = new Phantasma.Blockchain.Transaction(nexus, chain, script, expiration, AccountManager.WalletIdentifier);
-
-                var keys = PhantasmaKeys.FromWIF(account.WIF);
-                tx.Sign(keys);
-
-                var txBytes = tx.ToByteArray(true);
-                api.SendRawTransaction(Base16.Encode(txBytes), (x) =>
+                WalletGUI.Instance.CallOnUIThread(() =>
                 {
-
-                }, (errorType, errorMsg) =>
-                {
-                    Log.WriteError("api error:" + errorMsg);
+                    // TODO show description of transfer :^)              
+                    WalletGUI.Instance.SendTransaction($"Allow dapp to send a transaction on your behalf?\n[Missing description for this transaction]", script, chain, (hash) =>
+                    {
+                        if (hash != Hash.Null)
+                        {
+                            callback(hash, null);
+                        }
+                        else
+                        {
+                            callback(Hash.Null, "something bad happend while sending");
+                        }
+                    });
                 });
 
-                return tx.Hash;
             }
             else
             {
-                Log.WriteError("phantasma wallet not available in this account, pls implement this case!");
-                return Hash.Null;
+                callback(Hash.Null, "current account does not support Phantasma platform");
             }
+        }
+
+        protected override void Authorize(string dapp, Action<bool, string> callback)
+        {
+            var state = AccountManager.Instance.CurrentState;
+            if (state == null)
+            {
+                callback(false, "not logged in");
+                return;
+            }
+
+            WalletGUI.Instance.CallOnUIThread(() =>
+            {
+                WalletGUI.Instance.Prompt($"Give access to dapp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
+               {
+                   callback(result, "rejected");
+               });
+           });
+
         }
     }
 }

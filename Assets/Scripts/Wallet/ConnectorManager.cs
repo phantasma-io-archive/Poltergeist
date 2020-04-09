@@ -11,14 +11,13 @@ using System.Net;
 using System.Text;
 using LunarLabs.WebServer.HTTP;
 using System.Security.Cryptography;
+using Phantasma.Domain;
 
 namespace Poltergeist
 {
 
     public class ConnectorManager : MonoBehaviour
     {
-        public int Port = 7090;
-
         private WalletConnector link;
 
         private Socket listener;
@@ -35,7 +34,9 @@ namespace Poltergeist
         {
             this.link = new WalletConnector();
 
-            Log.Write("Starting websocket server for Phantasma wallet connector at port " + Port);
+            var port = WalletLink.WebSocketPort;
+
+            Log.Write("Starting websocket server for Phantasma wallet connector at port " + port);
 
             this.StartTime = DateTime.Now;
 
@@ -48,7 +49,7 @@ namespace Poltergeist
             listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
 
 
-            var localEndPoint = new IPEndPoint(IPAddress.Any, Port);
+            var localEndPoint = new IPEndPoint(IPAddress.Any, port);
 
             try
             {
@@ -72,13 +73,24 @@ namespace Poltergeist
                     {
                         var str = Encoding.UTF8.GetString(msg.Bytes);
 
-                        link.Execute(str, (id, root, success) =>
+                        WalletGUI.Instance.CallOnUIThread(() =>
                         {
-                            root.AddField("id", id);
-                            root.AddField("success", success);
+                            link.Execute(str, (id, root, success) =>
+                            {
+                                root.AddField("id", id);
+                                root.AddField("success", success);
 
-                            var json = JSONWriter.WriteToString(root);
-                            socket.Send(json);
+                                var json = JSONWriter.WriteToString(root);
+
+                                try
+                                {
+                                    socket.Send(json);
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.WriteWarning("websocket send failure, while answering phantasma link request: " + str);
+                                }
+                            });
                         });
                     }
                 }

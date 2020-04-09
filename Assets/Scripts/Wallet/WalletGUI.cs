@@ -529,6 +529,44 @@ namespace Poltergeist
 
         private const int MaxResolution = 1024;
 
+        #region CONNECTOR PROMPT
+        
+        private string _promptText;
+        private Action<bool> _promptCallback;
+        private bool _promptVisible;
+
+        public void Prompt(string text, Action<bool> callback)
+        {
+            // if theres an active prompt, this new one automatically fails
+            if (_promptText != null)
+            {
+                callback(false);
+                return;
+            }
+
+            _promptText = text;
+            _promptCallback = callback;
+            _promptVisible = false;
+        }
+
+        private void UpdatePrompt()
+        {
+            if (_promptText == null || _promptVisible)
+            {
+                return;
+            }
+
+            _promptVisible = true;
+
+            PromptBox(_promptText, ModalYesNo, (result) =>
+            {
+                var temp = _promptCallback;
+                _promptText = null;
+                temp(result == PromptResult.Success);
+            });
+        }
+        #endregion
+
         private void Update()
         {
             /*if (Input.GetKeyDown(KeyCode.Z))
@@ -536,6 +574,26 @@ namespace Poltergeist
                 AccountState state = null;
                 state.address += "";
             }*/
+
+            UpdatePrompt();
+
+            lock (_uiCallbacks)
+            {
+                if (_uiCallbacks.Count > 0)
+                {
+                    Action[] temp;
+                    lock (_uiCallbacks)
+                    {
+                        temp = _uiCallbacks.ToArray();
+                    }
+                    _uiCallbacks.Clear();
+
+                    foreach (var callback in temp)
+                    {
+                        callback.Invoke();
+                    }
+                }
+            }
 
             if (Screen.width > Screen.height && Screen.width > MaxResolution)
             {
@@ -2829,7 +2887,7 @@ namespace Poltergeist
             temp?.Invoke(hash);
         }
 
-        private void SendTransaction(string description, byte[] script, string chain, Action<Hash> callback)
+        public void SendTransaction(string description, byte[] script, string chain, Action<Hash> callback)
         {
             if (script == null)
             {
@@ -2886,7 +2944,7 @@ namespace Poltergeist
 
                                         MessageBox(MessageKind.Error, $"Error sending transaction.\n{error}", () =>
                                         {
-                                            InvokeTransactionCallback(hash);
+                                            callback(Hash.Null);
                                         });
                                     }
                                 });
@@ -3431,6 +3489,18 @@ namespace Poltergeist
 
             return -1;
         }
+
+        #region UI THREAD UTILS
+        private List<Action> _uiCallbacks = new List<Action>();
+
+        public void CallOnUIThread(Action callback)
+        {
+            lock (_uiCallbacks)
+            {
+                _uiCallbacks.Add(callback);
+            }
+        }
+        #endregion
 
         #region DAPP Interface
         public Address GetAddress()
