@@ -280,7 +280,7 @@ namespace Poltergeist
                 return; // HACK getpeers only for mainnet
             }
 
-            var url = $"http://soul.neoeconomy.io/getpeers.json";
+            var url = $"https://ghostdevs.com/getpeers.json";
 
             StartCoroutine(
                 WebClient.RESTRequest(url, (error, msg) =>
@@ -292,7 +292,7 @@ namespace Poltergeist
                     var index = ((int)(Time.realtimeSinceStartup * 1000)) % response.ChildCount;
                     var node = response.GetNodeByIndex(index);
                     var result = node.GetString("url") + "/rpc";
-                   
+
                     Settings.phantasmaRPCURL = result;
                     Log.Write($"changed RPC url {index} => {result}");
                     UpdateAPIs();
@@ -438,7 +438,7 @@ namespace Poltergeist
             if (!string.IsNullOrEmpty(tokenList))
             {
                 var tokenBytes = Base16.Decode(tokenList);
-                    
+
                 var tokens = Serialization.Unserialize<Token[]>(tokenBytes);
 
                 return;
@@ -830,7 +830,7 @@ namespace Poltergeist
                                 var claimableAmount = AmountFromString(acc.stake.unclaimed, GetTokenDecimals("KCAL"));
 
                                 var stakeTimestamp = new Timestamp(acc.stake.time);
-                                
+
                                 if (stakedAmount > 0)
                                 {
                                     var symbol = "SOUL";
@@ -1411,7 +1411,7 @@ namespace Poltergeist
                 case PlatformKind.Neo:
                     return NeoKeys.FromWIF(wif).Address;
             }
-            
+
 
             return null;
         }
