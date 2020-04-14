@@ -117,7 +117,7 @@ namespace Poltergeist
             {
                 WalletGUI.Instance.CallOnUIThread(() =>
                 {
-                var description = "[Missing description for this transaction]";
+                var description = DescriptionUtils.GetDescription(script);
                     WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
                       {
                           if (success)
