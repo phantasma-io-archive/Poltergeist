@@ -14,7 +14,10 @@ namespace Poltergeist
     {
         public static string GetDescription(byte[] script)
         {
-            var disasm = DisasmUtils.ExtractMethodCalls(script);
+            var table = DisasmUtils.GetDefaultDisasmTable();
+            // adding missing stuff here like table["methodname"] = 5 where 5 is arg count
+
+            var disasm = DisasmUtils.ExtractMethodCalls(script, table);
 
             var sb = new StringBuilder();
             foreach (var entry in disasm)
