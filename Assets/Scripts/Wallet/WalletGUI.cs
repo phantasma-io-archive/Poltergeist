@@ -403,6 +403,7 @@ namespace Poltergeist
         #region MODAL PROMPTS
         private string[] ModalNone = new string[] { };
         private string[] ModalOk = new string[] { "Ok" };
+        private string[] ModalCopyOk = new string[] { "Ok", "Copy to clipboard" };
         private string[] ModalConfirmCancel = new string[] { "Confirm" , "Cancel"};
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
 
@@ -472,25 +473,29 @@ namespace Poltergeist
         public void MessageBox(MessageKind kind, string caption, Action callback = null)
         {
             string title;
+            string[] options;
             switch (kind)
             {
                 case MessageKind.Success:
                     AudioManager.Instance.PlaySFX("positive");
                     title = "Success";
+                    options = ModalOk;
                     break;
 
                 case MessageKind.Error:
                     AudioManager.Instance.PlaySFX("negative");
                     title = "Error";
+                    options = ModalCopyOk;
                     Log.Write($"Error MessageBox: {caption}");
                     break;
 
                 default:
                     title = "Message";
+                    options = ModalOk;
                     break;
             }
 
-            ShowModal(title, caption, ModalState.Message, 0, 0, ModalOk, 1, (result, input) =>
+            ShowModal(title, caption, ModalState.Message, 0, 0, options, 1, (result, input) =>
             {
                 callback?.Invoke();
             });
@@ -970,8 +975,16 @@ namespace Poltergeist
 
                 DoButton(true, new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
                 {
-                    AudioManager.Instance.PlaySFX("cancel");
-                    modalResult = PromptResult.Failure;
+                    if (modalOptions == ModalCopyOk)
+                    {
+                        AudioManager.Instance.PlaySFX("click");
+                        GUIUtility.systemCopyBuffer = modalCaption;
+                    }
+                    else
+                    {
+                        AudioManager.Instance.PlaySFX("cancel");
+                        modalResult = PromptResult.Failure;
+                    }
                 });
 
                 DoButton(modalState != ModalState.Input || modalInput.Length >= modalMinInputLength,
