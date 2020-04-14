@@ -117,18 +117,30 @@ namespace Poltergeist
             {
                 WalletGUI.Instance.CallOnUIThread(() =>
                 {
-                    // TODO show description of transfer :^)              
-                    WalletGUI.Instance.SendTransaction($"Allow dapp to send a transaction on your behalf?\n[Missing description for this transaction]", script, chain, (hash) =>
-                    {
-                        if (hash != Hash.Null)
-                        {
-                            callback(hash, null);
-                        }
-                        else
-                        {
-                            callback(Hash.Null, "something bad happend while sending");
-                        }
-                    });
+                var description = "[Missing description for this transaction]";
+                    WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
+                      {
+                          if (success)
+                          {
+                              // TODO show description of transfer :^)              
+                              WalletGUI.Instance.SendTransaction(description, script, chain, (hash) =>
+                              {
+                                  if (hash != Hash.Null)
+                                  {
+                                      callback(hash, null);
+                                  }
+                                  else
+                                  {
+                                      callback(Hash.Null, "something bad happend while sending");
+                                  }
+                              });
+                          }
+                          else
+                          {
+                              callback(Hash.Null, "user rejected");
+                          }
+                      });
+
                 });
 
             }
