@@ -2949,6 +2949,10 @@ namespace Poltergeist
                                         }
                                     });
                                 }
+                                else
+                                {
+                                    callback(Hash.Null);
+                                };
                             });
                         });
                     });
