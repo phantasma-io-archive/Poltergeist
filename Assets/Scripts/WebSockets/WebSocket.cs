@@ -120,11 +120,6 @@ namespace LunarLabs.WebSockets
 
         private ArraySegment<byte> _receiveBuffer = new ArraySegment<byte>(new byte[1024 * 8]);
 
-        private void _logger(string s)
-        {
-            Log.Write(s);
-        }
-
         public WebSocket(Func<MemoryStream> recycledStreamFactory, Stream stream, int keepAliveInterval, string secWebSocketExtensions, bool includeExceptionInCloseResponse, bool isClient, string subProtocol)
         {
             _recycledStreamFactory = recycledStreamFactory;
@@ -137,7 +132,7 @@ namespace LunarLabs.WebSockets
             {
                 _usePerMessageDeflate = true;
             }
-            _logger("using websocket compression: "+ _usePerMessageDeflate);
+            Log.Write("using websocket compression: "+ _usePerMessageDeflate);
 
             KeepAliveInterval = keepAliveInterval;
             _includeExceptionInCloseResponse = includeExceptionInCloseResponse;
@@ -180,7 +175,7 @@ namespace LunarLabs.WebSockets
                     try
                     {
                         frame = WebSocketFrameReader.Read(_stream, _receiveBuffer);
-                        _logger("websocket.ReceivedFrame: "+frame.OpCode+ ", "+frame.IsFinBitSet+ ", "+frame.Count);
+                        Log.Write("websocket.ReceivedFrame: " + frame.OpCode + ", " + frame.IsFinBitSet + ", " + frame.Count, (frame.OpCode.ToString() == "Pong") ? Log.Level.Debug1 : Log.Level.Logic);
                     }
                     catch (InternalBufferOverflowException ex)
                     {
@@ -297,13 +292,13 @@ namespace LunarLabs.WebSockets
                         deflateStream.Flush();
                         var compressedBuffer = new ArraySegment<byte>(temp.ToArray());
                         WebSocketFrameWriter.Write(opCode, compressedBuffer, stream, endOfMessage, _isClient);
-                        _logger($"websocket.SendingFrame: {opCode}, {endOfMessage}, {compressedBuffer.Count}, compressed");
+                        Log.Write($"websocket.SendingFrame: {opCode}, {endOfMessage}, {compressedBuffer.Count}, compressed");
                     }
                 }
                 else
                 {
                     WebSocketFrameWriter.Write(opCode, buffer, stream, endOfMessage, _isClient);
-                    _logger($"websocket.SendingFrame: {opCode}, {endOfMessage}, {buffer.Count}, uncompressed");
+                    Log.Write($"websocket.SendingFrame: {opCode}, {endOfMessage}, {buffer.Count}, uncompressed");
                 }
 
                 WriteStreamToNetwork(stream);
@@ -330,7 +325,7 @@ namespace LunarLabs.WebSockets
                 {
                     NeedsPing = false;
                     WebSocketFrameWriter.Write(WebSocketOpCode.Ping, payload, stream, true, _isClient);
-                    _logger($"websocket.Ping: {payload.Count}");
+                    Log.Write($"websocket.Ping: {payload.Count}", Log.Level.Debug1);
                     WriteStreamToNetwork(stream);
                 }
             }
@@ -345,14 +340,14 @@ namespace LunarLabs.WebSockets
                 {
                     ArraySegment<byte> buffer = BuildClosePayload(closeStatus, statusDescription);
                     WebSocketFrameWriter.Write(WebSocketOpCode.ConnectionClose, buffer, stream, true, _isClient);
-                    _logger($"websocket.Close: {closeStatus}, {statusDescription}");
+                    Log.Write($"websocket.Close: {closeStatus}, {statusDescription}");
                     WriteStreamToNetwork(stream);
                     _state = WebSocketState.CloseSent;
                 }
             }
             else
             {
-                _logger($"websocket already closed");
+                Log.Write($"websocket already closed");
             }
         }
 
@@ -422,7 +417,7 @@ namespace LunarLabs.WebSockets
                     using (MemoryStream stream = _recycledStreamFactory())
                     {
                         WebSocketFrameWriter.Write(WebSocketOpCode.Pong, payload, stream, true, _isClient);
-                        _logger($"websocket.Pong: {payload.Count}");
+                        Log.Write($"websocket.Pong: {payload.Count}");
                         WriteStreamToNetwork(stream);
                     }
                 }
