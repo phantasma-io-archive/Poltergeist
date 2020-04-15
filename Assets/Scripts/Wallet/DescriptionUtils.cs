@@ -27,12 +27,21 @@ namespace Poltergeist
                     continue;
                 }
 
-                switch (entry.MethodName)
+                string name;
+                if (!string.IsNullOrEmpty(entry.ContractName))
+                    name = $"{entry.ContractName}.{entry.MethodName}";
+                else
+                    name = entry.MethodName;
+
+                // Put it to log so that developer can easily check what PG is receiving.
+                Log.Write("GetDescription(): Contract's description: " + entry.ToString());
+
+                switch (name)
                 {
                     case "Runtime.TransferTokens":
                         {
-                            var src = Address.FromBytes(entry.Arguments[0].AsByteArray());
-                            var dst = Address.FromBytes(entry.Arguments[1].AsByteArray());
+                            var src = entry.Arguments[0].AsString();
+                            var dst = entry.Arguments[1].AsString();
                             var symbol = entry.Arguments[2].AsString();
                             var amount = entry.Arguments[3].AsNumber();
 
@@ -41,7 +50,16 @@ namespace Poltergeist
 
                             var total = UnitConversion.ToDecimal(amount, token.decimals);
 
-                            sb.AppendLine($"Transfer {total} {symbol} from {src.Text} to {dst.Text}.");
+                            sb.AppendLine($"Transfer {total} {symbol} from {src} to {dst}.");
+                            break;
+                        }
+                    case "market.BuyToken":
+                        {
+                            var dst = entry.Arguments[0].AsString();
+                            var symbol = entry.Arguments[1].AsString();
+                            var nftNumber = entry.Arguments[2].AsString();
+
+                            sb.AppendLine($"Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
                             break;
                         }
 
