@@ -2973,7 +2973,10 @@ namespace Poltergeist
                 else
                 if (auth == PromptResult.Failure)
                 {
-                    MessageBox(MessageKind.Error, $"Authorization failed.");
+                    MessageBox(MessageKind.Error, $"Authorization failed.", () =>
+                    {
+                        callback(Hash.Null);
+                    });
                 }
             });
         }
