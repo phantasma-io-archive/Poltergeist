@@ -242,14 +242,21 @@ namespace Poltergeist
                     foreach (var cryptoCompareSymbol in symbols)
                     {
                         var node = response.GetNode(cryptoCompareSymbol);
-                        var price = node.GetDecimal(currency);
-
-                        var symbol = GetTokenSymbolByCryptoCompareSymbol(cryptoCompareSymbol);
-                        SetTokenPrice(symbol, price);
-
-                        if (symbol == "SOUL")
+                        if (node != null)
                         {
-                            SetTokenPrice("KCAL", price / 5);
+                            var price = node.GetDecimal(currency);
+
+                            var symbol = GetTokenSymbolByCryptoCompareSymbol(cryptoCompareSymbol);
+                            SetTokenPrice(symbol, price);
+
+                            if (symbol == "SOUL")
+                            {
+                                SetTokenPrice("KCAL", price / 5);
+                            }
+                        }
+                        else
+                        {
+                            Log.Write($"Cannot get price for '{cryptoCompareSymbol}'.");
                         }
                     }
                 }
