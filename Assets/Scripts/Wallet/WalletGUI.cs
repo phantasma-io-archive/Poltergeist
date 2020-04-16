@@ -2937,30 +2937,35 @@ namespace Poltergeist
                 {
                     Animate(AnimationDirection.Right, true, () =>
                     {
-                        PushState(GUIState.Sending);
-
                         Animate(AnimationDirection.Left, false, () =>
                         {
-                            var temp = $"Preparing Transaction...\n{description}";
-
-                            MessageBox(MessageKind.Default, temp, () =>
+                            PromptBox($"Preparing Transaction...\n{description}", ModalConfirmCancel, (result) =>
                             {
-                                accountManager.SignAndSendTransaction(chain, script, (hash, error) =>
+                                if (result == PromptResult.Success)
                                 {
-                                    if (hash != Hash.Null)
-                                    {
-                                        ShowConfirmationScreen(hash, callback);
-                                    }
-                                    else
-                                    {
-                                        PopState();
+                                    PushState(GUIState.Sending);
 
-                                        MessageBox(MessageKind.Error, $"Error sending transaction.\n{error}", () =>
+                                    accountManager.SignAndSendTransaction(chain, script, (hash, error) =>
+                                    {
+                                        if (hash != Hash.Null)
                                         {
-                                            callback(Hash.Null);
-                                        });
-                                    }
-                                });
+                                            ShowConfirmationScreen(hash, callback);
+                                        }
+                                        else
+                                        {
+                                            PopState();
+
+                                            MessageBox(MessageKind.Error, $"Error sending transaction.\n{error}", () =>
+                                            {
+                                                callback(Hash.Null);
+                                            });
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    callback(Hash.Null);
+                                };
                             });
                         });
                     });
