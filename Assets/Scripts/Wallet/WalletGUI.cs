@@ -446,7 +446,11 @@ namespace Poltergeist
             modalMaxLines = multiLine;
             hintComboBox.SelectedItemIndex = -1;
             hintComboBox.ListScroll = Vector2.zero;
-            modalLineCount = 1 + modalCaption.Where(x => x == '\n').Count();
+            modalLineCount = 0;
+            // Counting lines in label. Since labels are wrapped if they are longer than ~65 symbols,
+            // we count longer labels too. But labels wrapping based not only on length,
+            // but on content also, so we add 2x multiplier to be on a safe side.
+            Array.ForEach(modalCaption.Split("\n".ToCharArray()), x => modalLineCount += (x.ToString().Length / 65) * 2 + 1);
         }
 
         public void BeginWaitingModal(string caption)
