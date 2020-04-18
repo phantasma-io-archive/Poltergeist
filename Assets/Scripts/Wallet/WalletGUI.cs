@@ -416,6 +416,7 @@ namespace Poltergeist
         private int modalMinInputLength;
         private int modalMaxInputLength;
         private string modalCaption;
+        private Vector2 modalCaptionScroll;
         private string modalTitle;
         private int modalMaxLines;
         private Dictionary<string, string> modalHints;
@@ -438,6 +439,7 @@ namespace Poltergeist
             modalMaxInputLength = maxInputLength;
 
             modalCaption = caption;
+            modalCaptionScroll = Vector2.zero;
             modalCallback = callback;
             modalOptions = options;
             modalHints = null;
@@ -915,7 +917,39 @@ namespace Poltergeist
 
             var rect = new Rect(Units(1), curY, modalRect.width - Units(2), modalRect.height - Units(2));
 
-            GUI.Label(new Rect(rect.x, curY, rect.width - Border, Units(3 * modalLineCount * 2)), modalCaption);
+            int captionHeight = Units(modalLineCount) + 4 * modalLineCount + Units(1);
+
+            // Calculating, how much space caption can occupy vertically.
+            // Substracting space for buttons: Units(8).
+            int captionAvailableHeight = (int)rect.height - Units(8);
+
+            if (modalState == ModalState.Input || modalState == ModalState.Password)
+            {
+                // Substracting space for input field: Units(2) * modalMaxLines + Units(2).
+                captionAvailableHeight -= Units(2) * modalMaxLines + Units(2);
+            }
+
+            // Calculating, how much space caption will occupy vertically.
+            int captionDisplayedHeight =  Math.Min(captionAvailableHeight, captionHeight);
+
+            int captionWidth = (int)rect.width;
+
+            var insideRect = new Rect(0, 0, captionWidth, captionHeight);
+            var outsideRect = new Rect(rect.x, curY, captionWidth, captionDisplayedHeight);
+
+            bool needsScroll = insideRect.height > outsideRect.height;
+            if (needsScroll)
+            {
+                captionWidth -= Border;
+                insideRect.width = captionWidth;
+            }
+
+            modalCaptionScroll = GUI.BeginScrollView(outsideRect, modalCaptionScroll, insideRect);
+
+            GUI.Label(insideRect, modalCaption);
+
+            GUI.EndScrollView();
+
             curY += Units(2);
 
             var fieldWidth = rect.width;
@@ -928,7 +962,7 @@ namespace Poltergeist
                 fieldWidth -= hintWidth + Units(1);
             }
 
-            curY += Units(modalLineCount) + 4 * modalLineCount;
+            curY += captionDisplayedHeight;
 
             int hintY;
 
