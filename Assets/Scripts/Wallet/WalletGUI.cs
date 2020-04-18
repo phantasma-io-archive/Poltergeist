@@ -2594,12 +2594,12 @@ namespace Poltergeist
             {
                 curY += Units(2);
                 GUI.Label(new Rect(Units(2), curY, Units(20), Units(2)), date);
-                btnRect = new Rect(rect.x + rect.width - Units(6), curY + 4, Units(4), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY - 8, Units(4), Units(1));
             }
             else
             {
                 GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), date);
-                btnRect = new Rect(rect.x + rect.width - Units(6), curY + rect.height - (4 + Units(1)), Units(4), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
             }
 
             DoButton(!string.IsNullOrEmpty(entry.url), btnRect, "View", () =>
