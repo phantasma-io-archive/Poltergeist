@@ -62,6 +62,23 @@ namespace Poltergeist
                             sb.AppendLine($"Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
                             break;
                         }
+                    case "market.SellToken":
+                        {
+                            var dst = entry.Arguments[0].AsString();
+                            var tokenSymbol = entry.Arguments[1].AsString();
+                            var priceSymbol = entry.Arguments[2].AsString();
+                            var nftNumber = entry.Arguments[3].AsString();
+
+                            Token priceToken;
+                            AccountManager.Instance.GetTokenBySymbol(priceSymbol, out priceToken);
+
+                            var price = UnitConversion.ToDecimal(entry.Arguments[4].AsNumber(), priceToken.decimals);
+
+                            var untilDate = entry.Arguments[5].AsTimestamp();
+
+                            sb.AppendLine($"Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
+                            break;
+                        }
 
                     default:
                         sb.AppendLine(entry.ToString());
