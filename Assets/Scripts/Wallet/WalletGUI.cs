@@ -917,7 +917,7 @@ namespace Poltergeist
 
             var rect = new Rect(Units(1), curY, modalRect.width - Units(2), modalRect.height - Units(2));
 
-            int captionHeight = Units(modalLineCount) + 4 * modalLineCount + Units(1);
+            int captionHeight = Units(modalLineCount) + 4 * modalLineCount + Units(1) + 4;
 
             // Calculating, how much space caption can occupy vertically.
             // Substracting space for buttons: Units(8).
