@@ -95,7 +95,7 @@ namespace Poltergeist
             });
         }
 
-        protected override void SignTransaction(string nexus, string chain, byte[] script, int id, Action<Hash, string> callback)
+        protected override void SignTransaction(string nexus, string chain, byte[] script, byte[] payload, int id, Action<Hash, string> callback)
         {
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
@@ -123,7 +123,7 @@ namespace Poltergeist
                           if (success)
                           {
                               // TODO show description of transfer :^)              
-                              WalletGUI.Instance.SendTransaction(description, script, chain, (hash) =>
+                              WalletGUI.Instance.SendTransaction(description, script, payload, chain, (hash) =>
                               {
                                   if (hash != Hash.Null)
                                   {

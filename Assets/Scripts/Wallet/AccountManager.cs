@@ -525,16 +525,21 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, Action<Hash, string> callback)
+        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, Action<Hash, string> callback)
         {
             var account = this.CurrentAccount;
+
+            if (payload == null)
+            {
+                payload = System.Text.Encoding.UTF8.GetBytes(WalletIdentifier);
+            }
 
             switch (CurrentPlatform)
             {
                 case PlatformKind.Phantasma:
                     {
                         var keys = PhantasmaKeys.FromWIF(account.WIF);
-                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, WalletIdentifier,  (hashText) =>
+                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload,  (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
                             callback(hash, null);

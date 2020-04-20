@@ -2262,7 +2262,7 @@ namespace Poltergeist
 
                                                     var script = sb.EndScript();
 
-                                                    SendTransaction($"Stake {selectedAmount} SOUL", script, "main", (hash) =>
+                                                    SendTransaction($"Stake {selectedAmount} SOUL", script, null, "main", (hash) =>
                                                     {
                                                         if (hash != Hash.Null)
                                                         {
@@ -2308,7 +2308,7 @@ namespace Poltergeist
                                                         sb.SpendGas(address);
                                                         var script = sb.EndScript();
 
-                                                        SendTransaction($"Unstake {amount} SOUL", script, "main", (hash) =>
+                                                        SendTransaction($"Unstake {amount} SOUL", script, null, "main", (hash) =>
                                                         {
                                                             if (hash != Hash.Null)
                                                             {
@@ -2355,7 +2355,7 @@ namespace Poltergeist
                                         sb.SpendGas(address);
                                         var script = sb.EndScript();
 
-                                        SendTransaction($"Claim {balance.Claimable} KCAL", script, "main", (hash) =>
+                                        SendTransaction($"Claim {balance.Claimable} KCAL", script, null, "main", (hash) =>
                                         {
                                             if (hash != Hash.Null)
                                             {
@@ -2733,7 +2733,7 @@ namespace Poltergeist
                                                         return;
                                                     }
 
-                                                    SendTransaction($"Register address name\nName:{name}\nAddress:{accountManager.CurrentState.address}?", script, "main", (hash) =>
+                                                    SendTransaction($"Register address name\nName:{name}\nAddress:{accountManager.CurrentState.address}?", script, null, "main", (hash) =>
                                                     {
                                                         if (hash != Hash.Null)
                                                         {
@@ -2806,7 +2806,7 @@ namespace Poltergeist
                                             sb.SpendGas(address);
                                             var script = sb.EndScript();
 
-                                            SendTransaction("Migrate account", script, DomainSettings.RootChainName, (hash) =>
+                                            SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, (hash) =>
                                             {
                                                 if (hash != Hash.Null)
                                                 {
@@ -2900,7 +2900,7 @@ namespace Poltergeist
             temp?.Invoke(hash);
         }
 
-        public void SendTransaction(string description, byte[] script, string chain, Action<Hash> callback)
+        public void SendTransaction(string description, byte[] script, byte[] payload, string chain, Action<Hash> callback)
         {
             if (script == null)
             {
@@ -2945,7 +2945,7 @@ namespace Poltergeist
                                 {
                                     PushState(GUIState.Sending);
 
-                                    accountManager.SignAndSendTransaction(chain, script, (hash, error) =>
+                                    accountManager.SignAndSendTransaction(chain, script, payload, (hash, error) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
@@ -3056,7 +3056,7 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, "main", (hash) =>
+                        SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
                         {
                             if (hash != Hash.Null)
                             {
@@ -3173,7 +3173,7 @@ namespace Poltergeist
 
                 byte[] script = Serialization.Serialize(transfer);
 
-                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destAddress}", script, transfer.platform.ToString(), (hash) =>
+                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
                 {
                     if (hash != Hash.Null)
                     {
@@ -3251,7 +3251,7 @@ namespace Poltergeist
                                     return;
                                 }
 
-                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, "main", (hash) =>
+                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
@@ -3289,7 +3289,7 @@ namespace Poltergeist
 
                                 byte[] script = Serialization.Serialize(transfer);
 
-                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, transfer.platform.ToString(), (hash) =>
+                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
@@ -3390,7 +3390,7 @@ namespace Poltergeist
                                  return;
                              }
 
-                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, "main", (hash) =>
+                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, null, "main", (hash) =>
                              {
                                  callback(hash != Hash.Null ? PromptResult.Success : PromptResult.Failure);
                              });
@@ -3536,7 +3536,7 @@ namespace Poltergeist
 
         public void ExecuteTransaction(string description, byte[] script, string chain, Action<Hash> callback)
         {
-            this.SendTransaction(description, script, chain, callback);
+            this.SendTransaction(description, script, null, chain, callback);
         }
 
         public void InvokeScript(string chain, byte[] script, Action<byte[]> callback)
