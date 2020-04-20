@@ -1,7 +1,9 @@
-﻿using Phantasma.Cryptography;
+﻿using Phantasma.Core.Types;
+using Phantasma.Cryptography;
 using Phantasma.Numerics;
 using Phantasma.SDK;
 using Phantasma.VM.Utils;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -39,6 +41,42 @@ namespace Poltergeist
             }
 
             return true;
+        }
+
+        private static string GetStringArg(DisasmMethodCall call, int argumentNumber)
+        {
+            try
+            {
+                return call.Arguments[argumentNumber].AsString();
+            }
+            catch(Exception e)
+            {
+                throw new Exception($"{GetCallFullName(call)}: Error: Cannot get description for argument #{argumentNumber + 1} [String]: {e.Message}");
+            }
+        }
+
+        private static BigInteger GetNumberArg(DisasmMethodCall call, int argumentNumber)
+        {
+            try
+            {
+                return call.Arguments[argumentNumber].AsNumber();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"{GetCallFullName(call)}: Error: Cannot get description for argument #{argumentNumber + 1} [Number]: {e.Message}");
+            }
+        }
+
+        private static Timestamp GetTimestampArg(DisasmMethodCall call, int argumentNumber)
+        {
+            try
+            {
+                return call.Arguments[argumentNumber].AsTimestamp();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"{GetCallFullName(call)}: Error: Cannot get description for argument #{argumentNumber + 1} [Timestamp]: {e.Message}");
+            }
         }
 
         public static string GetDescription(byte[] script)
@@ -94,10 +132,10 @@ namespace Poltergeist
                 {
                     case "Runtime.TransferTokens":
                         {
-                            var src = entry.Arguments[0].AsString();
-                            var dst = entry.Arguments[1].AsString();
-                            var symbol = entry.Arguments[2].AsString();
-                            var amount = entry.Arguments[3].AsNumber();
+                            var src = GetStringArg(entry, 0);
+                            var dst = GetStringArg(entry, 1);
+                            var symbol = GetStringArg(entry, 2);
+                            var amount = GetNumberArg(entry, 3);
 
                             Token token;
                             AccountManager.Instance.GetTokenBySymbol(symbol, out token);
@@ -109,26 +147,26 @@ namespace Poltergeist
                         }
                     case "market.BuyToken":
                         {
-                            var dst = entry.Arguments[0].AsString();
-                            var symbol = entry.Arguments[1].AsString();
-                            var nftNumber = entry.Arguments[2].AsString();
+                            var dst = GetStringArg(entry, 0);
+                            var symbol = GetStringArg(entry, 1);
+                            var nftNumber = GetStringArg(entry, 2);
 
                             sb.AppendLine($"Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
                             break;
                         }
                     case "market.SellToken":
                         {
-                            var dst = entry.Arguments[0].AsString();
-                            var tokenSymbol = entry.Arguments[1].AsString();
-                            var priceSymbol = entry.Arguments[2].AsString();
-                            var nftNumber = entry.Arguments[3].AsString();
+                            var dst = GetStringArg(entry, 0);
+                            var tokenSymbol = GetStringArg(entry, 1);
+                            var priceSymbol = GetStringArg(entry, 2);
+                            var nftNumber = GetStringArg(entry, 3);
 
                             Token priceToken;
                             AccountManager.Instance.GetTokenBySymbol(priceSymbol, out priceToken);
 
-                            var price = UnitConversion.ToDecimal(entry.Arguments[4].AsNumber(), priceToken.decimals);
+                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
 
-                            var untilDate = entry.Arguments[5].AsTimestamp();
+                            var untilDate = GetTimestampArg(entry, 5);
 
                             if (sellGroupSize > 1)
                             {

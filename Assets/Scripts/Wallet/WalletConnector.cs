@@ -117,7 +117,17 @@ namespace Poltergeist
             {
                 WalletGUI.Instance.CallOnUIThread(() =>
                 {
-                var description = DescriptionUtils.GetDescription(script);
+                    string description;
+                    try
+                    {
+                        description = DescriptionUtils.GetDescription(script);
+                    }
+                    catch( Exception e )
+                    {
+                        WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + e.Message);
+                        callback(Hash.Null, "description parsing error");
+                        return;
+                    }
                     WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
                       {
                           if (success)
