@@ -12,6 +12,35 @@ namespace Poltergeist
 
     public class DescriptionUtils : MonoBehaviour
     {
+        private static bool CheckIfCallShouldBeIgnored(DisasmMethodCall call)
+        {
+            return ("gas".Equals(call.ContractName) && (call.MethodName == "AllowGas" || call.MethodName == "SpendGas"));
+        }
+
+        private static string GetCallFullName(DisasmMethodCall call)
+        {
+            if (!string.IsNullOrEmpty(call.ContractName))
+                return $"{call.ContractName}.{call.MethodName}";
+            else
+                return call.MethodName;
+        }
+
+        private static bool CompareCalls(DisasmMethodCall call1, DisasmMethodCall call2, params int[] argNumbersToCompare)
+        {
+            // Compare contract and method names.
+            if (GetCallFullName(call1) != GetCallFullName(call2) )
+                return false;
+
+            for (int i = 0; i < argNumbersToCompare.Length; i++)
+            {
+                // Compare all arguments as strings.
+                if (call1.Arguments[argNumbersToCompare[i]].AsString() != call2.Arguments[argNumbersToCompare[i]].AsString())
+                    return false;
+            }
+
+            return true;
+        }
+
         public static string GetDescription(byte[] script)
         {
             var table = DisasmUtils.GetDefaultDisasmTable();
@@ -19,24 +48,49 @@ namespace Poltergeist
 
             var disasm = DisasmUtils.ExtractMethodCalls(script, table);
 
-            var sb = new StringBuilder();
-            foreach (var entry in disasm)
+            // Checking if all calls are "market.SellToken" calls and we can group them.
+            int sellGroupSize = 0;
+            DisasmMethodCall? prevCall = null;
+            foreach (var call in disasm)
             {
-                if ("gas".Equals(entry.ContractName) && (entry.MethodName == "AllowGas" || entry.MethodName == "SpendGas"))
+                if (CheckIfCallShouldBeIgnored(call))
                 {
                     continue;
                 }
 
-                string name;
-                if (!string.IsNullOrEmpty(entry.ContractName))
-                    name = $"{entry.ContractName}.{entry.MethodName}";
+                if (GetCallFullName(call) == "market.SellToken")
+                {
+                    if (prevCall != null && !CompareCalls((DisasmMethodCall)prevCall, call, 0, 2, 4, 5))
+                    {
+                        sellGroupSize = 0;
+                        break;
+                    }
+
+                    prevCall = call;
+                    sellGroupSize++;
+                }
                 else
-                    name = entry.MethodName;
+                {
+                    // Different call, grouping is not supported.
+                    sellGroupSize = 0;
+                    break;
+                }
+            }
+
+            int sellTokenCounter = 0; // Counting "market.SellToken" calls, needed for grouping.
+
+            var sb = new StringBuilder();
+            foreach (var entry in disasm)
+            {
+                if (CheckIfCallShouldBeIgnored(entry))
+                {
+                    continue;
+                }
 
                 // Put it to log so that developer can easily check what PG is receiving.
                 Log.Write("GetDescription(): Contract's description: " + entry.ToString());
 
-                switch (name)
+                switch (GetCallFullName(entry))
                 {
                     case "Runtime.TransferTokens":
                         {
@@ -76,7 +130,33 @@ namespace Poltergeist
 
                             var untilDate = entry.Arguments[5].AsTimestamp();
 
-                            sb.AppendLine($"Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
+                            if (sellGroupSize > 1)
+                            {
+                                if (sellTokenCounter == 0)
+                                {
+                                    // Desc line #1.
+                                    sb.AppendLine("Sell:");
+                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                }
+                                else if (sellTokenCounter == sellGroupSize - 1)
+                                {
+                                    // Desc line #N.
+                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}");
+                                    sb.AppendLine($"for {price} {priceSymbol} each, offer valid until {untilDate}.");
+                                }
+                                else
+                                {
+                                    // Desc lines #2 ... N-1.
+                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                }
+                            }
+                            else
+                            {
+                                sb.AppendLine($"Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
+                            }
+
+                            sellTokenCounter++;
+
                             break;
                         }
 
