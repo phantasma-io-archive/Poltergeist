@@ -148,7 +148,7 @@ namespace Poltergeist
 
     public class AccountManager : MonoBehaviour
     {
-        public const string WalletIdentifier = "PGT1.2";
+        public string WalletIdentifier => "PGT" + UnityEngine.Application.version;
 
         public static readonly int MinGasLimit = 800;
 
