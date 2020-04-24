@@ -1,7 +1,9 @@
-﻿using Phantasma.Cryptography;
+﻿using Phantasma.Core.Types;
+using Phantasma.Cryptography;
 using Phantasma.Numerics;
 using Phantasma.SDK;
 using Phantasma.VM.Utils;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -12,6 +14,71 @@ namespace Poltergeist
 
     public class DescriptionUtils : MonoBehaviour
     {
+        private static bool CheckIfCallShouldBeIgnored(DisasmMethodCall call)
+        {
+            return ("gas".Equals(call.ContractName) && (call.MethodName == "AllowGas" || call.MethodName == "SpendGas"));
+        }
+
+        private static string GetCallFullName(DisasmMethodCall call)
+        {
+            if (!string.IsNullOrEmpty(call.ContractName))
+                return $"{call.ContractName}.{call.MethodName}";
+            else
+                return call.MethodName;
+        }
+
+        private static bool CompareCalls(DisasmMethodCall call1, DisasmMethodCall call2, params int[] argNumbersToCompare)
+        {
+            // Compare contract and method names.
+            if (GetCallFullName(call1) != GetCallFullName(call2) )
+                return false;
+
+            for (int i = 0; i < argNumbersToCompare.Length; i++)
+            {
+                // Compare all arguments as strings.
+                if (call1.Arguments[argNumbersToCompare[i]].AsString() != call2.Arguments[argNumbersToCompare[i]].AsString())
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static string GetStringArg(DisasmMethodCall call, int argumentNumber)
+        {
+            try
+            {
+                return call.Arguments[argumentNumber].AsString();
+            }
+            catch(Exception e)
+            {
+                throw new Exception($"{GetCallFullName(call)}: Error: Cannot get description for argument #{argumentNumber + 1} [String]: {e.Message}");
+            }
+        }
+
+        private static BigInteger GetNumberArg(DisasmMethodCall call, int argumentNumber)
+        {
+            try
+            {
+                return call.Arguments[argumentNumber].AsNumber();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"{GetCallFullName(call)}: Error: Cannot get description for argument #{argumentNumber + 1} [Number]: {e.Message}");
+            }
+        }
+
+        private static Timestamp GetTimestampArg(DisasmMethodCall call, int argumentNumber)
+        {
+            try
+            {
+                return call.Arguments[argumentNumber].AsTimestamp();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"{GetCallFullName(call)}: Error: Cannot get description for argument #{argumentNumber + 1} [Timestamp]: {e.Message}");
+            }
+        }
+
         public static string GetDescription(byte[] script)
         {
             var table = DisasmUtils.GetDefaultDisasmTable();
@@ -19,31 +86,56 @@ namespace Poltergeist
 
             var disasm = DisasmUtils.ExtractMethodCalls(script, table);
 
-            var sb = new StringBuilder();
-            foreach (var entry in disasm)
+            // Checking if all calls are "market.SellToken" calls and we can group them.
+            int sellGroupSize = 0;
+            DisasmMethodCall? prevCall = null;
+            foreach (var call in disasm)
             {
-                if ("gas".Equals(entry.ContractName) && (entry.MethodName == "AllowGas" || entry.MethodName == "SpendGas"))
+                if (CheckIfCallShouldBeIgnored(call))
                 {
                     continue;
                 }
 
-                string name;
-                if (!string.IsNullOrEmpty(entry.ContractName))
-                    name = $"{entry.ContractName}.{entry.MethodName}";
+                if (GetCallFullName(call) == "market.SellToken")
+                {
+                    if (prevCall != null && !CompareCalls((DisasmMethodCall)prevCall, call, 0, 2, 4, 5))
+                    {
+                        sellGroupSize = 0;
+                        break;
+                    }
+
+                    prevCall = call;
+                    sellGroupSize++;
+                }
                 else
-                    name = entry.MethodName;
+                {
+                    // Different call, grouping is not supported.
+                    sellGroupSize = 0;
+                    break;
+                }
+            }
+
+            int sellTokenCounter = 0; // Counting "market.SellToken" calls, needed for grouping.
+
+            var sb = new StringBuilder();
+            foreach (var entry in disasm)
+            {
+                if (CheckIfCallShouldBeIgnored(entry))
+                {
+                    continue;
+                }
 
                 // Put it to log so that developer can easily check what PG is receiving.
                 Log.Write("GetDescription(): Contract's description: " + entry.ToString());
 
-                switch (name)
+                switch (GetCallFullName(entry))
                 {
                     case "Runtime.TransferTokens":
                         {
-                            var src = entry.Arguments[0].AsString();
-                            var dst = entry.Arguments[1].AsString();
-                            var symbol = entry.Arguments[2].AsString();
-                            var amount = entry.Arguments[3].AsNumber();
+                            var src = GetStringArg(entry, 0);
+                            var dst = GetStringArg(entry, 1);
+                            var symbol = GetStringArg(entry, 2);
+                            var amount = GetNumberArg(entry, 3);
 
                             Token token;
                             AccountManager.Instance.GetTokenBySymbol(symbol, out token);
@@ -55,28 +147,54 @@ namespace Poltergeist
                         }
                     case "market.BuyToken":
                         {
-                            var dst = entry.Arguments[0].AsString();
-                            var symbol = entry.Arguments[1].AsString();
-                            var nftNumber = entry.Arguments[2].AsString();
+                            var dst = GetStringArg(entry, 0);
+                            var symbol = GetStringArg(entry, 1);
+                            var nftNumber = GetStringArg(entry, 2);
 
                             sb.AppendLine($"Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
                             break;
                         }
                     case "market.SellToken":
                         {
-                            var dst = entry.Arguments[0].AsString();
-                            var tokenSymbol = entry.Arguments[1].AsString();
-                            var priceSymbol = entry.Arguments[2].AsString();
-                            var nftNumber = entry.Arguments[3].AsString();
+                            var dst = GetStringArg(entry, 0);
+                            var tokenSymbol = GetStringArg(entry, 1);
+                            var priceSymbol = GetStringArg(entry, 2);
+                            var nftNumber = GetStringArg(entry, 3);
 
                             Token priceToken;
                             AccountManager.Instance.GetTokenBySymbol(priceSymbol, out priceToken);
 
-                            var price = UnitConversion.ToDecimal(entry.Arguments[4].AsNumber(), priceToken.decimals);
+                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
 
-                            var untilDate = entry.Arguments[5].AsTimestamp();
+                            var untilDate = GetTimestampArg(entry, 5);
 
-                            sb.AppendLine($"Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
+                            if (sellGroupSize > 1)
+                            {
+                                if (sellTokenCounter == 0)
+                                {
+                                    // Desc line #1.
+                                    sb.AppendLine("Sell:");
+                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                }
+                                else if (sellTokenCounter == sellGroupSize - 1)
+                                {
+                                    // Desc line #N.
+                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}");
+                                    sb.AppendLine($"for {price} {priceSymbol} each, offer valid until {untilDate}.");
+                                }
+                                else
+                                {
+                                    // Desc lines #2 ... N-1.
+                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                }
+                            }
+                            else
+                            {
+                                sb.AppendLine($"Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
+                            }
+
+                            sellTokenCounter++;
+
                             break;
                         }
 
