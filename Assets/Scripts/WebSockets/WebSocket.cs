@@ -118,7 +118,7 @@ namespace LunarLabs.WebSockets
         private WebSocketCloseStatus? _closeStatus;
         private string _closeStatusDescription;
 
-        private ArraySegment<byte> _receiveBuffer = new ArraySegment<byte>(new byte[1024 * 8]);
+        private ArraySegment<byte> _receiveBuffer = new ArraySegment<byte>(new byte[1024 * 64]);
 
         public WebSocket(Func<MemoryStream> recycledStreamFactory, Stream stream, int keepAliveInterval, string secWebSocketExtensions, bool includeExceptionInCloseResponse, bool isClient, string subProtocol)
         {
