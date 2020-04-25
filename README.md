@@ -9,4 +9,4 @@ Simple but so very powerful and damn fast!
 Current versions and insructions can be found here: https://github.com/Relfos/Poltergeist/releases
 
 ## Community Contirbution
-This repository is open to community contribution via pull requests. We will always assist anyone that wishes to contirbute to improvement of Poltergeist.
+This repository is open to community contribution via pull requests. We will always assist anyone that wishes to contribute to improving Poltergeist.
