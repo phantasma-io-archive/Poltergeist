@@ -1,7 +1,7 @@
 # Poltergeist
 - Minimalistic wallet for the Phantasma Ecosystem
 - Bundles both NEO and Phantasma wallets to facilitate easy bi-drectional chain swapping of tokens.
-- Featurs a simple, fun, retro arcade User Experience. 
+- Featurs a simple, fun, retro, arcade User Experience. 
 
 Simple but so very powerful and damn fast!  
 
