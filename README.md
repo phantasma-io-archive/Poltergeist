@@ -1,9 +1,19 @@
-# Poltergeist
-- Minimalistic wallet for the Phantasma Ecosystem
-- Bundles both NEO and Phantasma wallets to facilitate easy bi-drectional chain swapping of tokens.
-- Featurs a simple, fun, retro, arcade User Experience. 
+<p align="center">
+  <img
+    src="https://github.com/phantasma-io/PhantasmaSpook/blob/master/logo.png"
+    width="125px">
+</p>
 
-Simple but so very powerful and damn fast!  
+<h1 align="center">Poltergeist Wallet</h1>
+
+<p align="center">
+  Minimalistic wallet for the Phantasma Ecosystem
+</p>
+
+# Poltergeist
+- Bundles both NEO and Phantasma wallets to facilitate easy bi-drectional chain swapping of tokens.
+- Features an intuitive, fun, retro, arcade User Experience. 
+- Simple but so very powerful and damn fast!  
 
 ## Get Started
 Current versions and insructions can be found here: https://github.com/Relfos/Poltergeist/releases
