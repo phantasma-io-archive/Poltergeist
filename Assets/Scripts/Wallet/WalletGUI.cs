@@ -447,10 +447,11 @@ namespace Poltergeist
             hintComboBox.SelectedItemIndex = -1;
             hintComboBox.ListScroll = Vector2.zero;
             modalLineCount = 0;
-            // Counting lines in label. Since labels are wrapped if they are longer than ~65 symbols,
+            // Counting lines in label. Since labels are wrapped if they are longer than ~65 symbols (~30-40 for vertical layout),
             // we count longer labels too. But labels wrapping based not only on length,
             // but on content also, so we add 2x multiplier to be on a safe side.
-            Array.ForEach(modalCaption.Split("\n".ToCharArray()), x => modalLineCount += (x.ToString().Length / 65) * 2 + 1);
+            // TODO: Make a better algorithm capable of counting exact number of lines for label depending on label's width and font size.
+            Array.ForEach(modalCaption.Split("\n".ToCharArray()), x => modalLineCount += (x.ToString().Length / ((VerticalLayout) ? 30 : 65)) * 2 + 1);
         }
 
         public void BeginWaitingModal(string caption)
