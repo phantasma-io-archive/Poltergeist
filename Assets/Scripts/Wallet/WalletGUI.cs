@@ -11,6 +11,7 @@ using Phantasma.Blockchain.Contracts;
 using Phantasma.Numerics;
 using Phantasma.Storage;
 using Phantasma.Domain;
+using Phantasma.SDK;
 
 using ZXing;
 using ZXing.QrCode;
@@ -1287,7 +1288,14 @@ namespace Poltergeist
                 }
 
                 var accountManager = AccountManager.Instance;
-                int walletIndex = accountManager.AddWallet(name, PlatformKind.Phantasma | PlatformKind.Neo, wif, password);
+
+                var platforms = PlatformKind.None;
+                foreach (var platform in AccountManager.AvailablePlatforms)
+                {
+                    platforms |= platform;
+                }
+
+                int walletIndex = accountManager.AddWallet(name, platforms, wif, password);
                 LoginIntoAccount(walletIndex, (succes) =>
                 {
                     if (succes)
@@ -2806,7 +2814,7 @@ namespace Poltergeist
                                         }
                                         else
                                         {
-                                            MessageBox(MessageKind.Error, "That name is not a valid Phantasma address name.\nNo spaces allowed, only lowercase letters and numbers.\nMust be between 3 and 15 characters in length.");
+                                            MessageBox(MessageKind.Error, "That name is not a valid Phantasma address nam   e.\nNo spaces allowed, only lowercase letters and numbers.\nMust be between 3 and 15 characters in length.");
                                         }
                                     }
                                 });

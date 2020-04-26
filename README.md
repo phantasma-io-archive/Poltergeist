@@ -18,5 +18,11 @@
 ## Get Started
 Current versions and insructions can be found here: https://github.com/Relfos/Poltergeist/releases
 
+## Ethereum Support
+This rep does not include Infura or Etherscan API keys. To have Ethereum support create a ethereum_api.txt file in the Assets/Resources folder.
+The first line should contain your Etherscan API key.
+The second line should contain your Infura API key.
+The third line should contain your Infura secret.
+
 ## Community Contribution
 This repository is open to community contribution via pull requests. We will always assist anyone that wishes to contribute to improving Poltergeist.
