@@ -130,6 +130,16 @@ namespace Poltergeist
 
                 switch (GetCallFullName(entry))
                 {
+                    case "Runtime.TransferToken":
+                        {
+                            var src = GetStringArg(entry, 0);
+                            var dst = GetStringArg(entry, 1);
+                            var symbol = GetStringArg(entry, 2);
+                            var nftNumber = GetStringArg(entry, 3);
+
+                            sb.AppendLine($"Transfer {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} to {dst}.");
+                            break;
+                        }
                     case "Runtime.TransferTokens":
                         {
                             var src = GetStringArg(entry, 0);
