@@ -3588,7 +3588,26 @@ namespace Poltergeist
 
         public void InvokeScript(string chain, byte[] script, Action<byte[]> callback)
         {
-            throw new NotImplementedException();
+            if (script == null)
+            {
+                Log.Write($"Error invoking script. Script is null.");
+                callback(null);
+            }
+
+            var accountManager = AccountManager.Instance;
+
+            accountManager.InvokeScript(chain, script, (result, error) =>
+            {
+                if (String.IsNullOrEmpty(error))
+                {
+                    callback(result);
+                }
+                else
+                {
+                    Log.Write($"Error invoking script.\n{error}\nScript: {System.Text.Encoding.UTF8.GetString(script)}");
+                    callback(null);
+                }
+            });
         }
         #endregion
     }

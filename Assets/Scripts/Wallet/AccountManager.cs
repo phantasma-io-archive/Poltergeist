@@ -685,6 +685,33 @@ namespace Poltergeist
             }
         }
 
+        public void InvokeScript(string chain, byte[] script, Action<byte[], string> callback)
+        {
+            var account = this.CurrentAccount;
+
+            switch (CurrentPlatform)
+            {
+                case PlatformKind.Phantasma:
+                    {
+                        Log.Write("InvokeScript: " + System.Text.Encoding.UTF8.GetString(script), Log.Level.Debug1);
+                        StartCoroutine(phantasmaApi.InvokeRawScript(chain, Base16.Encode(script), (x) =>
+                        {
+                            Log.Write("InvokeScript result: " + x.result, Log.Level.Debug1);
+                            callback(Base16.Decode(x.result), null);
+                        }, (error, log) =>
+                        {
+                            callback(null, log);
+                        }));
+                        break;
+                    }
+                default:
+                    {
+                        callback(null, "not implemented for " + CurrentPlatform);
+                        break;
+                    }
+            }
+        }
+
         private Action _refreshCallback;
         private DateTime _lastBalanceRefresh = DateTime.MinValue;
         private DateTime _lastHistoryRefresh = DateTime.MinValue;
