@@ -13,6 +13,7 @@ using Phantasma.Domain;
 using Phantasma.Core;
 using Phantasma.Core.Utils;
 using Phantasma.Core.Types;
+using LunarLabs.Parser;
 
 namespace Poltergeist
 {
@@ -142,6 +143,7 @@ namespace Poltergeist
         public int Decimals;
         public string PendingPlatform;
         public string PendingHash;
+        public string[] Ids;
 
         public decimal Total => Available + Staked + Pending + Claimable;
     }
@@ -169,10 +171,12 @@ namespace Poltergeist
         public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Length;
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
+        private Dictionary<PlatformKind, List<TokenData>> _ttrsNft = new Dictionary<PlatformKind, List<TokenData>>();
         private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
+        public List<TokenData> CurrentTtrsNft => _ttrsNft.ContainsKey(CurrentPlatform) ? _ttrsNft[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
@@ -645,11 +649,13 @@ namespace Poltergeist
 
         private Action _refreshCallback;
         private DateTime _lastBalanceRefresh = DateTime.MinValue;
+        private DateTime _lastTtrsNftRefresh = DateTime.MinValue;
         private DateTime _lastHistoryRefresh = DateTime.MinValue;
 
         public void SelectAccount(int index)
         {
             _lastBalanceRefresh = DateTime.MinValue;
+            _lastTtrsNftRefresh = DateTime.MinValue;
             _lastHistoryRefresh = DateTime.MinValue;
             _selectedAccountIndex = index;
 
@@ -705,6 +711,26 @@ namespace Poltergeist
                 total += balance.Total;
             }
             return total;
+        }
+
+        private void ReportWalletTtrsNft(PlatformKind platform)
+        {
+            _pendingRequestCount--;
+
+            if (_ttrsNft.ContainsKey(platform) && _ttrsNft[platform] != null)
+            {
+                Log.Write($"Received {_ttrsNft[platform].Count()} new TTRS NFTs for {platform}");
+
+                if (CurrentPlatform == PlatformKind.None)
+                {
+                    CurrentPlatform = platform;
+                }
+            }
+
+            if (_pendingRequestCount == 0)
+            {
+                InvokeRefreshCallback();
+            }
         }
 
         private void ReportWalletHistory(PlatformKind platform, List<HistoryEntry> history)
@@ -834,7 +860,8 @@ namespace Poltergeist
                                         Staked = 0,
                                         Claimable = 0,
                                         Chain = entry.chain,
-                                        Decimals = GetTokenDecimals(entry.symbol)
+                                        Decimals = GetTokenDecimals(entry.symbol),
+                                        Ids = entry.ids
                                     };
                                 }
 
@@ -1103,6 +1130,150 @@ namespace Poltergeist
         internal void DeleteAll()
         {
             this.Accounts = new Account[0];
+        }
+
+        public void RefreshTtrsNft(bool force, Action callback = null)
+        {
+            var now = DateTime.UtcNow;
+            var diff = now - _lastTtrsNftRefresh;
+
+            if (!force && diff.TotalSeconds < 30)
+            {
+                InvokeRefreshCallback();
+                return;
+            }
+
+            _lastTtrsNftRefresh = now;
+            _refreshCallback = callback;
+
+            var platforms = CurrentAccount.platforms.Split();
+            _pendingRequestCount = platforms.Count;
+
+            var account = this.CurrentAccount;
+
+            foreach (var platform in platforms)
+            {
+                switch (platform)
+                {
+                    case PlatformKind.Phantasma:
+                        {
+                            var keys = PhantasmaKeys.FromWIF(account.WIF);
+                            var cache = Cache.GetDataNode("tokens", Cache.FileType.JSON, 0, CurrentState.address);
+
+                            if (cache == null)
+                            {
+                                cache = DataNode.CreateArray();
+                            }
+
+                            Log.Write("Getting NFTs...");
+                            foreach (var balanceEntry in CurrentState.balances)
+                            {
+                                if (balanceEntry.Symbol == "TTRS")
+                                {
+                                    // Initializing NFT dictionary if needed.
+                                    if (!_ttrsNft.ContainsKey(platform))
+                                        _ttrsNft.Add(platform, new List<TokenData>());
+
+                                    var idList = "";
+                                    int loadedTokenCounter = 0;
+                                    foreach (var id in balanceEntry.Ids)
+                                    {
+                                        if (String.IsNullOrEmpty(idList))
+                                            idList += "\"" + id + "\"";
+                                        else
+                                            idList += ",\"" + id + "\"";
+
+                                        // Checking if token is cached.
+                                        DataNode token = null;
+                                        foreach (var cachedToken in cache.Children)
+                                        {
+                                            if (cachedToken.GetString("id") == id)
+                                            {
+                                                token = cachedToken;
+                                                break;
+                                            }
+                                        }
+
+                                        if (token != null)
+                                        {
+                                            // Loading token from cache.
+                                            var tokenId = token.GetString("id");
+
+                                            loadedTokenCounter++;
+
+                                            // Checking if token already loaded to dictionary.
+                                            if (!_ttrsNft[platform].Exists(x => x.ID == tokenId))
+                                            {
+                                                var tokenData = new TokenData();
+
+                                                tokenData.ID = tokenId;
+                                                tokenData.chainName = token.GetString("chain-name");
+                                                tokenData.ownerAddress = token.GetString("owner-address");
+                                                tokenData.ram = token.GetString("ram");
+                                                tokenData.rom = token.GetString("rom");
+                                                tokenData.forSale = token.GetString("for-sale") == "true";
+
+                                                _ttrsNft[platform].Add(tokenData);
+                                            }
+
+                                            if (loadedTokenCounter == balanceEntry.Ids.Length)
+                                            {
+                                                // We finished loading tokens.
+                                                // Saving them in cache.
+                                                Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
+
+                                                ReportWalletTtrsNft(platform);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            StartCoroutine(phantasmaApi.GetTokenData(balanceEntry.Symbol, id, (tokenData) =>
+                                            {
+                                                loadedTokenCounter++;
+
+                                                token = cache.AddNode(DataNode.CreateObject());
+                                                token.AddField("id", tokenData.ID);
+                                                token.AddField("chain-name", tokenData.chainName);
+                                                token.AddField("owner-address", tokenData.ownerAddress);
+                                                token.AddField("ram", tokenData.ram);
+                                                token.AddField("rom", tokenData.rom);
+                                                token.AddField("for-sale", tokenData.forSale);
+
+                                                _ttrsNft[platform].Add(tokenData);
+
+                                                if (loadedTokenCounter == balanceEntry.Ids.Length)
+                                                {
+                                                    // We finished loading tokens.
+                                                    // Saving them in cache.
+                                                    Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
+
+                                                    ReportWalletTtrsNft(platform);
+                                                }
+                                            }, (error, msg) =>
+                                            {
+                                                Log.Write(msg);
+                                            }));
+                                        }
+                                    }
+
+                                    if (!String.IsNullOrEmpty(idList))
+                                    {
+                                        // Getting NFT descriptions.
+                                        StartCoroutine(GoatiStore.LoadStoreNft(idList, (item) =>
+                                        {
+                                            StartCoroutine(GoatiStore.DownloadImage(item));
+                                        }));
+                                    }
+                                }
+                            }
+                        }
+                        break;
+
+                    default:
+                        ReportWalletTtrsNft(platform);
+                        break;
+                }
+            }
         }
 
         public void RefreshHistory(bool force, Action callback = null)

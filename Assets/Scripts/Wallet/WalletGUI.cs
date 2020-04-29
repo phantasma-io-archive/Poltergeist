@@ -11,6 +11,7 @@ using Phantasma.Blockchain.Contracts;
 using Phantasma.Numerics;
 using Phantasma.Storage;
 using Phantasma.Domain;
+using Phantasma.SDK;
 
 using ZXing;
 using ZXing.QrCode;
@@ -46,6 +47,7 @@ namespace Poltergeist
         Loading,
         Wallets,
         Balances,
+        TtrsNft,
         History,
         Account,
         Sending,
@@ -206,12 +208,16 @@ namespace Poltergeist
                        "Wallet version: " + UnityEngine.Application.version + "\n" +
                        "Log level: " + _logLevel.ToString());
 
+            Cache.Init("cache");
+
             initialized = false;
 
             guiState = GUIState.Loading;
 
             Log.Write(Screen.width + " x " + Screen.height);
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
+
+            StartCoroutine(GoatiStore.LoadStoreInfo());
         }
 
         void OnEnable()
@@ -305,6 +311,12 @@ namespace Poltergeist
                     currentTitle = "Balances for " + accountManager.CurrentAccount.name;
                     balanceScroll = Vector2.zero;
                     accountManager.RefreshBalances(false);
+                    break;
+
+                case GUIState.TtrsNft:
+                    currentTitle = "TTRS NFTs for " + accountManager.CurrentAccount.name;
+                    nftScroll = Vector2.zero;
+                    accountManager.RefreshTtrsNft(false);
                     break;
 
                 case GUIState.History:
@@ -885,6 +897,10 @@ namespace Poltergeist
                     DoBalanceScreen();
                     break;
 
+                case GUIState.TtrsNft:
+                    DoTtrsNftScreen();
+                    break;
+
                 case GUIState.History:
                     DoHistoryScreen();
                     break;
@@ -1311,6 +1327,7 @@ namespace Poltergeist
 
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
+        private Vector2 nftScroll;
         private Vector2 settingsScroll;
 
         private void DoWalletsScreen()
@@ -2504,7 +2521,14 @@ namespace Poltergeist
 
                  if (!transferToken.flags.Contains(TokenFlags.Transferable.ToString()))
                  {
-                     MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
+                     if (transferSymbol == "TTRS")
+                     {
+                         PushState(GUIState.TtrsNft);
+                     }
+                     else
+                     {
+                         MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
+                     }
                      return;
                  }
 
@@ -2569,6 +2593,116 @@ namespace Poltergeist
 
                  modalHints = GenerateAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
              });
+        }
+
+        private void DoTtrsNftScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            if (accountManager.Refreshing)
+            {
+                DrawCenteredText("Fetching NFTs...");
+                return;
+            }
+
+            var startY = DrawPlatformTopMenu(() =>
+            {
+                accountManager.RefreshTtrsNft(true);
+            });
+            var endY = DoBottomMenu();
+
+            var ttrsNfts = accountManager.CurrentTtrsNft;
+
+            if (ttrsNfts == null)
+            {
+                DrawCenteredText("Loading...");
+                return;
+            }
+
+            int curY = Units(12);
+
+            var nftCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(4) : Units(3), ttrsNfts,
+                DoTtrsNftEntry);
+
+            if (nftCount == 0)
+            {
+                DrawCenteredText($"No TTRS NFTs found for this {accountManager.CurrentPlatform} account.");
+            }
+
+            DoBottomMenu();
+        }
+
+        private void DoTtrsNftEntry(TokenData entry, int index, int curY, Rect rect)
+        {
+            int panelHeight = Units(3);
+            int panelWidth = (int)(windowRect.width - Units(2));
+            int padding = 8;
+
+            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
+            int heightPerItem = panelHeight + padding;
+            int maxEntries = availableHeight / heightPerItem;
+
+            var accountManager = AccountManager.Instance;
+
+            int halfWidth = (int)(rect.width / 2);
+
+            var item = GoatiStore.GetNft(entry.ID);
+            var image = GoatiStore.GetImage(item.Img);
+
+            if (!String.IsNullOrEmpty(image.Url))
+            {
+                GUI.DrawTexture(new Rect(Units(2), curY + 4, Units(3), Units(2)), image.Texture);
+            }
+
+            string rarity;
+            switch(item.Rarity)
+            {
+                case 1:
+                    rarity = "Consumer";
+                    break;
+                case 2:
+                    rarity = "Insdustrial";
+                    break;
+                case 3:
+                    rarity = "Professional";
+                    break;
+                case 4:
+                    rarity = "Collectors";
+                    break;
+                default:
+                    rarity = "";
+                    break;
+            }
+            GUI.Label(new Rect(Units(6), curY + 4, rect.width - Units(6), Units(2)), item.NameEnglish + " - Mint #" + item.Mint + " - " + item.DisplayTypeEnglish + " - " + rarity);
+
+            Rect btnRectPlus;
+            Rect btnRect;
+
+            if (VerticalLayout)
+            {
+                curY += Units(2);
+                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY - 8, Units(1), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY - 8, Units(4), Units(1));
+            }
+            else
+            {
+                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY + Units(1), Units(1), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
+            }
+
+            DoButton(true, btnRectPlus, "+", () =>
+            {
+                // TODO
+                AudioManager.Instance.PlaySFX("click");
+                Application.OpenURL(item.Url);
+            });
+            DoButton(true, btnRect, "View", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                Application.OpenURL("https://www.22series.com/part_info?id=" + item.Id);
+            });
+
+            curY += panelHeight + padding;
         }
 
         private void DoHistoryScreen()

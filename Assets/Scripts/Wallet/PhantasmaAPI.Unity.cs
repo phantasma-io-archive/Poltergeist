@@ -951,13 +951,22 @@ namespace Phantasma.SDK
 		}
 		
 		
+
 		//Returns data of a non-fungible token, in hexadecimal format.
-		public IEnumerator GetTokenData(string symbol, string IDtext, Action<TokenData> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
-		{	   
-			yield return WebClient.RPCRequest(Host, "getTokenData", errorHandlingCallback, (node) => { 
+		public IEnumerator GetTokenData(string symbol, string IDtext, Action<TokenData> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+		{
+			while (tokensLoadedSimultaneously > 5)
+			{
+				yield return null;
+			}
+			tokensLoadedSimultaneously++;
+
+			yield return WebClient.RPCRequest(Host, "getTokenData", errorHandlingCallback, (node) => {
 				var result = TokenData.FromNode(node);
 				callback(result);
-			} , symbol, IDtext);		   
+			} , symbol, IDtext);
+
+			tokensLoadedSimultaneously--;
 		}
 		
 		
