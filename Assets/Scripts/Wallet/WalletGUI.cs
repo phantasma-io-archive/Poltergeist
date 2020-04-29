@@ -142,6 +142,8 @@ namespace Poltergeist
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
+        private List<string> nftTransferList = new List<string>();
+
         private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
 
         private bool initialized;
@@ -1871,7 +1873,7 @@ namespace Poltergeist
             });
         }
 
-        private int DrawPlatformTopMenu(Action refresh)
+        private int DrawPlatformTopMenu(Action refresh, bool showCopyToClipboardButton = true)
         {
             var accountManager = AccountManager.Instance;
 
@@ -1951,14 +1953,17 @@ namespace Poltergeist
 
             curY += Units(3);
 
-            DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(1)), "Copy Address", () =>
-              {
-                  AudioManager.Instance.PlaySFX("click");
-                  GUIUtility.systemCopyBuffer = state.address;
-                  MessageBox(MessageKind.Default, "Address copied to clipboard.");
-              });
+            if (showCopyToClipboardButton)
+            {
+                DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(1)), "Copy Address", () =>
+                  {
+                      AudioManager.Instance.PlaySFX("click");
+                      GUIUtility.systemCopyBuffer = state.address;
+                      MessageBox(MessageKind.Default, "Address copied to clipboard.");
+                  });
 
-            curY += Units(3);
+                curY += Units(3);
+            }
 
             return curY;
         }
@@ -2616,8 +2621,8 @@ namespace Poltergeist
             var startY = DrawPlatformTopMenu(() =>
             {
                 accountManager.RefreshTtrsNft(true);
-            });
-            var endY = DoBottomMenu();
+            }, false);
+            var endY = DoBottomMenuForNft();
 
             var ttrsNfts = accountManager.CurrentTtrsNft;
 
@@ -2636,8 +2641,6 @@ namespace Poltergeist
             {
                 DrawCenteredText($"No TTRS NFTs found for this {accountManager.CurrentPlatform} account.");
             }
-
-            DoBottomMenu();
         }
 
         private void DoTtrsNftEntry(TokenData entry, int index, int curY, Rect rect)
@@ -2698,11 +2701,19 @@ namespace Poltergeist
                 btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
             }
 
-            DoButton(true, btnRectPlus, "+", () =>
+            string addButtonLabel = "+";
+            if (nftTransferList.Contains(item.Id))
+                addButtonLabel = "-";
+
+            DoButton(true, btnRectPlus, addButtonLabel, () =>
             {
-                // TODO
                 AudioManager.Instance.PlaySFX("click");
-                Application.OpenURL(item.Url);
+                if (nftTransferList.Contains(item.Id))
+                {
+                    nftTransferList.Remove(nftTransferList.Single(x => x == item.Id));
+                }
+                else
+                    nftTransferList.Add(item.Id);
             });
             DoButton(true, btnRect, "View", () =>
             {
@@ -3066,6 +3077,33 @@ namespace Poltergeist
             (selected) =>
             {
                 PushState(selected);
+            });
+
+            return posY;
+        }
+
+        private int DoBottomMenuForNft()
+        {
+            int posY;
+
+            var border = Units(1);
+
+            int panelHeight = VerticalLayout ? Border * 2 + (Units(2) + 4) * 2 : (border + Units(3));
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight + border));
+
+            var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
+
+            int halfWidth = (int)(windowRect.width / 2);
+            int btnWidth = VerticalLayout ? Units(7) : Units(11);
+
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Close", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                PushState(GUIState.Balances);
+            });
+
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
+            {
             });
 
             return posY;
