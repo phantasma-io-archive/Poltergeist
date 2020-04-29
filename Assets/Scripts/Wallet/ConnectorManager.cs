@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using LunarLabs.WebSockets;
@@ -12,6 +11,8 @@ using System.Text;
 using LunarLabs.WebServer.HTTP;
 using System.Security.Cryptography;
 using Phantasma.Domain;
+using Phantasma.SDK;
+
 
 namespace Poltergeist
 {

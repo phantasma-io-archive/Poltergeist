@@ -459,10 +459,11 @@ namespace Poltergeist
             hintComboBox.SelectedItemIndex = -1;
             hintComboBox.ListScroll = Vector2.zero;
             modalLineCount = 0;
-            // Counting lines in label. Since labels are wrapped if they are longer than ~65 symbols,
+            // Counting lines in label. Since labels are wrapped if they are longer than ~65 symbols (~30-40 for vertical layout),
             // we count longer labels too. But labels wrapping based not only on length,
             // but on content also, so we add 2x multiplier to be on a safe side.
-            Array.ForEach(modalCaption.Split("\n".ToCharArray()), x => modalLineCount += (x.ToString().Length / 65) * 2 + 1);
+            // TODO: Make a better algorithm capable of counting exact number of lines for label depending on label's width and font size.
+            Array.ForEach(modalCaption.Split("\n".ToCharArray()), x => modalLineCount += (x.ToString().Length / ((VerticalLayout) ? 30 : 65)) * 2 + 1);
         }
 
         public void BeginWaitingModal(string caption)
@@ -1303,7 +1304,14 @@ namespace Poltergeist
                 }
 
                 var accountManager = AccountManager.Instance;
-                int walletIndex = accountManager.AddWallet(name, PlatformKind.Phantasma | PlatformKind.Neo, wif, password);
+
+                var platforms = PlatformKind.None;
+                foreach (var platform in AccountManager.AvailablePlatforms)
+                {
+                    platforms |= platform;
+                }
+
+                int walletIndex = accountManager.AddWallet(name, platforms, wif, password);
                 LoginIntoAccount(walletIndex, (succes) =>
                 {
                     if (succes)
@@ -2940,7 +2948,7 @@ namespace Poltergeist
                                         }
                                         else
                                         {
-                                            MessageBox(MessageKind.Error, "That name is not a valid Phantasma address name.\nNo spaces allowed, only lowercase letters and numbers.\nMust be between 3 and 15 characters in length.");
+                                            MessageBox(MessageKind.Error, "That name is not a valid Phantasma address nam   e.\nNo spaces allowed, only lowercase letters and numbers.\nMust be between 3 and 15 characters in length.");
                                         }
                                     }
                                 });
@@ -3713,7 +3721,26 @@ namespace Poltergeist
 
         public void InvokeScript(string chain, byte[] script, Action<byte[]> callback)
         {
-            throw new NotImplementedException();
+            if (script == null)
+            {
+                Log.Write($"Error invoking script. Script is null.");
+                callback(null);
+            }
+
+            var accountManager = AccountManager.Instance;
+
+            accountManager.InvokeScript(chain, script, (result, error) =>
+            {
+                if (String.IsNullOrEmpty(error))
+                {
+                    callback(result);
+                }
+                else
+                {
+                    Log.Write($"Error invoking script.\n{error}\nScript: {System.Text.Encoding.UTF8.GetString(script)}");
+                    callback(null);
+                }
+            });
         }
         #endregion
     }

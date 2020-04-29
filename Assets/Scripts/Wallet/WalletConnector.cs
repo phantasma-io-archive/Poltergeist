@@ -84,14 +84,18 @@ namespace Poltergeist
         {
             WalletGUI.Instance.CallOnUIThread(() =>
             {
-                api.InvokeRawScript("main", Base16.Encode(script), (x) =>
+                try
                 {
-                    callback(Base16.Decode(x.result), null);
-
-                }, (error, log) =>
+                    WalletGUI.Instance.InvokeScript("main", script, (result) =>
+                    {
+                        callback(result, null);
+                    });
+                }
+                catch (Exception e)
                 {
-                    callback(null, log);
-                });
+                    callback(null, "InvokeScript call error");
+                    return;
+                }
             });
         }
 
