@@ -949,8 +949,9 @@ namespace Phantasma.SDK
 				callback(result);
 			} , symbol);		   
 		}
-		
-		
+
+
+		private int tokensLoadedSimultaneously = 0;
 
 		//Returns data of a non-fungible token, in hexadecimal format.
 		public IEnumerator GetTokenData(string symbol, string IDtext, Action<TokenData> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
