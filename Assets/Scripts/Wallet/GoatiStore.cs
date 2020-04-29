@@ -113,6 +113,11 @@ public static class GoatiStore
 
     private static List<Nft> StoreNft = new List<Nft>();
 
+    public static bool CheckIfNftLoaded(string id)
+    {
+        return String.IsNullOrEmpty(StoreNft.Find(x => x.Id == id).Id) == false;
+    }
+
     public static Nft GetNft(string id)
     {
         return StoreNft.Find(x => x.Id == id);
@@ -189,25 +194,61 @@ public static class GoatiStore
     }
 
     // http://www.22series.com/api/store/nft
-    public static IEnumerator LoadStoreNft(string ids, Action<Nft> callback)
+    public static IEnumerator LoadStoreNft(string[] ids, Action<Nft> callback)
     {
         var url = "http://www.22series.com/api/store/nft";
-        var storeNft = Cache.GetAsString("store-nft", Cache.FileType.JSON, 60 * 24);
-        if (!String.IsNullOrEmpty(storeNft))
+        var storeNft = Cache.GetDataNode("store-nft", Cache.FileType.JSON, 60 * 24);
+        if (storeNft != null)
         {
-            LoadStoreNftFromDataNode(DataFormats.LoadFromString(storeNft), callback);
-            yield break;
+            LoadStoreNftFromDataNode(storeNft, callback);
+
+            // Checking, that cache contains all needed NFTs.
+            string[] missingIds = ids;
+            for (int i = 0; i < ids.Length; i++)
+            {
+                if (CheckIfNftLoaded(ids[i]))
+                {
+                    missingIds = missingIds.Where(x => x != ids[i]).ToArray();
+                }
+            }
+            ids = missingIds;
+
+            if (ids.Length == 0)
+            {
+                yield break;
+            }
         }
 
-        yield return WebClient.RESTRequest(url, "{\"ids\":[" + ids + "]}", (error, msg) =>
+        var idList = "";
+        for (int i = 0; i < ids.Length; i++)
+        {
+            if (String.IsNullOrEmpty(idList))
+                idList += "\"" + ids[i] + "\"";
+            else
+                idList += ",\"" + ids[i] + "\"";
+        }
+
+        yield return WebClient.RESTRequest(url, "{\"ids\":[" + idList + "]}", (error, msg) =>
         {
             Log.Write("LoadStoreNft() error: " + error);
         },
         (response) =>
         {
-            Cache.Add("store-nft", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, response));
-
             LoadStoreNftFromDataNode(response, callback);
+
+            if (storeNft != null)
+            {
+                // Cache already exists, need to add new nfts to existing cache.
+                foreach(var node in response.Children)
+                {
+                    storeNft.AddNode(node);
+                }
+            }
+            else
+            {
+                storeNft = response;
+            }
+            Cache.Add("store-nft", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, storeNft));
         });
     }
 

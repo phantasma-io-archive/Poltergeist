@@ -1322,15 +1322,9 @@ namespace Poltergeist
                                     if (!_ttrsNft.ContainsKey(platform))
                                         _ttrsNft.Add(platform, new List<TokenData>());
 
-                                    var idList = "";
                                     int loadedTokenCounter = 0;
                                     foreach (var id in balanceEntry.Ids)
                                     {
-                                        if (String.IsNullOrEmpty(idList))
-                                            idList += "\"" + id + "\"";
-                                        else
-                                            idList += ",\"" + id + "\"";
-
                                         // Checking if token is cached.
                                         DataNode token = null;
                                         foreach (var cachedToken in cache.Children)
@@ -1404,10 +1398,10 @@ namespace Poltergeist
                                         }
                                     }
 
-                                    if (!String.IsNullOrEmpty(idList))
+                                    if (balanceEntry.Ids.Length > 0)
                                     {
                                         // Getting NFT descriptions.
-                                        StartCoroutine(GoatiStore.LoadStoreNft(idList, (item) =>
+                                        StartCoroutine(GoatiStore.LoadStoreNft(balanceEntry.Ids, (item) =>
                                         {
                                             StartCoroutine(GoatiStore.DownloadImage(item));
                                         }));

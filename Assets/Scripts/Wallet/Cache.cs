@@ -2,6 +2,7 @@
 using System.IO;
 using LunarLabs.Parser;
 using UnityEngine;
+using Phantasma.SDK;
 
 public static class Cache
 {
