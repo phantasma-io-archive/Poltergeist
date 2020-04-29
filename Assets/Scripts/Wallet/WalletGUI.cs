@@ -217,7 +217,7 @@ namespace Poltergeist
             Log.Write(Screen.width + " x " + Screen.height);
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
 
-            StartCoroutine(GoatiStore.LoadStoreInfo());
+            StartCoroutine(TtrsStore.LoadStoreInfo());
         }
 
         void OnEnable()
@@ -2654,8 +2654,8 @@ namespace Poltergeist
 
             int halfWidth = (int)(rect.width / 2);
 
-            var item = GoatiStore.GetNft(entry.ID);
-            var image = GoatiStore.GetImage(item.Img);
+            var item = TtrsStore.GetNft(entry.ID);
+            var image = TtrsStore.GetImage(item.Img);
 
             if (!String.IsNullOrEmpty(image.Url))
             {

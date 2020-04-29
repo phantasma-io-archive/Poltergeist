@@ -8,7 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public static class GoatiStore
+public static class TtrsStore
 {
     private struct ItemSupply
     {
@@ -59,7 +59,7 @@ public static class GoatiStore
         },
         (response) =>
         {
-            Cache.Add("store-info", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, response));
+            Cache.Add("ttrs-store-info", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, response));
 
             LoadStoreInfoFromDataNode(response);
         });
@@ -248,7 +248,7 @@ public static class GoatiStore
             {
                 storeNft = response;
             }
-            Cache.Add("store-nft", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, storeNft));
+            Cache.Add("ttrs-store-nft", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, storeNft));
         });
     }
 
@@ -261,7 +261,7 @@ public static class GoatiStore
             yield break;
         }
 
-        var texture = Cache.GetTexture("goati-image-" + nft.Item, 0);
+        var texture = Cache.GetTexture("ttrs-image-" + nft.Item, 0);
         if (texture != null)
         {
             var image = new Image();
@@ -291,7 +291,7 @@ public static class GoatiStore
 
             Images.Add(image);
 
-            Cache.AddTexture("goati-image-" + nft.Item, image.Texture);
+            Cache.AddTexture("ttrs-image-" + nft.Item, image.Texture);
         }
         imagesLoadedSimultaneously--;
     }

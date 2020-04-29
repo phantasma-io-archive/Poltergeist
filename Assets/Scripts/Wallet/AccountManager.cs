@@ -1401,9 +1401,9 @@ namespace Poltergeist
                                     if (balanceEntry.Ids.Length > 0)
                                     {
                                         // Getting NFT descriptions.
-                                        StartCoroutine(GoatiStore.LoadStoreNft(balanceEntry.Ids, (item) =>
+                                        StartCoroutine(TtrsStore.LoadStoreNft(balanceEntry.Ids, (item) =>
                                         {
-                                            StartCoroutine(GoatiStore.DownloadImage(item));
+                                            StartCoroutine(TtrsStore.DownloadImage(item));
                                         }));
                                     }
                                 }
