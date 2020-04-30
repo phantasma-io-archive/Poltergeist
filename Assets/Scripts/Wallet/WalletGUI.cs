@@ -48,6 +48,7 @@ namespace Poltergeist
         Wallets,
         Balances,
         TtrsNft,
+        TtrsNftTransferList,
         History,
         Account,
         Sending,
@@ -317,9 +318,11 @@ namespace Poltergeist
 
                 case GUIState.TtrsNft:
                     currentTitle = "TTRS NFTs for " + accountManager.CurrentAccount.name;
-                    nftScroll = Vector2.zero;
-                    nftTransferList.Clear();
-                    accountManager.RefreshTtrsNft(false);
+                    break;
+
+                case GUIState.TtrsNftTransferList:
+                    currentTitle = "TTRS NFTs transfer list for " + accountManager.CurrentAccount.name;
+                    nftTransferListScroll = Vector2.zero;
                     break;
 
                 case GUIState.History:
@@ -905,6 +908,10 @@ namespace Poltergeist
                     DoTtrsNftScreen();
                     break;
 
+                case GUIState.TtrsNftTransferList:
+                    DoTtrsNftTransferListScreen();
+                    break;
+
                 case GUIState.History:
                     DoHistoryScreen();
                     break;
@@ -1339,6 +1346,7 @@ namespace Poltergeist
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
         private Vector2 nftScroll;
+        private Vector2 nftTransferListScroll;
         private Vector2 settingsScroll;
 
         private void DoWalletsScreen()
@@ -2537,6 +2545,12 @@ namespace Poltergeist
                  {
                      if (transferSymbol == "TTRS")
                      {
+                         // We should do this initialization here and not in PushState,
+                         // to allow "Back" button to work properly.
+                         nftScroll = Vector2.zero;
+                         nftTransferList.Clear();
+                         accountManager.RefreshTtrsNft(false);
+
                          PushState(GUIState.TtrsNft);
                      }
                      else
@@ -2747,6 +2761,44 @@ namespace Poltergeist
             });
 
             curY += panelHeight + padding;
+        }
+
+        private void DoTtrsNftTransferListScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            var startY = DrawPlatformTopMenu(() =>
+            {
+            }, false);
+            var endY = DoBottomMenuForNftTransferList();
+
+            var ttrsNfts = accountManager.CurrentTtrsNft;
+
+            if (ttrsNfts == null)
+            {
+                DrawCenteredText("Loading...");
+                return;
+            }
+
+            int curY = Units(12);
+
+            List<TokenData> selectedTtrsNfts = new List<TokenData>();
+
+            foreach (var nft in ttrsNfts)
+            {
+                if(nftTransferList.Contains(nft.ID))
+                {
+                    selectedTtrsNfts.Add(nft);
+                }
+            }
+
+            var nftCount = DoScrollArea<TokenData>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), selectedTtrsNfts,
+                DoTtrsNftEntry);
+
+            if (nftCount == 0)
+            {
+                DrawCenteredText($"No TTRS NFTs selected for transfer.");
+            }
         }
 
         private void DoHistoryScreen()
@@ -3128,6 +3180,34 @@ namespace Poltergeist
             });
 
             DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
+            {
+                PushState(GUIState.TtrsNftTransferList);
+            });
+
+            return posY;
+        }
+
+        private int DoBottomMenuForNftTransferList()
+        {
+            int posY;
+
+            var border = Units(1);
+
+            int panelHeight = VerticalLayout ? Border * 2 + (Units(2) + 4) * 2 : (border + Units(3));
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight + border));
+
+            var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
+
+            int halfWidth = (int)(windowRect.width / 2);
+            int btnWidth = VerticalLayout ? Units(7) : Units(11);
+
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Back", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                PushState(GUIState.TtrsNft);
+            });
+
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Transfer", () =>
             {
             });
 
