@@ -318,6 +318,7 @@ namespace Poltergeist
                 case GUIState.TtrsNft:
                     currentTitle = "TTRS NFTs for " + accountManager.CurrentAccount.name;
                     nftScroll = Vector2.zero;
+                    nftTransferList.Clear();
                     accountManager.RefreshTtrsNft(false);
                     break;
 
@@ -2634,7 +2635,7 @@ namespace Poltergeist
 
             int curY = Units(12);
 
-            var nftCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(4) : Units(3), ttrsNfts,
+            var nftCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), ttrsNfts,
                 DoTtrsNftEntry);
 
             if (nftCount == 0)
@@ -2662,29 +2663,47 @@ namespace Poltergeist
 
             if (!String.IsNullOrEmpty(image.Url))
             {
-                GUI.DrawTexture(new Rect(Units(2), curY + 4, Units(3), Units(2)), image.Texture);
+                GUI.DrawTexture(new Rect(Units(2), curY + 4, VerticalLayout ? Units(4) : Units(3) + 8, VerticalLayout ? Units(4) : Units(3) + 8), image.Texture);
             }
 
             string rarity;
             switch(item.Rarity)
             {
                 case 1:
-                    rarity = "Consumer";
+                    rarity = VerticalLayout ? "/Con" : " / Consumer";
                     break;
                 case 2:
-                    rarity = "Insdustrial";
+                    rarity = VerticalLayout ? "/Ind" : " / Industrial";
                     break;
                 case 3:
-                    rarity = "Professional";
+                    rarity = VerticalLayout ? "/Pro" : " / Professional";
                     break;
                 case 4:
-                    rarity = "Collectors";
+                    rarity = VerticalLayout ? "/Col" : " / Collector";
                     break;
                 default:
                     rarity = "";
                     break;
             }
-            GUI.Label(new Rect(Units(6), curY + 4, rect.width - Units(6), Units(2)), item.NameEnglish + " - Mint #" + item.Mint + " - " + item.DisplayTypeEnglish + " - " + rarity);
+
+            var nftName = item.NameEnglish;
+            if (String.IsNullOrEmpty(nftName))
+                nftName = "Loading...";
+            if (VerticalLayout && nftName.Length > 18)
+                nftName = nftName.Substring(0, 15) + "...";
+
+            var nftDescription = item.Mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.Mint + " " + (VerticalLayout ? item.Timestamp.ToString("dd.MM.yy") : item.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")) + (VerticalLayout ? " " : " / ") + item.DisplayTypeEnglish + rarity;
+
+            GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + 4 : curY, rect.width - Units(6), Units(2) + 4), nftName);
+
+            if (!String.IsNullOrEmpty(nftDescription))
+            {
+                var style = GUI.skin.label;
+                var tempSize = style.fontSize;
+                style.fontSize = VerticalLayout ? 18 : 16;
+                GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(2) + 4 : curY + Units(1) + 8, rect.width - Units(6), Units(2)), nftDescription);
+                style.fontSize = tempSize;
+            }
 
             Rect btnRectPlus;
             Rect btnRect;
@@ -2692,29 +2711,35 @@ namespace Poltergeist
             if (VerticalLayout)
             {
                 curY += Units(2);
-                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY - 8, Units(1), Units(1));
-                btnRect = new Rect(rect.x + rect.width - Units(6), curY - 8, Units(4), Units(1));
+                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY - 4, Units(1), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY, Units(4), Units(1));
             }
             else
             {
-                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY + Units(1), Units(1), Units(1));
-                btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
+                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY + Units(1) + 4, Units(1), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1) + 8, Units(4), Units(1));
             }
 
             string addButtonLabel = "+";
             if (nftTransferList.Contains(item.Id))
                 addButtonLabel = "-";
 
-            DoButton(true, btnRectPlus, addButtonLabel, () =>
+            var nftIsSelected = nftTransferList.Contains(item.Id);
+            if ( GUI.Toggle(btnRectPlus, nftIsSelected, "") )
             {
-                AudioManager.Instance.PlaySFX("click");
-                if (nftTransferList.Contains(item.Id))
+                if (!nftIsSelected)
+                {
+                    nftTransferList.Add(item.Id);
+                }
+            }
+            else
+            {
+                if (nftIsSelected)
                 {
                     nftTransferList.Remove(nftTransferList.Single(x => x == item.Id));
                 }
-                else
-                    nftTransferList.Add(item.Id);
-            });
+            }
+
             DoButton(true, btnRect, "View", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
