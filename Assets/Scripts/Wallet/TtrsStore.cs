@@ -46,7 +46,7 @@ public static class TtrsStore
     {
         var url = "http://www.22series.com/api/store/info";
 
-        var storeInfo = Cache.GetAsString("store-info", Cache.FileType.JSON, 60 * 24);
+        var storeInfo = Cache.GetAsString("ttrs-store-info", Cache.FileType.JSON, 60 * 24);
         if (!String.IsNullOrEmpty(storeInfo))
         {
             LoadStoreInfoFromDataNode(DataFormats.LoadFromString(storeInfo));
@@ -197,7 +197,7 @@ public static class TtrsStore
     public static IEnumerator LoadStoreNft(string[] ids, Action<Nft> callback)
     {
         var url = "http://www.22series.com/api/store/nft";
-        var storeNft = Cache.GetDataNode("store-nft", Cache.FileType.JSON, 60 * 24);
+        var storeNft = Cache.GetDataNode("ttrs-store-nft", Cache.FileType.JSON, 60 * 24);
         if (storeNft != null)
         {
             LoadStoreNftFromDataNode(storeNft, callback);
