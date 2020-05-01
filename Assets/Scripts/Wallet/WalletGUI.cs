@@ -143,6 +143,8 @@ namespace Poltergeist
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
+        private int nftPageSize = 25;
+        private int nftPageNumber = 0;
         private List<TokenData> nftTransferList = new List<TokenData>();
 
         private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
@@ -2647,7 +2649,11 @@ namespace Poltergeist
                 return;
             }
 
-            var nftCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nfts,
+            // Making NFT list for current page.
+            var nftPage = new List<TokenData>();
+            nfts.ForEach((x) => { if (nfts.IndexOf(x) >= nftPageSize * nftPageNumber && nfts.IndexOf(x) < nftPageSize * (nftPageNumber + 1)) { nftPage.Add(x); } });
+
+            var nftCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftPage,
                 DoTtrsNftEntry);
 
             if (nftCount == 0)
@@ -3145,11 +3151,15 @@ namespace Poltergeist
 
         private int DoBottomMenuForNft()
         {
+            var accountManager = AccountManager.Instance;
+            var nfts = accountManager.CurrentNfts;
+            var nftPageCount = nfts.Count / nftPageSize + 1;
+
             int posY;
 
             var border = Units(1);
 
-            int panelHeight = VerticalLayout ? Border * 2 + (Units(2) + 4) * 2 : (border + Units(3));
+            int panelHeight = VerticalLayout ? Border * 2 + (Units(2) + 4) * 3 : (border + Units(3));
             posY = (int)((windowRect.y + windowRect.height) - (panelHeight + border));
 
             var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
@@ -3157,13 +3167,70 @@ namespace Poltergeist
             int halfWidth = (int)(windowRect.width / 2);
             int btnWidth = VerticalLayout ? Units(7) : Units(11);
 
-            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Close", () =>
+            // Close
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2,
+                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border,
+                                    VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Close", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
                 PushState(GUIState.Balances);
             });
 
-            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
+            int pageLabelWidth = Units(4);
+            int pageButtonWidth = Units(2);
+            int pageButtonSpacing = 12;
+
+            // <<
+            DoButton(nftPageNumber > 0, new Rect(halfWidth - pageLabelWidth / 2 - (pageButtonWidth + pageButtonSpacing) * 2,
+                                                 VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                 pageButtonWidth, Units(2)), "<<", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber = 0;
+            });
+
+            // <
+            DoButton(nftPageNumber > 0, new Rect(halfWidth - pageLabelWidth / 2 - (pageButtonWidth + pageButtonSpacing),
+                                                 VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                 pageButtonWidth, Units(2)), "<", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber--;
+            });
+
+            // Current page number
+            var style = GUI.skin.GetStyle("Label");
+            var prevAlignment = style.alignment;
+            style.alignment = TextAnchor.MiddleCenter;
+            GUI.contentColor = Color.black;
+            GUI.Label(new Rect(halfWidth - pageLabelWidth / 2 - 6,
+                               (int)rect.y + 12,
+                               pageLabelWidth, Units(2)), (nftPageNumber + 1).ToString(), style);
+            GUI.contentColor = Color.white;
+            style.alignment = prevAlignment;
+
+            // >
+            DoButton(nftPageNumber < nftPageCount - 1, new Rect(halfWidth + pageLabelWidth / 2 + pageButtonSpacing,
+                                                                VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                                pageButtonWidth, Units(2)), ">", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber++;
+            });
+
+            // >>
+            DoButton(nftPageNumber < nftPageCount - 1, new Rect(halfWidth + pageLabelWidth / 2 + pageButtonWidth + pageButtonSpacing * 2,
+                                                                VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                                pageButtonWidth, Units(2)), ">>", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber = nftPageCount - 1;
+            });
+
+            // To transfer list
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2,
+                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) * 2 : (int)rect.y + border,
+                                    VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
             {
                 PushState(GUIState.TtrsNftTransferList);
             });
