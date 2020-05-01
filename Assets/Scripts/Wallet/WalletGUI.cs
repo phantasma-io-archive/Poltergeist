@@ -2766,7 +2766,12 @@ namespace Poltergeist
             }, false);
             var endY = DoBottomMenuForNftTransferList();
 
-            var nftCount = DoScrollArea<TokenData>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferList,
+            // We can modify nftTransferList while enumerating,
+            // so we should use a copy of it.
+            var nftTransferListCopy = new List<TokenData>();
+            nftTransferList.ForEach((x) => nftTransferListCopy.Add(x));
+
+            var nftCount = DoScrollArea<TokenData>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferListCopy,
                 DoTtrsNftEntry);
 
             if (nftCount == 0)
