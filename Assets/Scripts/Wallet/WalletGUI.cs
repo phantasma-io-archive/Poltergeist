@@ -2639,17 +2639,15 @@ namespace Poltergeist
             }, false);
             var endY = DoBottomMenuForNft();
 
-            var ttrsNfts = accountManager.CurrentNfts;
+            var nfts = accountManager.CurrentNfts;
 
-            if (ttrsNfts == null)
+            if (nfts == null)
             {
                 DrawCenteredText("Loading...");
                 return;
             }
 
-            int curY = Units(12);
-
-            var nftCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), ttrsNfts,
+            var nftCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nfts,
                 DoTtrsNftEntry);
 
             if (nftCount == 0)
@@ -2763,27 +2761,17 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
-            var ttrsNfts = accountManager.CurrentNfts;
-
             var startY = DrawPlatformTopMenu(() =>
             {
             }, false);
             var endY = DoBottomMenuForNftTransferList();
-
-            if (ttrsNfts == null)
-            {
-                DrawCenteredText("Loading...");
-                return;
-            }
-
-            int curY = Units(12);
 
             var nftCount = DoScrollArea<TokenData>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferList,
                 DoTtrsNftEntry);
 
             if (nftCount == 0)
             {
-                DrawCenteredText($"No TTRS NFTs selected for transfer.");
+                DrawCenteredText($"No NFTs selected for transfer.");
             }
         }
 

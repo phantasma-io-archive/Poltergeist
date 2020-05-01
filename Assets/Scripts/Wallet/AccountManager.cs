@@ -176,12 +176,12 @@ namespace Poltergeist
         public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Length;
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
-        private Dictionary<PlatformKind, List<TokenData>> _ttrsNft = new Dictionary<PlatformKind, List<TokenData>>();
+        private Dictionary<PlatformKind, List<TokenData>> _nfts = new Dictionary<PlatformKind, List<TokenData>>();
         private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
-        public List<TokenData> CurrentNfts => _ttrsNft.ContainsKey(CurrentPlatform) ? _ttrsNft[CurrentPlatform] : null;
+        public List<TokenData> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
@@ -742,7 +742,7 @@ namespace Poltergeist
             _accountInitialized = false;
 
             _states.Clear();
-            _ttrsNft.Clear();
+            _nfts.Clear();
         }
 
         private void ReportWalletBalance(PlatformKind platform, AccountState state)
@@ -787,9 +787,9 @@ namespace Poltergeist
         {
             _pendingRequestCount--;
 
-            if (_ttrsNft.ContainsKey(platform) && _ttrsNft[platform] != null)
+            if (_nfts.ContainsKey(platform) && _nfts[platform] != null)
             {
-                Log.Write($"Received {_ttrsNft[platform].Count()} new TTRS NFTs for {platform}");
+                Log.Write($"Received {_nfts[platform].Count()} new TTRS NFTs for {platform}");
 
                 if (CurrentPlatform == PlatformKind.None)
                 {
@@ -1302,6 +1302,10 @@ namespace Poltergeist
 
             foreach (var platform in platforms)
             {
+                // Reinitializing NFT dictionary if needed.
+                if (_nfts.ContainsKey(platform))
+                    _nfts[platform].Clear();
+
                 switch (platform)
                 {
                     case PlatformKind.Phantasma:
@@ -1320,8 +1324,8 @@ namespace Poltergeist
                                 if (balanceEntry.Symbol == "TTRS")
                                 {
                                     // Initializing NFT dictionary if needed.
-                                    if (!_ttrsNft.ContainsKey(platform))
-                                        _ttrsNft.Add(platform, new List<TokenData>());
+                                    if (!_nfts.ContainsKey(platform))
+                                        _nfts.Add(platform, new List<TokenData>());
 
                                     int loadedTokenCounter = 0;
                                     foreach (var id in balanceEntry.Ids)
@@ -1345,7 +1349,7 @@ namespace Poltergeist
                                             loadedTokenCounter++;
 
                                             // Checking if token already loaded to dictionary.
-                                            if (!_ttrsNft[platform].Exists(x => x.ID == tokenId))
+                                            if (!_nfts[platform].Exists(x => x.ID == tokenId))
                                             {
                                                 var tokenData = new TokenData();
 
@@ -1356,7 +1360,7 @@ namespace Poltergeist
                                                 tokenData.rom = token.GetString("rom");
                                                 tokenData.forSale = token.GetString("for-sale") == "true";
 
-                                                _ttrsNft[platform].Add(tokenData);
+                                                _nfts[platform].Add(tokenData);
                                             }
 
                                             if (loadedTokenCounter == balanceEntry.Ids.Length)
@@ -1382,7 +1386,7 @@ namespace Poltergeist
                                                 token.AddField("rom", tokenData.rom);
                                                 token.AddField("for-sale", tokenData.forSale);
 
-                                                _ttrsNft[platform].Add(tokenData);
+                                                _nfts[platform].Add(tokenData);
 
                                                 if (loadedTokenCounter == balanceEntry.Ids.Length)
                                                 {
