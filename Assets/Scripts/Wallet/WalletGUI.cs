@@ -2738,6 +2738,11 @@ namespace Poltergeist
                 if (!nftIsSelected)
                 {
                     nftTransferList.Add(entry);
+
+                    // We have to remake whole list to have correct order of selected items.
+                    var nftTransferListCopy = new List<TokenData>();
+                    accountManager.CurrentNfts.ForEach((x) => { if (nftTransferList.Exists(y => y.ID == x.ID)) { nftTransferListCopy.Add(x); } });
+                    nftTransferList = nftTransferListCopy;
                 }
             }
             else
