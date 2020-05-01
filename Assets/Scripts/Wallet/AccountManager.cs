@@ -181,7 +181,7 @@ namespace Poltergeist
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
-        public List<TokenData> CurrentTtrsNft => _ttrsNft.ContainsKey(CurrentPlatform) ? _ttrsNft[CurrentPlatform] : null;
+        public List<TokenData> CurrentNfts => _ttrsNft.ContainsKey(CurrentPlatform) ? _ttrsNft[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
@@ -381,7 +381,7 @@ namespace Poltergeist
 
             var extFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString()+ ","+TokenFlags.Divisible.ToString();
             var pepFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString();
-            var nftFlags = TokenFlags.None.ToString();
+            var nftFlags = TokenFlags.Transferable.ToString();
             tokens.Add(new Token() { symbol = "SOUL", cryptoCompareSymbol = "GOST", platform = DomainSettings.PlatformName, hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags });
             tokens.Add(new Token() { symbol = "KCAL", cryptoCompareSymbol = "KCAL", platform = DomainSettings.PlatformName, hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + ","+ TokenFlags.Divisible.ToString() });
 
