@@ -2548,7 +2548,7 @@ namespace Poltergeist
                      // to allow "Back" button to work properly.
                      nftScroll = Vector2.zero;
                      nftTransferList.Clear();
-                     accountManager.RefreshTtrsNft(false);
+                     accountManager.RefreshNft(false, transferSymbol);
 
                      PushState(GUIState.TtrsNft);
                      return;
@@ -2635,7 +2635,7 @@ namespace Poltergeist
 
             var startY = DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshTtrsNft(true);
+                accountManager.RefreshNft(true, transferSymbol);
             }, false);
             var endY = DoBottomMenuForNft();
 

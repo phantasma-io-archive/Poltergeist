@@ -718,13 +718,15 @@ namespace Poltergeist
 
         private Action _refreshCallback;
         private DateTime _lastBalanceRefresh = DateTime.MinValue;
-        private DateTime _lastTtrsNftRefresh = DateTime.MinValue;
+        private DateTime _lastNftRefresh = DateTime.MinValue;
+        private string _lastNftRefreshSymbol = "";
         private DateTime _lastHistoryRefresh = DateTime.MinValue;
 
         public void SelectAccount(int index)
         {
             _lastBalanceRefresh = DateTime.MinValue;
-            _lastTtrsNftRefresh = DateTime.MinValue;
+            _lastNftRefresh = DateTime.MinValue;
+            _lastNftRefreshSymbol = "";
             _lastHistoryRefresh = DateTime.MinValue;
             _selectedAccountIndex = index;
 
@@ -783,13 +785,13 @@ namespace Poltergeist
             return total;
         }
 
-        private void ReportWalletTtrsNft(PlatformKind platform)
+        private void ReportWalletNft(PlatformKind platform, string symbol)
         {
             _pendingRequestCount--;
 
             if (_nfts.ContainsKey(platform) && _nfts[platform] != null)
             {
-                Log.Write($"Received {_nfts[platform].Count()} new TTRS NFTs for {platform}");
+                Log.Write($"Received {_nfts[platform].Count()} new {symbol} NFTs for {platform}");
 
                 if (CurrentPlatform == PlatformKind.None)
                 {
@@ -1281,18 +1283,19 @@ namespace Poltergeist
             this.Accounts = new Account[0];
         }
 
-        public void RefreshTtrsNft(bool force, Action callback = null)
+        public void RefreshNft(bool force, string symbol, Action callback = null)
         {
             var now = DateTime.UtcNow;
-            var diff = now - _lastTtrsNftRefresh;
+            var diff = now - _lastNftRefresh;
 
-            if (!force && diff.TotalSeconds < 30)
+            if (!force && diff.TotalSeconds < 30 && _lastNftRefreshSymbol == symbol)
             {
                 InvokeRefreshCallback();
                 return;
             }
 
-            _lastTtrsNftRefresh = now;
+            _lastNftRefresh = now;
+            _lastNftRefreshSymbol = symbol;
             _refreshCallback = callback;
 
             var platforms = CurrentAccount.platforms.Split();
@@ -1321,7 +1324,7 @@ namespace Poltergeist
                             Log.Write("Getting NFTs...");
                             foreach (var balanceEntry in CurrentState.balances)
                             {
-                                if (balanceEntry.Symbol == "TTRS")
+                                if (balanceEntry.Symbol == "TTRS" && symbol == "TTRS" )
                                 {
                                     // Initializing NFT dictionary if needed.
                                     if (!_nfts.ContainsKey(platform))
@@ -1369,7 +1372,7 @@ namespace Poltergeist
                                                 // Saving them in cache.
                                                 Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
 
-                                                ReportWalletTtrsNft(platform);
+                                                ReportWalletNft(platform, symbol);
                                             }
                                         }
                                         else
@@ -1394,7 +1397,7 @@ namespace Poltergeist
                                                     // Saving them in cache.
                                                     Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
 
-                                                    ReportWalletTtrsNft(platform);
+                                                    ReportWalletNft(platform, symbol);
                                                 }
                                             }, (error, msg) =>
                                             {
@@ -1417,7 +1420,7 @@ namespace Poltergeist
                         break;
 
                     default:
-                        ReportWalletTtrsNft(platform);
+                        ReportWalletNft(platform, symbol);
                         break;
                 }
             }
