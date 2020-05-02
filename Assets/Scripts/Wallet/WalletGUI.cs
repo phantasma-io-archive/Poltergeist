@@ -2780,6 +2780,7 @@ namespace Poltergeist
 
             DrawPlatformTopMenu(() =>
             {
+                accountManager.RefreshBalances(true);
                 accountManager.RefreshNft(true, transferSymbol);
             }, false);
         }
