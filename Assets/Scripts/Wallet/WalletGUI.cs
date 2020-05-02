@@ -2727,10 +2727,7 @@ namespace Poltergeist
                 return;
             }
 
-            var startY = DrawPlatformTopMenu(() =>
-            {
-                accountManager.RefreshNft(true, transferSymbol);
-            }, false);
+            var startY = Units(VerticalLayout ? 11 : 7);
             var nftToolsY = startY;
             startY += Units(2);
             var endY = DoBottomMenuForNft();
@@ -2780,6 +2777,11 @@ namespace Poltergeist
             }
 
             DrawNftTools(nftToolsY);
+
+            DrawPlatformTopMenu(() =>
+            {
+                accountManager.RefreshNft(true, transferSymbol);
+            }, false);
         }
 
         private void DoTtrsNftEntry(TokenData entry, int index, int curY, Rect rect)
