@@ -2761,6 +2761,12 @@ namespace Poltergeist
                 nfts = nftFilteredList;
             }
 
+            // Number of displayed NFTs changed, switching to first page.
+            if (nfts.Count != nftCount)
+            {
+                nftPageNumber = 0;
+            }
+
             nftCount = nfts.Count;
             nftPageCount = nftCount / nftPageSize + 1;
 
@@ -2902,13 +2908,16 @@ namespace Poltergeist
 
             // Removing items from transfer list, if they
             // are absent in current filter list.
-            var nftTransferListCopy = new List<TokenData>();
-            nftTransferList.ForEach(x => { if (nftFilteredList.Exists(y => y.ID == x.ID)) { nftTransferListCopy.Add(x); } });
-            nftTransferList = nftTransferListCopy;
+            if (nftFilteredList.Count > 0)
+            {
+                var nftFilteredTransferList = new List<TokenData>();
+                nftTransferList.ForEach(x => { if (nftFilteredList.Exists(y => y.ID == x.ID)) { nftFilteredTransferList.Add(x); } });
+                nftTransferList = nftFilteredTransferList;
+            }
 
             // We can modify nftTransferList while enumerating,
             // so we should use a copy of it.
-            nftTransferListCopy = new List<TokenData>();
+            var nftTransferListCopy = new List<TokenData>();
             nftTransferList.ForEach(x => nftTransferListCopy.Add(x));
 
             var nftTransferCount = DoScrollArea<TokenData>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferListCopy,
