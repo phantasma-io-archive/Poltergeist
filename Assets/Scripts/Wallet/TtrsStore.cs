@@ -177,6 +177,8 @@ public static class TtrsStore
             nft.ItemDefId = itemInfo.GetUInt32("itemdefid");
             nft.Season = itemInfo.GetUInt32("season");
             nft.Rarity = itemInfo.GetUInt32("rarity");
+            if (nft.Rarity == 5) // Fixing ttrs rarity gap.
+                nft.Rarity = 4;
             nft.BodyPart = itemInfo.GetString("body_part");
             nft.ModelAsset = itemInfo.GetString("model_asset");
             nft.Type = itemInfo.GetString("type");
