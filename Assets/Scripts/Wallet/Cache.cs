@@ -30,6 +30,22 @@ public static class Cache
         ForceCacheUsage = forceCacheUsage;
     }
 
+    public static void Clear()
+    {
+        System.IO.DirectoryInfo directoryInfo = new DirectoryInfo(FolderPath);
+
+        foreach (FileInfo file in directoryInfo.GetFiles())
+        {
+            file.Delete();
+        }
+        foreach (DirectoryInfo dir in directoryInfo.GetDirectories())
+        {
+            dir.Delete(true);
+        }
+
+        Directory.CreateDirectory(ImageFolderPath);
+    }
+
     private static void UpdateRegistry(string CacheId, DateTime Timestamp, int Size, string WalletName)
     {
         DataNode root;

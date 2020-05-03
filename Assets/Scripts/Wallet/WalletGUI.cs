@@ -1743,10 +1743,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 12 elements with total height of (element height + spacing) * 12 = Units(3) * 12.
+            // 1) 13 elements with total height of (element height + spacing) * 13 = Units(3) * 12.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 12 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 13 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1859,6 +1859,20 @@ namespace Poltergeist
 
             settings.logOverwriteMode = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.logOverwriteMode, "");
             GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Overwrite log at start");
+            curY += Units(3);
+
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Clear cache", () =>
+            {
+                PromptBox("Are you sure you want to clear wallet's cache?", ModalConfirmCancel, (result) =>
+                {
+                    if (result == PromptResult.Success)
+                    {
+                        AudioManager.Instance.PlaySFX("click");
+                        Cache.Clear();
+                        MessageBox(MessageKind.Default, "Cache cleared.");
+                    }
+                });
+            });
             curY += Units(3);
 
             if (accountManager.Accounts.Length > 0)
