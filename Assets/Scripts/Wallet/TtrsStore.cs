@@ -111,16 +111,17 @@ public static class TtrsStore
         public Texture2D Image;
     }
 
-    private static List<Nft> StoreNft = new List<Nft>();
+    private static Hashtable StoreNft = new Hashtable();
+
 
     public static bool CheckIfNftLoaded(string id)
     {
-        return String.IsNullOrEmpty(StoreNft.Find(x => x.Id == id).Id) == false;
+        return StoreNft.Contains(id);
     }
 
     public static Nft GetNft(string id)
     {
-        return StoreNft.Find(x => x.Id == id);
+        return StoreNft.Contains(id) ? (Nft)StoreNft[id] : new Nft();
     }
 
     public struct Image
@@ -129,16 +130,16 @@ public static class TtrsStore
         public Texture2D Texture;
     }
 
-    private static List<Image> Images = new List<Image>();
+    private static Hashtable Images = new Hashtable();
 
     public static bool CheckIfImageLoaded(string Url)
     {
-        return String.IsNullOrEmpty(Images.Find(x => x.Url == Url).Url) == false;
+        return Images[Url] != null;
     }
 
     public static Image GetImage(string Url)
     {
-        return Images.Find(x => x.Url == Url);
+        return Images.Contains(Url) ? (Image)Images[Url] : new Image();
     }
 
     private static void LoadStoreNftFromDataNode(DataNode storeNft, Action<Nft> callback)
@@ -189,7 +190,7 @@ public static class TtrsStore
             nft.Finish = itemInfo.GetString("finish");
             nft.MintLimit = itemInfo.GetUInt32("mint_limit");
 
-            StoreNft.Add(nft);
+            StoreNft.Add(nft.Id, nft);
 
             callback(nft);
         }
@@ -258,6 +259,7 @@ public static class TtrsStore
 
     public static IEnumerator DownloadImage(Nft nft)
     {
+        // Trying to avoid downloading same image multiple times.
         if (CheckIfImageLoaded(nft.Img))
         {
             yield break;
@@ -270,13 +272,23 @@ public static class TtrsStore
             image.Url = nft.Img;
             image.Texture = texture;
 
-            Images.Add(image);
+            lock (Images)
+            {
+                if (!CheckIfImageLoaded(image.Url))
+                    Images.Add(image.Url, image);
+            }
             yield break;
         }
 
         while (imagesLoadedSimultaneously > 5)
         {
             yield return null;
+
+            // Trying to avoid downloading same image multiple times.
+            if (CheckIfImageLoaded(nft.Img))
+            {
+                yield break;
+            }
         }
 
         imagesLoadedSimultaneously++;
@@ -291,7 +303,11 @@ public static class TtrsStore
             image.Url = nft.Img;
             image.Texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
 
-            Images.Add(image);
+            lock (Images)
+            {
+                if (!CheckIfImageLoaded(image.Url))
+                    Images.Add(image.Url, image);
+            }
 
             Cache.AddTexture("ttrs-image-" + nft.Item, image.Texture);
         }
@@ -332,9 +348,9 @@ public static class TtrsStore
 
     public static void LogStoreNft()
     {
-        for (int i = 0; i < StoreNft.Count(); i++)
+        for (int i = 0; i < StoreNft.Count; i++)
         {
-            Log.Write(NftToString(StoreNft[i]));
+            Log.Write(NftToString((Nft)StoreNft[i]));
         }
     }
 }

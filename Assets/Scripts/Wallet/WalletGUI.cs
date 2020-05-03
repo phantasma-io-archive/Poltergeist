@@ -2772,8 +2772,10 @@ namespace Poltergeist
 
             // Making NFT list for current page.
             var nftPage = new List<TokenData>();
-            nfts.ForEach((x) => { if (nfts.IndexOf(x) >= nftPageSize * nftPageNumber && nfts.IndexOf(x) < nftPageSize * (nftPageNumber + 1)) { nftPage.Add(x); } });
-
+            for(int i = nftPageSize * nftPageNumber; i < Math.Min(nftPageSize * (nftPageNumber + 1), nfts.Count); i++)
+            {
+                nftPage.Add(nfts[i]);
+            }
             var nftOnPageCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftPage,
                 DoTtrsNftEntry);
 
