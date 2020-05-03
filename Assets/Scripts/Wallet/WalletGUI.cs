@@ -467,6 +467,7 @@ namespace Poltergeist
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
 
         private string[] modalOptions;
+        private int modalConfirmDelay;
         private bool modalRedirected;
         private float modalTime;
         private ModalState modalState;
@@ -482,7 +483,7 @@ namespace Poltergeist
         private PromptResult modalResult;
         private int modalLineCount;
 
-        private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback)
+        private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback, int confirmDelay = 0)
         {
             if (modalState == ModalState.None)
             {
@@ -501,6 +502,7 @@ namespace Poltergeist
             modalCaptionScroll = Vector2.zero;
             modalCallback = callback;
             modalOptions = options;
+            modalConfirmDelay = confirmDelay;
             modalHints = null;
             modalMaxLines = multiLine;
             hintComboBox.SelectedItemIndex = -1;
@@ -528,12 +530,12 @@ namespace Poltergeist
             }
         }
 
-        public void PromptBox(string caption, string[] options, Action<PromptResult> callback)
+        public void PromptBox(string caption, string[] options, Action<PromptResult> callback, int confirmDelay = 0)
         {
             ShowModal("Confirmation", caption, ModalState.Message, 0, 0, options, 1, (result, input) =>
             {
                 callback(result);
-            });
+            }, confirmDelay);
         }
 
         public void MessageBox(MessageKind kind, string caption, Action callback = null)
@@ -1097,8 +1099,8 @@ namespace Poltergeist
                     }
                 });
 
-                DoButton(modalState != ModalState.Input || modalInput.Length >= modalMinInputLength,
-                    new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
+                DoButton(Time.time - modalTime >= modalConfirmDelay && (modalState != ModalState.Input || modalInput.Length >= modalMinInputLength),
+                    new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), (modalConfirmDelay > 0 && (Time.time - modalTime < modalConfirmDelay)) ? modalOptions[0] + " (" + (modalConfirmDelay - Math.Floor(Time.time - modalTime)) + ")" : modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("confirm");
                     modalResult = PromptResult.Success;
@@ -1877,7 +1879,7 @@ namespace Poltergeist
                                 CloseCurrentStack();
                             });
                         }
-                    });
+                    }, 15);
                 });
 
                 curY += Units(3);
