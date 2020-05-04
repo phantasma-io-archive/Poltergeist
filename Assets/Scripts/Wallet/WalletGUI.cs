@@ -165,9 +165,9 @@ namespace Poltergeist
         private int nftFilterTypeIndex = 0;
         private string nftFilterType = "All";
         private ComboBox nftRarityComboBox = new ComboBox();
-        private ttrsNftRarity nftFilterRarity = 0;
+        private int nftFilterRarity = 0;
         private ComboBox nftMintedComboBox = new ComboBox();
-        private nftMinted nftFilterMinted = 0;
+        private int nftFilterMinted = 0;
 
         private ComboBox hintComboBox = new ComboBox();
 
@@ -1626,6 +1626,41 @@ namespace Poltergeist
             }
         }
 
+        private int toolLabelWidth = Units(4) + 8;
+        private int toolLabelHeight = Units(2);
+        private int toolFieldWidth => (VerticalLayout) ? Units(7) : Units(9);
+        private int toolFieldHeight = Units(1);
+        private int toolFieldSpacing = Units(1);
+
+        private void DoNftToolLabel(int posX, int posY, string label)
+        {
+            var style = GUI.skin.label;
+            var tempSize = style.fontSize;
+            style.fontSize = 14;
+            GUI.Label(new Rect(posX, posY - 10, toolLabelWidth, toolLabelHeight), label);
+            style.fontSize = tempSize;
+        }
+
+        private void DoNftToolTextField(int posX, int posY, string label, ref string result)
+        {
+            DoNftToolLabel(posX, posY, label);
+
+            var style = GUI.skin.textField;
+            var tempSize = style.fontSize;
+            style.fontSize = 12;
+            result = GUI.TextField(new Rect(posX + toolLabelWidth - 8, posY - 4, toolFieldWidth + 8, toolFieldHeight + 8), result);
+            style.fontSize = tempSize;
+        }
+
+        private void DoNftToolComboBox<T>(int posX, int posY, ComboBox comboBox, IList<T> listContent, string label, ref int result)
+        {
+            DoNftToolLabel(posX, posY, label);
+
+            comboBox.SelectedItemIndex = result;
+            int dropHeight;
+            result = comboBox.Show(new Rect(posX + toolLabelWidth, posY, toolFieldWidth, toolFieldHeight), listContent, 0, out dropHeight);
+        }
+
         private void DrawCenteredText(string caption)
         {
             var style = GUI.skin.label;
@@ -2043,47 +2078,17 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
-            int curY = posY;
-
             if (transferSymbol == "TTRS")
             {
-                var toolLabelWidth = Units(4) + 8;
-                var toolLabelHeight = Units(2);
-                var toolFieldWidth = (VerticalLayout) ? Units(7) : Units(9);
-                var toolFieldHeight = Units(1);
-                var toolFieldSpacing = Units(1);
-
-                var toolLabelY = curY - 10;
-
-                var toolX = Units(2);
+                var posX = Units(2);
 
                 // NFT name filter
-                var style = GUI.skin.label;
-                var tempSize = style.fontSize;
-                style.fontSize = 14;
-                GUI.Label(new Rect(toolX, toolLabelY, toolLabelWidth, toolLabelHeight), "Name: ");
-                style.fontSize = tempSize;
+                DoNftToolTextField(posX, posY, "Name: ", ref nftFilterName);
 
-                style = GUI.skin.textField;
-                tempSize = style.fontSize;
-                style.fontSize = 12;
-                nftFilterName = GUI.TextField(new Rect(toolX + toolLabelWidth - 8, curY - 4, toolFieldWidth + 8, toolFieldHeight + 8), nftFilterName);
-                style.fontSize = tempSize;
-
-                toolX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                posX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
 
                 // NFT type filter
-                style = GUI.skin.label;
-                tempSize = style.fontSize;
-                style.fontSize = 14;
-                GUI.Label(new Rect(toolX, toolLabelY, toolLabelWidth, toolLabelHeight), "Type: ");
-                style.fontSize = tempSize;
-
-                nftTypeComboBox.SelectedItemIndex = nftFilterTypeIndex;
-
-                int dropHeight;
-                nftFilterTypeIndex = nftTypeComboBox.Show(new Rect(toolX + toolLabelWidth, curY, toolFieldWidth, toolFieldHeight), Enum.GetValues(typeof(ttrsNftType)).Cast<ttrsNftType>().ToList(), 0, out dropHeight);
-
+                DoNftToolComboBox(posX, posY, nftTypeComboBox, Enum.GetValues(typeof(ttrsNftType)).Cast<ttrsNftType>().ToList(), "Type: ", ref nftFilterTypeIndex);
                 if (Enum.IsDefined(typeof(ttrsNftType), nftFilterTypeIndex))
                     nftFilterType = ((ttrsNftType)nftFilterTypeIndex).ToString();
                 else
@@ -2092,39 +2097,24 @@ namespace Poltergeist
                 // 2nd row of widgets for VerticalLayout
                 if (VerticalLayout)
                 {
-                    toolLabelY += Units(2);
-                    curY += Units(2);
-                    toolX = Units(2);
+                    posX = Units(2);
+                    posY += Units(2);
                 }
                 else
                 {
-                    toolX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                    posX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
                 }
 
                 // NFT rarity filter
-                tempSize = style.fontSize;
-                style.fontSize = 14;
-                GUI.Label(new Rect(toolX, toolLabelY, toolLabelWidth, toolLabelHeight), "Rarity: ");
-                style.fontSize = tempSize;
+                DoNftToolComboBox(posX, posY, nftRarityComboBox, Enum.GetValues(typeof(ttrsNftRarity)).Cast<ttrsNftRarity>().ToList(), "Rarity: ", ref nftFilterRarity);
 
-                nftRarityComboBox.SelectedItemIndex = (int)nftFilterRarity;
-
-                nftFilterRarity = (ttrsNftRarity)nftRarityComboBox.Show(new Rect(toolX + toolLabelWidth, curY, toolFieldWidth, toolFieldHeight), Enum.GetValues(typeof(ttrsNftRarity)).Cast<ttrsNftRarity>().ToList(), 0, out dropHeight);
-
-                toolX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                posX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
 
                 // NFT mint date filter
-                tempSize = style.fontSize;
-                style.fontSize = 14;
-                GUI.Label(new Rect(toolX, toolLabelY, toolLabelWidth, toolLabelHeight), "Minted: ");
-                style.fontSize = tempSize;
-
-                nftMintedComboBox.SelectedItemIndex = (int)nftFilterMinted;
-                var nftMintedList = Enum.GetValues(typeof(nftMinted)).Cast<nftMinted>().ToList().Select(x => x.ToString().Replace('_', ' ')).ToList();
-                nftFilterMinted = (nftMinted)nftMintedComboBox.Show(new Rect(toolX + toolLabelWidth, curY, toolFieldWidth, toolFieldHeight), nftMintedList, 0, out dropHeight);
+                DoNftToolComboBox(posX, posY, nftMintedComboBox, Enum.GetValues(typeof(nftMinted)).Cast<nftMinted>().ToList().Select(x => x.ToString().Replace('_', ' ')).ToList(), "Minted: ", ref nftFilterMinted);
             }
 
-            return curY;
+            return posY;
         }
 
         private void DrawBalanceLine(ref Rect subRect, string symbol, decimal amount, string caption)
@@ -2800,20 +2790,20 @@ namespace Poltergeist
             }
 
             nftFilteredList.Clear();
-            if (!String.IsNullOrEmpty(nftFilterName) || nftFilterType != "All" || nftFilterRarity != ttrsNftRarity.All || nftFilterMinted != nftMinted.All)
+            if (!String.IsNullOrEmpty(nftFilterName) || nftFilterType != "All" || nftFilterRarity != (int)ttrsNftRarity.All || nftFilterMinted != (int)nftMinted.All)
             {
                 nfts.ForEach((x) => {
                     var item = TtrsStore.GetNft(x.ID);
 
                     if ((String.IsNullOrEmpty(nftFilterName) || item.NameEnglish.ToUpper().Contains(nftFilterName.ToUpper())) &&
                         (nftFilterType == "All" || item.DisplayTypeEnglish == nftFilterType) &&
-                        (nftFilterRarity == ttrsNftRarity.All || (ttrsNftRarity)item.Rarity == nftFilterRarity) &&
-                        (nftFilterMinted == nftMinted.All ||
-                         (nftFilterMinted == nftMinted.Last_15_Mins && DateTime.Compare(item.Timestamp, DateTime.Now.AddMinutes(-15)) >= 0) ||
-                         (nftFilterMinted == nftMinted.Last_Hour && DateTime.Compare(item.Timestamp, DateTime.Now.AddHours(-1)) >= 0) ||
-                         (nftFilterMinted == nftMinted.Last_24_Hours && DateTime.Compare(item.Timestamp, DateTime.Now.AddDays(-1)) >= 0) ||
-                         (nftFilterMinted == nftMinted.Last_Week && DateTime.Compare(item.Timestamp, DateTime.Now.AddDays(-7)) >= 0) ||
-                         (nftFilterMinted == nftMinted.Last_Month && DateTime.Compare(item.Timestamp, DateTime.Now.AddMonths(-1)) >= 0)
+                        (nftFilterRarity == (int)ttrsNftRarity.All || (int)item.Rarity == nftFilterRarity) &&
+                        (nftFilterMinted == (int)nftMinted.All ||
+                         (nftFilterMinted == (int)nftMinted.Last_15_Mins && DateTime.Compare(item.Timestamp, DateTime.Now.AddMinutes(-15)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_Hour && DateTime.Compare(item.Timestamp, DateTime.Now.AddHours(-1)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_24_Hours && DateTime.Compare(item.Timestamp, DateTime.Now.AddDays(-1)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_Week && DateTime.Compare(item.Timestamp, DateTime.Now.AddDays(-7)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_Month && DateTime.Compare(item.Timestamp, DateTime.Now.AddMonths(-1)) >= 0)
                         ))
                     {
                         nftFilteredList.Add(x);
