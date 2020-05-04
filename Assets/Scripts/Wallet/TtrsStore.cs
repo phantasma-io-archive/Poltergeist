@@ -160,7 +160,8 @@ public static class TtrsStore
         {
             var currentId = item.Name;
 
-            var nft = new Nft();
+            var nft = GetNft(currentId);
+            var newNft = String.IsNullOrEmpty(nft.Id); // There's no such NFT in StoreNft yet.
 
             nft.Id = currentId;
             nft.Item = item.GetUInt32("item");
@@ -197,7 +198,8 @@ public static class TtrsStore
             nft.Finish = itemInfo.GetString("finish");
             nft.MintLimit = itemInfo.GetUInt32("mint_limit");
 
-            StoreNft.Add(nft.Id, nft);
+            if(newNft)
+                StoreNft.Add(currentId, nft);
 
             callback(nft);
         }
