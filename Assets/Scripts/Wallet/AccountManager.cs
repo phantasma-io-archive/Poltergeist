@@ -745,6 +745,7 @@ namespace Poltergeist
 
             _states.Clear();
             _nfts.Clear();
+            TtrsStore.Clear();
         }
 
         private void ReportWalletBalance(PlatformKind platform, AccountState state)

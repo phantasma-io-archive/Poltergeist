@@ -17,6 +17,13 @@ public static class TtrsStore
         public UInt64 MaxSupply;
     }
 
+    public static void Clear()
+    {
+        ItemSupplyData.Clear();
+        StoreNft.Clear();
+        Images.Clear();
+    }
+
     private static List<ItemSupply> ItemSupplyData;
 
     private static void LoadStoreInfoFromDataNode(DataNode storeInfo)
@@ -134,7 +141,7 @@ public static class TtrsStore
 
     public static bool CheckIfImageLoaded(string Url)
     {
-        return Images[Url] != null;
+        return Images.Contains(Url);
     }
 
     public static Image GetImage(string Url)

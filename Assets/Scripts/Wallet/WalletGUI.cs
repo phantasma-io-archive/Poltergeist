@@ -2824,11 +2824,15 @@ namespace Poltergeist
             int halfWidth = (int)(rect.width / 2);
 
             var item = TtrsStore.GetNft(entry.ID);
-            var image = TtrsStore.GetImage(item.Img);
 
-            if (!String.IsNullOrEmpty(image.Url))
+            if (!String.IsNullOrEmpty(item.NameEnglish))
             {
-                GUI.DrawTexture(new Rect(Units(2), curY + 4, VerticalLayout ? Units(4) : Units(3) + 8, VerticalLayout ? Units(4) : Units(3) + 8), image.Texture);
+                var image = TtrsStore.GetImage(item.Img);
+
+                if (!String.IsNullOrEmpty(image.Url))
+                {
+                    GUI.DrawTexture(new Rect(Units(2), curY + 4, VerticalLayout ? Units(4) : Units(3) + 8, VerticalLayout ? Units(4) : Units(3) + 8), image.Texture);
+                }
             }
 
             string rarity;
