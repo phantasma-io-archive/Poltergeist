@@ -2764,9 +2764,10 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
+            var nfts = accountManager.CurrentNfts;
             if (accountManager.Refreshing)
             {
-                DrawCenteredText("Fetching NFTs...");
+                DrawCenteredText((nfts != null) ? $"Fetching NFTs ({nfts.Count})..." : "Fetching NFTs...");
                 return;
             }
 
@@ -2775,7 +2776,6 @@ namespace Poltergeist
             startY += (VerticalLayout) ? Units(4) : Units(2);
             var endY = DoBottomMenuForNft();
 
-            var nfts = accountManager.CurrentNfts;
             if (nfts == null)
             {
                 DrawCenteredText("Loading...");
@@ -3377,7 +3377,7 @@ namespace Poltergeist
 
             // Close
             DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2,
-                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border,
+                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) * 2 : (int)rect.y + border,
                                     VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Close", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
@@ -3437,7 +3437,7 @@ namespace Poltergeist
 
             // To transfer list
             DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2,
-                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) * 2 : (int)rect.y + border,
+                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border,
                                     VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
             {
                 PushState(GUIState.TtrsNftTransferList);
@@ -3460,13 +3460,13 @@ namespace Poltergeist
             int halfWidth = (int)(windowRect.width / 2);
             int btnWidth = VerticalLayout ? Units(7) : Units(11);
 
-            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Back", () =>
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Back", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
                 PushState(GUIState.TtrsNft);
             });
 
-            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
 
