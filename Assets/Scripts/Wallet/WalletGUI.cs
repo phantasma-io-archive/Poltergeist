@@ -2074,47 +2074,35 @@ namespace Poltergeist
             return curY;
         }
 
-        private int DrawNftTools( int posY )
+        private void DrawNftTools( int posY )
         {
             var accountManager = AccountManager.Instance;
 
             if (transferSymbol == "TTRS")
             {
-                var posX = Units(2);
+                var posX1 = Units(2);
+                var posX2 = posX1 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                // 2nd row of widgets for VerticalLayout
+                var posX3 = (VerticalLayout) ? Units(2) : posX2 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                var posX4 = posX3 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                var posY2 = (VerticalLayout) ? posY + Units(2) : posY;
 
-                // NFT name filter
-                DoNftToolTextField(posX, posY, "Name: ", ref nftFilterName);
+                // #3: NFT rarity filter
+                DoNftToolComboBox(posX3, posY2, nftRarityComboBox, Enum.GetValues(typeof(ttrsNftRarity)).Cast<ttrsNftRarity>().ToList(), "Rarity: ", ref nftFilterRarity);
 
-                posX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                // #4: NFT mint date filter
+                DoNftToolComboBox(posX4, posY2, nftMintedComboBox, Enum.GetValues(typeof(nftMinted)).Cast<nftMinted>().ToList().Select(x => x.ToString().Replace('_', ' ')).ToList(), "Minted: ", ref nftFilterMinted);
 
-                // NFT type filter
-                DoNftToolComboBox(posX, posY, nftTypeComboBox, Enum.GetValues(typeof(ttrsNftType)).Cast<ttrsNftType>().ToList(), "Type: ", ref nftFilterTypeIndex);
+                // #1: NFT name filter
+                DoNftToolTextField(posX1, posY, "Name: ", ref nftFilterName);
+
+                // #2: NFT type filter
+                DoNftToolComboBox(posX2, posY, nftTypeComboBox, Enum.GetValues(typeof(ttrsNftType)).Cast<ttrsNftType>().ToList(), "Type: ", ref nftFilterTypeIndex);
                 if (Enum.IsDefined(typeof(ttrsNftType), nftFilterTypeIndex))
                     nftFilterType = ((ttrsNftType)nftFilterTypeIndex).ToString();
                 else
                     nftFilterType = "All";
-
-                // 2nd row of widgets for VerticalLayout
-                if (VerticalLayout)
-                {
-                    posX = Units(2);
-                    posY += Units(2);
-                }
-                else
-                {
-                    posX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
-                }
-
-                // NFT rarity filter
-                DoNftToolComboBox(posX, posY, nftRarityComboBox, Enum.GetValues(typeof(ttrsNftRarity)).Cast<ttrsNftRarity>().ToList(), "Rarity: ", ref nftFilterRarity);
-
-                posX += toolLabelWidth + toolFieldWidth + toolFieldSpacing;
-
-                // NFT mint date filter
-                DoNftToolComboBox(posX, posY, nftMintedComboBox, Enum.GetValues(typeof(nftMinted)).Cast<nftMinted>().ToList().Select(x => x.ToString().Replace('_', ' ')).ToList(), "Minted: ", ref nftFilterMinted);
             }
-
-            return posY;
         }
 
         private void DrawBalanceLine(ref Rect subRect, string symbol, decimal amount, string caption)
