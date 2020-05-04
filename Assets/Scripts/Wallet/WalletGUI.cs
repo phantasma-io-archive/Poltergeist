@@ -2861,7 +2861,26 @@ namespace Poltergeist
             if (VerticalLayout && nftName.Length > 18)
                 nftName = nftName.Substring(0, 15) + "...";
 
-            var nftDescription = item.Mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.Mint + " " + (VerticalLayout ? item.Timestamp.ToString("dd.MM.yy") : item.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")) + (VerticalLayout ? " " : " / ") + item.DisplayTypeEnglish + rarity;
+            var nftType = item.DisplayTypeEnglish;
+            if (VerticalLayout)
+            {
+                switch (nftType)
+                {
+                    case "Vehicle":
+                        nftType = "Veh";
+                        break;
+                    case "Part":
+                        nftType = "Prt";
+                        break;
+                    case "License":
+                        nftType = "Lic";
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            var nftDescription = item.Mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.Mint + " " + (VerticalLayout ? item.Timestamp.ToString("dd.MM.yy") : item.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")) + (VerticalLayout ? " " : " / ") + nftType + rarity;
 
             GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + 4 : curY, rect.width - Units(6), Units(2) + 4), nftName);
 
