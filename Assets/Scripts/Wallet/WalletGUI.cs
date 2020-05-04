@@ -2105,6 +2105,11 @@ namespace Poltergeist
             }
         }
 
+        private bool DrawNftToolsAreActive()
+        {
+            return nftTypeComboBox.DropDownIsOpened() || nftMintedComboBox.DropDownIsOpened() || nftRarityComboBox.DropDownIsOpened();
+        }
+
         private void DrawBalanceLine(ref Rect subRect, string symbol, decimal amount, string caption)
         {
             if (amount > 0.0001m)
@@ -2931,8 +2936,12 @@ namespace Poltergeist
                 btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1) + 8, Units(4), Units(1));
             }
 
-            var nftIsSelected = nftTransferList.Exists( x => x.ID == entry.ID);
-            if ( GUI.Toggle(btnRectToggle, nftIsSelected, "") )
+            if (DrawNftToolsAreActive())
+            {
+                GUI.enabled = false;
+            }
+            var nftIsSelected = nftTransferList.Exists(x => x.ID == entry.ID);
+            if (GUI.Toggle(btnRectToggle, nftIsSelected, ""))
             {
                 if (!nftIsSelected)
                 {
@@ -2951,8 +2960,9 @@ namespace Poltergeist
                     nftTransferList.Remove(nftTransferList.Single(x => x.ID == entry.ID));
                 }
             }
+            GUI.enabled = true;
 
-            DoButton(true, btnRect, "View", () =>
+            DoButton(!DrawNftToolsAreActive(), btnRect, "View", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
                 Application.OpenURL("https://www.22series.com/part_info?id=" + item.Id);
