@@ -2928,23 +2928,23 @@ namespace Poltergeist
                 style.fontSize = tempSize;
             }
 
-            Rect btnRectPlus;
+            Rect btnRectToggle;
             Rect btnRect;
 
             if (VerticalLayout)
             {
                 curY += Units(2);
-                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY - 4, Units(1), Units(1));
+                btnRectToggle = new Rect(rect.x + rect.width - Units(8), curY - 4, Units(1), Units(1));
                 btnRect = new Rect(rect.x + rect.width - Units(6), curY, Units(4), Units(1));
             }
             else
             {
-                btnRectPlus = new Rect(rect.x + rect.width - Units(8), curY + Units(1) + 4, Units(1), Units(1));
+                btnRectToggle = new Rect(rect.x + rect.width - Units(8), curY + Units(1) + 4, Units(1), Units(1));
                 btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1) + 8, Units(4), Units(1));
             }
 
             var nftIsSelected = nftTransferList.Exists( x => x.ID == entry.ID);
-            if ( GUI.Toggle(btnRectPlus, nftIsSelected, "") )
+            if ( GUI.Toggle(btnRectToggle, nftIsSelected, "") )
             {
                 if (!nftIsSelected)
                 {
