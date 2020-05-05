@@ -86,6 +86,22 @@ namespace Poltergeist
         Password,
     }
 
+    public enum TtrsNftSortMode
+    {
+        None,
+        Number_Date,
+        Date_Number,
+        Type_Number_Date,
+        Type_Date_Number,
+        Type_Rarity
+    }
+
+    public enum SortDirection
+    {
+        Ascending,
+        Descending
+    }
+
     public enum ttrsNftType
     {
         All,
@@ -160,6 +176,7 @@ namespace Poltergeist
 
         private ComboBox platformComboBox = new ComboBox();
 
+        private ComboBox nftSortModeComboBox = new ComboBox();
         private string nftFilterName;
         private ComboBox nftTypeComboBox = new ComboBox();
         private int nftFilterTypeIndex = 0;
@@ -877,6 +894,11 @@ namespace Poltergeist
                 modalRect = new Rect((virtualWidth - modalWidth) / 2, (virtualHeight - modalHeight) / 2, modalWidth, modalHeight);
                 modalRect = GUI.ModalWindow(0, modalRect, DoModalWindow, modalTitle);
             }
+        }
+
+        void OnApplicationQuit()
+        {
+            AccountManager.Instance.Settings.SaveViewSettings();
         }
 
         private Rect GetExpandedRect(int curY, int height)
@@ -1648,7 +1670,7 @@ namespace Poltergeist
             var style = GUI.skin.textField;
             var tempSize = style.fontSize;
             style.fontSize = 12;
-            result = GUI.TextField(new Rect(posX + toolLabelWidth - 8, posY - 4, toolFieldWidth + 8, toolFieldHeight + 8), result);
+            result = GUI.TextField(new Rect(posX + toolLabelWidth - 6, posY - 4, toolFieldWidth + 7, toolFieldHeight + 8), result);
             style.fontSize = tempSize;
         }
 
@@ -1659,6 +1681,15 @@ namespace Poltergeist
             comboBox.SelectedItemIndex = result;
             int dropHeight;
             result = comboBox.Show(new Rect(posX + toolLabelWidth, posY, toolFieldWidth, toolFieldHeight), listContent, 0, out dropHeight);
+        }
+
+        private void DoNftToolButton(int posX, int posY, bool drawWithLabelWidth, string label, Action callback)
+        {
+            var style = GUI.skin.button;
+            var tempSize = style.fontSize;
+            style.fontSize = 16;
+            DoButton(true, new Rect(posX, posY, (drawWithLabelWidth) ? toolLabelWidth - 6 : toolFieldWidth, toolFieldHeight), label, callback);
+            style.fontSize = tempSize;
         }
 
         private void DrawCenteredText(string caption)
@@ -2086,6 +2117,12 @@ namespace Poltergeist
                 var posX3 = (VerticalLayout) ? Units(2) : posX2 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
                 var posX4 = posX3 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
                 var posY2 = (VerticalLayout) ? posY + Units(2) : posY;
+                var posY3 = (VerticalLayout) ? posY2 + Units(2) : posY + Units(2);
+
+                // #5:
+                DoNftToolComboBox(posX1, posY3, nftSortModeComboBox, Enum.GetValues(typeof(TtrsNftSortMode)).Cast<TtrsNftSortMode>().ToList().Select(x => x.ToString().Replace("_", ", ").Replace("Number", "#")).ToList(), "Sort: ", ref accountManager.Settings.ttrsNftSortMode); 
+
+                DoNftToolButton(posX2, posY3, true, (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) ? "Asc" : "Desc", () => { if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) accountManager.Settings.nftSortDirection = (int)SortDirection.Descending; else accountManager.Settings.nftSortDirection = (int)SortDirection.Ascending; });
 
                 // #3: NFT rarity filter
                 DoNftToolComboBox(posX3, posY2, nftRarityComboBox, Enum.GetValues(typeof(ttrsNftRarity)).Cast<ttrsNftRarity>().ToList(), "Rarity: ", ref nftFilterRarity);
@@ -2773,7 +2810,7 @@ namespace Poltergeist
 
             var startY = Units(VerticalLayout ? 11 : 7);
             var nftToolsY = startY;
-            startY += (VerticalLayout) ? Units(4) : Units(2);
+            startY += (VerticalLayout) ? Units(6) : Units(4);
             var endY = DoBottomMenuForNft();
 
             if (nfts == null)
@@ -2782,6 +2819,7 @@ namespace Poltergeist
                 return;
             }
 
+            // Filtering NFT list, if filters are applied.
             nftFilteredList.Clear();
             if (!String.IsNullOrEmpty(nftFilterName) || nftFilterType != "All" || nftFilterRarity != (int)ttrsNftRarity.All || nftFilterMinted != (int)nftMinted.All)
             {
@@ -2803,6 +2841,41 @@ namespace Poltergeist
                     }
                 });
                 nfts = nftFilteredList;
+            }
+
+            // Sorting NFT list.
+            switch((TtrsNftSortMode)accountManager.Settings.ttrsNftSortMode)
+            {
+                case TtrsNftSortMode.Number_Date:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    else
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    break;
+                case TtrsNftSortMode.Date_Number:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    else
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Number_Date:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    else
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Date_Number:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    else
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Rarity: // And also Number and Date as last sorting parameters.
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Rarity).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    else
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Rarity).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    break;
             }
 
             // Number of displayed NFTs changed, switching to first page.
