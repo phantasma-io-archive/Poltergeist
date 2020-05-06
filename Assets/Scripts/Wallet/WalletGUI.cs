@@ -3863,7 +3863,7 @@ namespace Poltergeist
                         var gasPrice = accountManager.Settings.feePrice;
 
                         var sb = new ScriptBuilder();
-                        sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                        sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit * nftTransferList.Count);
 
                         foreach (var nft in nftTransferList)
                         {
