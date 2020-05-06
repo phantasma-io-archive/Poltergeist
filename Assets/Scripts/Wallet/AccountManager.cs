@@ -296,6 +296,9 @@ namespace Poltergeist
                             Log.Write($"Cannot get price for '{cryptoCompareSymbol}'.");
                         }
                     }
+
+                    // GOATI token price is pegged to 0.1$.
+                    SetTokenPrice("GOATI", Convert.ToDecimal(0.1));
                 }
                 catch (Exception e)
                 {
