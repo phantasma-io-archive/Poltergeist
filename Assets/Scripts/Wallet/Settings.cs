@@ -48,6 +48,9 @@ namespace Poltergeist
         public const string LogLevelTag = "log.level";
         public const string LogOverwriteModeTag = "log.overwrite.mode";
 
+        public const string TtrsNftSortModeTag = "ttrs.nft.sort.mode";
+        public const string NftSortDirectionTag = "nft.sort.direction";
+
         public string phantasmaRPCURL;
         public string phantasmaBPURL;
         public string neoRPCURL;
@@ -59,6 +62,8 @@ namespace Poltergeist
         public bool sfx;
         public Log.Level logLevel;
         public bool logOverwriteMode;
+        public int ttrsNftSortMode;
+        public int nftSortDirection;
 
         public void LoadLogSettings()
         {
@@ -100,6 +105,9 @@ namespace Poltergeist
 
             LoadLogSettings();
 
+            this.ttrsNftSortMode = PlayerPrefs.GetInt(TtrsNftSortModeTag, 0);
+            this.nftSortDirection = PlayerPrefs.GetInt(NftSortDirectionTag, 0);
+
             Log.Write("Settings: Load: Nexus kind: " + this.nexusKind.ToString() + "\n" +
                       "                Phantasma BP: " + this.phantasmaBPURL + "\n" +
                       "                Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
@@ -110,7 +118,9 @@ namespace Poltergeist
                       "                Sfx: " + this.sfx + "\n" +
                       "                Fee price: " + this.feePrice + "\n" +
                       "                Log level: " + this.logLevel + "\n" +
-                      "                Log overwrite: " + this.logOverwriteMode
+                      "                Log overwrite: " + this.logOverwriteMode + "\n" +
+                      "                TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
+                      "                NFT sort direction: " + this.nftSortDirection
                      );
         }
 
@@ -248,6 +258,17 @@ namespace Poltergeist
                       "                Log level: " + logLevel.ToString() + "\n" +
                       "                Log overwrite: " + logOverwriteMode
                      );
+        }
+
+        public void SaveViewSettings()
+        {
+            PlayerPrefs.SetInt(TtrsNftSortModeTag, this.ttrsNftSortMode);
+            PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
+            PlayerPrefs.Save();
+
+            Log.Write("Settings: Save view settings: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
+                      "                              NFT sort direction: " + nftSortDirection,
+                      Log.Level.Debug1);
         }
 
         public void RestoreEndpoints(bool restoreName)

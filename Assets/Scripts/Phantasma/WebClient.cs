@@ -119,5 +119,45 @@ namespace Phantasma.SDK
 
             yield break;
         }
+
+        public static IEnumerator RESTRequest(string url, string serializedJson, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback, Action<DataNode> callback)
+        {
+            UnityWebRequest request;
+
+            Log.Write($"REST request (POST)\nurl: {url}", Log.Level.Networking);
+
+            request = new UnityWebRequest(url, "POST");
+
+            byte[] data = Encoding.UTF8.GetBytes(serializedJson);
+            request.uploadHandler = (UploadHandler)new UploadHandlerRaw(data);
+            request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            DateTime startTime = DateTime.Now;
+            yield return request.SendWebRequest();
+            TimeSpan responseTime = DateTime.Now - startTime;
+
+            if (request.isNetworkError || request.isHttpError)
+            {
+                Log.Write($"REST error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}\nresponseCode: {request.responseCode}", Log.Level.Networking);
+                if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error + $"\nURL: {url}\nIs network error: {request.isNetworkError}\nIs HTTP error: {request.isHttpError}\nResponse code: {request.responseCode}");
+            }
+            else
+            {
+                DataNode root = null;
+                try
+                {
+                    Log.Write($"REST response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
+                    root = JSONReader.ReadFromString(request.downloadHandler.text);
+                }
+                catch(Exception e)
+                {
+                    Log.Write(e.Message);
+                }
+                callback(root);
+            }
+
+            yield break;
+        }
     }
 }

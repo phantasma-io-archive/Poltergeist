@@ -149,4 +149,9 @@ public class ComboBox
             selectedItemIndex = value;
         }
     }
+
+    public bool DropDownIsOpened()
+    {
+        return isClickedComboButton;
+    }
 }

@@ -47,6 +47,8 @@ namespace Poltergeist
         Loading,
         Wallets,
         Balances,
+        TtrsNft, // Full list of TTRS NFTs with sorting and filtering capabilities.
+        TtrsNftTransferList, // List of user-selected TTRS NFTs, ready to be transfered to another wallet.
         History,
         Account,
         Sending,
@@ -82,6 +84,49 @@ namespace Poltergeist
         Message,
         Input,
         Password,
+    }
+
+    public enum TtrsNftSortMode // NFT-specific, TTRS-specific. Modes of NFT list sorting.
+    {
+        None,
+        Number_Date,
+        Date_Number,
+        Type_Number_Date,
+        Type_Date_Number,
+        Type_Rarity
+    }
+
+    public enum SortDirection // Direction of sorting, used in NFT list sorting.
+    {
+        Ascending,
+        Descending
+    }
+
+    public enum ttrsNftType // NFT-specific, TTRS-specific. Types of TTRS NFTs.
+    {
+        All,
+        Vehicle,
+        Part,
+        License
+    }
+
+    public enum ttrsNftRarity // NFT-specific, TTRS-specific. Rarity classes of TTRS NFTs.
+    {
+        All = 0,
+        Consumer = 1,
+        Industrial = 2,
+        Professional = 3,
+        Collector = 4
+    }
+
+    public enum nftMinted // NFT-specific. Used in NFT filter, allows to select NFTs by mint date. All intervals are 'rolling'.
+    {
+        All,
+        Last_15_Mins,
+        Last_Hour,
+        Last_24_Hours,
+        Last_Week,
+        Last_Month
     }
 
     public class WalletGUI : MonoBehaviour, IWalletConnector
@@ -140,6 +185,25 @@ namespace Poltergeist
 
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
+
+        // NFT sorting and filtering.
+        private ComboBox nftSortModeComboBox = new ComboBox();
+        private string nftFilterName;
+        private ComboBox nftTypeComboBox = new ComboBox();
+        private int nftFilterTypeIndex = 0;
+        private string nftFilterType = "All";
+        private ComboBox nftRarityComboBox = new ComboBox();
+        private int nftFilterRarity = 0;
+        private ComboBox nftMintedComboBox = new ComboBox();
+        private int nftFilterMinted = 0;
+
+        // NFT pagination.
+        private int nftPageSize = 25;
+        private int nftPageNumber = 0;
+        private int nftCount = 0;
+        private int nftPageCount = 0;
+        private List<TokenData> nftFilteredList = new List<TokenData>(); // List of displayed NFT items (after applying filters).
+        private List<TokenData> nftTransferList = new List<TokenData>(); // List of NFT items, selected by user.
 
         private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
 
@@ -207,12 +271,16 @@ namespace Poltergeist
                        "Wallet version: " + UnityEngine.Application.version + "\n" +
                        "Log level: " + _logLevel.ToString());
 
+            Cache.Init("cache");
+
             initialized = false;
 
             guiState = GUIState.Loading;
 
             Log.Write(Screen.width + " x " + Screen.height);
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
+
+            StartCoroutine(TtrsStore.LoadStoreInfo());
         }
 
         void OnEnable()
@@ -306,6 +374,16 @@ namespace Poltergeist
                     currentTitle = "Balances for " + accountManager.CurrentAccount.name;
                     balanceScroll = Vector2.zero;
                     accountManager.RefreshBalances(false);
+                    break;
+
+                case GUIState.TtrsNft:
+                    currentTitle = "TTRS NFTs for " + accountManager.CurrentAccount.name;
+                    transferSymbol = "TTRS";
+                    break;
+
+                case GUIState.TtrsNftTransferList:
+                    currentTitle = "TTRS NFTs transfer list for " + accountManager.CurrentAccount.name;
+                    nftTransferListScroll = Vector2.zero;
                     break;
 
                 case GUIState.History:
@@ -409,6 +487,7 @@ namespace Poltergeist
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
 
         private string[] modalOptions;
+        private int modalConfirmDelay;
         private bool modalRedirected;
         private float modalTime;
         private ModalState modalState;
@@ -424,7 +503,7 @@ namespace Poltergeist
         private PromptResult modalResult;
         private int modalLineCount;
 
-        private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback)
+        private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback, int confirmDelay = 0)
         {
             if (modalState == ModalState.None)
             {
@@ -443,6 +522,7 @@ namespace Poltergeist
             modalCaptionScroll = Vector2.zero;
             modalCallback = callback;
             modalOptions = options;
+            modalConfirmDelay = confirmDelay;
             modalHints = null;
             modalMaxLines = multiLine;
             hintComboBox.SelectedItemIndex = -1;
@@ -470,12 +550,12 @@ namespace Poltergeist
             }
         }
 
-        public void PromptBox(string caption, string[] options, Action<PromptResult> callback)
+        public void PromptBox(string caption, string[] options, Action<PromptResult> callback, int confirmDelay = 0)
         {
             ShowModal("Confirmation", caption, ModalState.Message, 0, 0, options, 1, (result, input) =>
             {
                 callback(result);
-            });
+            }, confirmDelay);
         }
 
         public void MessageBox(MessageKind kind, string caption, Action callback = null)
@@ -818,6 +898,11 @@ namespace Poltergeist
             }
         }
 
+        void OnApplicationQuit()
+        {
+            AccountManager.Instance.Settings.SaveViewSettings();
+        }
+
         private Rect GetExpandedRect(int curY, int height)
         {
             var rect = new Rect(Border, curY, windowRect.width - Border * 2, height);
@@ -844,6 +929,12 @@ namespace Poltergeist
 
                 switch (guiState)
                 {
+                    case GUIState.TtrsNft:
+                        tempTitle = $"{nftCount} {tempTitle}";
+                        break;
+                    case GUIState.TtrsNftTransferList:
+                        tempTitle = $"{nftTransferList.Count} {tempTitle}";
+                        break;
                     case GUIState.Account:
                     case GUIState.Balances:
                     case GUIState.History:
@@ -885,6 +976,14 @@ namespace Poltergeist
 
                 case GUIState.Balances:
                     DoBalanceScreen();
+                    break;
+
+                case GUIState.TtrsNft:
+                    DoTtrsNftScreen();
+                    break;
+
+                case GUIState.TtrsNftTransferList:
+                    DoTtrsNftTransferListScreen();
                     break;
 
                 case GUIState.History:
@@ -974,7 +1073,6 @@ namespace Poltergeist
 
             if (VerticalLayout)
             {
-                curY += Units(3);
                 hintY = curY + Units(2);
             }
             else
@@ -1027,8 +1125,8 @@ namespace Poltergeist
                     }
                 });
 
-                DoButton(modalState != ModalState.Input || modalInput.Length >= modalMinInputLength,
-                    new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
+                DoButton(Time.time - modalTime >= modalConfirmDelay && (modalState != ModalState.Input || modalInput.Length >= modalMinInputLength),
+                    new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), (modalConfirmDelay > 0 && (Time.time - modalTime < modalConfirmDelay)) ? modalOptions[0] + " (" + (modalConfirmDelay - Math.Floor(Time.time - modalTime)) + ")" : modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("confirm");
                     modalResult = PromptResult.Success;
@@ -1320,6 +1418,8 @@ namespace Poltergeist
 
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
+        private Vector2 nftScroll;
+        private Vector2 nftTransferListScroll;
         private Vector2 settingsScroll;
 
         private void DoWalletsScreen()
@@ -1551,6 +1651,51 @@ namespace Poltergeist
             }
         }
 
+        // Methods for creating of NFT tools for toolbar over NFT list - used to create sort/filters combos, select/invert buttons etc.
+        private int toolLabelWidth = Units(4) + 8;
+        private int toolLabelHeight = Units(2);
+        private int toolFieldWidth => (VerticalLayout) ? Units(7) : Units(9);
+        private int toolFieldHeight = Units(1);
+        private int toolFieldSpacing = Units(1);
+
+        private void DoNftToolLabel(int posX, int posY, string label)
+        {
+            var style = GUI.skin.label;
+            var tempSize = style.fontSize;
+            style.fontSize = 14;
+            GUI.Label(new Rect(posX, posY - 10, toolLabelWidth, toolLabelHeight), label);
+            style.fontSize = tempSize;
+        }
+
+        private void DoNftToolTextField(int posX, int posY, string label, ref string result)
+        {
+            DoNftToolLabel(posX, posY, label);
+
+            var style = GUI.skin.textField;
+            var tempSize = style.fontSize;
+            style.fontSize = 12;
+            result = GUI.TextField(new Rect(posX + toolLabelWidth - 6, posY - 4, toolFieldWidth + 7, toolFieldHeight + 8), result);
+            style.fontSize = tempSize;
+        }
+
+        private void DoNftToolComboBox<T>(int posX, int posY, ComboBox comboBox, IList<T> listContent, string label, ref int result)
+        {
+            DoNftToolLabel(posX, posY, label);
+
+            comboBox.SelectedItemIndex = result;
+            int dropHeight;
+            result = comboBox.Show(new Rect(posX + toolLabelWidth, posY, toolFieldWidth, toolFieldHeight), listContent, 0, out dropHeight);
+        }
+
+        private void DoNftToolButton(int posX, int posY, int width, string label, Action callback)
+        {
+            var style = GUI.skin.button;
+            var tempSize = style.fontSize;
+            style.fontSize = 16;
+            DoButton(true, new Rect(posX, posY, width, toolFieldHeight), label, callback);
+            style.fontSize = tempSize;
+        }
+
         private void DrawCenteredText(string caption)
         {
             var style = GUI.skin.label;
@@ -1669,10 +1814,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 12 elements with total height of (element height + spacing) * 12 = Units(3) * 12.
+            // 1) 13 elements with total height of (element height + spacing) * 13 = Units(3) * 12.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 12 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 13 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1787,6 +1932,20 @@ namespace Poltergeist
             GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Overwrite log at start");
             curY += Units(3);
 
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Clear cache", () =>
+            {
+                PromptBox("Are you sure you want to clear wallet's cache?", ModalConfirmCancel, (result) =>
+                {
+                    if (result == PromptResult.Success)
+                    {
+                        AudioManager.Instance.PlaySFX("click");
+                        Cache.Clear();
+                        MessageBox(MessageKind.Default, "Cache cleared.");
+                    }
+                });
+            });
+            curY += Units(3);
+
             if (accountManager.Accounts.Length > 0)
             {
                 curY += Units(1);
@@ -1805,7 +1964,7 @@ namespace Poltergeist
                                 CloseCurrentStack();
                             });
                         }
-                    });
+                    }, 15);
                 });
 
                 curY += Units(3);
@@ -1855,7 +2014,7 @@ namespace Poltergeist
             });
         }
 
-        private int DrawPlatformTopMenu(Action refresh)
+        private int DrawPlatformTopMenu(Action refresh, bool showCopyToClipboardButton = true)
         {
             var accountManager = AccountManager.Instance;
 
@@ -1935,16 +2094,82 @@ namespace Poltergeist
 
             curY += Units(3);
 
-            DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(1)), "Copy Address", () =>
-              {
-                  AudioManager.Instance.PlaySFX("click");
-                  GUIUtility.systemCopyBuffer = state.address;
-                  MessageBox(MessageKind.Default, "Address copied to clipboard.");
-              });
+            if (showCopyToClipboardButton)
+            {
+                DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(1)), "Copy Address", () =>
+                  {
+                      AudioManager.Instance.PlaySFX("click");
+                      GUIUtility.systemCopyBuffer = state.address;
+                      MessageBox(MessageKind.Default, "Address copied to clipboard.");
+                  });
 
-            curY += Units(3);
+                curY += Units(3);
+            }
 
             return curY;
+        }
+
+        // NFT tools for toolbar over NFT list - sort/filters combos, select/invert buttons etc.
+        private void DrawNftTools( int posY )
+        {
+            var accountManager = AccountManager.Instance;
+
+            if (transferSymbol == "TTRS")
+            {
+                var posX1 = Units(2);
+                var posX2 = posX1 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                // 2nd row of widgets for VerticalLayout
+                var posX3 = (VerticalLayout) ? Units(2) : posX2 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                var posX4 = posX3 + toolLabelWidth + toolFieldWidth + toolFieldSpacing;
+                var posY2 = (VerticalLayout) ? posY + Units(2) : posY;
+                var posY3 = (VerticalLayout) ? posY2 + Units(2) : posY + Units(2);
+
+                // #5: Sorting mode combo
+                DoNftToolComboBox(posX1, posY3, nftSortModeComboBox, Enum.GetValues(typeof(TtrsNftSortMode)).Cast<TtrsNftSortMode>().ToList().Select(x => x.ToString().Replace("_", ", ").Replace("Number", "#")).ToList(), "Sort: ", ref accountManager.Settings.ttrsNftSortMode);
+
+                // #6: Sorting direction button
+                DoNftToolButton(posX2 + 4,
+                                posY3,
+                                (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) ? "Asc" : "Desc", () => { if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) accountManager.Settings.nftSortDirection = (int)SortDirection.Descending; else accountManager.Settings.nftSortDirection = (int)SortDirection.Ascending; });
+
+                // #7: Select all button
+                DoNftToolButton(posX4 + toolLabelWidth,
+                                posY3,
+                                (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, "Select", () => {
+                    nftTransferList.Clear();
+                    accountManager.CurrentNfts.ForEach((x) => { nftTransferList.Add(x); });
+                });
+
+                // #8: Invert selection button
+                DoNftToolButton((VerticalLayout) ? posX4 + toolLabelWidth * 2 - toolFieldSpacing + 8: posX4 + toolLabelWidth * 2 + toolFieldSpacing,
+                                posY3,
+                                (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, "Invert", () => {
+                    var nftTransferListCopy = new List<TokenData>();
+                    accountManager.CurrentNfts.ForEach((x) => { if (!nftTransferList.Exists(y => y.ID == x.ID)) { nftTransferListCopy.Add(x); } });
+                    nftTransferList = nftTransferListCopy;
+                });
+
+                // #3: NFT rarity filter
+                DoNftToolComboBox(posX3, posY2, nftRarityComboBox, Enum.GetValues(typeof(ttrsNftRarity)).Cast<ttrsNftRarity>().ToList(), "Rarity: ", ref nftFilterRarity);
+
+                // #4: NFT mint date filter
+                DoNftToolComboBox(posX4, posY2, nftMintedComboBox, Enum.GetValues(typeof(nftMinted)).Cast<nftMinted>().ToList().Select(x => x.ToString().Replace('_', ' ')).ToList(), "Minted: ", ref nftFilterMinted);
+
+                // #1: NFT name filter
+                DoNftToolTextField(posX1, posY, "Name: ", ref nftFilterName);
+
+                // #2: NFT type filter
+                DoNftToolComboBox(posX2, posY, nftTypeComboBox, Enum.GetValues(typeof(ttrsNftType)).Cast<ttrsNftType>().ToList(), "Type: ", ref nftFilterTypeIndex);
+                if (Enum.IsDefined(typeof(ttrsNftType), nftFilterTypeIndex))
+                    nftFilterType = ((ttrsNftType)nftFilterTypeIndex).ToString();
+                else
+                    nftFilterType = "All";
+            }
+        }
+
+        private bool DrawNftToolsAreActive()
+        {
+            return nftTypeComboBox.DropDownIsOpened() || nftMintedComboBox.DropDownIsOpened() || nftRarityComboBox.DropDownIsOpened();
         }
 
         private void DrawBalanceLine(ref Rect subRect, string symbol, decimal amount, string caption)
@@ -2511,6 +2736,23 @@ namespace Poltergeist
                      return;
                  }
 
+                 if (transferToken.flags.Contains(TokenFlags.Transferable.ToString()) && transferSymbol == "TTRS")
+                 {
+                     // We should do this initialization here and not in PushState,
+                     // to allow "Back" button to work properly.
+                     nftScroll = Vector2.zero;
+                     nftTransferList.Clear();
+                     nftFilterName = "";
+                     nftFilterTypeIndex = 0;
+                     nftFilterType = "All";
+                     nftFilterRarity = 0;
+                     nftFilterMinted = 0;
+                     accountManager.RefreshNft(false, transferSymbol);
+
+                     PushState(GUIState.TtrsNft);
+                     return;
+                 }
+
                  if (!transferToken.flags.Contains(TokenFlags.Transferable.ToString()))
                  {
                      MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
@@ -2578,6 +2820,286 @@ namespace Poltergeist
 
                  modalHints = GenerateAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
              });
+        }
+
+        private void DoTtrsNftScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            var nfts = accountManager.CurrentNfts;
+            if (accountManager.Refreshing)
+            {
+                DrawCenteredText((nfts != null) ? $"Fetching NFTs ({nfts.Count})..." : "Fetching NFTs...");
+                return;
+            }
+
+            var startY = Units(VerticalLayout ? 11 : 7);
+            var nftToolsY = startY;
+            startY += (VerticalLayout) ? Units(6) : Units(4);
+            var endY = DoBottomMenuForNft();
+
+            if (nfts == null)
+            {
+                DrawCenteredText("Loading...");
+                return;
+            }
+
+            // Filtering NFT list, if filters are applied.
+            nftFilteredList.Clear();
+            if (!String.IsNullOrEmpty(nftFilterName) || nftFilterType != "All" || nftFilterRarity != (int)ttrsNftRarity.All || nftFilterMinted != (int)nftMinted.All)
+            {
+                nfts.ForEach((x) => {
+                    var item = TtrsStore.GetNft(x.ID);
+
+                    if ((String.IsNullOrEmpty(nftFilterName) || item.NameEnglish.ToUpper().Contains(nftFilterName.ToUpper())) &&
+                        (nftFilterType == "All" || item.DisplayTypeEnglish == nftFilterType) &&
+                        (nftFilterRarity == (int)ttrsNftRarity.All || (int)item.Rarity == nftFilterRarity) &&
+                        (nftFilterMinted == (int)nftMinted.All ||
+                         (nftFilterMinted == (int)nftMinted.Last_15_Mins && DateTime.Compare(item.Timestamp, DateTime.Now.AddMinutes(-15)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_Hour && DateTime.Compare(item.Timestamp, DateTime.Now.AddHours(-1)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_24_Hours && DateTime.Compare(item.Timestamp, DateTime.Now.AddDays(-1)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_Week && DateTime.Compare(item.Timestamp, DateTime.Now.AddDays(-7)) >= 0) ||
+                         (nftFilterMinted == (int)nftMinted.Last_Month && DateTime.Compare(item.Timestamp, DateTime.Now.AddMonths(-1)) >= 0)
+                        ))
+                    {
+                        nftFilteredList.Add(x);
+                    }
+                });
+                nfts = nftFilteredList;
+            }
+
+            // Sorting NFT list.
+            switch((TtrsNftSortMode)accountManager.Settings.ttrsNftSortMode)
+            {
+                case TtrsNftSortMode.Number_Date:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    else
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    break;
+                case TtrsNftSortMode.Date_Number:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    else
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Number_Date:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    else
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Date_Number:
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    else
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Rarity: // And also Number and Date as last sorting parameters.
+                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Rarity).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    else
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Rarity).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                    break;
+            }
+
+            // Number of displayed NFTs changed, switching to first page.
+            if (nfts.Count != nftCount)
+            {
+                nftPageNumber = 0;
+            }
+
+            nftCount = nfts.Count;
+            nftPageCount = nftCount / nftPageSize + 1;
+
+            // Making NFT list for current page.
+            var nftPage = new List<TokenData>();
+            for(int i = nftPageSize * nftPageNumber; i < Math.Min(nftPageSize * (nftPageNumber + 1), nfts.Count); i++)
+            {
+                nftPage.Add(nfts[i]);
+            }
+            var nftOnPageCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftPage,
+                DoTtrsNftEntry);
+
+            if (nftOnPageCount == 0)
+            {
+                DrawCenteredText($"No TTRS NFTs found for this {accountManager.CurrentPlatform} account.");
+            }
+
+            DrawNftTools(nftToolsY);
+
+            DrawPlatformTopMenu(() =>
+            {
+                accountManager.RefreshBalances(true);
+                accountManager.RefreshNft(true, transferSymbol);
+            }, false);
+        }
+
+        // Used for both NFT list and transfer NFT list.
+        private void DoTtrsNftEntry(TokenData entry, int index, int curY, Rect rect)
+        {
+            int panelHeight = Units(3);
+            int panelWidth = (int)(windowRect.width - Units(2));
+            int padding = 8;
+
+            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
+            int heightPerItem = panelHeight + padding;
+            int maxEntries = availableHeight / heightPerItem;
+
+            var accountManager = AccountManager.Instance;
+
+            int halfWidth = (int)(rect.width / 2);
+
+            var item = TtrsStore.GetNft(entry.ID);
+
+            if (!String.IsNullOrEmpty(item.NameEnglish))
+            {
+                var image = TtrsStore.GetImage(item.Img);
+
+                if (!String.IsNullOrEmpty(image.Url))
+                {
+                    GUI.DrawTexture(new Rect(Units(2), curY + 4, VerticalLayout ? Units(4) : Units(3) + 8, VerticalLayout ? Units(4) : Units(3) + 8), image.Texture);
+                }
+            }
+
+            string rarity;
+            switch(item.Rarity)
+            {
+                case 1:
+                    rarity = VerticalLayout ? "/Con" : " / Consumer";
+                    break;
+                case 2:
+                    rarity = VerticalLayout ? "/Ind" : " / Industrial";
+                    break;
+                case 3:
+                    rarity = VerticalLayout ? "/Pro" : " / Professional";
+                    break;
+                case 4:
+                    rarity = VerticalLayout ? "/Col" : " / Collector";
+                    break;
+                default:
+                    rarity = "";
+                    break;
+            }
+
+            var nftName = item.NameEnglish;
+            if (String.IsNullOrEmpty(nftName))
+                nftName = "Loading...";
+            if (VerticalLayout && nftName.Length > 18)
+                nftName = nftName.Substring(0, 15) + "...";
+
+            var nftType = item.DisplayTypeEnglish;
+            if (VerticalLayout)
+            {
+                switch (nftType)
+                {
+                    case "Vehicle":
+                        nftType = "Veh";
+                        break;
+                    case "Part":
+                        nftType = "Prt";
+                        break;
+                    case "License":
+                        nftType = "Lic";
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            var nftDescription = item.Mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.Mint + " " + (VerticalLayout ? item.Timestamp.ToString("dd.MM.yy") : item.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")) + (VerticalLayout ? " " : " / ") + nftType + rarity;
+
+            GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + 4 : curY, rect.width - Units(6), Units(2) + 4), nftName);
+
+            if (!String.IsNullOrEmpty(nftDescription))
+            {
+                var style = GUI.skin.label;
+                var tempSize = style.fontSize;
+                style.fontSize = VerticalLayout ? 18 : 16;
+                GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(2) + 4 : curY + Units(1) + 8, rect.width - Units(6), Units(2)), nftDescription);
+                style.fontSize = tempSize;
+            }
+
+            Rect btnRectToggle;
+            Rect btnRect;
+
+            if (VerticalLayout)
+            {
+                curY += Units(2);
+                btnRectToggle = new Rect(rect.x + rect.width - Units(8), curY - 4, Units(1), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY, Units(4), Units(1));
+            }
+            else
+            {
+                btnRectToggle = new Rect(rect.x + rect.width - Units(8), curY + Units(1) + 4, Units(1), Units(1));
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1) + 8, Units(4), Units(1));
+            }
+
+            if (DrawNftToolsAreActive())
+            {
+                GUI.enabled = false;
+            }
+            var nftIsSelected = nftTransferList.Exists(x => x.ID == entry.ID);
+            if (GUI.Toggle(btnRectToggle, nftIsSelected, ""))
+            {
+                if (!nftIsSelected)
+                {
+                    nftTransferList.Add(entry);
+
+                    // We have to remake whole list to have correct order of selected items.
+                    var nftTransferListCopy = new List<TokenData>();
+                    accountManager.CurrentNfts.ForEach((x) => { if (nftTransferList.Exists(y => y.ID == x.ID)) { nftTransferListCopy.Add(x); } });
+                    nftTransferList = nftTransferListCopy;
+                }
+            }
+            else
+            {
+                if (nftIsSelected)
+                {
+                    nftTransferList.Remove(nftTransferList.Single(x => x.ID == entry.ID));
+                }
+            }
+            GUI.enabled = true;
+
+            DoButton(!DrawNftToolsAreActive(), btnRect, "View", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                Application.OpenURL("https://www.22series.com/part_info?id=" + item.Id);
+            });
+
+            curY += panelHeight + padding;
+        }
+
+        private void DoTtrsNftTransferListScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            var startY = DrawPlatformTopMenu(() =>
+            {
+            }, false);
+            var endY = DoBottomMenuForNftTransferList();
+
+            // Removing items from transfer list, if they
+            // are absent in current filter list.
+            if (nftFilteredList.Count > 0)
+            {
+                var nftFilteredTransferList = new List<TokenData>();
+                nftTransferList.ForEach(x => { if (nftFilteredList.Exists(y => y.ID == x.ID)) { nftFilteredTransferList.Add(x); } });
+                nftTransferList = nftFilteredTransferList;
+            }
+
+            // We can modify nftTransferList while enumerating,
+            // so we should use a copy of it.
+            var nftTransferListCopy = new List<TokenData>();
+            nftTransferList.ForEach(x => nftTransferListCopy.Add(x));
+
+            var nftTransferCount = DoScrollArea<TokenData>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferListCopy,
+                DoTtrsNftEntry);
+
+            if (nftTransferCount == 0)
+            {
+                DrawCenteredText($"No NFTs selected for transfer.");
+            }
         }
 
         private void DoHistoryScreen()
@@ -2938,6 +3460,189 @@ namespace Poltergeist
             return posY;
         }
 
+        private int DoBottomMenuForNft()
+        {
+            int posY;
+
+            var border = Units(1);
+
+            int panelHeight = VerticalLayout ? Border * 2 + (Units(2) + 4) * 3 : (border + Units(3));
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight + border));
+
+            var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
+
+            int halfWidth = (int)(windowRect.width / 2);
+            int btnWidth = VerticalLayout ? Units(7) : Units(11);
+
+            // Close
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2,
+                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) * 2 : (int)rect.y + border,
+                                    VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Close", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                PushState(GUIState.Balances);
+            });
+
+            int pageLabelWidth = Units(4);
+            int pageButtonWidth = Units(2);
+            int pageButtonSpacing = 12;
+
+            // <<
+            DoButton(nftPageNumber > 0, new Rect(halfWidth - pageLabelWidth / 2 - (pageButtonWidth + pageButtonSpacing) * 2,
+                                                 VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                 pageButtonWidth, Units(2)), "<<", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber = 0;
+            });
+
+            // <
+            DoButton(nftPageNumber > 0, new Rect(halfWidth - pageLabelWidth / 2 - (pageButtonWidth + pageButtonSpacing),
+                                                 VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                 pageButtonWidth, Units(2)), "<", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber--;
+            });
+
+            // Current page number
+            var style = GUI.skin.GetStyle("Label");
+            var prevAlignment = style.alignment;
+            style.alignment = TextAnchor.MiddleCenter;
+            GUI.contentColor = Color.black;
+            GUI.Label(new Rect(halfWidth - pageLabelWidth / 2 - 6,
+                               (int)rect.y + 12,
+                               pageLabelWidth, Units(2)), (nftPageNumber + 1).ToString(), style);
+            GUI.contentColor = Color.white;
+            style.alignment = prevAlignment;
+
+            // >
+            DoButton(nftPageNumber < nftPageCount - 1, new Rect(halfWidth + pageLabelWidth / 2 + pageButtonSpacing,
+                                                                VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                                pageButtonWidth, Units(2)), ">", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber++;
+            });
+
+            // >>
+            DoButton(nftPageNumber < nftPageCount - 1, new Rect(halfWidth + pageLabelWidth / 2 + pageButtonWidth + pageButtonSpacing * 2,
+                                                                VerticalLayout ? (int)rect.y + border : (int)rect.y + border,
+                                                                pageButtonWidth, Units(2)), ">>", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                nftPageNumber = nftPageCount - 1;
+            });
+
+            // To transfer list
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2,
+                                    VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border,
+                                    VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
+            {
+                PushState(GUIState.TtrsNftTransferList);
+            });
+
+            return posY;
+        }
+
+        private int DoBottomMenuForNftTransferList()
+        {
+            int posY;
+
+            var border = Units(1);
+
+            int panelHeight = VerticalLayout ? Border * 2 + (Units(2) + 4) * 2 : (border + Units(3));
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight + border));
+
+            var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
+
+            int halfWidth = (int)(windowRect.width / 2);
+            int btnWidth = VerticalLayout ? Units(7) : Units(11);
+
+            // Back
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Back", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                PushState(GUIState.TtrsNft);
+            });
+
+            // Send
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+
+                var accountManager = AccountManager.Instance;
+                var state = accountManager.CurrentState;
+                var transferName = $"{transferSymbol} transfer";
+                Phantasma.SDK.Token transferToken;
+
+                accountManager.GetTokenBySymbol(transferSymbol, out transferToken);
+
+                if (string.IsNullOrEmpty(transferToken.flags))
+                {
+                    MessageBox(MessageKind.Error, $"Operations with token {transferSymbol} are not supported yet in this version.");
+                    return;
+                }
+
+                if (!transferToken.flags.Contains(TokenFlags.Transferable.ToString()))
+                {
+                    MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
+                    return;
+                }
+
+                ShowModal(transferName, "Enter destination address", ModalState.Input, 3, 64, ModalConfirmCancel, 1, (result, destAddress) =>
+                {
+                    if (result == PromptResult.Failure)
+                    {
+                        return; // user canceled
+                    }
+
+                    if (Address.IsValidAddress(destAddress))
+                    {
+                        if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                        {
+                            ContinuePhantasmaNftTransfer(transferName, transferSymbol, destAddress);
+                        }
+                        else
+                        {
+                            MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
+                        }
+                    }
+                    else
+                    if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
+                    {
+                        MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
+                    }
+                    else
+                    if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name)
+                    {
+                        BeginWaitingModal("Looking up account name");
+                        accountManager.ValidateAccountName(destAddress, (lookupAddress) =>
+                        {
+                            EndWaitingModal();
+
+                            if (lookupAddress != null)
+                            {
+                                ContinuePhantasmaNftTransfer(transferName, transferSymbol, lookupAddress);
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Error, "No account with such name exists.");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        MessageBox(MessageKind.Error, "Invalid destination address.");
+                    }
+                });
+
+                modalHints = GenerateAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
+            });
+
+            return posY;
+        }
+
         private Action<Hash> transactionCallback;
 
         private void InvokeTransactionCallback(Hash hash)
@@ -3117,6 +3822,102 @@ namespace Poltergeist
                         MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
                     }
                 });
+            });
+        }
+
+        private void ContinuePhantasmaNftTransfer(string transferName, string symbol, string destAddress)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
+                return;
+            }
+
+            var source = Address.FromText(state.address);
+            var destination = Address.FromText(destAddress);
+
+            if (source == destination)
+            {
+                MessageBox(MessageKind.Error, $"Source and destination address must be different!");
+                return;
+            }
+
+            var balance = state.GetAvailableAmount(symbol);
+            var amount = nftTransferList.Count;
+            RequestKCAL(symbol, (feeResult) =>
+            {
+                if (feeResult == PromptResult.Success)
+                {
+                    byte[] script;
+                    string description;
+
+                    try
+                    {
+                        description = $"Transfer {symbol} NFTs\n";
+
+                        var decimals = accountManager.GetTokenDecimals(symbol);
+
+                        var gasPrice = accountManager.Settings.feePrice;
+
+                        var sb = new ScriptBuilder();
+                        sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit * nftTransferList.Count);
+
+                        foreach (var nft in nftTransferList)
+                        {
+                            sb.TransferNFT(symbol, source, destination, BigInteger.Parse(nft.ID));
+
+                            string nftDescription = "";
+                            if(symbol == "TTRS")
+                            {
+                                var item = TtrsStore.GetNft(nft.ID);
+                                
+                                nftDescription = " " + ((item.NameEnglish.Length > 25) ? item.NameEnglish.Substring(0, 22) + "..." : item.NameEnglish);
+
+                                nftDescription += " Minted " + item.Timestamp.ToString("dd.MM.yy") + " #" + item.Mint;
+                            }
+
+                            description += $"#{nft.ID.Substring(0, 5) + "..." + nft.ID.Substring(nft.ID.Length - 5)}{nftDescription}\n";
+                        }
+
+                        sb.SpendGas(source);
+                        script = sb.EndScript();
+
+                        description += $"to {destination}.";
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                        return;
+                    }
+
+                    SendTransaction(description, script, null, "main", (hash) =>
+                    {
+                        if (hash != Hash.Null)
+                        {
+                            MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
+
+                            // Removing sent NFTs from current NFT list.
+                            var nfts = accountManager.CurrentNfts;
+                            foreach (var nft in nftTransferList)
+                            {
+                                nfts.Remove(nfts.Find(x => x.ID == nft.ID));
+                            }
+
+                            // Returning to NFT's first screen.
+                            nftScroll = Vector2.zero;
+                            nftTransferList.Clear();
+                            PushState(GUIState.TtrsNft);
+                        }
+                    });
+                }
+                else
+                if (feeResult == PromptResult.Failure)
+                {
+                    MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
+                }
             });
         }
 
