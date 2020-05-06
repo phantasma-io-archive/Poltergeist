@@ -928,8 +928,10 @@ namespace Poltergeist
                 switch (guiState)
                 {
                     case GUIState.TtrsNft:
-                    case GUIState.TtrsNftTransferList:
                         tempTitle = $"{nftCount} {tempTitle}";
+                        break;
+                    case GUIState.TtrsNftTransferList:
+                        tempTitle = $"{nftTransferList.Count} {tempTitle}";
                         break;
                     case GUIState.Account:
                     case GUIState.Balances:
@@ -1683,12 +1685,12 @@ namespace Poltergeist
             result = comboBox.Show(new Rect(posX + toolLabelWidth, posY, toolFieldWidth, toolFieldHeight), listContent, 0, out dropHeight);
         }
 
-        private void DoNftToolButton(int posX, int posY, bool drawWithLabelWidth, string label, Action callback)
+        private void DoNftToolButton(int posX, int posY, int width, string label, Action callback)
         {
             var style = GUI.skin.button;
             var tempSize = style.fontSize;
             style.fontSize = 16;
-            DoButton(true, new Rect(posX, posY, (drawWithLabelWidth) ? toolLabelWidth - 6 : toolFieldWidth, toolFieldHeight), label, callback);
+            DoButton(true, new Rect(posX, posY, width, toolFieldHeight), label, callback);
             style.fontSize = tempSize;
         }
 
@@ -2119,10 +2121,30 @@ namespace Poltergeist
                 var posY2 = (VerticalLayout) ? posY + Units(2) : posY;
                 var posY3 = (VerticalLayout) ? posY2 + Units(2) : posY + Units(2);
 
-                // #5:
-                DoNftToolComboBox(posX1, posY3, nftSortModeComboBox, Enum.GetValues(typeof(TtrsNftSortMode)).Cast<TtrsNftSortMode>().ToList().Select(x => x.ToString().Replace("_", ", ").Replace("Number", "#")).ToList(), "Sort: ", ref accountManager.Settings.ttrsNftSortMode); 
+                // #5: Sorting mode combo
+                DoNftToolComboBox(posX1, posY3, nftSortModeComboBox, Enum.GetValues(typeof(TtrsNftSortMode)).Cast<TtrsNftSortMode>().ToList().Select(x => x.ToString().Replace("_", ", ").Replace("Number", "#")).ToList(), "Sort: ", ref accountManager.Settings.ttrsNftSortMode);
 
-                DoNftToolButton(posX2, posY3, true, (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) ? "Asc" : "Desc", () => { if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) accountManager.Settings.nftSortDirection = (int)SortDirection.Descending; else accountManager.Settings.nftSortDirection = (int)SortDirection.Ascending; });
+                // #6: Sorting direction button
+                DoNftToolButton(posX2 + 4,
+                                posY3,
+                                (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) ? "Asc" : "Desc", () => { if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending) accountManager.Settings.nftSortDirection = (int)SortDirection.Descending; else accountManager.Settings.nftSortDirection = (int)SortDirection.Ascending; });
+
+                // #7: Select all button
+                DoNftToolButton(posX4 + toolLabelWidth,
+                                posY3,
+                                (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, "Select", () => {
+                    nftTransferList.Clear();
+                    accountManager.CurrentNfts.ForEach((x) => { nftTransferList.Add(x); });
+                });
+
+                // #8: Invert selection button
+                DoNftToolButton((VerticalLayout) ? posX4 + toolLabelWidth * 2 - toolFieldSpacing + 8: posX4 + toolLabelWidth * 2 + toolFieldSpacing,
+                                posY3,
+                                (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, "Invert", () => {
+                    var nftTransferListCopy = new List<TokenData>();
+                    accountManager.CurrentNfts.ForEach((x) => { if (!nftTransferList.Exists(y => y.ID == x.ID)) { nftTransferListCopy.Add(x); } });
+                    nftTransferList = nftTransferListCopy;
+                });
 
                 // #3: NFT rarity filter
                 DoNftToolComboBox(posX3, posY2, nftRarityComboBox, Enum.GetValues(typeof(ttrsNftRarity)).Cast<ttrsNftRarity>().ToList(), "Rarity: ", ref nftFilterRarity);
