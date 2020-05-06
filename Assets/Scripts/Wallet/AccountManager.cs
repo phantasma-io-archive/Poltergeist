@@ -1412,6 +1412,7 @@ namespace Poltergeist
                                         // Getting NFT descriptions.
                                         StartCoroutine(TtrsStore.LoadStoreNft(balanceEntry.Ids, (item) =>
                                         {
+                                            // Downloading NFT images.
                                             StartCoroutine(TtrsStore.DownloadImage(item));
                                         }));
                                     }

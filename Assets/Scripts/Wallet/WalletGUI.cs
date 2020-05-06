@@ -47,8 +47,8 @@ namespace Poltergeist
         Loading,
         Wallets,
         Balances,
-        TtrsNft,
-        TtrsNftTransferList,
+        TtrsNft, // Full list of TTRS NFTs with sorting and filtering capabilities.
+        TtrsNftTransferList, // List of user-selected TTRS NFTs, ready to be transfered to another wallet.
         History,
         Account,
         Sending,
@@ -86,7 +86,7 @@ namespace Poltergeist
         Password,
     }
 
-    public enum TtrsNftSortMode
+    public enum TtrsNftSortMode // NFT-specific, TTRS-specific. Modes of NFT list sorting.
     {
         None,
         Number_Date,
@@ -96,13 +96,13 @@ namespace Poltergeist
         Type_Rarity
     }
 
-    public enum SortDirection
+    public enum SortDirection // Direction of sorting, used in NFT list sorting.
     {
         Ascending,
         Descending
     }
 
-    public enum ttrsNftType
+    public enum ttrsNftType // NFT-specific, TTRS-specific. Types of TTRS NFTs.
     {
         All,
         Vehicle,
@@ -110,7 +110,7 @@ namespace Poltergeist
         License
     }
 
-    public enum ttrsNftRarity
+    public enum ttrsNftRarity // NFT-specific, TTRS-specific. Rarity classes of TTRS NFTs.
     {
         All = 0,
         Consumer = 1,
@@ -119,7 +119,7 @@ namespace Poltergeist
         Collector = 4
     }
 
-    public enum nftMinted
+    public enum nftMinted // NFT-specific. Used in NFT filter, allows to select NFTs by mint date. All intervals are 'rolling'.
     {
         All,
         Last_15_Mins,
@@ -176,16 +176,6 @@ namespace Poltergeist
 
         private ComboBox platformComboBox = new ComboBox();
 
-        private ComboBox nftSortModeComboBox = new ComboBox();
-        private string nftFilterName;
-        private ComboBox nftTypeComboBox = new ComboBox();
-        private int nftFilterTypeIndex = 0;
-        private string nftFilterType = "All";
-        private ComboBox nftRarityComboBox = new ComboBox();
-        private int nftFilterRarity = 0;
-        private ComboBox nftMintedComboBox = new ComboBox();
-        private int nftFilterMinted = 0;
-
         private ComboBox hintComboBox = new ComboBox();
 
         private int nexusIndex;
@@ -196,12 +186,24 @@ namespace Poltergeist
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
+        // NFT sorting and filtering.
+        private ComboBox nftSortModeComboBox = new ComboBox();
+        private string nftFilterName;
+        private ComboBox nftTypeComboBox = new ComboBox();
+        private int nftFilterTypeIndex = 0;
+        private string nftFilterType = "All";
+        private ComboBox nftRarityComboBox = new ComboBox();
+        private int nftFilterRarity = 0;
+        private ComboBox nftMintedComboBox = new ComboBox();
+        private int nftFilterMinted = 0;
+
+        // NFT pagination.
         private int nftPageSize = 25;
         private int nftPageNumber = 0;
         private int nftCount = 0;
         private int nftPageCount = 0;
-        private List<TokenData> nftFilteredList = new List<TokenData>();
-        private List<TokenData> nftTransferList = new List<TokenData>();
+        private List<TokenData> nftFilteredList = new List<TokenData>(); // List of displayed NFT items (after applying filters).
+        private List<TokenData> nftTransferList = new List<TokenData>(); // List of NFT items, selected by user.
 
         private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
 
@@ -1650,6 +1652,7 @@ namespace Poltergeist
             }
         }
 
+        // Methods for creating of NFT tools for toolbar over NFT list - used to create sort/filters combos, select/invert buttons etc.
         private int toolLabelWidth = Units(4) + 8;
         private int toolLabelHeight = Units(2);
         private int toolFieldWidth => (VerticalLayout) ? Units(7) : Units(9);
@@ -2107,6 +2110,7 @@ namespace Poltergeist
             return curY;
         }
 
+        // NFT tools for toolbar over NFT list - sort/filters combos, select/invert buttons etc.
         private void DrawNftTools( int posY )
         {
             var accountManager = AccountManager.Instance;
@@ -2932,6 +2936,7 @@ namespace Poltergeist
             }, false);
         }
 
+        // Used for both NFT list and transfer NFT list.
         private void DoTtrsNftEntry(TokenData entry, int index, int curY, Rect rect)
         {
             int panelHeight = Units(3);
@@ -3555,12 +3560,14 @@ namespace Poltergeist
             int halfWidth = (int)(windowRect.width / 2);
             int btnWidth = VerticalLayout ? Units(7) : Units(11);
 
+            // Back
             DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Back", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
                 PushState(GUIState.TtrsNft);
             });
 
+            // Send
             DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
             {
                 AudioManager.Instance.PlaySFX("click");

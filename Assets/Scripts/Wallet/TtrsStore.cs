@@ -8,20 +8,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+// Parsing and storing data received from TTRS store.
 public static class TtrsStore
 {
-    private struct ItemSupply
-    {
-        public UInt64 Number;
-        public UInt64 Supply;
-        public UInt64 MaxSupply;
-    }
-
     public static void Clear()
     {
         ItemSupplyData.Clear();
         StoreNft.Clear();
         Images.Clear();
+    }
+
+    private struct ItemSupply
+    {
+        public UInt64 Number;
+        public UInt64 Supply;
+        public UInt64 MaxSupply;
     }
 
     private static List<ItemSupply> ItemSupplyData;
@@ -205,7 +206,6 @@ public static class TtrsStore
         }
     }
 
-    // http://www.22series.com/api/store/nft
     public static IEnumerator LoadStoreNft(string[] ids, Action<Nft> callback)
     {
         var url = "http://www.22series.com/api/store/nft";
