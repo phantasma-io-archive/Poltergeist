@@ -1073,7 +1073,6 @@ namespace Poltergeist
 
             if (VerticalLayout)
             {
-                curY += Units(3);
                 hintY = curY + Units(2);
             }
             else
