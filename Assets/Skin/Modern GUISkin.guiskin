@@ -48,10 +48,10 @@ MonoBehaviour:
       m_ScaledBackgrounds: []
       m_TextColor: {r: 0, g: 0, b: 0, a: 1}
     m_Border:
-      m_Left: 32
-      m_Right: 32
-      m_Top: 32
-      m_Bottom: 32
+      m_Left: 45
+      m_Right: 45
+      m_Top: 45
+      m_Bottom: 45
     m_Margin:
       m_Left: 0
       m_Right: 0
