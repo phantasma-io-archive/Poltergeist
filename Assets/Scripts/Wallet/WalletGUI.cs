@@ -900,7 +900,7 @@ namespace Poltergeist
 
         void OnApplicationQuit()
         {
-            AccountManager.Instance.Settings.SaveViewSettings();
+            AccountManager.Instance.Settings.SaveOnExit();
         }
 
         private Rect GetExpandedRect(int curY, int height)

@@ -315,6 +315,23 @@ namespace Poltergeist
 
         private const string WalletTag = "wallet.list";
 
+        private int rpcNumber; // Total number of RPCs, received from getpeers.json.
+        private int rpcBenchmarked; // Number of RPCs which speed already measured.
+        private class RpcBenchmarkData
+        {
+            public string Url;
+            public bool ConnectionError;
+            public TimeSpan ResponseTime;
+
+            public RpcBenchmarkData(string url, bool connectionError, TimeSpan responseTime)
+            {
+                Url = url;
+                ConnectionError = connectionError;
+                ResponseTime = responseTime;
+            }
+        }
+        private List<RpcBenchmarkData> rpcResponseTimes;
+
         public void UpdateRPCURL()
         {
             Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
@@ -329,6 +346,8 @@ namespace Poltergeist
 
             var url = $"https://ghostdevs.com/getpeers.json";
 
+            rpcBenchmarked = 0;
+
             StartCoroutine(
                 WebClient.RESTRequest(url, (error, msg) =>
                 {
@@ -336,13 +355,70 @@ namespace Poltergeist
                 },
                 (response) =>
                 {
-                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % response.ChildCount;
-                    var node = response.GetNodeByIndex(index);
-                    var result = node.GetString("url") + "/rpc";
+                    rpcNumber = response.ChildCount;
 
-                    Settings.phantasmaRPCURL = result;
-                    Log.Write($"changed RPC url {index} => {result}");
+                    if (String.IsNullOrEmpty(Settings.phantasmaBPURL))
+                    {
+                        // If we have no previously used RPC, we select random one at first.
+                        var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumber;
+                        var node = response.GetNodeByIndex(index);
+                        var result = node.GetString("url") + "/rpc";
+                        Settings.phantasmaBPURL = result;
+                        Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                        Log.Write($"changed RPC url {index} => {result}");
+                    }
+                    
                     UpdateAPIs();
+
+                    // Benchmarking RPCs.
+                    rpcResponseTimes = new List<RpcBenchmarkData>();
+                    foreach (var node in response.Children)
+                    {
+                        var rpcUrl = node.GetString("url") + "/rpc";
+
+                        StartCoroutine(
+                            WebClient.Ping(rpcUrl, (error, msg) =>
+                            {
+                                Log.Write("Ping error: " + error);
+                                
+                                rpcBenchmarked++;
+
+                                lock (rpcResponseTimes)
+                                {
+                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, false, new TimeSpan()));
+                                }
+                            },
+                            (responseTime) =>
+                            {
+                                rpcBenchmarked++;
+
+                                lock (rpcResponseTimes)
+                                {
+                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, true, responseTime));
+                                }
+
+                                if (rpcBenchmarked == rpcNumber)
+                                {
+                                    // We finished benchmarking, time to select best RPC server.
+                                    string bestRpcUrl = rpcResponseTimes[0].Url;
+                                    TimeSpan bestTime = rpcResponseTimes[0].ResponseTime;
+                                    foreach(var rpcResponseTime in rpcResponseTimes)
+                                    {
+                                        if(!rpcResponseTime.ConnectionError && rpcResponseTime.ResponseTime < bestTime)
+                                        {
+                                            bestRpcUrl = rpcResponseTime.Url;
+                                            bestTime = rpcResponseTime.ResponseTime;
+                                        }
+                                    }
+
+                                    Log.Write($"Fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")}.");
+                                    Settings.phantasmaBPURL = bestRpcUrl;
+                                    Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                                    UpdateAPIs();
+                                }
+                            })
+                        );
+                }
                 })
             );
         }

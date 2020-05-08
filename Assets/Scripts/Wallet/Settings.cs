@@ -260,14 +260,16 @@ namespace Poltergeist
                      );
         }
 
-        public void SaveViewSettings()
+        public void SaveOnExit()
         {
             PlayerPrefs.SetInt(TtrsNftSortModeTag, this.ttrsNftSortMode);
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
+            PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
             PlayerPrefs.Save();
 
-            Log.Write("Settings: Save view settings: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
-                      "                              NFT sort direction: " + nftSortDirection,
+            Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
+                      "                        NFT sort direction: " + nftSortDirection + "\n" +
+                      "                        Phantasma BP: " + phantasmaBPURL,
                       Log.Level.Debug1);
         }
 
