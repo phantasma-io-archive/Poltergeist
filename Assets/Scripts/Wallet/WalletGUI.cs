@@ -2958,7 +2958,8 @@ namespace Poltergeist
 
                 if (!String.IsNullOrEmpty(image.Url))
                 {
-                    GUI.DrawTexture(new Rect(Units(2), curY + 4, VerticalLayout ? Units(4) : Units(3) + 8, VerticalLayout ? Units(4) : Units(3) + 8), image.Texture);
+                    var textureDisplayedHeight = VerticalLayout ? Units(3) : Units(3) - 8;
+                    GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, (float)textureDisplayedHeight * ((float)image.Texture.width / (float)image.Texture.height), textureDisplayedHeight), image.Texture);
                 }
             }
 
