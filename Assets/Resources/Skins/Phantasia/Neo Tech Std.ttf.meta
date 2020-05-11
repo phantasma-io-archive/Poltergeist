@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 4a24db803eac8e74584c387a8f18d0b4
+TrueTypeFontImporter:
+  externalObjects: {}
+  serializedVersion: 4
+  fontSize: 13
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Neo Tech Std
+  fontNames:
+  - Neo Tech Std
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: 5a2575307553ee84388cf363758b1539, type: 3}
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 2
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -132,6 +132,7 @@ namespace Poltergeist
     public class WalletGUI : MonoBehaviour, IWalletConnector
     {
         public RawImage background;
+        private Texture2D soulMasterLogo;
 
         private Dictionary<PlatformKind, Texture2D> QRCodeTextures = new Dictionary<PlatformKind, Texture2D>();
 
@@ -186,6 +187,9 @@ namespace Poltergeist
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
+        private int uiThemeIndex;
+        private ComboBox uiThemeComboBox = new ComboBox();
+
         // NFT sorting and filtering.
         private ComboBox nftSortModeComboBox = new ComboBox();
         private string nftFilterName;
@@ -206,6 +210,8 @@ namespace Poltergeist
         private List<TokenData> nftTransferList = new List<TokenData>(); // List of NFT items, selected by user.
 
         private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
+
+        private UiThemes[] availableUiThemes = Enum.GetValues(typeof(UiThemes)).Cast<UiThemes>().ToArray();
 
         private bool initialized;
 
@@ -281,6 +287,9 @@ namespace Poltergeist
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
 
             StartCoroutine(TtrsStore.LoadStoreInfo());
+
+            // We will use this RawImage object to set/change background image.
+            background = GameObject.Find("Background").GetComponent<RawImage>();
         }
 
         void OnEnable()
@@ -442,6 +451,19 @@ namespace Poltergeist
                             }
                         }
                         logLevelComboBox.SelectedItemIndex = logLevelIndex;
+
+                        uiThemeIndex = 0;
+                        for (int i = 0; i < availableUiThemes.Length; i++)
+                        {
+                            if (availableUiThemes[i].ToString() == accountManager.Settings.uiThemeName)
+                            {
+                                uiThemeIndex = i;
+                                break;
+                            }
+                        }
+                        uiThemeComboBox.SelectedItemIndex = uiThemeIndex;
+
+                        
 
                         break;
                     }
@@ -785,7 +807,6 @@ namespace Poltergeist
                 }
                 else
                 {
-                    background.texture = null;
                     windowRect.width = Mathf.Min(800, virtualWidth) - Border * 2;
                     windowRect.height = Mathf.Min(800, virtualHeight) - Border * 2;
                 }
@@ -833,7 +854,22 @@ namespace Poltergeist
             var scaleY = Screen.height / (float)virtualHeight;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleX, scaleY, 1.0f));
 
-            GUI.skin = guiSkin;
+            var uiThemeName = AccountManager.Instance.Settings.uiThemeName;
+            if (uiThemeName == UiThemes.Classic.ToString())
+            {
+                GUI.skin = guiSkin;
+            }
+            else
+            {
+                GUI.skin = Resources.Load($"Skins/{uiThemeName}/{uiThemeName}") as GUISkin;
+            }
+
+            if (VerticalLayout)
+                background.texture = Resources.Load<Texture2D>($"Skins/{uiThemeName}/mobile_background");
+            else
+                background.texture = Resources.Load<Texture2D>($"Skins/{uiThemeName}/background");
+            soulMasterLogo = Resources.Load<Texture2D>($"Skins/{AccountManager.Instance.Settings.uiThemeName}/soul_master");
+
             GUI.enabled = true;
 
             GUI.color = Color.white;
@@ -914,10 +950,9 @@ namespace Poltergeist
             GUI.Box(new Rect(8, 8, windowRect.width - 16, Units(2)), WalletTitle);
 
             var style = GUI.skin.label;
-            var tempSize = style.fontSize;
-            style.fontSize = 14;
+            style.fontSize -= 6;
             GUI.Label(new Rect(windowRect.width / 2 + Units(7) - 4, 12, 32, Units(2)), Application.version);
-            style.fontSize = tempSize;
+            style.fontSize += 6;
 
             var accountManager = AccountManager.Instance;
 
@@ -1661,10 +1696,13 @@ namespace Poltergeist
         private void DoNftToolLabel(int posX, int posY, string label)
         {
             var style = GUI.skin.label;
-            var tempSize = style.fontSize;
-            style.fontSize = 14;
+            style.fontSize -= 6;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(posX, posY - 10, toolLabelWidth, toolLabelHeight), label);
-            style.fontSize = tempSize;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
+            style.fontSize += 6;
         }
 
         private void DoNftToolTextField(int posX, int posY, string label, ref string result)
@@ -1672,10 +1710,9 @@ namespace Poltergeist
             DoNftToolLabel(posX, posY, label);
 
             var style = GUI.skin.textField;
-            var tempSize = style.fontSize;
-            style.fontSize = 12;
+            style.fontSize -= 4;
             result = GUI.TextField(new Rect(posX + toolLabelWidth - 6, posY - 4, toolFieldWidth + 7, toolFieldHeight + 8), result);
-            style.fontSize = tempSize;
+            style.fontSize += 4;
         }
 
         private void DoNftToolComboBox<T>(int posX, int posY, ComboBox comboBox, IList<T> listContent, string label, ref int result)
@@ -1690,10 +1727,9 @@ namespace Poltergeist
         private void DoNftToolButton(int posX, int posY, int width, string label, Action callback)
         {
             var style = GUI.skin.button;
-            var tempSize = style.fontSize;
-            style.fontSize = 16;
+            style.fontSize -= 4;
             DoButton(true, new Rect(posX, posY, width, toolFieldHeight), label, callback);
-            style.fontSize = tempSize;
+            style.fontSize += 4;
         }
 
         private void DrawCenteredText(string caption)
@@ -1702,9 +1738,11 @@ namespace Poltergeist
             var temp = style.alignment;
             style.alignment = TextAnchor.MiddleCenter;
 
-            GUI.contentColor = Color.black;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(0, 0, windowRect.width, windowRect.height), caption);
-            GUI.contentColor = Color.white;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
 
             style.alignment = temp;
         }
@@ -1713,16 +1751,17 @@ namespace Poltergeist
         {
             var style = GUI.skin.label;
             var tempAlign = style.alignment;
-            var tempSize = style.fontSize;
 
-            style.fontSize = VerticalLayout ? 18: 0;
+            style.fontSize -= VerticalLayout ? 2: 4;
             style.alignment = TextAnchor.MiddleCenter;
 
-            GUI.contentColor = Color.black;
+            if(AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(0, curY, windowRect.width, height), caption);
-            GUI.contentColor = Color.white;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
 
-            style.fontSize = tempSize;
+            style.fontSize += VerticalLayout ? 2 : 4;
             style.alignment = tempAlign;
         }
 
@@ -1814,10 +1853,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 13 elements with total height of (element height + spacing) * 13 = Units(3) * 12.
+            // 1) 13 elements with total height of (element height + spacing) * 14 = Units(3) * 14.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 13 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 14 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1924,13 +1963,18 @@ namespace Poltergeist
             }
 
             GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Log level");
-            var logLevelIndex = logLevelComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
+            logLevelIndex = logLevelComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
             settings.logLevel = availableLogLevels[logLevelIndex];
             curY += dropHeight + Units(1);
 
             settings.logOverwriteMode = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.logOverwriteMode, "");
             GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Overwrite log at start");
             curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "UI theme");
+            uiThemeIndex = uiThemeComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableUiThemes.ToArray(), WalletGUI.Units(2) * 2, out dropHeight);
+            settings.uiThemeName = availableUiThemes[uiThemeIndex].ToString();
+            curY += dropHeight + Units(1);
 
             DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Clear cache", () =>
             {
@@ -2177,13 +2221,12 @@ namespace Poltergeist
             if (amount > 0.0001m)
             {
                 var style = GUI.skin.label;
-                var tempSize = style.fontSize;
                 var tempColor = style.normal.textColor;
                 style.normal.textColor = new Color(1, 1, 1, 0.75f);
-                style.fontSize = VerticalLayout ? 16: 18;
+                style.fontSize -= VerticalLayout ? 4: 2;
 
                 GUI.Label(subRect, $"{amount.ToString(MoneyFormat)} {symbol} {caption} ({AccountManager.Instance.GetTokenWorth(symbol, amount)})");
-                style.fontSize = tempSize;
+                style.fontSize += VerticalLayout ? 4 : 2;
                 style.normal.textColor = tempColor;
 
                 // For vertical layout making a height correction proportional to font size difference.
@@ -2368,15 +2411,15 @@ namespace Poltergeist
 
             var state = accountManager.CurrentState;
 
-            if (state != null && state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
+            if (state != null && state.flags.HasFlag(AccountFlags.Master) && soulMasterLogo != null)
             {
                 if (VerticalLayout)
                 {
-                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), ResourceManager.Instance.MasterLogo);
+                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), soulMasterLogo);
                 }
                 else
                 {
-                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
+                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), soulMasterLogo);
                 }
             }
 
@@ -2438,11 +2481,10 @@ namespace Poltergeist
             int posX = VerticalLayout ? Units(1) : Units(5);
 
             var style = GUI.skin.label;
-            var tempSize = style.fontSize;
 
-            style.fontSize = VerticalLayout ? 20 : 0;
+            style.fontSize -= VerticalLayout ? 0 : 4;
             GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{balance.Available.ToString(MoneyFormat)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
-            style.fontSize = tempSize;
+            style.fontSize += VerticalLayout ? 0 : 4;
 
             var subRect = new Rect(posX, posY + Units(1) + 4, Units(20), Units(2));
             DrawBalanceLine(ref subRect, balance.Symbol, balance.Staked, "staked");
@@ -3015,10 +3057,9 @@ namespace Poltergeist
             if (!String.IsNullOrEmpty(nftDescription))
             {
                 var style = GUI.skin.label;
-                var tempSize = style.fontSize;
-                style.fontSize = VerticalLayout ? 18 : 16;
+                style.fontSize -= VerticalLayout ? 2 : 4;
                 GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(2) + 4 : curY + Units(1) + 8, rect.width - Units(6), Units(2)), nftDescription);
-                style.fontSize = tempSize;
+                style.fontSize += VerticalLayout ? 2 : 4;
             }
 
             Rect btnRectToggle;
@@ -3510,11 +3551,13 @@ namespace Poltergeist
             var style = GUI.skin.GetStyle("Label");
             var prevAlignment = style.alignment;
             style.alignment = TextAnchor.MiddleCenter;
-            GUI.contentColor = Color.black;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(halfWidth - pageLabelWidth / 2 - 6,
                                (int)rect.y + 12,
                                pageLabelWidth, Units(2)), (nftPageNumber + 1).ToString(), style);
-            GUI.contentColor = Color.white;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
             style.alignment = prevAlignment;
 
             // >
