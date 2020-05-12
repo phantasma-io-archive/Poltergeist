@@ -332,6 +332,27 @@ namespace Poltergeist
         }
         private List<RpcBenchmarkData> rpcResponseTimes;
 
+        private string GetFastestWorkingRPCURL( out TimeSpan responseTime )
+        {
+            string fastestRpcUrl = null;
+            foreach (var rpcResponseTime in rpcResponseTimes)
+            {
+                if (!rpcResponseTime.ConnectionError && String.IsNullOrEmpty(fastestRpcUrl))
+                {
+                    // At first just initializing with first working RPC.
+                    fastestRpcUrl = rpcResponseTime.Url;
+                    responseTime = rpcResponseTime.ResponseTime;
+                }
+                else if (!rpcResponseTime.ConnectionError && rpcResponseTime.ResponseTime < responseTime)
+                {
+                    // Faster RPC found, switching.
+                    fastestRpcUrl = rpcResponseTime.Url;
+                    responseTime = rpcResponseTime.ResponseTime;
+                }
+            }
+            return fastestRpcUrl;
+        }
+
         public void UpdateRPCURL()
         {
             Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
@@ -385,7 +406,7 @@ namespace Poltergeist
 
                                 lock (rpcResponseTimes)
                                 {
-                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, false, new TimeSpan()));
+                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, true, new TimeSpan()));
                                 }
                             },
                             (responseTime) =>
@@ -394,24 +415,16 @@ namespace Poltergeist
 
                                 lock (rpcResponseTimes)
                                 {
-                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, true, responseTime));
+                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, false, responseTime));
                                 }
 
                                 if (rpcBenchmarked == rpcNumber)
                                 {
                                     // We finished benchmarking, time to select best RPC server.
-                                    string bestRpcUrl = rpcResponseTimes[0].Url;
-                                    TimeSpan bestTime = rpcResponseTimes[0].ResponseTime;
-                                    foreach(var rpcResponseTime in rpcResponseTimes)
-                                    {
-                                        if(!rpcResponseTime.ConnectionError && rpcResponseTime.ResponseTime < bestTime)
-                                        {
-                                            bestRpcUrl = rpcResponseTime.Url;
-                                            bestTime = rpcResponseTime.ResponseTime;
-                                        }
-                                    }
+                                    TimeSpan bestTime;
+                                    string bestRpcUrl = GetFastestWorkingRPCURL(out bestTime);
 
-                                    Log.Write($"Fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")}.");
+                                    Log.Write($"Fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
                                     Settings.phantasmaBPURL = bestRpcUrl;
                                     Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
                                     UpdateAPIs();
@@ -421,6 +434,31 @@ namespace Poltergeist
                 }
                 })
             );
+        }
+
+        public void ChangeFaultyRPCURL()
+        {
+            if (Settings.nexusKind == NexusKind.Custom)
+                return; // Fallback disabled for custom settings.
+
+            if (Settings.nexusName != "mainnet")
+            {
+                return; // HACK getpeers only for mainnet
+            }
+
+            Log.Write($"Changing faulty RPC {Settings.phantasmaRPCURL}.");
+
+            // Marking faulty RPC.
+            rpcResponseTimes.Find(x => x.Url == Settings.phantasmaRPCURL).ConnectionError = true;
+
+            // Switching to working RPC.
+            TimeSpan bestTime;
+            string bestRpcUrl = GetFastestWorkingRPCURL(out bestTime);
+
+            Log.Write($"Next fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+            Settings.phantasmaBPURL = bestRpcUrl;
+            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+            UpdateAPIs();
         }
 
         // Start is called before the first frame update
@@ -664,6 +702,10 @@ namespace Poltergeist
                             callback(hash, null);
                         }, (error, msg) =>
                         {
+                            if(error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                            {
+                                ChangeFaultyRPCURL();
+                            }
                             callback(Hash.Null, msg);
                         }));
                         break;
@@ -783,6 +825,10 @@ namespace Poltergeist
                             callback(Base16.Decode(x.result), null);
                         }, (error, log) =>
                         {
+                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                            {
+                                ChangeFaultyRPCURL();
+                            }
                             callback(null, log);
                         }));
                         break;
@@ -920,6 +966,10 @@ namespace Poltergeist
                         callback(null);
                     }, (error, msg) =>
                     {
+                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                        {
+                            ChangeFaultyRPCURL();
+                        }
                         callback(msg);
                     }));
                     break;
@@ -1108,6 +1158,10 @@ namespace Poltergeist
                             },
                             (error, msg) =>
                             {
+                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                {
+                                    ChangeFaultyRPCURL();
+                                }
                                 ReportWalletBalance(platform, null);
                             }));
                         }
@@ -1481,6 +1535,10 @@ namespace Poltergeist
                                                 }
                                             }, (error, msg) =>
                                             {
+                                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                {
+                                                    ChangeFaultyRPCURL();
+                                                }
                                                 Log.Write(msg);
                                             }));
                                         }
@@ -1551,6 +1609,10 @@ namespace Poltergeist
                             },
                             (error, msg) =>
                             {
+                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                {
+                                    ChangeFaultyRPCURL();
+                                }
                                 ReportWalletHistory(platform, null);
                             }));
                         }
@@ -1614,6 +1676,10 @@ namespace Poltergeist
                 callback(swaps, null);
             }, (error, msg) =>
             {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
                 callback(null, msg);
             }));
         }
@@ -1743,6 +1809,10 @@ namespace Poltergeist
                 callback(null);
             }, (error, msg) =>
             {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
                 callback(null);
             }));
         }
@@ -1754,6 +1824,10 @@ namespace Poltergeist
                 callback(Hash.Parse(hash), null);
             }, (error, msg) =>
             {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
                 Log.WriteWarning(msg);
                 callback(Hash.Null, msg);
             }));
@@ -1807,6 +1881,10 @@ namespace Poltergeist
                 },
                 (error, msg) =>
                 {
+                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                    {
+                        ChangeFaultyRPCURL();
+                    }
                     callback(null);
                 })
             );
