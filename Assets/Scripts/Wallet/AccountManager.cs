@@ -424,6 +424,11 @@ namespace Poltergeist
                                     TimeSpan bestTime;
                                     string bestRpcUrl = GetFastestWorkingRPCURL(out bestTime);
 
+                                    if(String.IsNullOrEmpty(bestRpcUrl))
+                                    {
+                                        throw new Exception("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                                    }
+
                                     Log.Write($"Fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
                                     Settings.phantasmaBPURL = bestRpcUrl;
                                     Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
@@ -454,6 +459,11 @@ namespace Poltergeist
             // Switching to working RPC.
             TimeSpan bestTime;
             string bestRpcUrl = GetFastestWorkingRPCURL(out bestTime);
+
+            if (String.IsNullOrEmpty(bestRpcUrl))
+            {
+                throw new Exception("All Phantasma RPC severs are unavailable. Please check your network connection.");
+            }
 
             Log.Write($"Next fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
             Settings.phantasmaBPURL = bestRpcUrl;
