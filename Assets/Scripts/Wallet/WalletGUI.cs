@@ -1833,8 +1833,10 @@ namespace Poltergeist
 
             int curY = Units(7);
 
-            var labelWidth = Units(8);
-            var fieldX = Units(11); // X for fields and combos.
+            var labelWidth = Units(10);
+            var labelHeight = Units(2) + 4;
+            var fieldX = Units(13); // X for fields.
+            var fieldComboX = fieldX + 6; // X for combos.
             var fieldWidth = Units(20); // Width of text fields.
             var comboWidth = Units(8); // Width of combo fields.
 
@@ -1853,7 +1855,7 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 13 elements with total height of (element height + spacing) * 14 = Units(3) * 14.
+            // 1) 14 elements with total height of (element height + spacing) * 14 = Units(3) * 14.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
             var insideRect = new Rect(0, 0, boxWidth, Units(3) * 14 + Units(2) * 3 + Units(1));
@@ -1872,19 +1874,19 @@ namespace Poltergeist
 
             curY = Units(1); // Vertical position inside scroll view.
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Currency");
-            currencyIndex = currencyComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), currencyOptions, 0, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Currency");
+            currencyIndex = currencyComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), currencyOptions, 0, out dropHeight);
             settings.currency = currencyOptions[currencyIndex];
             curY += dropHeight + Units(1);
 
             settings.sfx = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.sfx, "");
-            GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Sound Effects");
+            GUI.Label(new Rect(posX + Units(2), curY, Units(9), labelHeight), "Sound Effects");
             curY += Units(3);
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus");
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Nexus");
             var nexusList = availableNexus.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             var prevNexus = nexusIndex;
-            nexusIndex = nexusComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), nexusList, 0, out dropHeight, null, 1);
+            nexusIndex = nexusComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), nexusList, 0, out dropHeight, null, 1);
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
@@ -1930,15 +1932,15 @@ namespace Poltergeist
 
             if (hasCustomEndPoints)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Phantasma RPC URL");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma RPC URL");
                 settings.phantasmaBPURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neo RPC URL");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neo RPC URL");
                 settings.neoRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoRPCURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neoscan API URL");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neoscan API URL");
                 settings.neoscanURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoscanURL);
                 curY += Units(3);
             }
@@ -1949,30 +1951,30 @@ namespace Poltergeist
 
             if (hasCustomName)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus Name");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Nexus Name");
                 settings.nexusName = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.nexusName);
                 curY += Units(3);
             }
 
             if (hasCustomFee)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Fee price");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Fee price");
                 var fee = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.feePrice.ToString());
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Log level");
-            logLevelIndex = logLevelComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Log level");
+            logLevelIndex = logLevelComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
             settings.logLevel = availableLogLevels[logLevelIndex];
             curY += dropHeight + Units(1);
 
             settings.logOverwriteMode = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.logOverwriteMode, "");
-            GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Overwrite log at start");
+            GUI.Label(new Rect(posX + Units(2), curY, Units(9), labelHeight), "Overwrite log at start");
             curY += Units(3);
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "UI theme");
-            uiThemeIndex = uiThemeComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableUiThemes.ToArray(), WalletGUI.Units(2) * 2, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "UI theme");
+            uiThemeIndex = uiThemeComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), availableUiThemes.ToArray(), WalletGUI.Units(2) * 2, out dropHeight);
             settings.uiThemeName = availableUiThemes[uiThemeIndex].ToString();
             curY += dropHeight + Units(1);
 
