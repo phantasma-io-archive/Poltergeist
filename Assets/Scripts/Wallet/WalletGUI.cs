@@ -3985,6 +3985,11 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
             var caption = $"Enter {symbol} amount:\nMax: {max} {symbol}";
+            if (symbol == "GAS" && accountManager.CurrentPlatform == PlatformKind.Phantasma && destination == null)
+            {
+                caption += "\nWarning: Swapping back consumes GAS (around 0.1) so if your GAS balance falls below that, swap back to NEO will fail.";
+            }
+
             if (!string.IsNullOrEmpty(destination))
             {
                 caption += $"\nDestination: {destination}";
