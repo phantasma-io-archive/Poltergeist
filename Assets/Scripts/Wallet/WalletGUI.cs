@@ -369,7 +369,6 @@ namespace Poltergeist
 
                 case GUIState.Wallets:
                     currentTitle = "Wallet List";
-                    accountScroll = Vector2.zero;
 
                     foreach (var tex in QRCodeTextures.Values)
                     {
