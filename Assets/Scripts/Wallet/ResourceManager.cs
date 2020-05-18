@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Poltergeist;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -23,6 +24,11 @@ public class ResourceManager : MonoBehaviour
     }
 
     private Dictionary<string, Texture> _symbols = new Dictionary<string, Texture>();
+    
+    public void UnloadTokens()
+    {
+        _symbols.Clear();
+    }
 
     //https://github.com/CityOfZion/neon-wallet/tree/dev/app/assets/nep5/png
     public Texture GetToken(string symbol)
@@ -32,7 +38,11 @@ public class ResourceManager : MonoBehaviour
             return _symbols[symbol];
         }
 
-        var texture = Resources.Load<Texture>("Tokens/" + symbol);
+        var texture = Resources.Load<Texture>($"Skins/{AccountManager.Instance.Settings.uiThemeName}/Tokens/" + symbol);
+
+        if(texture == null)
+            texture = Resources.Load<Texture>("Tokens/" + symbol);
+
         _symbols[symbol] = texture;
 
         return texture;

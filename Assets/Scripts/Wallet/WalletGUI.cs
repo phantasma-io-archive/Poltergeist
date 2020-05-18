@@ -2054,6 +2054,7 @@ namespace Poltergeist
                 if (ValidateSettings())
                 {
                     AudioManager.Instance.PlaySFX("confirm");
+                    ResourceManager.Instance.UnloadTokens();
                     CloseCurrentStack();
                 }
             });
