@@ -1137,7 +1137,7 @@ namespace Poltergeist
                 GUI.FocusControl("PoltergeistModalPasswordField");
             }
 
-            int btnWidth = VerticalLayout ? Units(7) : Units(11);
+            int btnWidth = VerticalLayout ? ( (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? Units(9) : Units(7) + 8) : Units(11);
 
             curY = (int)(rect.height - Units(2));
 
