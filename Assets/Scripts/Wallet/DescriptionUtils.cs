@@ -86,8 +86,9 @@ namespace Poltergeist
 
             var disasm = DisasmUtils.ExtractMethodCalls(script, table);
 
-            // Checking if all calls are "market.SellToken" calls and we can group them.
-            int sellGroupSize = 0;
+            // Checking if all calls are "market.SellToken" calls only or "Runtime.TransferToken" only,
+            // and we can group them.
+            int groupSize = 0;
             DisasmMethodCall? prevCall = null;
             foreach (var call in disasm)
             {
@@ -96,25 +97,37 @@ namespace Poltergeist
                     continue;
                 }
 
-                if (GetCallFullName(call) == "market.SellToken")
+                if (GetCallFullName(call) == "Runtime.TransferToken")
                 {
-                    if (prevCall != null && !CompareCalls((DisasmMethodCall)prevCall, call, 0, 2, 4, 5))
+                    if (prevCall != null && !CompareCalls((DisasmMethodCall)prevCall, call, 0, 1))
                     {
-                        sellGroupSize = 0;
+                        groupSize = 0;
                         break;
                     }
 
-                    prevCall = call;
-                    sellGroupSize++;
+                    groupSize++;
+                }
+                else if (GetCallFullName(call) == "market.SellToken")
+                {
+                    if (prevCall != null && !CompareCalls((DisasmMethodCall)prevCall, call, 0, 2, 4, 5))
+                    {
+                        groupSize = 0;
+                        break;
+                    }
+
+                    groupSize++;
                 }
                 else
                 {
                     // Different call, grouping is not supported.
-                    sellGroupSize = 0;
+                    groupSize = 0;
                     break;
                 }
+
+                prevCall = call;
             }
 
+            int transferTokenCounter = 0; // Counting "market.TransferToken" calls, needed for grouping.
             int sellTokenCounter = 0; // Counting "market.SellToken" calls, needed for grouping.
 
             var sb = new StringBuilder();
@@ -137,7 +150,33 @@ namespace Poltergeist
                             var symbol = GetStringArg(entry, 2);
                             var nftNumber = GetStringArg(entry, 3);
 
-                            sb.AppendLine($"Transfer {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} to {dst}.");
+                            if (groupSize > 1)
+                            {
+                                if (transferTokenCounter == 0)
+                                {
+                                    // Desc line #1.
+                                    sb.AppendLine("Transfer:");
+                                }
+                                
+                                if (transferTokenCounter == groupSize - 1)
+                                {
+                                    // Desc line for token #N.
+                                    sb.AppendLine($"{symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}");
+                                    sb.AppendLine($"to {dst}.");
+                                }
+                                else
+                                {
+                                    // Desc line for tokens #1 ... N-1.
+                                    sb.AppendLine($"{symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                }
+                            }
+                            else
+                            {
+                                sb.AppendLine($"Transfer {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} to {dst}.");
+                            }
+
+                            transferTokenCounter++;
+
                             break;
                         }
                     case "Runtime.TransferTokens":
@@ -178,7 +217,7 @@ namespace Poltergeist
 
                             var untilDate = GetTimestampArg(entry, 5);
 
-                            if (sellGroupSize > 1)
+                            if (groupSize > 1)
                             {
                                 if (sellTokenCounter == 0)
                                 {
@@ -186,7 +225,7 @@ namespace Poltergeist
                                     sb.AppendLine("Sell:");
                                     sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
                                 }
-                                else if (sellTokenCounter == sellGroupSize - 1)
+                                else if (sellTokenCounter == groupSize - 1)
                                 {
                                     // Desc line #N.
                                     sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}");
