@@ -2088,29 +2088,8 @@ namespace Poltergeist
                 GUI.DrawTexture(new Rect(Units(2), curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
             }
 
-            int currentPlatformIndex = 0;
-            var platformList = accountManager.CurrentAccount.platforms.Split();
-
-            if (platformList.Count > 1)
-            {
-                for (int i = 0; i < platformList.Count; i++)
-                {
-                    if (platformList[i] == accountManager.CurrentPlatform)
-                    {
-                        currentPlatformIndex = i;
-                        break;
-                    }
-                }
-                platformComboBox.SelectedItemIndex = currentPlatformIndex;
-
-                int dropHeight;
-                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, curY, Units(8), Units(1)), platformList, 0, out dropHeight);
-
-                if (platformIndex != currentPlatformIndex)
-                {
-                    accountManager.CurrentPlatform = platformList[platformIndex];
-                }
-            }
+            // Saving platform combo position to draw it later.
+            int platformComboBoxY = curY;
 
             var state = accountManager.CurrentState;
             if (state == null)
@@ -2150,6 +2129,31 @@ namespace Poltergeist
                   });
 
                 curY += Units(3);
+            }
+
+            // Drawing combo in the very end, to avoid combo dropdown overlapping with other elements.
+            int currentPlatformIndex = 0;
+            var platformList = accountManager.CurrentAccount.platforms.Split();
+
+            if (platformList.Count > 1)
+            {
+                for (int i = 0; i < platformList.Count; i++)
+                {
+                    if (platformList[i] == accountManager.CurrentPlatform)
+                    {
+                        currentPlatformIndex = i;
+                        break;
+                    }
+                }
+                platformComboBox.SelectedItemIndex = currentPlatformIndex;
+
+                int dropHeight;
+                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, platformComboBoxY, Units(8), Units(1)), platformList, 0, out dropHeight);
+
+                if (platformIndex != currentPlatformIndex)
+                {
+                    accountManager.CurrentPlatform = platformList[platformIndex];
+                }
             }
 
             return curY;
