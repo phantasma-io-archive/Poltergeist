@@ -176,12 +176,12 @@ namespace Poltergeist
         public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Length;
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
-        private Dictionary<PlatformKind, List<TokenData>> _nfts = new Dictionary<PlatformKind, List<TokenData>>();
+        private Dictionary<PlatformKind, List<string>> _nfts = new Dictionary<PlatformKind, List<string>>();
         private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
-        public List<TokenData> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
+        public List<string> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
@@ -315,6 +315,44 @@ namespace Poltergeist
 
         private const string WalletTag = "wallet.list";
 
+        private int rpcNumber; // Total number of RPCs, received from getpeers.json.
+        private int rpcBenchmarked; // Number of RPCs which speed already measured.
+        private class RpcBenchmarkData
+        {
+            public string Url;
+            public bool ConnectionError;
+            public TimeSpan ResponseTime;
+
+            public RpcBenchmarkData(string url, bool connectionError, TimeSpan responseTime)
+            {
+                Url = url;
+                ConnectionError = connectionError;
+                ResponseTime = responseTime;
+            }
+        }
+        private List<RpcBenchmarkData> rpcResponseTimes;
+
+        private string GetFastestWorkingRPCURL( out TimeSpan responseTime )
+        {
+            string fastestRpcUrl = null;
+            foreach (var rpcResponseTime in rpcResponseTimes)
+            {
+                if (!rpcResponseTime.ConnectionError && String.IsNullOrEmpty(fastestRpcUrl))
+                {
+                    // At first just initializing with first working RPC.
+                    fastestRpcUrl = rpcResponseTime.Url;
+                    responseTime = rpcResponseTime.ResponseTime;
+                }
+                else if (!rpcResponseTime.ConnectionError && rpcResponseTime.ResponseTime < responseTime)
+                {
+                    // Faster RPC found, switching.
+                    fastestRpcUrl = rpcResponseTime.Url;
+                    responseTime = rpcResponseTime.ResponseTime;
+                }
+            }
+            return fastestRpcUrl;
+        }
+
         public void UpdateRPCURL()
         {
             Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
@@ -329,6 +367,8 @@ namespace Poltergeist
 
             var url = $"https://ghostdevs.com/getpeers.json";
 
+            rpcBenchmarked = 0;
+
             StartCoroutine(
                 WebClient.RESTRequest(url, (error, msg) =>
                 {
@@ -336,15 +376,99 @@ namespace Poltergeist
                 },
                 (response) =>
                 {
-                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % response.ChildCount;
-                    var node = response.GetNodeByIndex(index);
-                    var result = node.GetString("url") + "/rpc";
+                    rpcNumber = response.ChildCount;
 
-                    Settings.phantasmaRPCURL = result;
-                    Log.Write($"changed RPC url {index} => {result}");
+                    if (String.IsNullOrEmpty(Settings.phantasmaBPURL))
+                    {
+                        // If we have no previously used RPC, we select random one at first.
+                        var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumber;
+                        var node = response.GetNodeByIndex(index);
+                        var result = node.GetString("url") + "/rpc";
+                        Settings.phantasmaBPURL = result;
+                        Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                        Log.Write($"changed RPC url {index} => {result}");
+                    }
+                    
                     UpdateAPIs();
+
+                    // Benchmarking RPCs.
+                    rpcResponseTimes = new List<RpcBenchmarkData>();
+                    foreach (var node in response.Children)
+                    {
+                        var rpcUrl = node.GetString("url") + "/rpc";
+
+                        StartCoroutine(
+                            WebClient.Ping(rpcUrl, (error, msg) =>
+                            {
+                                Log.Write("Ping error: " + error);
+                                
+                                rpcBenchmarked++;
+
+                                lock (rpcResponseTimes)
+                                {
+                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, true, new TimeSpan()));
+                                }
+                            },
+                            (responseTime) =>
+                            {
+                                rpcBenchmarked++;
+
+                                lock (rpcResponseTimes)
+                                {
+                                    rpcResponseTimes.Add(new RpcBenchmarkData(rpcUrl, false, responseTime));
+                                }
+
+                                if (rpcBenchmarked == rpcNumber)
+                                {
+                                    // We finished benchmarking, time to select best RPC server.
+                                    TimeSpan bestTime;
+                                    string bestRpcUrl = GetFastestWorkingRPCURL(out bestTime);
+
+                                    if(String.IsNullOrEmpty(bestRpcUrl))
+                                    {
+                                        throw new Exception("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                                    }
+
+                                    Log.Write($"Fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                    Settings.phantasmaBPURL = bestRpcUrl;
+                                    Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                                    UpdateAPIs();
+                                }
+                            })
+                        );
+                }
                 })
             );
+        }
+
+        public void ChangeFaultyRPCURL()
+        {
+            if (Settings.nexusKind == NexusKind.Custom)
+                return; // Fallback disabled for custom settings.
+
+            if (Settings.nexusName != "mainnet")
+            {
+                return; // HACK getpeers only for mainnet
+            }
+
+            Log.Write($"Changing faulty RPC {Settings.phantasmaRPCURL}.");
+
+            // Marking faulty RPC.
+            rpcResponseTimes.Find(x => x.Url == Settings.phantasmaRPCURL).ConnectionError = true;
+
+            // Switching to working RPC.
+            TimeSpan bestTime;
+            string bestRpcUrl = GetFastestWorkingRPCURL(out bestTime);
+
+            if (String.IsNullOrEmpty(bestRpcUrl))
+            {
+                throw new Exception("All Phantasma RPC severs are unavailable. Please check your network connection.");
+            }
+
+            Log.Write($"Next fastest RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+            Settings.phantasmaBPURL = bestRpcUrl;
+            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+            UpdateAPIs();
         }
 
         // Start is called before the first frame update
@@ -588,6 +712,10 @@ namespace Poltergeist
                             callback(hash, null);
                         }, (error, msg) =>
                         {
+                            if(error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                            {
+                                ChangeFaultyRPCURL();
+                            }
                             callback(Hash.Null, msg);
                         }));
                         break;
@@ -707,6 +835,10 @@ namespace Poltergeist
                             callback(Base16.Decode(x.result), null);
                         }, (error, log) =>
                         {
+                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                            {
+                                ChangeFaultyRPCURL();
+                            }
                             callback(null, log);
                         }));
                         break;
@@ -844,6 +976,10 @@ namespace Poltergeist
                         callback(null);
                     }, (error, msg) =>
                     {
+                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                        {
+                            ChangeFaultyRPCURL();
+                        }
                         callback(msg);
                     }));
                     break;
@@ -1032,6 +1168,10 @@ namespace Poltergeist
                             },
                             (error, msg) =>
                             {
+                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                {
+                                    ChangeFaultyRPCURL();
+                                }
                                 ReportWalletBalance(platform, null);
                             }));
                         }
@@ -1332,83 +1472,11 @@ namespace Poltergeist
                                 {
                                     // Initializing NFT dictionary if needed.
                                     if (!_nfts.ContainsKey(platform))
-                                        _nfts.Add(platform, new List<TokenData>());
+                                        _nfts.Add(platform, new List<string>());
 
-                                    int loadedTokenCounter = 0;
-                                    foreach (var id in balanceEntry.Ids)
-                                    {
-                                        // Checking if token is cached.
-                                        DataNode token = null;
-                                        foreach (var cachedToken in cache.Children)
-                                        {
-                                            if (cachedToken.GetString("id") == id)
-                                            {
-                                                token = cachedToken;
-                                                break;
-                                            }
-                                        }
+                                    _nfts[platform] = new List<string>(balanceEntry.Ids);
 
-                                        if (token != null)
-                                        {
-                                            // Loading token from cache.
-                                            var tokenId = token.GetString("id");
-
-                                            loadedTokenCounter++;
-
-                                            // Checking if token already loaded to dictionary.
-                                            if (!_nfts[platform].Exists(x => x.ID == tokenId))
-                                            {
-                                                var tokenData = new TokenData();
-
-                                                tokenData.ID = tokenId;
-                                                tokenData.chainName = token.GetString("chain-name");
-                                                tokenData.ownerAddress = token.GetString("owner-address");
-                                                tokenData.ram = token.GetString("ram");
-                                                tokenData.rom = token.GetString("rom");
-                                                tokenData.forSale = token.GetString("for-sale") == "true";
-
-                                                _nfts[platform].Add(tokenData);
-                                            }
-
-                                            if (loadedTokenCounter == balanceEntry.Ids.Length)
-                                            {
-                                                // We finished loading tokens.
-                                                // Saving them in cache.
-                                                Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
-
-                                                ReportWalletNft(platform, symbol);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            StartCoroutine(phantasmaApi.GetTokenData(balanceEntry.Symbol, id, (tokenData) =>
-                                            {
-                                                loadedTokenCounter++;
-
-                                                token = cache.AddNode(DataNode.CreateObject());
-                                                token.AddField("id", tokenData.ID);
-                                                token.AddField("chain-name", tokenData.chainName);
-                                                token.AddField("owner-address", tokenData.ownerAddress);
-                                                token.AddField("ram", tokenData.ram);
-                                                token.AddField("rom", tokenData.rom);
-                                                token.AddField("for-sale", tokenData.forSale);
-
-                                                _nfts[platform].Add(tokenData);
-
-                                                if (loadedTokenCounter == balanceEntry.Ids.Length)
-                                                {
-                                                    // We finished loading tokens.
-                                                    // Saving them in cache.
-                                                    Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
-
-                                                    ReportWalletNft(platform, symbol);
-                                                }
-                                            }, (error, msg) =>
-                                            {
-                                                Log.Write(msg);
-                                            }));
-                                        }
-                                    }
+                                    ReportWalletNft(platform, symbol);
 
                                     if (balanceEntry.Ids.Length > 0)
                                     {
@@ -1475,6 +1543,10 @@ namespace Poltergeist
                             },
                             (error, msg) =>
                             {
+                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                {
+                                    ChangeFaultyRPCURL();
+                                }
                                 ReportWalletHistory(platform, null);
                             }));
                         }
@@ -1538,6 +1610,10 @@ namespace Poltergeist
                 callback(swaps, null);
             }, (error, msg) =>
             {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
                 callback(null, msg);
             }));
         }
@@ -1667,6 +1743,10 @@ namespace Poltergeist
                 callback(null);
             }, (error, msg) =>
             {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
                 callback(null);
             }));
         }
@@ -1678,6 +1758,10 @@ namespace Poltergeist
                 callback(Hash.Parse(hash), null);
             }, (error, msg) =>
             {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
                 Log.WriteWarning(msg);
                 callback(Hash.Null, msg);
             }));
@@ -1731,6 +1815,10 @@ namespace Poltergeist
                 },
                 (error, msg) =>
                 {
+                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                    {
+                        ChangeFaultyRPCURL();
+                    }
                     callback(null);
                 })
             );

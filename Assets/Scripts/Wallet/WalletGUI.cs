@@ -132,6 +132,7 @@ namespace Poltergeist
     public class WalletGUI : MonoBehaviour, IWalletConnector
     {
         public RawImage background;
+        private Texture2D soulMasterLogo;
 
         private Dictionary<PlatformKind, Texture2D> QRCodeTextures = new Dictionary<PlatformKind, Texture2D>();
 
@@ -186,6 +187,9 @@ namespace Poltergeist
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
+        private int uiThemeIndex;
+        private ComboBox uiThemeComboBox = new ComboBox();
+
         // NFT sorting and filtering.
         private ComboBox nftSortModeComboBox = new ComboBox();
         private string nftFilterName;
@@ -202,10 +206,12 @@ namespace Poltergeist
         private int nftPageNumber = 0;
         private int nftCount = 0;
         private int nftPageCount = 0;
-        private List<TokenData> nftFilteredList = new List<TokenData>(); // List of displayed NFT items (after applying filters).
-        private List<TokenData> nftTransferList = new List<TokenData>(); // List of NFT items, selected by user.
+        private List<string> nftFilteredList = new List<string>(); // List of displayed NFT items (after applying filters).
+        private List<string> nftTransferList = new List<string>(); // List of NFT items, selected by user.
 
         private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
+
+        private UiThemes[] availableUiThemes = Enum.GetValues(typeof(UiThemes)).Cast<UiThemes>().ToArray();
 
         private bool initialized;
 
@@ -281,6 +287,9 @@ namespace Poltergeist
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
 
             StartCoroutine(TtrsStore.LoadStoreInfo());
+
+            // We will use this RawImage object to set/change background image.
+            background = GameObject.Find("Background").GetComponent<RawImage>();
         }
 
         void OnEnable()
@@ -360,7 +369,6 @@ namespace Poltergeist
 
                 case GUIState.Wallets:
                     currentTitle = "Wallet List";
-                    accountScroll = Vector2.zero;
 
                     foreach (var tex in QRCodeTextures.Values)
                     {
@@ -442,6 +450,19 @@ namespace Poltergeist
                             }
                         }
                         logLevelComboBox.SelectedItemIndex = logLevelIndex;
+
+                        uiThemeIndex = 0;
+                        for (int i = 0; i < availableUiThemes.Length; i++)
+                        {
+                            if (availableUiThemes[i].ToString() == accountManager.Settings.uiThemeName)
+                            {
+                                uiThemeIndex = i;
+                                break;
+                            }
+                        }
+                        uiThemeComboBox.SelectedItemIndex = uiThemeIndex;
+
+                        
 
                         break;
                     }
@@ -785,7 +806,6 @@ namespace Poltergeist
                 }
                 else
                 {
-                    background.texture = null;
                     windowRect.width = Mathf.Min(800, virtualWidth) - Border * 2;
                     windowRect.height = Mathf.Min(800, virtualHeight) - Border * 2;
                 }
@@ -833,7 +853,22 @@ namespace Poltergeist
             var scaleY = Screen.height / (float)virtualHeight;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleX, scaleY, 1.0f));
 
-            GUI.skin = guiSkin;
+            var uiThemeName = AccountManager.Instance.Settings.uiThemeName;
+            if (uiThemeName == UiThemes.Classic.ToString())
+            {
+                GUI.skin = guiSkin;
+            }
+            else
+            {
+                GUI.skin = Resources.Load($"Skins/{uiThemeName}/{uiThemeName}") as GUISkin;
+            }
+
+            if (VerticalLayout)
+                background.texture = Resources.Load<Texture2D>($"Skins/{uiThemeName}/mobile_background");
+            else
+                background.texture = Resources.Load<Texture2D>($"Skins/{uiThemeName}/background");
+            soulMasterLogo = Resources.Load<Texture2D>($"Skins/{AccountManager.Instance.Settings.uiThemeName}/soul_master");
+
             GUI.enabled = true;
 
             GUI.color = Color.white;
@@ -900,7 +935,7 @@ namespace Poltergeist
 
         void OnApplicationQuit()
         {
-            AccountManager.Instance.Settings.SaveViewSettings();
+            AccountManager.Instance.Settings.SaveOnExit();
         }
 
         private Rect GetExpandedRect(int curY, int height)
@@ -914,10 +949,9 @@ namespace Poltergeist
             GUI.Box(new Rect(8, 8, windowRect.width - 16, Units(2)), WalletTitle);
 
             var style = GUI.skin.label;
-            var tempSize = style.fontSize;
-            style.fontSize = 14;
-            GUI.Label(new Rect(windowRect.width / 2 + Units(7) - 4, 12, 32, Units(2)), Application.version);
-            style.fontSize = tempSize;
+            style.fontSize -= 6;
+            GUI.Label(new Rect(windowRect.width / 2 + ((AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? Units(7) - 4 : Units(5)), 12, 32, Units(2)), Application.version);
+            style.fontSize += 6;
 
             var accountManager = AccountManager.Instance;
 
@@ -1103,7 +1137,7 @@ namespace Poltergeist
                 GUI.FocusControl("PoltergeistModalPasswordField");
             }
 
-            int btnWidth = VerticalLayout ? Units(7) : Units(11);
+            int btnWidth = VerticalLayout ? ( (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? Units(9) : Units(7) + 8) : Units(11);
 
             curY = (int)(rect.height - Units(2));
 
@@ -1525,13 +1559,13 @@ namespace Poltergeist
 
                     if (VerticalLayout)
                     {
-                        GUI.Label(new Rect(Border * 2, curY , windowRect.width - Border * 2, Units(2)), account.name);
-                        GUI.Label(new Rect(Border * 2, curY + Units(1), windowRect.width - Border * 2, Units(2)), $"[{account.platforms}]");
+                        GUI.Label(new Rect(Border * 2, curY , windowRect.width - Border * 2, Units(2) + 4), account.name);
+                        GUI.Label(new Rect(Border * 2, curY + Units(1), windowRect.width - Border * 2, Units(2) + 4), $"[{account.platforms}]");
                         btnRect = new Rect((rect.width - btnWidth)/2, curY + Units(3) + 4, btnWidth, Units(2));
                     }
                     else
                     {
-                        GUI.Label(new Rect(Border * 2, curY + Units(1), windowRect.width - Border * 2, Units(2)), account.ToString());
+                        GUI.Label(new Rect(Border * 2, curY + Units(1), windowRect.width - Border * 2, Units(2) + 4), account.ToString());
                         btnRect = new Rect(rect.width - (btnWidth + Units(2) + 4), curY + Units(2) - 4, btnWidth, Units(2));
                     }
 
@@ -1661,10 +1695,13 @@ namespace Poltergeist
         private void DoNftToolLabel(int posX, int posY, string label)
         {
             var style = GUI.skin.label;
-            var tempSize = style.fontSize;
-            style.fontSize = 14;
+            style.fontSize -= 6;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(posX, posY - 10, toolLabelWidth, toolLabelHeight), label);
-            style.fontSize = tempSize;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
+            style.fontSize += 6;
         }
 
         private void DoNftToolTextField(int posX, int posY, string label, ref string result)
@@ -1672,10 +1709,9 @@ namespace Poltergeist
             DoNftToolLabel(posX, posY, label);
 
             var style = GUI.skin.textField;
-            var tempSize = style.fontSize;
-            style.fontSize = 12;
+            style.fontSize -= 4;
             result = GUI.TextField(new Rect(posX + toolLabelWidth - 6, posY - 4, toolFieldWidth + 7, toolFieldHeight + 8), result);
-            style.fontSize = tempSize;
+            style.fontSize += 4;
         }
 
         private void DoNftToolComboBox<T>(int posX, int posY, ComboBox comboBox, IList<T> listContent, string label, ref int result)
@@ -1690,10 +1726,9 @@ namespace Poltergeist
         private void DoNftToolButton(int posX, int posY, int width, string label, Action callback)
         {
             var style = GUI.skin.button;
-            var tempSize = style.fontSize;
-            style.fontSize = 16;
+            style.fontSize -= 4;
             DoButton(true, new Rect(posX, posY, width, toolFieldHeight), label, callback);
-            style.fontSize = tempSize;
+            style.fontSize += 4;
         }
 
         private void DrawCenteredText(string caption)
@@ -1702,9 +1737,11 @@ namespace Poltergeist
             var temp = style.alignment;
             style.alignment = TextAnchor.MiddleCenter;
 
-            GUI.contentColor = Color.black;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(0, 0, windowRect.width, windowRect.height), caption);
-            GUI.contentColor = Color.white;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
 
             style.alignment = temp;
         }
@@ -1713,16 +1750,17 @@ namespace Poltergeist
         {
             var style = GUI.skin.label;
             var tempAlign = style.alignment;
-            var tempSize = style.fontSize;
 
-            style.fontSize = VerticalLayout ? 18: 0;
+            style.fontSize -= VerticalLayout ? 2: 4;
             style.alignment = TextAnchor.MiddleCenter;
 
-            GUI.contentColor = Color.black;
+            if(AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(0, curY, windowRect.width, height), caption);
-            GUI.contentColor = Color.white;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
 
-            style.fontSize = tempSize;
+            style.fontSize += VerticalLayout ? 2 : 4;
             style.alignment = tempAlign;
         }
 
@@ -1794,8 +1832,10 @@ namespace Poltergeist
 
             int curY = Units(7);
 
-            var labelWidth = Units(8);
-            var fieldX = Units(11); // X for fields and combos.
+            var labelWidth = Units(10);
+            var labelHeight = Units(2) + 4;
+            var fieldX = Units(13); // X for fields.
+            var fieldComboX = fieldX + 6; // X for combos.
             var fieldWidth = Units(20); // Width of text fields.
             var comboWidth = Units(8); // Width of combo fields.
 
@@ -1814,10 +1854,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 13 elements with total height of (element height + spacing) * 13 = Units(3) * 12.
+            // 1) 14 elements with total height of (element height + spacing) * 14 = Units(3) * 14.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 13 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 14 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1833,19 +1873,19 @@ namespace Poltergeist
 
             curY = Units(1); // Vertical position inside scroll view.
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Currency");
-            currencyIndex = currencyComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), currencyOptions, 0, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Currency");
+            currencyIndex = currencyComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), currencyOptions, 0, out dropHeight);
             settings.currency = currencyOptions[currencyIndex];
             curY += dropHeight + Units(1);
 
             settings.sfx = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.sfx, "");
-            GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Sound Effects");
+            GUI.Label(new Rect(posX + Units(2), curY, Units(9), labelHeight), "Sound Effects");
             curY += Units(3);
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus");
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Nexus");
             var nexusList = availableNexus.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             var prevNexus = nexusIndex;
-            nexusIndex = nexusComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), nexusList, 0, out dropHeight, null, 1);
+            nexusIndex = nexusComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), nexusList, 0, out dropHeight, null, 1);
             settings.nexusKind = availableNexus[nexusIndex];
             curY += dropHeight + Units(1);
 
@@ -1891,15 +1931,15 @@ namespace Poltergeist
 
             if (hasCustomEndPoints)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Phantasma RPC URL");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma RPC URL");
                 settings.phantasmaBPURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neo RPC URL");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neo RPC URL");
                 settings.neoRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoRPCURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Neoscan API URL");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neoscan API URL");
                 settings.neoscanURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoscanURL);
                 curY += Units(3);
             }
@@ -1910,27 +1950,32 @@ namespace Poltergeist
 
             if (hasCustomName)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Nexus Name");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Nexus Name");
                 settings.nexusName = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.nexusName);
                 curY += Units(3);
             }
 
             if (hasCustomFee)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Fee price");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Fee price");
                 var fee = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.feePrice.ToString());
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
 
-            GUI.Label(new Rect(posX, curY, labelWidth, Units(2)), "Log level");
-            var logLevelIndex = logLevelComboBox.Show(new Rect(fieldX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Log level");
+            logLevelIndex = logLevelComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
             settings.logLevel = availableLogLevels[logLevelIndex];
             curY += dropHeight + Units(1);
 
             settings.logOverwriteMode = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.logOverwriteMode, "");
-            GUI.Label(new Rect(posX + Units(2), curY, Units(9), Units(2)), "Overwrite log at start");
+            GUI.Label(new Rect(posX + Units(2), curY, Units(9), labelHeight), "Overwrite log at start");
             curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "UI theme");
+            uiThemeIndex = uiThemeComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), availableUiThemes.ToArray(), WalletGUI.Units(2) * 2, out dropHeight);
+            settings.uiThemeName = availableUiThemes[uiThemeIndex].ToString();
+            curY += dropHeight + Units(1);
 
             DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Clear cache", () =>
             {
@@ -2009,6 +2054,7 @@ namespace Poltergeist
                 if (ValidateSettings())
                 {
                     AudioManager.Instance.PlaySFX("confirm");
+                    ResourceManager.Instance.UnloadTokens();
                     CloseCurrentStack();
                 }
             });
@@ -2042,29 +2088,8 @@ namespace Poltergeist
                 GUI.DrawTexture(new Rect(Units(2), curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
             }
 
-            int currentPlatformIndex = 0;
-            var platformList = accountManager.CurrentAccount.platforms.Split();
-
-            if (platformList.Count > 1)
-            {
-                for (int i = 0; i < platformList.Count; i++)
-                {
-                    if (platformList[i] == accountManager.CurrentPlatform)
-                    {
-                        currentPlatformIndex = i;
-                        break;
-                    }
-                }
-                platformComboBox.SelectedItemIndex = currentPlatformIndex;
-
-                int dropHeight;
-                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, curY, Units(8), Units(1)), platformList, 0, out dropHeight);
-
-                if (platformIndex != currentPlatformIndex)
-                {
-                    accountManager.CurrentPlatform = platformList[platformIndex];
-                }
-            }
+            // Saving platform combo position to draw it later.
+            int platformComboBoxY = curY;
 
             var state = accountManager.CurrentState;
             if (state == null)
@@ -2106,6 +2131,31 @@ namespace Poltergeist
                 curY += Units(3);
             }
 
+            // Drawing combo in the very end, to avoid combo dropdown overlapping with other elements.
+            int currentPlatformIndex = 0;
+            var platformList = accountManager.CurrentAccount.platforms.Split();
+
+            if (platformList.Count > 1)
+            {
+                for (int i = 0; i < platformList.Count; i++)
+                {
+                    if (platformList[i] == accountManager.CurrentPlatform)
+                    {
+                        currentPlatformIndex = i;
+                        break;
+                    }
+                }
+                platformComboBox.SelectedItemIndex = currentPlatformIndex;
+
+                int dropHeight;
+                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, platformComboBoxY, Units(8), Units(1)), platformList, 0, out dropHeight);
+
+                if (platformIndex != currentPlatformIndex)
+                {
+                    accountManager.CurrentPlatform = platformList[platformIndex];
+                }
+            }
+
             return curY;
         }
 
@@ -2144,8 +2194,8 @@ namespace Poltergeist
                 DoNftToolButton((VerticalLayout) ? posX4 + toolLabelWidth * 2 - toolFieldSpacing + 8: posX4 + toolLabelWidth * 2 + toolFieldSpacing,
                                 posY3,
                                 (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, "Invert", () => {
-                    var nftTransferListCopy = new List<TokenData>();
-                    accountManager.CurrentNfts.ForEach((x) => { if (!nftTransferList.Exists(y => y.ID == x.ID)) { nftTransferListCopy.Add(x); } });
+                    var nftTransferListCopy = new List<string>();
+                    accountManager.CurrentNfts.ForEach((x) => { if (!nftTransferList.Exists(y => y == x)) { nftTransferListCopy.Add(x); } });
                     nftTransferList = nftTransferListCopy;
                 });
 
@@ -2177,13 +2227,12 @@ namespace Poltergeist
             if (amount > 0.0001m)
             {
                 var style = GUI.skin.label;
-                var tempSize = style.fontSize;
                 var tempColor = style.normal.textColor;
                 style.normal.textColor = new Color(1, 1, 1, 0.75f);
-                style.fontSize = VerticalLayout ? 16: 18;
+                style.fontSize -= VerticalLayout ? 4: 2;
 
                 GUI.Label(subRect, $"{amount.ToString(MoneyFormat)} {symbol} {caption} ({AccountManager.Instance.GetTokenWorth(symbol, amount)})");
-                style.fontSize = tempSize;
+                style.fontSize += VerticalLayout ? 4 : 2;
                 style.normal.textColor = tempColor;
 
                 // For vertical layout making a height correction proportional to font size difference.
@@ -2368,15 +2417,15 @@ namespace Poltergeist
 
             var state = accountManager.CurrentState;
 
-            if (state != null && state.flags.HasFlag(AccountFlags.Master) && ResourceManager.Instance.MasterLogo != null)
+            if (state != null && state.flags.HasFlag(AccountFlags.Master) && soulMasterLogo != null)
             {
                 if (VerticalLayout)
                 {
-                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), ResourceManager.Instance.MasterLogo);
+                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), soulMasterLogo);
                 }
                 else
                 {
-                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), ResourceManager.Instance.MasterLogo);
+                    GUI.DrawTexture(new Rect(Units(1), Units(2) + 8, Units(8), Units(8)), soulMasterLogo);
                 }
             }
 
@@ -2438,11 +2487,10 @@ namespace Poltergeist
             int posX = VerticalLayout ? Units(1) : Units(5);
 
             var style = GUI.skin.label;
-            var tempSize = style.fontSize;
 
-            style.fontSize = VerticalLayout ? 20 : 0;
+            style.fontSize -= VerticalLayout ? 0 : 4;
             GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{balance.Available.ToString(MoneyFormat)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
-            style.fontSize = tempSize;
+            style.fontSize += VerticalLayout ? 0 : 4;
 
             var subRect = new Rect(posX, posY + Units(1) + 4, Units(20), Units(2));
             DrawBalanceLine(ref subRect, balance.Symbol, balance.Staked, "staked");
@@ -2849,7 +2897,7 @@ namespace Poltergeist
             if (!String.IsNullOrEmpty(nftFilterName) || nftFilterType != "All" || nftFilterRarity != (int)ttrsNftRarity.All || nftFilterMinted != (int)nftMinted.All)
             {
                 nfts.ForEach((x) => {
-                    var item = TtrsStore.GetNft(x.ID);
+                    var item = TtrsStore.GetNft(x);
 
                     if ((String.IsNullOrEmpty(nftFilterName) || item.NameEnglish.ToUpper().Contains(nftFilterName.ToUpper())) &&
                         (nftFilterType == "All" || item.DisplayTypeEnglish == nftFilterType) &&
@@ -2873,33 +2921,33 @@ namespace Poltergeist
             {
                 case TtrsNftSortMode.Number_Date:
                     if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
                     else
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
                     break;
                 case TtrsNftSortMode.Date_Number:
                     if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
                     else
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
                     break;
                 case TtrsNftSortMode.Type_Number_Date:
                     if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
                     else
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
                     break;
                 case TtrsNftSortMode.Type_Date_Number:
                     if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
                     else
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
                     break;
                 case TtrsNftSortMode.Type_Rarity: // And also Number and Date as last sorting parameters.
                     if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Rarity).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Rarity).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
                     else
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Rarity).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Rarity).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
                     break;
             }
 
@@ -2913,12 +2961,12 @@ namespace Poltergeist
             nftPageCount = nftCount / nftPageSize + 1;
 
             // Making NFT list for current page.
-            var nftPage = new List<TokenData>();
+            var nftPage = new List<string>();
             for(int i = nftPageSize * nftPageNumber; i < Math.Min(nftPageSize * (nftPageNumber + 1), nfts.Count); i++)
             {
                 nftPage.Add(nfts[i]);
             }
-            var nftOnPageCount = DoScrollArea<TokenData>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftPage,
+            var nftOnPageCount = DoScrollArea<string>(ref nftScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftPage,
                 DoTtrsNftEntry);
 
             if (nftOnPageCount == 0)
@@ -2936,7 +2984,7 @@ namespace Poltergeist
         }
 
         // Used for both NFT list and transfer NFT list.
-        private void DoTtrsNftEntry(TokenData entry, int index, int curY, Rect rect)
+        private void DoTtrsNftEntry(string entryId, int index, int curY, Rect rect)
         {
             int panelHeight = Units(3);
             int panelWidth = (int)(windowRect.width - Units(2));
@@ -2950,7 +2998,7 @@ namespace Poltergeist
 
             int halfWidth = (int)(rect.width / 2);
 
-            var item = TtrsStore.GetNft(entry.ID);
+            var item = TtrsStore.GetNft(entryId);
 
             if (!String.IsNullOrEmpty(item.NameEnglish))
             {
@@ -2958,7 +3006,8 @@ namespace Poltergeist
 
                 if (!String.IsNullOrEmpty(image.Url))
                 {
-                    GUI.DrawTexture(new Rect(Units(2), curY + 4, VerticalLayout ? Units(4) : Units(3) + 8, VerticalLayout ? Units(4) : Units(3) + 8), image.Texture);
+                    var textureDisplayedHeight = VerticalLayout ? Units(3) : Units(3) - 8;
+                    GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, (float)textureDisplayedHeight * ((float)image.Texture.width / (float)image.Texture.height), textureDisplayedHeight), image.Texture);
                 }
             }
 
@@ -3014,10 +3063,9 @@ namespace Poltergeist
             if (!String.IsNullOrEmpty(nftDescription))
             {
                 var style = GUI.skin.label;
-                var tempSize = style.fontSize;
-                style.fontSize = VerticalLayout ? 18 : 16;
+                style.fontSize -= VerticalLayout ? 2 : 4;
                 GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(2) + 4 : curY + Units(1) + 8, rect.width - Units(6), Units(2)), nftDescription);
-                style.fontSize = tempSize;
+                style.fontSize += VerticalLayout ? 2 : 4;
             }
 
             Rect btnRectToggle;
@@ -3039,16 +3087,16 @@ namespace Poltergeist
             {
                 GUI.enabled = false;
             }
-            var nftIsSelected = nftTransferList.Exists(x => x.ID == entry.ID);
+            var nftIsSelected = nftTransferList.Exists(x => x == entryId);
             if (GUI.Toggle(btnRectToggle, nftIsSelected, ""))
             {
                 if (!nftIsSelected)
                 {
-                    nftTransferList.Add(entry);
+                    nftTransferList.Add(entryId);
 
                     // We have to remake whole list to have correct order of selected items.
-                    var nftTransferListCopy = new List<TokenData>();
-                    accountManager.CurrentNfts.ForEach((x) => { if (nftTransferList.Exists(y => y.ID == x.ID)) { nftTransferListCopy.Add(x); } });
+                    var nftTransferListCopy = new List<string>();
+                    accountManager.CurrentNfts.ForEach((x) => { if (nftTransferList.Exists(y => y == x)) { nftTransferListCopy.Add(x); } });
                     nftTransferList = nftTransferListCopy;
                 }
             }
@@ -3056,7 +3104,7 @@ namespace Poltergeist
             {
                 if (nftIsSelected)
                 {
-                    nftTransferList.Remove(nftTransferList.Single(x => x.ID == entry.ID));
+                    nftTransferList.Remove(nftTransferList.Single(x => x == entryId));
                 }
             }
             GUI.enabled = true;
@@ -3083,17 +3131,17 @@ namespace Poltergeist
             // are absent in current filter list.
             if (nftFilteredList.Count > 0)
             {
-                var nftFilteredTransferList = new List<TokenData>();
-                nftTransferList.ForEach(x => { if (nftFilteredList.Exists(y => y.ID == x.ID)) { nftFilteredTransferList.Add(x); } });
+                var nftFilteredTransferList = new List<string>();
+                nftTransferList.ForEach(x => { if (nftFilteredList.Exists(y => y == x)) { nftFilteredTransferList.Add(x); } });
                 nftTransferList = nftFilteredTransferList;
             }
 
             // We can modify nftTransferList while enumerating,
             // so we should use a copy of it.
-            var nftTransferListCopy = new List<TokenData>();
+            var nftTransferListCopy = new List<string>();
             nftTransferList.ForEach(x => nftTransferListCopy.Add(x));
 
-            var nftTransferCount = DoScrollArea<TokenData>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferListCopy,
+            var nftTransferCount = DoScrollArea<string>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferListCopy,
                 DoTtrsNftEntry);
 
             if (nftTransferCount == 0)
@@ -3509,11 +3557,13 @@ namespace Poltergeist
             var style = GUI.skin.GetStyle("Label");
             var prevAlignment = style.alignment;
             style.alignment = TextAnchor.MiddleCenter;
-            GUI.contentColor = Color.black;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.black;
             GUI.Label(new Rect(halfWidth - pageLabelWidth / 2 - 6,
                                (int)rect.y + 12,
                                pageLabelWidth, Units(2)), (nftPageNumber + 1).ToString(), style);
-            GUI.contentColor = Color.white;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                GUI.contentColor = Color.white;
             style.alignment = prevAlignment;
 
             // >
@@ -3867,19 +3917,19 @@ namespace Poltergeist
 
                         foreach (var nft in nftTransferList)
                         {
-                            sb.TransferNFT(symbol, source, destination, BigInteger.Parse(nft.ID));
+                            sb.TransferNFT(symbol, source, destination, BigInteger.Parse(nft));
 
                             string nftDescription = "";
                             if(symbol == "TTRS")
                             {
-                                var item = TtrsStore.GetNft(nft.ID);
+                                var item = TtrsStore.GetNft(nft);
                                 
                                 nftDescription = " " + ((item.NameEnglish.Length > 25) ? item.NameEnglish.Substring(0, 22) + "..." : item.NameEnglish);
 
                                 nftDescription += " Minted " + item.Timestamp.ToString("dd.MM.yy") + " #" + item.Mint;
                             }
 
-                            description += $"#{nft.ID.Substring(0, 5) + "..." + nft.ID.Substring(nft.ID.Length - 5)}{nftDescription}\n";
+                            description += $"#{nft.Substring(0, 5) + "..." + nft.Substring(nft.Length - 5)}{nftDescription}\n";
                         }
 
                         sb.SpendGas(source);
@@ -3903,7 +3953,7 @@ namespace Poltergeist
                             var nfts = accountManager.CurrentNfts;
                             foreach (var nft in nftTransferList)
                             {
-                                nfts.Remove(nfts.Find(x => x.ID == nft.ID));
+                                nfts.Remove(nfts.Find(x => x == nft));
                             }
 
                             // Returning to NFT's first screen.
@@ -3939,6 +3989,11 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
             var caption = $"Enter {symbol} amount:\nMax: {max} {symbol}";
+            if (symbol == "GAS" && accountManager.CurrentPlatform == PlatformKind.Phantasma && destination == null)
+            {
+                caption += "\nWarning: Swapping back consumes GAS (around 0.1) so if your GAS balance falls below that, swap back to NEO will fail.";
+            }
+
             if (!string.IsNullOrEmpty(destination))
             {
                 caption += $"\nDestination: {destination}";

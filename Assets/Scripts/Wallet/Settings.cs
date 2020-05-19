@@ -14,6 +14,12 @@ namespace Poltergeist
         Custom
     }
 
+    public enum UiThemes
+    {
+        Classic,
+        Phantasia
+    }
+
     public static class SettingsExtension
     {
         public static bool IsValidURL(this string url)
@@ -48,6 +54,8 @@ namespace Poltergeist
         public const string LogLevelTag = "log.level";
         public const string LogOverwriteModeTag = "log.overwrite.mode";
 
+        public const string UiThemeNameTag = "ui.theme.name";
+
         public const string TtrsNftSortModeTag = "ttrs.nft.sort.mode";
         public const string NftSortDirectionTag = "nft.sort.direction";
 
@@ -62,6 +70,7 @@ namespace Poltergeist
         public bool sfx;
         public Log.Level logLevel;
         public bool logOverwriteMode;
+        public string uiThemeName;
         public int ttrsNftSortMode;
         public int nftSortDirection;
 
@@ -93,7 +102,7 @@ namespace Poltergeist
             this.nexusName = PlayerPrefs.GetString(NexusNameTag, GetDefaultValue(NexusNameTag));
 
             this.currency = PlayerPrefs.GetString(CurrencyTag, "USD");
-            this.sfx = PlayerPrefs.GetInt(SFXTag, 1)!=0;
+            this.sfx = PlayerPrefs.GetInt(SFXTag, 0)!=0;
 
             this.phantasmaRPCURL = this.phantasmaBPURL;
 
@@ -102,6 +111,8 @@ namespace Poltergeist
             {
                 this.feePrice = 100000;
             }
+
+            this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
 
             LoadLogSettings();
 
@@ -117,6 +128,7 @@ namespace Poltergeist
                       "                Currency: " + this.currency + "\n" +
                       "                Sfx: " + this.sfx + "\n" +
                       "                Fee price: " + this.feePrice + "\n" +
+                      "                UI theme: " + this.uiThemeName + "\n" +
                       "                Log level: " + this.logLevel + "\n" +
                       "                Log overwrite: " + this.logOverwriteMode + "\n" +
                       "                TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
@@ -243,6 +255,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
+            PlayerPrefs.SetString(UiThemeNameTag, this.uiThemeName);
             PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.Save();
@@ -255,19 +268,22 @@ namespace Poltergeist
                       "                Currency: " + currency + "\n" +
                       "                Sfx: " + sfx + "\n" +
                       "                Fee price: " + feePrice + "\n" +
+                      "                UI Theme: " + uiThemeName + "\n" +
                       "                Log level: " + logLevel.ToString() + "\n" +
                       "                Log overwrite: " + logOverwriteMode
                      );
         }
 
-        public void SaveViewSettings()
+        public void SaveOnExit()
         {
             PlayerPrefs.SetInt(TtrsNftSortModeTag, this.ttrsNftSortMode);
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
+            PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
             PlayerPrefs.Save();
 
-            Log.Write("Settings: Save view settings: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
-                      "                              NFT sort direction: " + nftSortDirection,
+            Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
+                      "                        NFT sort direction: " + nftSortDirection + "\n" +
+                      "                        Phantasma BP: " + phantasmaBPURL,
                       Log.Level.Debug1);
         }
 

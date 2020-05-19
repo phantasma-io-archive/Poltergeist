@@ -159,5 +159,32 @@ namespace Phantasma.SDK
 
             yield break;
         }
+
+        public static IEnumerator Ping(string url, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback, Action<TimeSpan> callback)
+        {
+            UnityWebRequest request;
+
+            Log.Write($"Ping url: {url}", Log.Level.Networking);
+
+            request = new UnityWebRequest(url, "GET");
+            request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+
+            DateTime startTime = DateTime.Now;
+            yield return request.SendWebRequest();
+            TimeSpan responseTime = DateTime.Now - startTime;
+
+            if (request.isNetworkError || request.isHttpError)
+            {
+                Log.Write($"Ping error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nisNetworkError: {request.isNetworkError}\nisHttpError: {request.isHttpError}\nresponseCode: {request.responseCode}", Log.Level.Networking);
+                if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error + $"\nURL: {url}\nIs network error: {request.isNetworkError}\nIs HTTP error: {request.isHttpError}\nResponse code: {request.responseCode}");
+            }
+            else
+            {
+                Log.Write($"Ping response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
+                callback(responseTime);
+            }
+
+            yield break;
+        }
     }
 }

@@ -15,6 +15,7 @@ public class ComboBox
     private string boxStyle;
 
     private static GUIStyle listStyle;
+    private static string listStyleUiTheme;
 
     public Vector2 ListScroll = Vector2.zero;
 
@@ -35,11 +36,24 @@ public class ComboBox
 
     public int Show(Rect rect, IList<GUIContent> listContent, int maxAvailableHeight, out int height, string caption = null, int offset = 0)
     {
-        if (listStyle == null)
+        if (listStyle == null || listStyleUiTheme != AccountManager.Instance.Settings.uiThemeName)
         {
             listStyle = GUI.skin.customStyles[0];
+            listStyleUiTheme = AccountManager.Instance.Settings.uiThemeName;
 
-            var normalTex = ResourceManager.TextureFromColor(new Color(0, 0, 0, 1));
+            Color backgroundColor;
+            if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Phantasia.ToString())
+            {
+                if (!ColorUtility.TryParseHtmlString("#00508c", out backgroundColor))
+                {
+                    backgroundColor = new Color(0, 0, 0, 1);
+                }
+            }
+            else
+            {
+                backgroundColor = new Color(0, 0, 0, 1);
+            }
+            var normalTex = ResourceManager.TextureFromColor(backgroundColor);
             var hoverTex = ResourceManager.TextureFromColor(Color.white);
 
             listStyle.normal.textColor = Color.white;
