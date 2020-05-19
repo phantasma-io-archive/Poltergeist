@@ -176,12 +176,12 @@ namespace Poltergeist
         public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Length;
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
-        private Dictionary<PlatformKind, List<TokenData>> _nfts = new Dictionary<PlatformKind, List<TokenData>>();
+        private Dictionary<PlatformKind, List<string>> _nfts = new Dictionary<PlatformKind, List<string>>();
         private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
-        public List<TokenData> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
+        public List<string> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
         public static AccountManager Instance { get; private set; }
@@ -1472,87 +1472,11 @@ namespace Poltergeist
                                 {
                                     // Initializing NFT dictionary if needed.
                                     if (!_nfts.ContainsKey(platform))
-                                        _nfts.Add(platform, new List<TokenData>());
+                                        _nfts.Add(platform, new List<string>());
 
-                                    int loadedTokenCounter = 0;
-                                    foreach (var id in balanceEntry.Ids)
-                                    {
-                                        // Checking if token is cached.
-                                        DataNode token = null;
-                                        foreach (var cachedToken in cache.Children)
-                                        {
-                                            if (cachedToken.GetString("id") == id)
-                                            {
-                                                token = cachedToken;
-                                                break;
-                                            }
-                                        }
+                                    _nfts[platform] = new List<string>(balanceEntry.Ids);
 
-                                        if (token != null)
-                                        {
-                                            // Loading token from cache.
-                                            var tokenId = token.GetString("id");
-
-                                            loadedTokenCounter++;
-
-                                            // Checking if token already loaded to dictionary.
-                                            if (!_nfts[platform].Exists(x => x.ID == tokenId))
-                                            {
-                                                var tokenData = new TokenData();
-
-                                                tokenData.ID = tokenId;
-                                                tokenData.chainName = token.GetString("chain-name");
-                                                tokenData.ownerAddress = token.GetString("owner-address");
-                                                tokenData.ram = token.GetString("ram");
-                                                tokenData.rom = token.GetString("rom");
-                                                tokenData.forSale = token.GetString("for-sale") == "true";
-
-                                                _nfts[platform].Add(tokenData);
-                                            }
-
-                                            if (loadedTokenCounter == balanceEntry.Ids.Length)
-                                            {
-                                                // We finished loading tokens.
-                                                // Saving them in cache.
-                                                Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
-
-                                                ReportWalletNft(platform, symbol);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            StartCoroutine(phantasmaApi.GetTokenData(balanceEntry.Symbol, id, (tokenData) =>
-                                            {
-                                                loadedTokenCounter++;
-
-                                                token = cache.AddNode(DataNode.CreateObject());
-                                                token.AddField("id", tokenData.ID);
-                                                token.AddField("chain-name", tokenData.chainName);
-                                                token.AddField("owner-address", tokenData.ownerAddress);
-                                                token.AddField("ram", tokenData.ram);
-                                                token.AddField("rom", tokenData.rom);
-                                                token.AddField("for-sale", tokenData.forSale);
-
-                                                _nfts[platform].Add(tokenData);
-
-                                                if (loadedTokenCounter == balanceEntry.Ids.Length)
-                                                {
-                                                    // We finished loading tokens.
-                                                    // Saving them in cache.
-                                                    Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
-
-                                                    ReportWalletNft(platform, symbol);
-                                                }
-                                            }, (error, msg) =>
-                                            {
-                                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
-                                                {
-                                                    ChangeFaultyRPCURL();
-                                                }
-                                                Log.Write(msg);
-                                            }));
-                                        }
-                                    }
+                                    ReportWalletNft(platform, symbol);
 
                                     if (balanceEntry.Ids.Length > 0)
                                     {
