@@ -2135,7 +2135,8 @@ namespace Poltergeist
             int currentPlatformIndex = 0;
             var platformList = accountManager.CurrentAccount.platforms.Split();
 
-            if (platformList.Count > 1)
+            // We do not show platform combo for NFTs screens to avoid errors.
+            if (platformList.Count > 1 && (guiState != GUIState.TtrsNft && guiState != GUIState.TtrsNftTransferList))
             {
                 for (int i = 0; i < platformList.Count; i++)
                 {
