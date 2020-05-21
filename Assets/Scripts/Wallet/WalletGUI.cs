@@ -3585,7 +3585,7 @@ namespace Poltergeist
             });
 
             // To transfer list
-            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2,
+            DoButton(nftTransferList.Count > 0, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2,
                                     VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border,
                                     VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
             {
@@ -3617,7 +3617,7 @@ namespace Poltergeist
             });
 
             // Send
-            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
+            DoButton(nftTransferList.Count > 0, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
 
