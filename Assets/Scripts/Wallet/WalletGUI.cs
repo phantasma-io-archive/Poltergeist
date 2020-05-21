@@ -1969,7 +1969,7 @@ namespace Poltergeist
             curY += dropHeight + Units(1);
 
             settings.logOverwriteMode = GUI.Toggle(new Rect(posX, curY, Units(2), Units(2)), settings.logOverwriteMode, "");
-            GUI.Label(new Rect(posX + Units(2), curY, Units(9), labelHeight), "Overwrite log at start");
+            GUI.Label(new Rect(posX + Units(2), curY, Units(9), labelHeight), "Overwrite log");
             curY += Units(3);
 
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "UI theme");
