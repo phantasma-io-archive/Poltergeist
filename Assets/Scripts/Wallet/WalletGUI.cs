@@ -3065,11 +3065,6 @@ namespace Poltergeist
                 if (!nftIsSelected)
                 {
                     nftTransferList.Add(entryId);
-
-                    // We have to remake whole list to have correct order of selected items.
-                    var nftTransferListCopy = new List<string>();
-                    accountManager.CurrentNfts.ForEach((x) => { if (nftTransferList.Exists(y => y == x)) { nftTransferListCopy.Add(x); } });
-                    nftTransferList = nftTransferListCopy;
                 }
             }
             else
@@ -3099,18 +3094,14 @@ namespace Poltergeist
             }, false);
             var endY = DoBottomMenuForNftTransferList();
 
-            // Removing items from transfer list, if they
-            // are absent in current filter list.
-            if (nftFilteredList.Count > 0)
-            {
-                var nftFilteredTransferList = new List<string>();
-                nftTransferList.ForEach(x => { if (nftFilteredList.Exists(y => y == x)) { nftFilteredTransferList.Add(x); } });
-                nftTransferList = nftFilteredTransferList;
-            }
+            // We have to remake whole list to have correct order of selected items.
+            var nftTransferListCopy = new List<string>();
+            accountManager.CurrentNfts.ForEach((x) => { if (nftTransferList.Exists(y => y == x)) { nftTransferListCopy.Add(x); } });
+            nftTransferList = nftTransferListCopy;
 
             // We can modify nftTransferList while enumerating,
             // so we should use a copy of it.
-            var nftTransferListCopy = new List<string>();
+            nftTransferListCopy = new List<string>();
             nftTransferList.ForEach(x => nftTransferListCopy.Add(x));
 
             var nftTransferCount = DoScrollArea<string>(ref nftTransferListScroll, startY, endY, VerticalLayout ? Units(5) : Units(4), nftTransferListCopy,
