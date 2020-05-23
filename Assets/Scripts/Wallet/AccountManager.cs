@@ -184,6 +184,10 @@ namespace Poltergeist
         public List<string> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
+        private bool ttrsNftDescriptionsAreFullyLoaded;
+        private TtrsNftSortMode currentTtrsNftsSortMode = TtrsNftSortMode.None;
+        private SortDirection currentTtrsNftsSortDirection = SortDirection.None;
+
         public static AccountManager Instance { get; private set; }
 
         public string Status { get; private set; }
@@ -1458,12 +1462,6 @@ namespace Poltergeist
                     case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(account.WIF);
-                            var cache = Cache.GetDataNode("tokens", Cache.FileType.JSON, 0, CurrentState.address);
-
-                            if (cache == null)
-                            {
-                                cache = DataNode.CreateArray();
-                            }
 
                             Log.Write("Getting NFTs...");
                             foreach (var balanceEntry in CurrentState.balances)
@@ -1476,6 +1474,8 @@ namespace Poltergeist
 
                                     _nfts[platform] = new List<string>(balanceEntry.Ids);
 
+                                    ttrsNftDescriptionsAreFullyLoaded = false;
+
                                     ReportWalletNft(platform, symbol);
 
                                     if (balanceEntry.Ids.Length > 0)
@@ -1485,6 +1485,9 @@ namespace Poltergeist
                                         {
                                             // Downloading NFT images.
                                             StartCoroutine(TtrsStore.DownloadImage(item));
+                                        }, () =>
+                                        {
+                                            ttrsNftDescriptionsAreFullyLoaded = true;
                                         }));
                                     }
                                 }
@@ -1854,6 +1857,61 @@ namespace Poltergeist
 
 
             return null;
+        }
+
+        public void ResetTtrsNftsSorting()
+        {
+            currentTtrsNftsSortMode = TtrsNftSortMode.None;
+            currentTtrsNftsSortDirection = SortDirection.None;
+        }
+
+        public void SortTtrsNfts()
+        {
+            if (_nfts[CurrentPlatform] == null)
+                return;
+
+            if (!ttrsNftDescriptionsAreFullyLoaded) // We should not sort NFTs if there are no attributes available.
+                return;
+
+            if (currentTtrsNftsSortMode == (TtrsNftSortMode)Settings.ttrsNftSortMode && (int)currentTtrsNftsSortDirection == Settings.nftSortDirection)
+                return; // Nothing changed, no need to sort again.
+
+            switch ((TtrsNftSortMode)Settings.ttrsNftSortMode)
+            {
+                case TtrsNftSortMode.Number_Date:
+                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
+                    else
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
+                    break;
+                case TtrsNftSortMode.Date_Number:
+                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
+                    else
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Number_Date:
+                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
+                    else
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Date_Number:
+                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
+                    else
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
+                    break;
+                case TtrsNftSortMode.Type_Rarity: // And also Number and Date as last sorting parameters.
+                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Rarity).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
+                    else
+                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Rarity).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
+                    break;
+            }
+
+            currentTtrsNftsSortMode = (TtrsNftSortMode)Settings.ttrsNftSortMode;
+            currentTtrsNftsSortDirection = (SortDirection)Settings.nftSortDirection;
         }
     }
 }
