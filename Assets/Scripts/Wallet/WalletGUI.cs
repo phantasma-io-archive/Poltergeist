@@ -966,7 +966,10 @@ namespace Poltergeist
                 switch (guiState)
                 {
                     case GUIState.TtrsNft:
-                        tempTitle = $"{nftCount} {tempTitle}";
+                        if (nftTransferList.Count > 0)
+                            tempTitle = $"{nftCount} ({nftTransferList.Count} selected) {tempTitle}";
+                        else
+                            tempTitle = $"{nftCount} {tempTitle}";
                         break;
                     case GUIState.TtrsNftTransferList:
                         tempTitle = $"{nftTransferList.Count} {tempTitle}";
