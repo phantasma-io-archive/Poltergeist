@@ -3530,6 +3530,9 @@ namespace Poltergeist
             {
                 AudioManager.Instance.PlaySFX("click");
                 PushState(GUIState.Balances);
+
+                // Saving sorting.
+                AccountManager.Instance.Settings.SaveOnExit();
             });
 
             int pageLabelWidth = Units(4);
