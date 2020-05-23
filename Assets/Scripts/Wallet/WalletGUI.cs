@@ -3249,7 +3249,7 @@ namespace Poltergeist
             {
                 var qrTex = QRCodeTextures[platform];
                 var qrResolution = 200;
-                var qrRect = new Rect((windowRect.width - qrResolution) / 2, curY, qrResolution, qrResolution);
+                var qrRect = new Rect((windowRect.width - qrResolution) / 2, VerticalLayout ? curY + Units(2) : curY, qrResolution, qrResolution);
 
                 DrawDropshadow(qrRect);
                 GUI.DrawTexture(qrRect, qrTex);
