@@ -206,13 +206,13 @@ public static class TtrsStore
         }
     }
 
-    public static IEnumerator LoadStoreNft(string[] ids, Action<Nft> callback)
+    public static IEnumerator LoadStoreNft(string[] ids, Action<Nft> onItemLoadedCallback, Action onAllItemsLoadedCallback)
     {
         var url = "http://www.22series.com/api/store/nft";
         var storeNft = Cache.GetDataNode("ttrs-store-nft", Cache.FileType.JSON, 60 * 24);
         if (storeNft != null)
         {
-            LoadStoreNftFromDataNode(storeNft, callback);
+            LoadStoreNftFromDataNode(storeNft, onItemLoadedCallback);
 
             // Checking, that cache contains all needed NFTs.
             string[] missingIds = ids;
@@ -227,6 +227,7 @@ public static class TtrsStore
 
             if (ids.Length == 0)
             {
+                onAllItemsLoadedCallback();
                 yield break;
             }
         }
@@ -246,7 +247,7 @@ public static class TtrsStore
         },
         (response) =>
         {
-            LoadStoreNftFromDataNode(response, callback);
+            LoadStoreNftFromDataNode(response, onItemLoadedCallback);
 
             if (storeNft != null)
             {
@@ -261,6 +262,7 @@ public static class TtrsStore
                 storeNft = response;
             }
             Cache.Add("ttrs-store-nft", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, storeNft));
+            onAllItemsLoadedCallback();
         });
     }
 

@@ -98,6 +98,7 @@ namespace Poltergeist
 
     public enum SortDirection // Direction of sorting, used in NFT list sorting.
     {
+        None,
         Ascending,
         Descending
     }
@@ -387,6 +388,7 @@ namespace Poltergeist
                 case GUIState.TtrsNft:
                     currentTitle = "TTRS NFTs for " + accountManager.CurrentAccount.name;
                     transferSymbol = "TTRS";
+                    accountManager.ResetTtrsNftsSorting();
                     break;
 
                 case GUIState.TtrsNftTransferList:
@@ -2893,6 +2895,10 @@ namespace Poltergeist
                 return;
             }
 
+            // Sorting NFT list.
+            accountManager.SortTtrsNfts();
+            nfts = accountManager.CurrentNfts;
+
             // Filtering NFT list, if filters are applied.
             nftFilteredList.Clear();
             if (!String.IsNullOrEmpty(nftFilterName) || nftFilterType != "All" || nftFilterRarity != (int)ttrsNftRarity.All || nftFilterMinted != (int)nftMinted.All)
@@ -2915,41 +2921,6 @@ namespace Poltergeist
                     }
                 });
                 nfts = nftFilteredList;
-            }
-
-            // Sorting NFT list.
-            switch((TtrsNftSortMode)accountManager.Settings.ttrsNftSortMode)
-            {
-                case TtrsNftSortMode.Number_Date:
-                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    else
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    break;
-                case TtrsNftSortMode.Date_Number:
-                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
-                    else
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
-                    break;
-                case TtrsNftSortMode.Type_Number_Date:
-                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    else
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    break;
-                case TtrsNftSortMode.Type_Date_Number:
-                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
-                    else
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
-                    break;
-                case TtrsNftSortMode.Type_Rarity: // And also Number and Date as last sorting parameters.
-                    if (accountManager.Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        nfts = nfts.OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Rarity).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    else
-                        nfts = nfts.OrderBy(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Rarity).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    break;
             }
 
             // Number of displayed NFTs changed, switching to first page.
