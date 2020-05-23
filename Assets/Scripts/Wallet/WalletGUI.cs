@@ -3024,6 +3024,7 @@ namespace Poltergeist
             {
                 accountManager.RefreshBalances(true);
                 accountManager.RefreshNft(true, transferSymbol);
+                accountManager.ResetTtrsNftsSorting();
             }, false);
         }
 
