@@ -2192,17 +2192,35 @@ namespace Poltergeist
                 DoNftToolButton(posX4 + toolLabelWidth,
                                 posY3,
                                 (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, "Select", () => {
-                    nftTransferList.Clear();
-                    accountManager.CurrentNfts.ForEach((x) => { nftTransferList.Add(x); });
+                                    if (nftFilteredList.Count > 0)
+                                    {
+                                        // If filter is applied, select button selects only filtered items.
+                                        nftFilteredList.ForEach((x) => { if(!nftTransferList.Contains(x)) nftTransferList.Add(x); });
+                                    }
+                                    else
+                                    {
+                                        // If no filter is applied, select button selects all items.
+                                        nftTransferList.Clear();
+                                        accountManager.CurrentNfts.ForEach((x) => { nftTransferList.Add(x); });
+                                    }
                 });
 
                 // #8: Invert selection button
                 DoNftToolButton((VerticalLayout) ? posX4 + toolLabelWidth * 2 - toolFieldSpacing + 8: posX4 + toolLabelWidth * 2 + toolFieldSpacing,
                                 posY3,
                                 (VerticalLayout) ? toolLabelWidth - toolFieldSpacing - 8 : toolLabelWidth - toolFieldSpacing, "Invert", () => {
-                    var nftTransferListCopy = new List<string>();
-                    accountManager.CurrentNfts.ForEach((x) => { if (!nftTransferList.Exists(y => y == x)) { nftTransferListCopy.Add(x); } });
-                    nftTransferList = nftTransferListCopy;
+                                    if (nftFilteredList.Count > 0)
+                                    {
+                                        // If filter is applied, invert button processes only filtered items.
+                                        nftFilteredList.ForEach((x) => { if (!nftTransferList.Contains(x)) nftTransferList.Add(x); else nftTransferList.Remove(x); });
+                                    }
+                                    else
+                                    {
+                                        // If no filter is applied, invert button processes all items.
+                                        var nftTransferListCopy = new List<string>();
+                                        accountManager.CurrentNfts.ForEach((x) => { if (!nftTransferList.Exists(y => y == x)) { nftTransferListCopy.Add(x); } });
+                                        nftTransferList = nftTransferListCopy;
+                                    }
                 });
 
                 // #3: NFT rarity filter
