@@ -14,3 +14,5 @@ packages/
 poltergeist.keystore
 Assets/Audio/
 ethereum_api.txt*
+Assets/StreamingAssets/BuildInfo
+Assets/StreamingAssets/BuildInfo.meta

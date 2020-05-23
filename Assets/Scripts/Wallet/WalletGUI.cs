@@ -993,6 +993,18 @@ namespace Poltergeist
                 }
 
                 DrawHorizontalCenteredText(curY - 4, Units(2), tempTitle);
+
+                // Drawing build timestamp at the Settings screen
+                if (guiState == GUIState.Settings)
+                {
+                    style = GUI.skin.label;
+                    style.fontSize -= 6;
+                    var temp = style.alignment;
+                    style.alignment = TextAnchor.MiddleCenter;
+                    GUI.Label(new Rect(0, (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? curY + Units(1) - 4 : curY + Units(1), windowRect.width, Units(2)), $"Version was built at: {Poltergeist.Build.Info.Instance.BuildTime} UTC");
+                    style.alignment = temp;
+                    style.fontSize += 6;
+                }
             }
 
             switch (guiState)
