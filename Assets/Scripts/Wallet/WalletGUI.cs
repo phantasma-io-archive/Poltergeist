@@ -2507,7 +2507,7 @@ namespace Poltergeist
                     iconY += Units(1); // Adding first label height
                     iconY += (int)((Units(1) * (double)16 / 18)) * 2; // Adding 2nd and 3rd label heights
                     iconY += 4 * 3; // Adding 3 spacings
-                    GUI.DrawTexture(new Rect(Units(1) + 4, iconY, Units(2), Units(2)), icon);
+                    GUI.DrawTexture(new Rect(Units(2), iconY, Units(2), Units(2)), icon);
                 }
                 else
                 {
@@ -2520,7 +2520,7 @@ namespace Poltergeist
 
             var posY = curY + Units(1) - 8;
 
-            int posX = VerticalLayout ? Units(1) : Units(5);
+            int posX = VerticalLayout ? Units(2) : Units(5);
 
             var style = GUI.skin.label;
 
