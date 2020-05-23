@@ -1458,12 +1458,6 @@ namespace Poltergeist
                     case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(account.WIF);
-                            var cache = Cache.GetDataNode("tokens", Cache.FileType.JSON, 0, CurrentState.address);
-
-                            if (cache == null)
-                            {
-                                cache = DataNode.CreateArray();
-                            }
 
                             Log.Write("Getting NFTs...");
                             foreach (var balanceEntry in CurrentState.balances)
