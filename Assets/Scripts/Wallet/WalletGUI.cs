@@ -3564,7 +3564,22 @@ namespace Poltergeist
                                     VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border,
                                     VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
             {
-                PushState(GUIState.TtrsNftTransferList);
+                var nftTransferLimit = 100;
+                if (nftTransferList.Count > nftTransferLimit)
+                {
+                    PromptBox($"Currently sending is limited to {nftTransferLimit} NFTs for one transfer, reduce selection to first {nftTransferLimit}? ", ModalConfirmCancel, (result) =>
+                    {
+                        if (result == PromptResult.Success)
+                        {
+                            nftTransferList.RemoveRange(nftTransferLimit, nftTransferList.Count - nftTransferLimit);
+                            PushState(GUIState.TtrsNftTransferList);
+                        }
+                    });
+                }
+                else
+                {
+                    PushState(GUIState.TtrsNftTransferList);
+                }
             });
 
             return posY;
