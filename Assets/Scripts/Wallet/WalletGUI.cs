@@ -3381,7 +3381,7 @@ namespace Poltergeist
                                         }
                                         else
                                         {
-                                            MessageBox(MessageKind.Error, "That name is not a valid Phantasma address nam   e.\nNo spaces allowed, only lowercase letters and numbers.\nMust be between 3 and 15 characters in length.");
+                                            MessageBox(MessageKind.Error, "That name is not a valid Phantasma address name.\nNo spaces allowed, only lowercase letters and numbers.\nMust be between 3 and 15 characters in length.");
                                         }
                                     }
                                 });
