@@ -3894,7 +3894,7 @@ namespace Poltergeist
             }
 
             var balance = state.GetAvailableAmount(symbol);
-            RequireAmount(transferName, destAddress, symbol, 0.1m, balance, (amount) =>
+            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
             {
                 RequestKCAL(symbol, (feeResult) =>
                 {
@@ -4134,7 +4134,7 @@ namespace Poltergeist
             }
 
             var balance = state.GetAvailableAmount(symbol);
-            RequireAmount(transferName, destAddress, symbol, 0.01m, balance, (amount) =>
+            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
             {
                 var transfer = new TransferRequest()
                 {
@@ -4182,7 +4182,7 @@ namespace Poltergeist
                 }
 
                 var balance = state.GetAvailableAmount(symbol);
-                RequireAmount(transferName, null, symbol, 0.1m, balance, (amount) =>
+                RequireAmount(transferName, null, symbol, 0.001m, balance, (amount) =>
                 {
                     if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                     {
