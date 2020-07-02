@@ -13,7 +13,7 @@ public static class TtrsStore
 {
     public static void Clear()
     {
-        ItemSupplyData.Clear();
+        ItemSupplyData?.Clear();
         StoreNft.Clear();
         Images.Clear();
     }
