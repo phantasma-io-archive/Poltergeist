@@ -52,6 +52,7 @@ namespace Phantasma.SDK
             request.SetRequestHeader("Content-Type", "application/json");
 
             DateTime startTime = DateTime.Now;
+            request.timeout = 30;
             yield return request.SendWebRequest();
             TimeSpan responseTime = DateTime.Now - startTime;
 
@@ -102,6 +103,7 @@ namespace Phantasma.SDK
             request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
 
             DateTime startTime = DateTime.Now;
+            request.timeout = 30;
             yield return request.SendWebRequest();
             TimeSpan responseTime = DateTime.Now - startTime;
 
