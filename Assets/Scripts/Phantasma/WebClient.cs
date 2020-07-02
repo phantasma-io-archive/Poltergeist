@@ -52,6 +52,7 @@ namespace Phantasma.SDK
             request.SetRequestHeader("Content-Type", "application/json");
 
             DateTime startTime = DateTime.Now;
+            request.timeout = 30;
             yield return request.SendWebRequest();
             TimeSpan responseTime = DateTime.Now - startTime;
 
@@ -102,6 +103,7 @@ namespace Phantasma.SDK
             request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
 
             DateTime startTime = DateTime.Now;
+            request.timeout = 30;
             yield return request.SendWebRequest();
             TimeSpan responseTime = DateTime.Now - startTime;
 
@@ -112,8 +114,16 @@ namespace Phantasma.SDK
             }
             else
             {
-                Log.Write($"REST response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
-                var root = JSONReader.ReadFromString(request.downloadHandler.text);
+                DataNode root = null;
+                try
+                {
+                    Log.Write($"REST response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
+                    root = JSONReader.ReadFromString(request.downloadHandler.text);
+                }
+                catch (Exception e)
+                {
+                    Log.Write(e.Message);
+                }
                 callback(root);
             }
 

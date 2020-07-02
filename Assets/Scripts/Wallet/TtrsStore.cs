@@ -13,7 +13,7 @@ public static class TtrsStore
 {
     public static void Clear()
     {
-        ItemSupplyData.Clear();
+        ItemSupplyData?.Clear();
         StoreNft.Clear();
         Images.Clear();
     }
@@ -67,9 +67,16 @@ public static class TtrsStore
         },
         (response) =>
         {
-            Cache.Add("ttrs-store-info", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, response));
+            if (response != null)
+            {
+                Cache.Add("ttrs-store-info", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, response));
 
-            LoadStoreInfoFromDataNode(response);
+                LoadStoreInfoFromDataNode(response);
+            }
+            else
+            {
+                Log.Write("LoadStoreInfo() error: No response from 22series.com");
+            }
         });
     }
 

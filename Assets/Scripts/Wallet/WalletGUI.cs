@@ -1838,7 +1838,8 @@ namespace Poltergeist
                 accountManager.InitDemoAccounts(settings.nexusKind);
             }
 
-            accountManager.UpdateRPCURL();
+            accountManager.UpdateRPCURL(PlatformKind.Phantasma);
+            accountManager.UpdateRPCURL(PlatformKind.Neo);
 
             accountManager.RefreshTokenPrices();
             accountManager.UpdateAPIs();
