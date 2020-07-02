@@ -513,7 +513,7 @@ namespace Poltergeist
             var extFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString()+ ","+TokenFlags.Divisible.ToString();
             var pepFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString();
             var nftFlags = TokenFlags.Transferable.ToString();
-            tokens.Add(new Token() { symbol = "SOUL", cryptoCompareSymbol = "GOST", platform = DomainSettings.PlatformName, hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags });
+            tokens.Add(new Token() { symbol = "SOUL", cryptoCompareSymbol = "SOUL", platform = DomainSettings.PlatformName, hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags });
             tokens.Add(new Token() { symbol = "KCAL", cryptoCompareSymbol = "KCAL", platform = DomainSettings.PlatformName, hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + ","+ TokenFlags.Divisible.ToString() });
 
             tokens.Add(new Token() { symbol = "NEO", cryptoCompareSymbol = "NEO", platform = "neo", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags });
