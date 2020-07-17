@@ -441,6 +441,7 @@ namespace Poltergeist
                                         Settings.phantasmaBPURL = bestRpcUrl;
                                         Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
                                         UpdateAPIs();
+                                        Settings.SaveOnExit();
                                     }
                                 },
                                 (responseTime) =>
@@ -467,6 +468,7 @@ namespace Poltergeist
                                         Settings.phantasmaBPURL = bestRpcUrl;
                                         Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
                                         UpdateAPIs();
+                                        Settings.SaveOnExit();
                                     }
                                 })
                             );
@@ -526,6 +528,7 @@ namespace Poltergeist
                                 Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
                                 Settings.neoRPCURL = bestRpcUrl;
                                 UpdateAPIs();
+                                Settings.SaveOnExit();
                             }
                         },
                         (responseTime) =>
@@ -551,6 +554,7 @@ namespace Poltergeist
                                 Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
                                 Settings.neoRPCURL = bestRpcUrl;
                                 UpdateAPIs();
+                                Settings.SaveOnExit();
                             }
                         })
                     );
