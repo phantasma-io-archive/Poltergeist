@@ -82,7 +82,19 @@ namespace Phantasma.SDK
                 if (root.HasNode("result"))
                 {
                     var result = root["result"];
-                    callback(result);
+
+                    if (result.HasNode("error"))
+                    {
+                        // This is incorrect way of RPC error reporting,
+                        // but it happens sometimes and should be handeled at least for now.
+                        var errorDesc = result.GetString("error");
+                        Log.Write($"RPC response\nurl: {url}\nError node found (2): {errorDesc}", Log.Level.Networking);
+                        if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, errorDesc);
+                    }
+                    else
+                    {
+                        callback(result);
+                    }
                 }
                 else
                 {
