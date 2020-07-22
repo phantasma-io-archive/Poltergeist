@@ -2888,7 +2888,9 @@ namespace Poltergeist
                      if (result == PromptResult.Failure)
                      {
                          return; // user canceled
-                    }
+                     }
+
+                     var nethereumAddressUtil = new Nethereum.Util.AddressUtil();
 
                      if (Address.IsValidAddress(destAddress))
                      {
@@ -2912,6 +2914,23 @@ namespace Poltergeist
                          if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                          {
                              ContinueSwap(PlatformKind.Neo, transferName, transferSymbol, destAddress);
+                         }
+                         else
+                         {
+                             MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
+                         }
+                     }
+                     else
+                     if (nethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress))
+                     {
+                         if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+                         {
+                             ContinueEthTransfer(transferName, transferSymbol, destAddress);
+                         }
+                         else
+                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                         {
+                             ContinueSwap(PlatformKind.Ethereum, transferName, transferSymbol, destAddress);
                          }
                          else
                          {
@@ -4158,6 +4177,56 @@ namespace Poltergeist
             });
         }
 
+        private void ContinueEthTransfer(string transferName, string symbol, string destAddress)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Ethereum)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Ethereum);
+                return;
+            }
+
+            var sourceAddress = accountManager.GetAddress(accountManager.CurrentIndex, accountManager.CurrentPlatform);
+
+            if (sourceAddress == destAddress)
+            {
+                MessageBox(MessageKind.Error, $"Source and destination address must be different!");
+                return;
+            }
+
+            var ethBalance = accountManager.CurrentState.GetAvailableAmount("ETH");
+            if (ethBalance <= 0)
+            {
+                MessageBox(MessageKind.Error, $"You will need at least a drop of ETH in this wallet to make a transaction.");
+                return;
+            }
+
+            var balance = state.GetAvailableAmount(symbol);
+            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
+            {
+                var transfer = new TransferRequest()
+                {
+                    platform = PlatformKind.Ethereum,
+                    amount = amount,
+                    symbol = symbol,
+                    key = accountManager.CurrentAccount.WIF,
+                    destination = destAddress
+                };
+
+                byte[] script = Serialization.Serialize(transfer);
+
+                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                {
+                    if (hash != Hash.Null)
+                    {
+                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                    }
+                });
+            });
+        }
+
         private void ContinueSwap(PlatformKind destPlatform, string transferName, string symbol, string destination)
         {
             var accountManager = AccountManager.Instance;
@@ -4172,6 +4241,8 @@ namespace Poltergeist
             }
 
             var feeSymbol = "GAS";
+            if (accountManager.CurrentPlatform == PlatformKind.Ethereum || destPlatform == PlatformKind.Ethereum)
+                feeSymbol = "ETH";
 
             var min = 0.001m;
             RequestFee(symbol, feeSymbol, min, (gasResult) =>
@@ -4194,7 +4265,9 @@ namespace Poltergeist
                             case PlatformKind.Neo:
                                 destAddress = AccountManager.EncodeNeoAddress(destination);
                                 break;
-
+                            case PlatformKind.Ethereum:
+                                destAddress = AccountManager.EncodeEthereumAddress(destination);
+                                break;
                             default:
                                 MessageBox(MessageKind.Error, $"Swaps to {destPlatform} are not possible yet.");
                                 break;

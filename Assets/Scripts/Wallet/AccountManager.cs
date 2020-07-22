@@ -195,6 +195,7 @@ namespace Poltergeist
         public bool Refreshing => _pendingRequestCount > 0;
 
         public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
+        public Phantasma.SDK.EthereumAPI ethereumApi { get; private set; }
         private Phantasma.Neo.Core.NeoAPI neoApi;
 
         private const string cryptoCompareAPIKey = "50f6f9f5adbb0a2f0d60145e43fe873c5a7ea1d8221b210ba14ef725f4012ee9";
@@ -212,8 +213,6 @@ namespace Poltergeist
 
         private bool _accountInitialized;
 
-        private string etherscanAPIToken;
-
         private void Awake()
         {
             Instance = this;
@@ -226,29 +225,10 @@ namespace Poltergeist
             _currencyMap["GBP"] = "£";
             _currencyMap["YEN"] = "¥";
 
-            var ethereumAPIKeys = Resources.Load<TextAsset>("ethereum_api");
-            if (ethereumAPIKeys != null)
-            {
-                var lines = ethereumAPIKeys.text.Split('\n');
-                if (lines.Length > 0)
-                {
-                    etherscanAPIToken = lines[0].Trim();
-                }
-            }
-
             var platforms = new List<PlatformKind>();
             platforms.Add(PlatformKind.Phantasma);
             platforms.Add(PlatformKind.Neo);
-
-            if (string.IsNullOrEmpty(etherscanAPIToken))
-            {
-                Debug.LogWarning("No Etherscan API key found, Ethereum balances wont work!");
-            }
-            else
-            {
-                platforms.Add(PlatformKind.Ethereum);
-                Debug.Log("Loaded Etherscan API key!");
-            }
+            platforms.Add(PlatformKind.Ethereum);
 
             AvailablePlatforms = platforms.ToArray();
         }
@@ -745,6 +725,7 @@ namespace Poltergeist
         {
             Log.Write("reinit APIs => " + Settings.phantasmaRPCURL);
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
+            ethereumApi = new EthereumAPI("http://13.91.228.58:7545");
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
         }
 
@@ -959,6 +940,88 @@ namespace Poltergeist
                         break;
                     }
 
+                case PlatformKind.Ethereum:
+                    {
+                        try
+                        {
+                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+
+                            if (transfer.amount <= 0)
+                            {
+                                callback(Hash.Null, $"invalid transfer amount: {transfer.amount}");
+                            }
+                            else
+                            if (transfer.platform == CurrentPlatform)
+                            {
+                                switch (transfer.platform)
+                                {
+                                    case PlatformKind.Ethereum:
+                                        {
+                                            var keys = EthereumKey.FromWIF(transfer.key);
+
+                                            if (transfer.symbol == "ETH")
+                                            {
+                                                StartCoroutine(ethereumApi.GetNonce(keys.Address,
+                                                (nonce) =>
+                                                {
+                                                    var signedTxBytes = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
+                                                        new BigInteger(transfer.amount.ToString(), 10) * BigInteger.Pow(10, 18), // Convert to WEI
+                                                        new BigInteger(10000000000000),
+                                                        new BigInteger(2100000));
+
+                                                    var hexTx = "0x" + Base16.Encode(signedTxBytes);
+                                                    StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                    {
+                                                        callback(Hash.Null, msg);
+                                                    }));
+                                                },
+                                                (error, msg) =>
+                                                {
+                                                    throw new Exception("Failure: " + msg);
+                                                }));
+                                            }
+                                            else if (transfer.symbol == "SOUL")
+                                            {
+                                                StartCoroutine(ethereumApi.GetNonce(keys.Address,
+                                                (nonce) =>
+                                                {
+                                                    var transferMethodHash = "a9059cbb";
+                                                    var to = transfer.destination.Substring(2).PadLeft(64, '0');
+                                                    var amount = (new BigInteger(transfer.amount.ToString(), 10) * BigInteger.Pow(10, 8)).ToHex().PadLeft(64, '0');
+                                                    var signedTxBytes = ethereumApi.SignTransaction(keys, nonce, "0x3115858229FA1D0097Be947439Fef4Ac48c7D26E",
+                                                        new BigInteger(0), // Ammount of ETH to be transfered (0)
+                                                        new BigInteger(10000000000000),
+                                                        new BigInteger(2100000),
+                                                        transferMethodHash + to + amount);
+
+                                                    var hexTx = "0x" + Base16.Encode(signedTxBytes);
+                                                    StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                    {
+                                                        callback(Hash.Null, msg);
+                                                    }));
+                                                },
+                                                (error, msg) =>
+                                                {
+                                                    throw new Exception("Failure: " + msg);
+                                                }));
+                                            }
+
+                                            break;
+                                        }
+                                }
+                                return;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            callback(Hash.Null, e.ToString());
+                            return;
+                        }
+
+                        callback(Hash.Null, "something weird happened");
+                        break;
+                    }
+
                 default:
                     {
                         callback(Hash.Null, "not implemented for " + CurrentPlatform);
@@ -1111,6 +1174,7 @@ namespace Poltergeist
 
 
         private const int neoMaxConfirmations = 12;
+        private const int ethereumMaxConfirmations = 50;
         private const string TempConfirmError = "Something went wrong when confirming.\nThe transaction might have been succesful.\nCheck back later.";
 
         public void RequestConfirmation(string transactionHash, int confirmationCount, Action<string> callback)
@@ -1161,6 +1225,37 @@ namespace Poltergeist
                             {
                                 callback(TempConfirmError);
                             }
+                        }
+                    }));
+                    break;
+
+                case PlatformKind.Ethereum:
+                    StartCoroutine(ethereumApi.GetTransactionByHash(transactionHash, (response) =>
+                    {
+                        if (response.HasNode("blockNumber"))
+                        {
+                            callback(null);
+                        }
+                        else
+                        {
+                            if (confirmationCount <= ethereumMaxConfirmations)
+                            {
+                                callback("pending");
+                            }
+                            else
+                            {
+                                callback(TempConfirmError);
+                            }
+                        }
+                    }, (error, msg) =>
+                    {
+                        if (confirmationCount <= ethereumMaxConfirmations)
+                        {
+                            callback("pending");
+                        }
+                        else
+                        {
+                            callback(TempConfirmError);
                         }
                     }));
                     break;
@@ -1401,75 +1496,56 @@ namespace Poltergeist
                         {
                             var keys = EthereumKey.FromWIF(account.WIF);
 
-                            var url = GetEtherscanAPIUrl($"module=account&action=balance&address={keys.Address}&tag=latest");
-                            //https://etherscan.io/apis#tokens
-                            //https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress=0x57d90b64a1a57749b0f932f1a3395792e12e7055&address=0xe04f27eb70e025b78871a2ad7eabe85e61212761&tag=latest&apikey=YourApiKeyToken
-
-                            if (url != null)
+                            GetTokenBySymbol("ETH", out var token);
+                            StartCoroutine(ethereumApi.GetBalance(keys.Address, token.symbol, token.decimals, (balance) =>
                             {
-                                StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
-                                {
-                                    ReportWalletBalance(platform, null);
-                                },
-                                (response) =>
-                                {
-                                    var balances = new List<Balance>();
+                                var balances = new List<Balance>();
+                                balances.Add(balance);
 
-                                    var ethTemp = response.GetString("result");
-                                    var ethAmount = BigInteger.Parse(ethTemp);
-
-                                    Token token;
-
-                                    if (GetTokenBySymbol("ETH", out token))
+                                GetTokenBySymbol("SOUL", out var soulToken);
+                                StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
+                                    "0x3115858229FA1D0097Be947439Fef4Ac48c7D26E",
+                                    soulToken.symbol, soulToken.decimals, (balanceSoul) =>
                                     {
-                                        balances.Add(new Balance()
+                                        balances.Add(balanceSoul);
+
+                                        RequestPendings(keys.Address, (swaps, error) =>
                                         {
-                                            Symbol = "ETH",
-                                            Available = UnitConversion.ToDecimal(ethAmount, token.decimals),
-                                            Pending = 0,
-                                            Claimable = 0, 
-                                            Staked = 0,
-                                            Chain = "main",
-                                            Decimals = token.decimals
+                                            var balanceMap = new Dictionary<string, Balance>();
+                                            foreach (var entry in balances)
+                                            {
+                                                balanceMap[entry.Symbol] = entry;
+                                            }
+
+                                            if (swaps != null)
+                                            {
+                                                MergeSwaps(PlatformKind.Ethereum, balanceMap, swaps);
+                                            }
+                                            else
+                                            {
+                                                Log.WriteWarning(error);
+                                            }
+
+                                            var state = new AccountState()
+                                            {
+                                                platform = platform,
+                                                address = keys.Address,
+                                                name = ValidationUtils.ANONYMOUS, // TODO support NNS
+                                                balances = balanceMap.Values.ToArray(),
+                                                flags = AccountFlags.None
+                                            };
+                                            ReportWalletBalance(platform, state);
                                         });
-                                    }
-
-                                    RequestPendings(keys.Address, (swaps, error) =>
+                                    },
+                                    (error, msg) =>
                                     {
-                                        var balanceMap = new Dictionary<string, Balance>();
-                                        foreach (var entry in balances)
-                                        {
-                                            balanceMap[entry.Symbol] = entry;
-                                        }
-
-                                        if (swaps != null)
-                                        {
-                                            MergeSwaps(PlatformKind.Ethereum, balanceMap, swaps);
-                                        }
-                                        else
-                                        {
-                                            Log.WriteWarning(error);
-                                        }
-
-                                        var state = new AccountState()
-                                        {
-                                            platform = platform,
-                                            address = keys.Address,
-                                            name = ValidationUtils.ANONYMOUS, // TODO support NNS
-                                            balances = balanceMap.Values.ToArray(),
-                                            flags = AccountFlags.None
-                                        };
-                                        ReportWalletBalance(platform, state);
-                                    });
-
-                                }));
-
-                            }
-                            else
+                                        ReportWalletBalance(platform, null);
+                                    }));
+                            },
+                            (error, msg) =>
                             {
                                 ReportWalletBalance(platform, null);
-                            }
-
+                            }));
                         }
                         break;
                     
@@ -1775,17 +1851,6 @@ namespace Poltergeist
             return $"{url}transaction/{hash}";
         }
 
-
-        private string GetEtherscanAPIUrl(string request)
-        {
-            if (string.IsNullOrEmpty(etherscanAPIToken))
-            {
-                return null;
-            }
-
-            return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
-        }
-
         private string GetNeoscanAPIUrl(string request)
         {
             var url = Settings.neoscanURL;
@@ -1833,6 +1898,19 @@ namespace Poltergeist
         public static Address EncodeNeoAddress(string addressText)
         {
             Throw.If(!Phantasma.Neo.Utils.NeoUtils.IsValidAddress(addressText), "invalid neo address");
+            var scriptHash = addressText.Base58CheckDecode();
+
+            var pubKey = new byte[33];
+            ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
+
+            return Address.FromInterop(1/*NeoID*/, pubKey);
+        }
+
+        public static Address EncodeEthereumAddress(string addressText)
+        {
+            var nethereumAddressUtil = new Nethereum.Util.AddressUtil();
+
+            Throw.If(!nethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
             var scriptHash = addressText.Base58CheckDecode();
 
             var pubKey = new byte[33];
