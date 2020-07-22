@@ -2852,7 +2852,7 @@ namespace Poltergeist
                  var transferName = $"{transferSymbol} transfer";
                  Phantasma.SDK.Token transferToken;
 
-                 accountManager.GetTokenBySymbol(transferSymbol, out transferToken);
+                 accountManager.GetTokenBySymbol(transferSymbol, accountManager.CurrentPlatform, out transferToken);
 
                  if (string.IsNullOrEmpty(transferToken.flags))
                  {
@@ -3717,7 +3717,7 @@ namespace Poltergeist
                 var transferName = $"{transferSymbol} transfer";
                 Phantasma.SDK.Token transferToken;
 
-                accountManager.GetTokenBySymbol(transferSymbol, out transferToken);
+                accountManager.GetTokenBySymbol(transferSymbol, accountManager.CurrentPlatform, out transferToken);
 
                 if (string.IsNullOrEmpty(transferToken.flags))
                 {
@@ -3820,7 +3820,7 @@ namespace Poltergeist
                 }
 
                 var estimatedFee = usedGas * accountManager.Settings.feePrice;
-                var feeDecimals = accountManager.GetTokenDecimals("KCAL");
+                var feeDecimals = accountManager.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
                 description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
             }
 
@@ -3924,7 +3924,7 @@ namespace Poltergeist
 
                         try
                         {
-                            var decimals = accountManager.GetTokenDecimals(symbol);
+                            var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                             var gasPrice = accountManager.Settings.feePrice;
 
@@ -3999,7 +3999,7 @@ namespace Poltergeist
                     {
                         description = $"Transfer {symbol} NFTs\n";
 
-                        var decimals = accountManager.GetTokenDecimals(symbol);
+                        var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                         var gasPrice = accountManager.Settings.feePrice;
 
@@ -4064,7 +4064,7 @@ namespace Poltergeist
 
         private bool ValidDecimals(decimal amount, string symbol)
         {
-            var decimals = AccountManager.Instance.GetTokenDecimals(symbol);
+            var decimals = AccountManager.Instance.GetTokenDecimals(symbol, AccountManager.Instance.CurrentPlatform);
 
             if (decimals > 0)
             {
@@ -4283,7 +4283,7 @@ namespace Poltergeist
 
                                 try
                                 {
-                                    var decimals = accountManager.GetTokenDecimals(symbol);
+                                    var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                                     var gasPrice = accountManager.Settings.feePrice;
 
@@ -4399,7 +4399,7 @@ namespace Poltergeist
                 return;
             }
 
-            var swapDecimals = accountManager.GetTokenDecimals(swapSymbol);
+            var swapDecimals = accountManager.GetTokenDecimals(swapSymbol, accountManager.CurrentPlatform);
             decimal swapBalance = state.GetAvailableAmount(swapSymbol);
 
             if (swapDecimals> 0 || swapBalance > 1)
@@ -4417,7 +4417,7 @@ namespace Poltergeist
 
                                  var gasPrice = accountManager.Settings.feePrice;
 
-                                 var decimals = accountManager.GetTokenDecimals(feeSymbol);
+                                 var decimals = accountManager.GetTokenDecimals(feeSymbol, accountManager.CurrentPlatform);
 
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")

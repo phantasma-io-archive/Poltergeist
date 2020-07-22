@@ -187,7 +187,7 @@ namespace Poltergeist
                             var amount = GetNumberArg(entry, 3);
 
                             Token token;
-                            AccountManager.Instance.GetTokenBySymbol(symbol, out token);
+                            AccountManager.Instance.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
 
                             var total = UnitConversion.ToDecimal(amount, token.decimals);
 
@@ -211,7 +211,7 @@ namespace Poltergeist
                             var nftNumber = GetStringArg(entry, 3);
 
                             Token priceToken;
-                            AccountManager.Instance.GetTokenBySymbol(priceSymbol, out priceToken);
+                            AccountManager.Instance.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
 
                             var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
 
