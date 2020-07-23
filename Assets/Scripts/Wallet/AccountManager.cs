@@ -211,6 +211,8 @@ namespace Poltergeist
 
         private bool _accountInitialized;
 
+        private string etherscanAPIToken;
+
         private void Awake()
         {
             Instance = this;
@@ -222,6 +224,20 @@ namespace Poltergeist
             _currencyMap["EUR"] = "€";
             _currencyMap["GBP"] = "£";
             _currencyMap["YEN"] = "¥";
+
+            var ethereumAPIKeys = Resources.Load<TextAsset>("ethereum_api");
+            if (ethereumAPIKeys != null)
+            {
+                var lines = ethereumAPIKeys.text.Split('\n');
+                if (lines.Length > 0)
+                {
+                    etherscanAPIToken = lines[0].Trim();
+                }
+            }
+            if (string.IsNullOrEmpty(etherscanAPIToken))
+            {
+                Log.WriteWarning("No Etherscan API key found, Ethereum balances wont work!");
+            }
 
             var platforms = new List<PlatformKind>();
             platforms.Add(PlatformKind.Phantasma);
@@ -1805,6 +1821,48 @@ namespace Poltergeist
                         }
                         break;
 
+                    case PlatformKind.Ethereum:
+                        {
+                            var keys = EthereumKey.FromWIF(account.WIF);
+                            var url = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
+
+                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            {
+                                ReportWalletHistory(platform, null);
+                            },
+                            (response) =>
+                            {
+                                var alreadyAddedHashes = new List<string>(); // This code copied from Neoscan which sends some transactions twice, should filter them.
+
+                                var history = new List<HistoryEntry>();
+
+                                if (response != null)
+                                {
+                                    var entries = response.GetNode("result");
+                                    foreach (var entry in entries.Children)
+                                    {
+                                        var hash = entry.GetString("hash");
+                                        if (alreadyAddedHashes.Contains(hash) == false)
+                                        {
+                                            var time = entry.GetUInt32("timeStamp");
+
+                                            history.Add(new HistoryEntry()
+                                            {
+                                                hash = hash,
+                                                date = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(time).ToLocalTime(),
+                                                url = GetEtherscanTransactionURL(hash),
+                                            });
+
+                                            alreadyAddedHashes.Add(hash);
+                                        }
+                                    }
+                                }
+
+                                ReportWalletHistory(platform, history);
+                            }));
+                        }
+                        break;
+
                     default:
                         ReportWalletHistory(platform, null);
                         break;
@@ -1830,6 +1888,26 @@ namespace Poltergeist
                 }
                 callback(null, msg);
             }));
+        }
+
+        private string GetEtherscanTransactionURL(string hash)
+        {
+            if (string.IsNullOrEmpty(etherscanAPIToken))
+            {
+                return null;
+            }
+
+            return $"https://etherscan.io/tx/{hash}";
+        }
+
+        private string GetEtherscanAPIUrl(string request)
+        {
+            if (string.IsNullOrEmpty(etherscanAPIToken))
+            {
+                return null;
+            }
+
+            return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
         }
 
         private string GetNeoscanTransactionURL(string hash)
