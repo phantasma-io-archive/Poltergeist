@@ -1490,75 +1490,83 @@ namespace Poltergeist
                         {
                             var keys = EthereumKey.FromWIF(account.WIF);
 
-                            if (GetTokenBySymbol("ETH", PlatformKind.Ethereum, out var token))
+                            var ethTokens = SupportedTokens.Where(x => x.platform.ToUpper() == PlatformKind.Ethereum.ToString().ToUpper());
+                            var balances = new List<Balance>();
+
+                            Action onLoadFinish = new Action(() =>
                             {
-                                StartCoroutine(ethereumApi.GetBalance(keys.Address, token.symbol, token.decimals, (balance) =>
+                                RequestPendings(keys.Address, (swaps, error) =>
                                 {
-                                    var balances = new List<Balance>();
-                                    balances.Add(balance);
-
-                                    if (GetTokenBySymbol("SOUL", PlatformKind.Ethereum, out var soulToken))
+                                    var balanceMap = new Dictionary<string, Balance>();
+                                    foreach (var entry in balances)
                                     {
-                                        StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
-                                            soulToken.hash,
-                                            soulToken.symbol, soulToken.decimals, (balanceSoul) =>
-                                            {
-                                                balances.Add(balanceSoul);
+                                        if (entry.Symbol == null)
+                                            Log.Write("entry.Symbol is NULL");
+                                        balanceMap[entry.Symbol] = entry;
+                                    }
 
-                                                RequestPendings(keys.Address, (swaps, error) =>
-                                                {
-                                                    var balanceMap = new Dictionary<string, Balance>();
-                                                    foreach (var entry in balances)
-                                                    {
-                                                        if (entry.Symbol == null)
-                                                            Log.Write("entry.Symbol is NULL");
-                                                        balanceMap[entry.Symbol] = entry;
-                                                    }
-
-                                                    if (swaps != null)
-                                                    {
-                                                        MergeSwaps(PlatformKind.Ethereum, balanceMap, swaps);
-                                                    }
-                                                    else
-                                                    {
-                                                        Log.WriteWarning(error);
-                                                    }
-
-                                                    var state = new AccountState()
-                                                    {
-                                                        platform = platform,
-                                                        address = keys.Address,
-                                                        name = ValidationUtils.ANONYMOUS, // TODO support NNS
-                                                    balances = balanceMap.Values.ToArray(),
-                                                        flags = AccountFlags.None
-                                                    };
-                                                    ReportWalletBalance(platform, state);
-                                                });
-                                            },
-                                            (error, msg) =>
-                                            {
-                                                ReportWalletBalance(platform, null);
-                                            }));
+                                    if (swaps != null)
+                                    {
+                                        MergeSwaps(PlatformKind.Ethereum, balanceMap, swaps);
                                     }
                                     else
                                     {
-                                        ReportWalletBalance(platform, null);
+                                        Log.WriteWarning(error);
                                     }
-                                },
-                                (error, msg) =>
-                                {
-                                    ReportWalletBalance(platform, null);
-                                }));
-                            }
-                            else
+
+                                    var state = new AccountState()
+                                    {
+                                        platform = platform,
+                                        address = keys.Address,
+                                        name = ValidationUtils.ANONYMOUS, // TODO support NNS
+                                        balances = balanceMap.Values.ToArray(),
+                                        flags = AccountFlags.None
+                                    };
+                                    ReportWalletBalance(platform, state);
+                                });
+                            });
+
+                            foreach (var ethToken in ethTokens)
                             {
-                                ReportWalletBalance(platform, null);
+                                if (ethToken.symbol == "ETH")
+                                {
+                                    StartCoroutine(ethereumApi.GetBalance(keys.Address, ethToken.symbol, ethToken.decimals, (balance) =>
+                                    {
+                                        balances.Add(balance);
+
+                                        if (balances.Count() == ethTokens.Count())
+                                        {
+                                            onLoadFinish();
+                                        }
+                                    },
+                                    (error, msg) =>
+                                    {
+                                        ReportWalletBalance(platform, null);
+                                    }));
+                                }
+                                else
+                                {
+                                    StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
+                                        ethToken.hash,
+                                        ethToken.symbol, ethToken.decimals, (balanceSoul) =>
+                                    {
+                                        balances.Add(balanceSoul);
+
+                                        if (balances.Count() == ethTokens.Count())
+                                        {
+                                            onLoadFinish();
+                                        }
+                                    },
+                                    (error, msg) =>
+                                    {
+                                        ReportWalletBalance(platform, null);
+                                    }));
+                                }
                             }
                         }
                         break;
-                    
 
-                        default:
+                    default:
                         ReportWalletBalance(platform, null);
                         break;
                 }

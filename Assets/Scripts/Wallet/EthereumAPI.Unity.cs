@@ -51,7 +51,10 @@ namespace Phantasma.SDK
 
             yield return WebClient.RPCRequestEx(Host, "eth_call", errorHandlingCallback, (node) => {
                 var availableHex = node.Value;
-                var available = BigInteger.FromHex(availableHex.Substring(2));
+                BigInteger available = 0;
+                if (!String.IsNullOrEmpty(availableHex) && availableHex != "0x")
+                    available = BigInteger.FromHex(availableHex.Substring(2));
+
                 Log.Write("available:" + available);
                 var balance = new Poltergeist.Balance()
                 {
