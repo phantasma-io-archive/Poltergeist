@@ -1075,6 +1075,26 @@ namespace Poltergeist
             _accountInitialized = false;
 
             var platforms = CurrentAccount.platforms.Split();
+
+            // We should add Ethereum platform to old accounts.
+            if (!platforms.Contains(PlatformKind.Ethereum))
+            {
+                Accounts[_selectedAccountIndex].platforms |= PlatformKind.Ethereum;
+
+                _states[PlatformKind.Ethereum] = new AccountState()
+                {
+                    platform = PlatformKind.Ethereum,
+                    address = GetAddress(CurrentIndex, PlatformKind.Ethereum),
+                    balances = new Balance[0],
+                    flags = AccountFlags.None,
+                    name = ValidationUtils.ANONYMOUS,
+                };
+
+                SaveAccounts();
+
+                platforms.Add(PlatformKind.Ethereum);
+            }
+
             CurrentPlatform = platforms.FirstOrDefault();
             _states.Clear();
         }
