@@ -220,9 +220,12 @@ namespace Poltergeist
 
             Status = "Initializing wallet...";
 
-            _currencyMap["USD"] = "$";
+            _currencyMap["AUD"] = "A$";
+            _currencyMap["CAD"] = "C$";
             _currencyMap["EUR"] = "€";
-            _currencyMap["GBP"] = "£";
+            _currencyMap["GBP"] = "?";
+            _currencyMap["RUB"] = "\u20BD";
+            _currencyMap["USD"] = "$";
             _currencyMap["YEN"] = "¥";
 
             var ethereumAPIKeys = Resources.Load<TextAsset>("ethereum_api");
