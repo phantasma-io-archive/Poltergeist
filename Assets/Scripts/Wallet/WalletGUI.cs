@@ -2297,6 +2297,14 @@ namespace Poltergeist
             if (cameraError)
             {
                 DrawCenteredText("Failed to initialize camera...");
+                DoBackButton();
+                return;
+            }
+
+            if (WebCamTexture.devices.Count() == 0)
+            {
+                DrawCenteredText("Camera not found...");
+                DoBackButton();
                 return;
             }
 
