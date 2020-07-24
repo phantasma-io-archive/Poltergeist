@@ -80,6 +80,9 @@ public class ComboBox
         var buttonContent = caption == null ? listContent[selectedItemIndex] : new GUIContent(caption);
         if (GUI.Button(rect, buttonContent, buttonStyle))
         {
+            if (isClickedComboButton)
+                done = true;
+
             if (useControlID == -1)
             {
                 useControlID = controlID;
