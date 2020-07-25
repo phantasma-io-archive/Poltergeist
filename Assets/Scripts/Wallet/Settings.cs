@@ -49,6 +49,13 @@ namespace Poltergeist
         public const string NexusKindTag = "settings.nexus.kind";
         public const string CurrencyTag = "settings.currency";
         public const string GasPriceTag = "settings.fee.price";
+
+        public const string EthereumRPCTag = "settings.ethereum.rpc.url";
+        public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
+        public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
+        public const string EthereumTokenTransferGasLimitTag = "settings.ethereum.token.transfer.gas.limit";
+        public const string EthereumContractGasLimitTag = "settings.ethereum.contract.gas.limit";
+
         public const string SFXTag = "settings.sfx";
 
         public const string LogLevelTag = "log.level";
@@ -66,6 +73,11 @@ namespace Poltergeist
         public string nexusName;
         public string currency;
         public BigInteger feePrice;
+        public string ethereumRPCURL;
+        public BigInteger ethereumGasPriceGwei;
+        public BigInteger ethereumTransferGasLimit;
+        public BigInteger ethereumTokenTransferGasLimit;
+        public BigInteger ethereumContractGasLimit;
         public NexusKind nexusKind;
         public bool sfx;
         public Log.Level logLevel;
@@ -112,6 +124,25 @@ namespace Poltergeist
                 this.feePrice = 100000;
             }
 
+            // Ethereum
+            this.ethereumRPCURL = PlayerPrefs.GetString(EthereumRPCTag, GetDefaultValue(EthereumRPCTag));
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumGasPriceGweiTag, "100"), out ethereumGasPriceGwei))
+            {
+                this.ethereumGasPriceGwei = 100;
+            }
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumTransferGasLimitTag, "21000"), out ethereumTransferGasLimit))
+            {
+                this.ethereumTransferGasLimit = 21000;
+            }
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumTokenTransferGasLimitTag, "100000"), out ethereumTokenTransferGasLimit))
+            {
+                this.ethereumTokenTransferGasLimit = 100000;
+            }
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumContractGasLimitTag, "200000"), out ethereumContractGasLimit))
+            {
+                this.ethereumContractGasLimit = 200000;
+            }
+
             this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
 
             LoadLogSettings();
@@ -122,12 +153,17 @@ namespace Poltergeist
             Log.Write("Settings: Load: Nexus kind: " + this.nexusKind.ToString() + "\n" +
                       "                Phantasma BP: " + this.phantasmaBPURL + "\n" +
                       "                Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
+                      "                Fee price: " + this.feePrice + "\n" +
                       "                Neo RPC: " + this.neoRPCURL + "\n" +
                       "                Neoscan: " + this.neoscanURL + "\n" +
+                      "                Ethereum RPC: " + this.ethereumRPCURL + "\n" +
+                      "                Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
+                      "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
+                      "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
+                      "                Ethereum contract gas limit: " + this.ethereumContractGasLimit + "\n" +
                       "                Nexus name: " + this.nexusName + "\n" +
                       "                Currency: " + this.currency + "\n" +
                       "                Sfx: " + this.sfx + "\n" +
-                      "                Fee price: " + this.feePrice + "\n" +
                       "                UI theme: " + this.uiThemeName + "\n" +
                       "                Log level: " + this.logLevel + "\n" +
                       "                Log overwrite: " + this.logOverwriteMode + "\n" +
@@ -200,7 +236,26 @@ namespace Poltergeist
                             }
                     }
                     break;
-                    
+
+                case EthereumRPCTag:
+                    switch (nexusKind)
+                    {
+                        /*case NexusKind.Main_Net:
+                            {
+                                string _return_value = "";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
+                                return _return_value;
+                            }*/
+
+                        default:
+                            {
+                                string _return_value = "http://13.91.228.58:7545";
+                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
+                                return _return_value;
+                            }
+                    }
+                    break;
+
                 case NeoscanAPITag:
                     switch (nexusKind)
                     {
@@ -249,11 +304,19 @@ namespace Poltergeist
             PlayerPrefs.SetString(NexusKindTag, nexusKind.ToString());
             //PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
+            PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
+
             PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
             PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
+
+            PlayerPrefs.SetString(EthereumRPCTag, this.ethereumRPCURL);
+            PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
+            PlayerPrefs.SetString(EthereumTransferGasLimitTag, this.ethereumTransferGasLimit.ToString());
+            PlayerPrefs.SetString(EthereumTokenTransferGasLimitTag, this.ethereumTokenTransferGasLimit.ToString());
+            PlayerPrefs.SetString(EthereumContractGasLimitTag, this.ethereumContractGasLimit.ToString());
+
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
             PlayerPrefs.SetString(CurrencyTag, this.currency);
-            PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
             PlayerPrefs.SetString(UiThemeNameTag, this.uiThemeName);
             PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
@@ -262,12 +325,17 @@ namespace Poltergeist
 
             Log.Write("Settings: Save: Nexus kind: " + nexusKind.ToString() + "\n" +
                       "                Phantasma BP: " + phantasmaBPURL + "\n" +
+                      "                Fee price: " + feePrice + "\n" +
                       "                Neo RPC: " + neoRPCURL + "\n" +
                       "                Neoscan: " + neoscanURL + "\n" +
+                      "                Ethereum RPC: " + ethereumRPCURL + "\n" +
+                      "                Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag + "\n" +
+                      "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
+                      "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
+                      "                Ethereum contract gas limit: " + this.ethereumContractGasLimit + "\n" +
                       "                Nexus name: " + nexusName + "\n" +
                       "                Currency: " + currency + "\n" +
                       "                Sfx: " + sfx + "\n" +
-                      "                Fee price: " + feePrice + "\n" +
                       "                UI Theme: " + uiThemeName + "\n" +
                       "                Log level: " + logLevel.ToString() + "\n" +
                       "                Log overwrite: " + logOverwriteMode
@@ -293,6 +361,7 @@ namespace Poltergeist
             this.phantasmaBPURL = this.GetDefaultValue(PhantasmaBPTag);
             this.neoRPCURL = this.GetDefaultValue(NeoRPCTag);
             this.neoscanURL = this.GetDefaultValue(NeoscanAPITag);
+            this.ethereumRPCURL = this.GetDefaultValue(EthereumRPCTag);
 
             if (restoreName)
             {
@@ -303,6 +372,7 @@ namespace Poltergeist
                       "                             Phantasma BP: " + this.phantasmaBPURL + "\n" +
                       "                             Neo RPC: " + this.neoRPCURL + "\n" +
                       "                             Neoscan: " + this.neoscanURL + "\n" +
+                      "                             Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                       "                             Nexus name: " + this.nexusName,
                       Log.Level.Debug1);
         }

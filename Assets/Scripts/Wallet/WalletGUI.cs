@@ -1876,10 +1876,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 14 elements with total height of (element height + spacing) * 14 = Units(3) * 14.
+            // 1) 19 elements with total height of (element height + spacing) * 19 = Units(3) * 19.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 14 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 19 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1964,6 +1964,10 @@ namespace Poltergeist
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neoscan API URL");
                 settings.neoscanURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoscanURL);
                 curY += Units(3);
+
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Ethereum RPC URL");
+                settings.ethereumRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumRPCURL);
+                curY += Units(3);
             }
             else
             {
@@ -1979,11 +1983,33 @@ namespace Poltergeist
 
             if (hasCustomFee)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Fee price");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma fee price");
                 var fee = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.feePrice.ToString());
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
+
+            // Ethereum fees, should be editable in all modes.
+            
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth gas price (Gwei)");
+            var ethereumGasPriceGwei = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumGasPriceGwei.ToString());
+            BigInteger.TryParse(ethereumGasPriceGwei, out settings.ethereumGasPriceGwei);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth transfer gas limit");
+            var ethereumTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumTransferGasLimit.ToString());
+            BigInteger.TryParse(ethereumTransactionGasLimit, out settings.ethereumTransferGasLimit);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth token tr. gas limit");
+            var ethereumTokenTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumTokenTransferGasLimit.ToString());
+            BigInteger.TryParse(ethereumTokenTransactionGasLimit, out settings.ethereumTokenTransferGasLimit);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth contract gas limit");
+            var ethereumContractGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumContractGasLimit.ToString());
+            BigInteger.TryParse(ethereumContractGasLimit, out settings.ethereumContractGasLimit);
+            curY += Units(3);
 
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Log level");
             logLevelIndex = logLevelComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);

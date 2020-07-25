@@ -963,8 +963,8 @@ namespace Poltergeist
                                                 {
                                                     var signedTxBytes = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
                                                         new BigInteger(transfer.amount.ToString(), 10) * BigInteger.Pow(10, 18), // Convert to WEI
-                                                        new BigInteger(10000000000000),
-                                                        new BigInteger(2100000));
+                                                        Settings.ethereumGasPriceGwei,
+                                                        Settings.ethereumTransferGasLimit);
 
                                                     var hexTx = "0x" + Base16.Encode(signedTxBytes);
                                                     StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
@@ -987,8 +987,8 @@ namespace Poltergeist
                                                     var amount = (new BigInteger(transfer.amount.ToString(), 10) * BigInteger.Pow(10, 8)).ToHex().PadLeft(64, '0');
                                                     var signedTxBytes = ethereumApi.SignTransaction(keys, nonce, "0x3115858229FA1D0097Be947439Fef4Ac48c7D26E",
                                                         new BigInteger(0), // Ammount of ETH to be transfered (0)
-                                                        new BigInteger(10000000000000),
-                                                        new BigInteger(2100000),
+                                                        Settings.ethereumGasPriceGwei,
+                                                        Settings.ethereumTokenTransferGasLimit,
                                                         transferMethodHash + to + amount);
 
                                                     var hexTx = "0x" + Base16.Encode(signedTxBytes);
