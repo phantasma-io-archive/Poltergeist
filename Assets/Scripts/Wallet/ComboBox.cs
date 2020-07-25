@@ -77,21 +77,12 @@ public class ComboBox
         bool done = false;
         int controlID = GUIUtility.GetControlID(FocusType.Passive);
 
-        switch (Event.current.GetTypeForControl(controlID))
-        {
-            case EventType.MouseUp:
-                {
-                    if (isClickedComboButton)
-                    {
-                        done = true;
-                    }
-                }
-                break;
-        }
-
         var buttonContent = caption == null ? listContent[selectedItemIndex] : new GUIContent(caption);
         if (GUI.Button(rect, buttonContent, buttonStyle))
         {
+            if (isClickedComboButton)
+                done = true;
+
             if (useControlID == -1)
             {
                 useControlID = controlID;
@@ -136,6 +127,7 @@ public class ComboBox
             if (newSelectedItemIndex != selectedItemIndex)
             {
                 selectedItemIndex = newSelectedItemIndex;
+                done = true;
             }
 
             if (needsScroll)

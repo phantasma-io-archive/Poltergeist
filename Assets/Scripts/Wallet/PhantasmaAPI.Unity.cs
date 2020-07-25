@@ -386,7 +386,7 @@ namespace Phantasma.SDK
 		}
 	}
 	
-	public struct Token 
+	public class Token 
 	{
 		public string symbol; //
 		public string cryptoCompareSymbol; // CryptoCompare symbols may differ, example - "GOST" for "SOUL".
@@ -397,10 +397,11 @@ namespace Phantasma.SDK
 		public string platform; //
 		public string hash; //
 		public string flags; //
+		public decimal price;
 	   
 		public static Token FromNode(DataNode node) 
 		{
-			Token result;
+			Token result = new Token();
 						
 			result.symbol = node.GetString("symbol");
 			result.cryptoCompareSymbol = node.GetString("cryptoCompareSymbol");
@@ -411,6 +412,7 @@ namespace Phantasma.SDK
 			result.platform = node.GetString("platform");						
 			result.hash = node.GetString("hash");						
 			result.flags = node.GetString("flags");
+			result.price = 0;
 
 			return result;			
 		}

@@ -125,14 +125,17 @@ namespace Poltergeist
         // Update is called once per frame
         void Update()
         {
-            foreach (var socket in _activeWebsockets)
+            lock (_activeWebsockets)
             {
-                if (socket.State == WebSocketState.Open && socket.NeedsPing)
+                foreach (var socket in _activeWebsockets)
                 {
-                    var diff = DateTime.UtcNow - socket.LastPingPong;
-                    if (diff.TotalMilliseconds >= socket.KeepAliveInterval)
+                    if (socket.State == WebSocketState.Open && socket.NeedsPing)
                     {
-                        socket.SendPing();
+                        var diff = DateTime.UtcNow - socket.LastPingPong;
+                        if (diff.TotalMilliseconds >= socket.KeepAliveInterval)
+                        {
+                            socket.SendPing();
+                        }
                     }
                 }
             }

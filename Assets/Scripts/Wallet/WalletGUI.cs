@@ -18,6 +18,7 @@ using ZXing.QrCode;
 using System.Globalization;
 using Phantasma.Core.Types;
 using Tetrochain;
+using System.Collections;
 
 namespace Poltergeist
 {
@@ -685,6 +686,13 @@ namespace Poltergeist
         }
         #endregion
 
+        // This code is needed for Android to quit wallet on 'Back' double press.
+        int escClickCounter = 0;
+        IEnumerator escClickTime()
+        {
+            yield return new WaitForSeconds(0.5f);
+            escClickCounter = 0;
+        }
         private void Update()
         {
             /*if (Input.GetKeyDown(KeyCode.Z))
@@ -692,6 +700,18 @@ namespace Poltergeist
                 AccountState state = null;
                 state.address += "";
             }*/
+
+            // This code is needed for Android to quit wallet on 'Back' double press.
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                escClickCounter++;
+                StartCoroutine(escClickTime());
+
+                if (escClickCounter > 1 && Application.platform == RuntimePlatform.Android)
+                {
+                    Application.Quit();
+                }
+            }
 
             UpdatePrompt();
 
@@ -1876,10 +1896,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 14 elements with total height of (element height + spacing) * 14 = Units(3) * 14.
+            // 1) 19 elements with total height of (element height + spacing) * 19 = Units(3) * 19.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 14 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 19 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -1964,6 +1984,10 @@ namespace Poltergeist
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neoscan API URL");
                 settings.neoscanURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoscanURL);
                 curY += Units(3);
+
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Ethereum RPC URL");
+                settings.ethereumRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumRPCURL);
+                curY += Units(3);
             }
             else
             {
@@ -1979,11 +2003,33 @@ namespace Poltergeist
 
             if (hasCustomFee)
             {
-                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Fee price");
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma fee price");
                 var fee = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.feePrice.ToString());
                 BigInteger.TryParse(fee, out settings.feePrice);
                 curY += Units(3);
             }
+
+            // Ethereum fees, should be editable in all modes.
+            
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth gas price (Gwei)");
+            var ethereumGasPriceGwei = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumGasPriceGwei.ToString());
+            BigInteger.TryParse(ethereumGasPriceGwei, out settings.ethereumGasPriceGwei);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth transfer gas limit");
+            var ethereumTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumTransferGasLimit.ToString());
+            BigInteger.TryParse(ethereumTransactionGasLimit, out settings.ethereumTransferGasLimit);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth token tr. gas limit");
+            var ethereumTokenTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumTokenTransferGasLimit.ToString());
+            BigInteger.TryParse(ethereumTokenTransactionGasLimit, out settings.ethereumTokenTransferGasLimit);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth contract gas limit");
+            var ethereumContractGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumContractGasLimit.ToString());
+            BigInteger.TryParse(ethereumContractGasLimit, out settings.ethereumContractGasLimit);
+            curY += Units(3);
 
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Log level");
             logLevelIndex = logLevelComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);
@@ -2297,6 +2343,14 @@ namespace Poltergeist
             if (cameraError)
             {
                 DrawCenteredText("Failed to initialize camera...");
+                DoBackButton();
+                return;
+            }
+
+            if (WebCamTexture.devices.Count() == 0)
+            {
+                DrawCenteredText("Camera not found...");
+                DoBackButton();
                 return;
             }
 
@@ -2852,7 +2906,7 @@ namespace Poltergeist
                  var transferName = $"{transferSymbol} transfer";
                  Phantasma.SDK.Token transferToken;
 
-                 accountManager.GetTokenBySymbol(transferSymbol, out transferToken);
+                 accountManager.GetTokenBySymbol(transferSymbol, accountManager.CurrentPlatform, out transferToken);
 
                  if (string.IsNullOrEmpty(transferToken.flags))
                  {
@@ -2888,7 +2942,9 @@ namespace Poltergeist
                      if (result == PromptResult.Failure)
                      {
                          return; // user canceled
-                    }
+                     }
+
+                     var nethereumAddressUtil = new Nethereum.Util.AddressUtil();
 
                      if (Address.IsValidAddress(destAddress))
                      {
@@ -2912,6 +2968,23 @@ namespace Poltergeist
                          if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                          {
                              ContinueSwap(PlatformKind.Neo, transferName, transferSymbol, destAddress);
+                         }
+                         else
+                         {
+                             MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
+                         }
+                     }
+                     else
+                     if (nethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress))
+                     {
+                         if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+                         {
+                             ContinueEthTransfer(transferName, transferSymbol, destAddress);
+                         }
+                         else
+                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                         {
+                             ContinueSwap(PlatformKind.Ethereum, transferName, transferSymbol, destAddress);
                          }
                          else
                          {
@@ -3698,7 +3771,7 @@ namespace Poltergeist
                 var transferName = $"{transferSymbol} transfer";
                 Phantasma.SDK.Token transferToken;
 
-                accountManager.GetTokenBySymbol(transferSymbol, out transferToken);
+                accountManager.GetTokenBySymbol(transferSymbol, accountManager.CurrentPlatform, out transferToken);
 
                 if (string.IsNullOrEmpty(transferToken.flags))
                 {
@@ -3801,8 +3874,39 @@ namespace Poltergeist
                 }
 
                 var estimatedFee = usedGas * accountManager.Settings.feePrice;
-                var feeDecimals = accountManager.GetTokenDecimals("KCAL");
+                var feeDecimals = accountManager.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
                 description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
+            }
+            else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+            {
+                BigInteger usedGas;
+
+                var transfer = Serialization.Unserialize<TransferRequest>(script);
+                if (transfer.platform == PlatformKind.Ethereum)
+                {
+                    if (transfer.symbol == "ETH")
+                    {
+                        // Eth transfer.
+                        usedGas = accountManager.Settings.ethereumTransferGasLimit;
+                    }
+                    else
+                    {
+                        if (accountManager.SearchInteropMapForAddress(PlatformKind.Ethereum) == transfer.destination)
+                        {
+                            // It's a swap.
+                            usedGas = accountManager.Settings.ethereumContractGasLimit;
+                        }
+                        else
+                        {
+                            // Simple token transfer.
+                            usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
+                        }
+                    }
+
+                    var estimatedFee = usedGas * accountManager.Settings.ethereumGasPriceGwei;
+                    var feeDecimals = accountManager.GetTokenDecimals("ETH", accountManager.CurrentPlatform);
+                    description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} ETH"; // 9 because we convert from Gwei, not Wei
+                }
             }
 
             RequestPassword(description, accountManager.CurrentPlatform, (auth) =>
@@ -3905,7 +4009,7 @@ namespace Poltergeist
 
                         try
                         {
-                            var decimals = accountManager.GetTokenDecimals(symbol);
+                            var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                             var gasPrice = accountManager.Settings.feePrice;
 
@@ -3980,7 +4084,7 @@ namespace Poltergeist
                     {
                         description = $"Transfer {symbol} NFTs\n";
 
-                        var decimals = accountManager.GetTokenDecimals(symbol);
+                        var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                         var gasPrice = accountManager.Settings.feePrice;
 
@@ -4045,7 +4149,7 @@ namespace Poltergeist
 
         private bool ValidDecimals(decimal amount, string symbol)
         {
-            var decimals = AccountManager.Instance.GetTokenDecimals(symbol);
+            var decimals = AccountManager.Instance.GetTokenDecimals(symbol, AccountManager.Instance.CurrentPlatform);
 
             if (decimals > 0)
             {
@@ -4158,6 +4262,56 @@ namespace Poltergeist
             });
         }
 
+        private void ContinueEthTransfer(string transferName, string symbol, string destAddress)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Ethereum)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Ethereum);
+                return;
+            }
+
+            var sourceAddress = accountManager.GetAddress(accountManager.CurrentIndex, accountManager.CurrentPlatform);
+
+            if (sourceAddress == destAddress)
+            {
+                MessageBox(MessageKind.Error, $"Source and destination address must be different!");
+                return;
+            }
+
+            var ethBalance = accountManager.CurrentState.GetAvailableAmount("ETH");
+            if (ethBalance <= 0)
+            {
+                MessageBox(MessageKind.Error, $"You will need at least a drop of ETH in this wallet to make a transaction.");
+                return;
+            }
+
+            var balance = state.GetAvailableAmount(symbol);
+            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
+            {
+                var transfer = new TransferRequest()
+                {
+                    platform = PlatformKind.Ethereum,
+                    amount = amount,
+                    symbol = symbol,
+                    key = accountManager.CurrentAccount.WIF,
+                    destination = destAddress
+                };
+
+                byte[] script = Serialization.Serialize(transfer);
+
+                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                {
+                    if (hash != Hash.Null)
+                    {
+                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                    }
+                });
+            });
+        }
+
         private void ContinueSwap(PlatformKind destPlatform, string transferName, string symbol, string destination)
         {
             var accountManager = AccountManager.Instance;
@@ -4172,6 +4326,8 @@ namespace Poltergeist
             }
 
             var feeSymbol = "GAS";
+            if (accountManager.CurrentPlatform == PlatformKind.Ethereum || destPlatform == PlatformKind.Ethereum)
+                feeSymbol = "ETH";
 
             var min = 0.001m;
             RequestFee(symbol, feeSymbol, min, (gasResult) =>
@@ -4194,7 +4350,9 @@ namespace Poltergeist
                             case PlatformKind.Neo:
                                 destAddress = AccountManager.EncodeNeoAddress(destination);
                                 break;
-
+                            case PlatformKind.Ethereum:
+                                destAddress = AccountManager.EncodeEthereumAddress(destination);
+                                break;
                             default:
                                 MessageBox(MessageKind.Error, $"Swaps to {destPlatform} are not possible yet.");
                                 break;
@@ -4210,7 +4368,7 @@ namespace Poltergeist
 
                                 try
                                 {
-                                    var decimals = accountManager.GetTokenDecimals(symbol);
+                                    var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                                     var gasPrice = accountManager.Settings.feePrice;
 
@@ -4326,7 +4484,7 @@ namespace Poltergeist
                 return;
             }
 
-            var swapDecimals = accountManager.GetTokenDecimals(swapSymbol);
+            var swapDecimals = accountManager.GetTokenDecimals(swapSymbol, accountManager.CurrentPlatform);
             decimal swapBalance = state.GetAvailableAmount(swapSymbol);
 
             if (swapDecimals> 0 || swapBalance > 1)
@@ -4344,7 +4502,7 @@ namespace Poltergeist
 
                                  var gasPrice = accountManager.Settings.feePrice;
 
-                                 var decimals = accountManager.GetTokenDecimals(feeSymbol);
+                                 var decimals = accountManager.GetTokenDecimals(feeSymbol, accountManager.CurrentPlatform);
 
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")
