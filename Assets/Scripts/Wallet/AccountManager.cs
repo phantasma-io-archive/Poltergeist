@@ -961,12 +961,11 @@ namespace Poltergeist
                                                 StartCoroutine(ethereumApi.GetNonce(keys.Address,
                                                 (nonce) =>
                                                 {
-                                                    var signedTxBytes = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
+                                                    var hexTx = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
                                                         new BigInteger(transfer.amount.ToString(), 10) * BigInteger.Pow(10, 18), // Convert to WEI
                                                         Settings.ethereumGasPriceGwei,
                                                         Settings.ethereumTransferGasLimit);
 
-                                                    var hexTx = "0x" + Base16.Encode(signedTxBytes);
                                                     StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
                                                     {
                                                         callback(Hash.Null, msg);
@@ -977,30 +976,35 @@ namespace Poltergeist
                                                     throw new Exception("Failure: " + msg);
                                                 }));
                                             }
-                                            else if (transfer.symbol == "SOUL")
+                                            else
                                             {
-                                                StartCoroutine(ethereumApi.GetNonce(keys.Address,
-                                                (nonce) =>
+                                                if (GetTokenBySymbol(transfer.symbol, PlatformKind.Ethereum, out Token ethToken))
                                                 {
-                                                    var transferMethodHash = "a9059cbb";
-                                                    var to = transfer.destination.Substring(2).PadLeft(64, '0');
-                                                    var amount = (new BigInteger(transfer.amount.ToString(), 10) * BigInteger.Pow(10, 8)).ToHex().PadLeft(64, '0');
-                                                    var signedTxBytes = ethereumApi.SignTransaction(keys, nonce, "0x3115858229FA1D0097Be947439Fef4Ac48c7D26E",
-                                                        new BigInteger(0), // Ammount of ETH to be transfered (0)
-                                                        Settings.ethereumGasPriceGwei,
-                                                        Settings.ethereumTokenTransferGasLimit,
-                                                        transferMethodHash + to + amount);
-
-                                                    var hexTx = "0x" + Base16.Encode(signedTxBytes);
-                                                    StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                    StartCoroutine(ethereumApi.GetNonce(keys.Address,
+                                                    (nonce) =>
                                                     {
-                                                        callback(Hash.Null, msg);
+                                                        var hexTx = ethereumApi.SignTokenTransaction(keys, nonce,
+                                                            ethToken.hash,
+                                                            ethToken.decimals,
+                                                            transfer.destination,
+                                                            new BigInteger(transfer.amount.ToString(), 10),
+                                                            Settings.ethereumGasPriceGwei,
+                                                            Settings.ethereumTokenTransferGasLimit);
+
+                                                        StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                        {
+                                                            callback(Hash.Null, msg);
+                                                        }));
+                                                    },
+                                                    (error, msg) =>
+                                                    {
+                                                        throw new Exception("Failure: " + msg);
                                                     }));
-                                                },
-                                                (error, msg) =>
+                                                }
+                                                else
                                                 {
-                                                    throw new Exception("Failure: " + msg);
-                                                }));
+                                                    throw new Exception($"Token {transfer.symbol} not supported");
+                                                }
                                             }
 
                                             break;

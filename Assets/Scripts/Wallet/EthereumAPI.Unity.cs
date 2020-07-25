@@ -84,7 +84,7 @@ namespace Phantasma.SDK
                 callback(nonce);
             }, addressText, "latest");
         }
-        public byte[] SignTransaction(EthereumKey keys, int nonce, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit, string data = null)
+        public string SignTransaction(EthereumKey keys, int nonce, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit, string data = null)
         {
             var realAmount = System.Numerics.BigInteger.Parse(amount.ToString());
 
@@ -98,7 +98,27 @@ namespace Phantasma.SDK
 
             var encoded = tx.GetRLPEncoded();
 
-            return encoded;
+            return "0x" + Base16.Encode(encoded);
+        }
+        public string SignTokenTransaction(EthereumKey keys, int nonce, string tokenContract, int tokenDecimals, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit)
+        {
+            var transferMethodHash = "a9059cbb";
+            var to = receiveAddress.Substring(2).PadLeft(64, '0');
+            var amountHex = (amount * BigInteger.Pow(10, tokenDecimals)).ToHex().PadLeft(64, '0');
+
+            //Create a transaction from scratch
+            var tx = new Nethereum.Signer.Transaction(tokenContract,
+                0, // Ammount of ETH to be transfered (0)
+                nonce,
+                System.Numerics.BigInteger.Parse(gasPrice.ToString()),
+                System.Numerics.BigInteger.Parse(gasLimit.ToString()),
+                transferMethodHash + to + amountHex);
+
+            tx.Sign(new EthECKey(keys.PrivateKey, true));
+
+            var encoded = tx.GetRLPEncoded();
+
+            return "0x" + Base16.Encode(encoded);
         }
         public IEnumerator SendRawTransaction(string hexTx, Action<Hash, string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
