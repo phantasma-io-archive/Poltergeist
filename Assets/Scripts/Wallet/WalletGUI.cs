@@ -3857,6 +3857,37 @@ namespace Poltergeist
                 var feeDecimals = accountManager.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
                 description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
             }
+            else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+            {
+                BigInteger usedGas;
+
+                var transfer = Serialization.Unserialize<TransferRequest>(script);
+                if (transfer.platform == PlatformKind.Ethereum)
+                {
+                    if (transfer.symbol == "ETH")
+                    {
+                        // Eth transfer.
+                        usedGas = accountManager.Settings.ethereumTransferGasLimit;
+                    }
+                    else
+                    {
+                        if (accountManager.SearchInteropMapForAddress(PlatformKind.Ethereum) == transfer.destination)
+                        {
+                            // It's a swap.
+                            usedGas = accountManager.Settings.ethereumContractGasLimit;
+                        }
+                        else
+                        {
+                            // Simple token transfer.
+                            usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
+                        }
+                    }
+
+                    var estimatedFee = usedGas * accountManager.Settings.ethereumGasPriceGwei;
+                    var feeDecimals = accountManager.GetTokenDecimals("ETH", accountManager.CurrentPlatform);
+                    description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} ETH"; // 9 because we convert from Gwei, not Wei
+                }
+            }
 
             RequestPassword(description, accountManager.CurrentPlatform, (auth) =>
             {

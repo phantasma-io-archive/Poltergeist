@@ -984,7 +984,7 @@ namespace Poltergeist
                                                     (nonce) =>
                                                     {
                                                         var gasLimit = Settings.ethereumTokenTransferGasLimit;
-                                                        if (_interopMap.ContainsKey(PlatformKind.Ethereum) && _interopMap[PlatformKind.Ethereum] == transfer.destination)
+                                                        if (SearchInteropMapForAddress(PlatformKind.Ethereum) == transfer.destination)
                                                         {
                                                             // For swaps use contract gas limit
                                                             gasLimit = Settings.ethereumContractGasLimit;
@@ -2085,6 +2085,16 @@ namespace Poltergeist
                 }
                 callback(null);
             }));
+        }
+
+        public string SearchInteropMapForAddress(PlatformKind platform)
+        {
+            if (_interopMap.ContainsKey(platform))
+            {
+                return _interopMap[platform];
+            }
+
+            return null;
         }
 
         internal void SettleSwap(string sourcePlatform, string destPlatform, string pendingHash, Action<Hash, string> callback)
