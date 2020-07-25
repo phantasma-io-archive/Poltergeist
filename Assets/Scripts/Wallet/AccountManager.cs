@@ -983,13 +983,20 @@ namespace Poltergeist
                                                     StartCoroutine(ethereumApi.GetNonce(keys.Address,
                                                     (nonce) =>
                                                     {
+                                                        var gasLimit = Settings.ethereumTokenTransferGasLimit;
+                                                        if (_interopMap.ContainsKey(PlatformKind.Ethereum) && _interopMap[PlatformKind.Ethereum] == transfer.destination)
+                                                        {
+                                                            // For swaps use contract gas limit
+                                                            gasLimit = Settings.ethereumContractGasLimit;
+                                                        }
+
                                                         var hexTx = ethereumApi.SignTokenTransaction(keys, nonce,
                                                             ethToken.hash,
                                                             ethToken.decimals,
                                                             transfer.destination,
                                                             new BigInteger(transfer.amount.ToString(), 10),
                                                             Settings.ethereumGasPriceGwei,
-                                                            Settings.ethereumTokenTransferGasLimit);
+                                                            gasLimit);
 
                                                         StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
                                                         {
