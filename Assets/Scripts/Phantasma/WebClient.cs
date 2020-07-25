@@ -64,7 +64,18 @@ namespace Phantasma.SDK
             else
             {
                 Log.Write($"RPC response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
-                var root = JSONReader.ReadFromString(request.downloadHandler.text);
+                DataNode root = null;
+
+                try
+                {
+                    root = JSONReader.ReadFromString(request.downloadHandler.text);
+                }
+                catch (Exception e)
+                {
+                    Log.Write("RPC response\nurl: {url}\nFailed to parse JSON: " + e.Message, Log.Level.Networking);
+                    if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, "Failed to parse JSON: " + e.Message);
+                    yield break;
+                }
 
                 if (root == null)
                 {
@@ -146,7 +157,18 @@ namespace Phantasma.SDK
             else
             {
                 Log.Write($"RPC response\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
-                var root = JSONReader.ReadFromString(request.downloadHandler.text);
+                DataNode root = null;
+
+                try
+                {
+                    root = JSONReader.ReadFromString(request.downloadHandler.text);
+                }
+                catch(Exception e)
+                {
+                    Log.Write("RPC response\nurl: {url}\nFailed to parse JSON: " + e.Message, Log.Level.Networking);
+                    if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, "Failed to parse JSON: " + e.Message);
+                    yield break;
+                }
 
                 if (root == null)
                 {
