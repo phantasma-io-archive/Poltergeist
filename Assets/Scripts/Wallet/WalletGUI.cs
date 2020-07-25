@@ -18,6 +18,7 @@ using ZXing.QrCode;
 using System.Globalization;
 using Phantasma.Core.Types;
 using Tetrochain;
+using System.Collections;
 
 namespace Poltergeist
 {
@@ -685,6 +686,13 @@ namespace Poltergeist
         }
         #endregion
 
+        // This code is needed for Android to quit wallet on 'Back' double press.
+        int escClickCounter = 0;
+        IEnumerator escClickTime()
+        {
+            yield return new WaitForSeconds(0.5f);
+            escClickCounter = 0;
+        }
         private void Update()
         {
             /*if (Input.GetKeyDown(KeyCode.Z))
@@ -692,6 +700,18 @@ namespace Poltergeist
                 AccountState state = null;
                 state.address += "";
             }*/
+
+            // This code is needed for Android to quit wallet on 'Back' double press.
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                escClickCounter++;
+                StartCoroutine(escClickTime());
+
+                if (escClickCounter > 1 && Application.platform == RuntimePlatform.Android)
+                {
+                    Application.Quit();
+                }
+            }
 
             UpdatePrompt();
 
