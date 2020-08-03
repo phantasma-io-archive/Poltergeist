@@ -700,7 +700,8 @@ namespace Poltergeist
                 new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = Hash.FromString("ETH").ToString(), decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
                 new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "6b175474e89094c44da98b954eedeac495271d0f", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
                 new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "dac17f958d2ee523a2206206994597c13d831ec7", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags },
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "3115858229FA1D0097Be947439Fef4Ac48c7D26E", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags }
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "4c2AF2fB374B988363deb535Bf0fF2D1Eb7b2106", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "", platform = "ethereum", hash = "a9858F0E2037C18dD6a0b4Bc082d41B0536D47E2", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags }
             };
 
             CurrentTokenCurrency = "";
