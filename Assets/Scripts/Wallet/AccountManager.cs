@@ -962,7 +962,7 @@ namespace Poltergeist
                                                 (nonce) =>
                                                 {
                                                     var hexTx = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
-                                                        new BigInteger(transfer.amount.ToString(), 10) * BigInteger.Pow(10, 18), // Convert to WEI
+                                                        UnitConversion.ToBigInteger(transfer.amount, 18), // Convert to WEI
                                                         Settings.ethereumGasPriceGwei,
                                                         Settings.ethereumTransferGasLimit);
 
@@ -992,9 +992,8 @@ namespace Poltergeist
 
                                                         var hexTx = ethereumApi.SignTokenTransaction(keys, nonce,
                                                             ethToken.hash,
-                                                            ethToken.decimals,
                                                             transfer.destination,
-                                                            new BigInteger(transfer.amount.ToString(), 10),
+                                                            UnitConversion.ToBigInteger(transfer.amount, ethToken.decimals),
                                                             Settings.ethereumGasPriceGwei,
                                                             gasLimit);
 
