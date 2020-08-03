@@ -379,6 +379,7 @@ namespace Poltergeist
                 var url = $"https://ghostdevs.com/getpeers.json";
 
                 rpcBenchmarkedPhantasma = 0;
+                rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
 
                 StartCoroutine(
                     WebClient.RESTRequest(url, (error, msg) =>
@@ -403,7 +404,6 @@ namespace Poltergeist
                         UpdateAPIs();
 
                         // Benchmarking RPCs.
-                        rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
                         foreach (var node in response.Children)
                         {
                             var rpcUrl = node.GetString("url") + "/rpc";
@@ -428,14 +428,16 @@ namespace Poltergeist
 
                                         if (String.IsNullOrEmpty(bestRpcUrl))
                                         {
-                                            throw new Exception("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                                            Log.WriteWarning("All Phantasma RPC severs are unavailable. Please check your network connection.");
                                         }
-
-                                        Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                        Settings.phantasmaBPURL = bestRpcUrl;
-                                        Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
-                                        UpdateAPIs();
-                                        Settings.SaveOnExit();
+                                        else
+                                        {
+                                            Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                            Settings.phantasmaBPURL = bestRpcUrl;
+                                            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                                            UpdateAPIs();
+                                            Settings.SaveOnExit();
+                                        }
                                     }
                                 },
                                 (responseTime) =>
@@ -455,14 +457,16 @@ namespace Poltergeist
 
                                         if (String.IsNullOrEmpty(bestRpcUrl))
                                         {
-                                            throw new Exception("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                                            Log.WriteWarning("All Phantasma RPC severs are unavailable. Please check your network connection.");
                                         }
-
-                                        Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                        Settings.phantasmaBPURL = bestRpcUrl;
-                                        Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
-                                        UpdateAPIs();
-                                        Settings.SaveOnExit();
+                                        else
+                                        {
+                                            Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                            Settings.phantasmaBPURL = bestRpcUrl;
+                                            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                                            UpdateAPIs();
+                                            Settings.SaveOnExit();
+                                        }
                                     }
                                 })
                             );
@@ -473,6 +477,7 @@ namespace Poltergeist
             else if (platformKind == PlatformKind.Neo)
             {
                 rpcBenchmarkedNeo = 0;
+                rpcResponseTimesNeo = new List<RpcBenchmarkData>();
 
                 var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
                 rpcNumberNeo = neoRpcList.Count;
@@ -489,7 +494,6 @@ namespace Poltergeist
                 UpdateAPIs();
 
                 // Benchmarking RPCs.
-                rpcResponseTimesNeo = new List<RpcBenchmarkData>();
                 foreach (var rpcUrl in neoRpcList)
                 {
                     StartCoroutine(
@@ -512,13 +516,15 @@ namespace Poltergeist
 
                                 if (String.IsNullOrEmpty(bestRpcUrl))
                                 {
-                                    throw new Exception("All Neo RPC severs are unavailable. Please check your network connection.");
+                                    Log.WriteWarning("All Neo RPC severs are unavailable. Please check your network connection.");
                                 }
-
-                                Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                Settings.neoRPCURL = bestRpcUrl;
-                                UpdateAPIs();
-                                Settings.SaveOnExit();
+                                else
+                                {
+                                    Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                    Settings.neoRPCURL = bestRpcUrl;
+                                    UpdateAPIs();
+                                    Settings.SaveOnExit();
+                                }
                             }
                         },
                         (responseTime) =>
@@ -538,13 +544,15 @@ namespace Poltergeist
 
                                 if (String.IsNullOrEmpty(bestRpcUrl))
                                 {
-                                    throw new Exception("All Neo RPC severs are unavailable. Please check your network connection.");
+                                    Log.WriteWarning("All Neo RPC severs are unavailable. Please check your network connection.");
                                 }
-
-                                Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                Settings.neoRPCURL = bestRpcUrl;
-                                UpdateAPIs();
-                                Settings.SaveOnExit();
+                                else
+                                {
+                                    Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                    Settings.neoRPCURL = bestRpcUrl;
+                                    UpdateAPIs();
+                                    Settings.SaveOnExit();
+                                }
                             }
                         })
                     );
@@ -567,7 +575,9 @@ namespace Poltergeist
                 Log.Write($"Changing faulty Phantasma RPC {Settings.phantasmaRPCURL}.");
 
                 // Marking faulty RPC.
-                rpcResponseTimesPhantasma.Find(x => x.Url == Settings.phantasmaRPCURL).ConnectionError = true;
+                var currentRpc = rpcResponseTimesPhantasma.Find(x => x.Url == Settings.phantasmaRPCURL);
+                if (currentRpc != null)
+                    currentRpc.ConnectionError = true;
 
                 // Switching to working RPC.
                 TimeSpan bestTime;
@@ -575,13 +585,15 @@ namespace Poltergeist
 
                 if (String.IsNullOrEmpty(bestRpcUrl))
                 {
-                    throw new Exception("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                    Log.WriteWarning("All Phantasma RPC severs are unavailable. Please check your network connection.");
                 }
-
-                Log.Write($"Next fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                Settings.phantasmaBPURL = bestRpcUrl;
-                Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
-                UpdateAPIs();
+                else
+                {
+                    Log.Write($"Next fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                    Settings.phantasmaBPURL = bestRpcUrl;
+                    Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                    UpdateAPIs();
+                }
             }
             else if (platformKind == PlatformKind.Neo)
             {
@@ -590,7 +602,9 @@ namespace Poltergeist
                 Log.Write($"Changing faulty Neo RPC {Settings.neoRPCURL}.");
 
                 // Marking faulty RPC.
-                rpcResponseTimesNeo.Find(x => x.Url == Settings.neoRPCURL).ConnectionError = true;
+                var currentRpc = rpcResponseTimesNeo.Find(x => x.Url == Settings.neoRPCURL);
+                if (currentRpc != null)
+                    currentRpc.ConnectionError = true;
 
                 // Switching to working RPC.
                 TimeSpan bestTime;
@@ -598,12 +612,14 @@ namespace Poltergeist
 
                 if (String.IsNullOrEmpty(bestRpcUrl))
                 {
-                    throw new Exception("All Neo RPC severs are unavailable. Please check your network connection.");
+                    Log.WriteWarning("All Neo RPC severs are unavailable. Please check your network connection.");
                 }
-
-                Log.Write($"Next fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                Settings.neoRPCURL = bestRpcUrl;
-                UpdateAPIs();
+                else
+                {
+                    Log.Write($"Next fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                    Settings.neoRPCURL = bestRpcUrl;
+                    UpdateAPIs();
+                }
             }
         }
 
