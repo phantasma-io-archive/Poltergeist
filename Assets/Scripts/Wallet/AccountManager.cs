@@ -742,7 +742,7 @@ namespace Poltergeist
         {
             Log.Write("reinit APIs => " + Settings.phantasmaRPCURL);
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
-            ethereumApi = new EthereumAPI("http://13.91.228.58:7545");
+            ethereumApi = new EthereumAPI(Settings.ethereumRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
         }
 
