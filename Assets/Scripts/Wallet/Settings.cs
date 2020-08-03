@@ -222,8 +222,9 @@ namespace Poltergeist
                     {
                         case NexusKind.Main_Net:
                             {
-                                int index = (int)(DateTime.UtcNow.Ticks % 8)+1;
-                                string _return_value = $"https://seed{index}.cityofzion.io:443";
+                                var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
+                                int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
+                                string _return_value = neoRpcList[index];
                                 Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.Level.Debug2);
                                 return _return_value;
                             }

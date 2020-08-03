@@ -474,18 +474,14 @@ namespace Poltergeist
             {
                 rpcBenchmarkedNeo = 0;
 
-                rpcNumberNeo = 8;
-                var rpcListNeo = new List<string>();
-                for (var i = 1; i <= rpcNumberNeo; i++)
-                {
-                    rpcListNeo.Add($"https://seed{i}.cityofzion.io:443");
-                }
+                var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
+                rpcNumberNeo = neoRpcList.Count;
 
                 if (String.IsNullOrEmpty(Settings.neoRPCURL))
                 {
                     // If we have no previously used RPC, we select random one at first.
                     var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberNeo;
-                    var result = rpcListNeo[index];
+                    var result = neoRpcList[index];
                     Settings.neoRPCURL = result;
                     Log.Write($"Changed Neo RPC url {index} => {result}");
                 }
@@ -494,7 +490,7 @@ namespace Poltergeist
 
                 // Benchmarking RPCs.
                 rpcResponseTimesNeo = new List<RpcBenchmarkData>();
-                foreach (var rpcUrl in rpcListNeo)
+                foreach (var rpcUrl in neoRpcList)
                 {
                     StartCoroutine(
                         WebClient.Ping(rpcUrl, (error, msg) =>
