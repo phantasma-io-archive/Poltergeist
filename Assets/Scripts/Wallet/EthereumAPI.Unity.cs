@@ -55,7 +55,6 @@ namespace Phantasma.SDK
                 if (!String.IsNullOrEmpty(availableHex) && availableHex != "0x")
                     available = BigInteger.FromHex(availableHex.Substring(2));
 
-                Log.Write("available:" + available);
                 var balance = new Poltergeist.Balance()
                 {
                     Symbol = tokenSymbol,
@@ -100,11 +99,11 @@ namespace Phantasma.SDK
 
             return "0x" + Base16.Encode(encoded);
         }
-        public string SignTokenTransaction(EthereumKey keys, int nonce, string tokenContract, int tokenDecimals, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit)
+        public string SignTokenTransaction(EthereumKey keys, int nonce, string tokenContract, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit)
         {
             var transferMethodHash = "a9059cbb";
             var to = receiveAddress.Substring(2).PadLeft(64, '0');
-            var amountHex = (amount * BigInteger.Pow(10, tokenDecimals)).ToHex().PadLeft(64, '0');
+            var amountHex = amount.ToHex().PadLeft(64, '0');
 
             //Create a transaction from scratch
             var tx = new Nethereum.Signer.Transaction(tokenContract,
