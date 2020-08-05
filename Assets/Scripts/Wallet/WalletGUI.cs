@@ -2144,6 +2144,10 @@ namespace Poltergeist
                     mainToken = "NEO";
                     break;
 
+                case PlatformKind.Ethereum:
+                    mainToken = "ETH";
+                    break;
+
                 default:
                     mainToken = null;
                     break;
