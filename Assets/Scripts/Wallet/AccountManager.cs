@@ -86,16 +86,25 @@ namespace Poltergeist
                 return kind;
             }
 
+            PlatformKind targets;
+
             switch (kind)
             {
                 case PlatformKind.Phantasma:
-                    return PlatformKind.Phantasma | PlatformKind.Neo | PlatformKind.Ethereum;
+                    targets = PlatformKind.Phantasma;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Neo.ToString().ToUpper()) ? PlatformKind.Neo : PlatformKind.None;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Ethereum.ToString().ToUpper()) ? PlatformKind.Ethereum : PlatformKind.None;
+                    return targets;
 
                 case PlatformKind.Neo:
-                    return PlatformKind.Phantasma | PlatformKind.Neo;
+                    targets = PlatformKind.Neo;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Phantasma.ToString().ToUpper()) ? PlatformKind.Phantasma : PlatformKind.None;
+                    return targets;
 
                 case PlatformKind.Ethereum:
-                    return PlatformKind.Phantasma | PlatformKind.Ethereum;
+                    targets = PlatformKind.Ethereum;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Phantasma.ToString().ToUpper()) ? PlatformKind.Phantasma : PlatformKind.None;
+                    return targets;
 
                 default:
                     return PlatformKind.None;
@@ -163,7 +172,7 @@ namespace Poltergeist
 
         public Account[] Accounts { get; private set; }
 
-        private List<Token> SupportedTokens = null;
+        public static List<Token> SupportedTokens = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
         public string CurrentTokenCurrency { get; private set; }
 
@@ -662,7 +671,7 @@ namespace Poltergeist
             var nftFlags = TokenFlags.Transferable.ToString();
             SupportedTokens = new List<Token>() {
                 new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Divisible.ToString() },
+                new Token() { symbol = "KCAL", apiSymbol = "", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = DomainSettings.PlatformName, hash = "", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
                 new Token() { symbol = "GAS", apiSymbol = "gas", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
 
