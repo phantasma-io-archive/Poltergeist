@@ -1026,7 +1026,7 @@ namespace Poltergeist
                     style.fontSize -= 6;
                     var temp = style.alignment;
                     style.alignment = TextAnchor.MiddleCenter;
-                    GUI.Label(new Rect(0, (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? curY + Units(1) - 4 : curY + Units(1), windowRect.width, Units(2)), $"Version was built at: {Poltergeist.Build.Info.Instance.BuildTime} UTC");
+                    GUI.Label(new Rect(0, (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? curY + Units(1) - 4 : curY + Units(1), windowRect.width, Units(2)), $"Version was built on: {Poltergeist.Build.Info.Instance.BuildTime} UTC");
                     style.alignment = temp;
                     style.fontSize += 6;
                 }
