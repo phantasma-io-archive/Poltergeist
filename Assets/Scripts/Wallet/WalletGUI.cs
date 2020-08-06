@@ -19,6 +19,7 @@ using System.Globalization;
 using Phantasma.Core.Types;
 using Tetrochain;
 using System.Collections;
+using Phantasma.Ethereum;
 
 namespace Poltergeist
 {
@@ -511,6 +512,7 @@ namespace Poltergeist
         private string[] ModalCopyOk = new string[] { "Ok", "Copy to clipboard" };
         private string[] ModalConfirmCancel = new string[] { "Confirm" , "Cancel"};
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
+        private string[] ModalPkWif = new string[] { "HEX format", "WIF format" };
 
         private string[] modalOptions;
         private int modalConfirmDelay;
@@ -3425,8 +3427,20 @@ namespace Poltergeist
                     case 0:
                         {
                             AudioManager.Instance.PlaySFX("click");
-                            GUIUtility.systemCopyBuffer = accountManager.CurrentAccount.WIF;
-                            MessageBox(MessageKind.Default, "WIF copied to the clipboard.");
+                            ShowModal("Private key export", $"Copy private key in Wallet Import Format (WIF) or in HEX format to the clipboard", ModalState.Message, 3, 16, ModalPkWif, 1, (result, name) =>
+                            {
+                                if (result == PromptResult.Success)
+                                {
+                                    var keys = EthereumKey.FromWIF(accountManager.CurrentAccount.WIF);
+                                    GUIUtility.systemCopyBuffer = Nethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
+                                    MessageBox(MessageKind.Default, "Private key (HEX format) copied to the clipboard.");
+                                }
+                                else
+                                {
+                                    GUIUtility.systemCopyBuffer = accountManager.CurrentAccount.WIF;
+                                    MessageBox(MessageKind.Default, "Private key (WIF format) copied to the clipboard.");
+                                }
+                            });
                             break;
                         }
 
@@ -3606,7 +3620,7 @@ namespace Poltergeist
             GUI.DrawTexture(dropRect, ResourceManager.Instance.Dropshadow);
         }
 
-        private string[] accountMenu = new string[] { "Export WIF", "Setup Name", "Migrate", "Delete Account" };
+        private string[] accountMenu = new string[] { "Export Private Key", "Setup Name", "Migrate", "Delete Account" };
         private GUIState[] bottomMenu = new GUIState[] { GUIState.Balances, GUIState.History, GUIState.Account, GUIState.Exit };
 
         private int DoBottomMenu()
