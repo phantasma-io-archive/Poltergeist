@@ -679,9 +679,9 @@ namespace Poltergeist
                 new Token() { symbol = "TTRS", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "1000000", name = "22series", flags = nftFlags },
                 new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "1000000", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
 
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = "neo", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
                 new Token() { symbol = "GAS", apiSymbol = "gas", platform = "neo", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
                 new Token() { symbol = "SWTH", apiSymbol = "switcheo", platform = "neo", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = extFlags },
                 new Token() { symbol = "NEX", apiSymbol = "neon-exchange", platform = "neo", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = extFlags },
                 new Token() { symbol = "PKC", apiSymbol = "", platform = "neo", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = extFlags },
@@ -1469,6 +1469,8 @@ namespace Poltergeist
                             },
                             (response) =>
                             {
+                                var neoTokens = SupportedTokens.Where(x => x.platform.ToUpper() == PlatformKind.Neo.ToString().ToUpper());
+
                                 var balances = new List<Balance>();
 
                                 var balance = response.GetNode("balance");
@@ -1501,9 +1503,12 @@ namespace Poltergeist
                                 RequestPendings(keys.Address, (swaps, error) =>
                                 {
                                     var balanceMap = new Dictionary<string, Balance>();
-                                    foreach (var entry in balances)
+
+                                    foreach (var neoToken in neoTokens)
                                     {
-                                        balanceMap[entry.Symbol] = entry;
+                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
+                                        if (tokenBalance != null)
+                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
                                     }
 
                                     if (swaps != null)
