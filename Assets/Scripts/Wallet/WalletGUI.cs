@@ -20,6 +20,8 @@ using Phantasma.Core.Types;
 using Tetrochain;
 using System.Collections;
 using Phantasma.Ethereum;
+using System.Threading;
+using Phantasma.Neo.Core;
 
 namespace Poltergeist
 {
@@ -2847,7 +2849,94 @@ namespace Poltergeist
                                 secondaryEnabled = balance.Claimable > 0;
                                 secondaryCallback = () =>
                                 {
-                                    MessageBox(MessageKind.Error, "Not supported yet...");
+                                    PromptBox($"Do you want to claim GAS?\nThere is {balance.Claimable} GAS available.", ModalYesNo, (result) =>
+                                    {
+                                        if (result == PromptResult.Success)
+                                        {
+                                            var claimGas = new Action<NeoKeys, List<UnspentEntry>, decimal, bool>((neoKeys, claimableTransactions, claimableGasAmount, fullyClaimable) =>
+                                            {
+                                                // We get fresh unspents for claim transaction.
+                                                StartCoroutine(accountManager.neoApi.GetUnspent(neoKeys.Address, (unspent) =>
+                                                {
+                                                    // Claiming GAS finally.
+                                                    StartCoroutine(accountManager.neoApi.ClaimGas(unspent, neoKeys, claimableTransactions, claimableGasAmount, (tx, error) =>
+                                                    {
+                                                        PopState();
+                                                        MessageBox(MessageKind.Success, $"You claimed {claimableGasAmount} GAS{(fullyClaimable ? "" : ". Not all GAS was claimed, please try later")}!\nTransaction hash: {tx.Hash}");
+                                                    }));
+                                                }));
+                                            });
+
+                                            var keys = NeoKeys.FromWIF(accountManager.CurrentAccount.WIF);
+
+                                            PushState(GUIState.Sending);
+
+                                            // Getting currenly available claimable transactions and count them.
+                                            StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimableOriginal, amountOriginal) =>
+                                            {
+                                                // Getting unspents, needed for sending NEO to yourself.
+                                                StartCoroutine(accountManager.neoApi.GetUnspent(keys.Address, (unspent) =>
+                                                {
+                                                    // Sending NEO to yourself - needed for claimable transactions update,
+                                                    // to claim all generated GAS.
+                                                    StartCoroutine(accountManager.neoApi.SendAsset((tx, error) =>
+                                                    {
+                                                        // Waiting for 2 seconds before checking if new claimable appeared in this list.
+                                                        Thread.Sleep(2000);
+                                                        StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimable, amount) =>
+                                                        {
+                                                            // Checking if our new transaction appeared in claimables.
+                                                            if (claimable.Count() > claimableOriginal.Count())
+                                                            {
+                                                                claimGas(keys, claimable, amount, true);
+                                                            }
+                                                            else
+                                                            {
+                                                                // We should wait more.
+                                                                Log.Write("GAS claim: Claimable list not updated yet (1)...");
+                                                                Thread.Sleep(4000);
+                                                                StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimable2, amount2) =>
+                                                                {
+                                                                    // Checking if our new transaction appeared in claimables.
+                                                                    if (claimable2.Count() > claimableOriginal.Count())
+                                                                    {
+                                                                        claimGas(keys, claimable2, amount2, true);
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        // We should wait more.
+                                                                        Log.Write("GAS claim: Claimable list not updated yet (2)...");
+                                                                        Thread.Sleep(10000);
+                                                                        StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimable3, amount3) =>
+                                                                        {
+                                                                            // Checking if our new transaction appeared in claimables.
+                                                                            if (claimable3.Count() > claimableOriginal.Count())
+                                                                            {
+                                                                                claimGas(keys, claimable3, amount3, true);
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                // Claiming what we can (not all).
+                                                                                if (claimable3.Count() > 0)
+                                                                                {
+                                                                                    claimGas(keys, claimable3, amount3, false);
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    PopState();
+                                                                                    MessageBox(MessageKind.Success, $"Cannot claim GAS, please try later.");
+                                                                                }
+                                                                            }
+                                                                        }));
+                                                                    }
+                                                                }));
+                                                            }
+                                                        }));
+                                                    }, unspent, keys, keys.Address, "NEO", state.GetAvailableAmount("NEO"), null, true));
+                                                }));
+                                            }));
+                                        }
+                                    });
                                 };
                             }
                             break;

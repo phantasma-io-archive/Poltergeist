@@ -446,7 +446,7 @@ namespace Phantasma.Neo.Core
 
         private Dictionary<string, Transaction> lastTransactions = new Dictionary<string, Transaction>();
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             var from_script_hash = new UInt160(key.signatureHash.ToArray());
             var info = GetAssetsInfo();
@@ -456,10 +456,10 @@ namespace Phantasma.Neo.Core
                     if (t.assetID == null)
                         t.assetID = targetAssetID;
             //else Console.WriteLine("ASSETID target already existed: " + symbol);
-            GenerateInputsOutputs(unspent, from_script_hash, targets, out inputs, out outputs, system_fee);
+            GenerateInputsOutputs(unspent, from_script_hash, targets, out inputs, out outputs, system_fee, allowSameSourceAndDest);
         }
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             var info = GetAssetsInfo();
             var targetAssetID = NeoUtils.ReverseHex(info[symbol]).HexToBytes();
@@ -468,16 +468,16 @@ namespace Phantasma.Neo.Core
                     if (t.assetID == null)
                         t.assetID = targetAssetID;
             // else  Console.WriteLine("ASSETID target already existed: " + symbol);
-            GenerateInputsOutputs(unspent, key, targets, out inputs, out outputs, system_fee);
+            GenerateInputsOutputs(unspent, key, targets, out inputs, out outputs, system_fee, allowSameSourceAndDest);
         }
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             var from_script_hash = new UInt160(key.signatureHash.ToArray());
             GenerateInputsOutputs(unspent, from_script_hash, targets, out inputs, out outputs, system_fee);
         }
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 from_script_hash, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 from_script_hash, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             // filter any asset lists with zero unspent inputs
             var entries = unspent.entries.Where(pair => pair.Value.Count > 0).ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -516,9 +516,10 @@ namespace Phantasma.Neo.Core
                 return;
             }
 
-            foreach (var target in targets)
-                if (target.scriptHash.Equals(from_script_hash))
-                    throw new NeoException("Target can't be same as input");
+            if(!allowSameSourceAndDest)
+                foreach (var target in targets)
+                    if (target.scriptHash.Equals(from_script_hash))
+                        throw new NeoException("Target can't be same as input");
 
             bool done_fee = false;
             foreach (var asset in info)
@@ -648,9 +649,9 @@ namespace Phantasma.Neo.Core
             return GetTransaction(val, callback);
         }
 
-        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string toAddress, string symbol, decimal amount, string interop)
+        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string toAddress, string symbol, decimal amount, string interop, bool allowSameSourceAndDest = false)
         {
-            if (String.Equals(fromKey.Address, toAddress, StringComparison.OrdinalIgnoreCase))
+            if (!allowSameSourceAndDest && String.Equals(fromKey.Address, toAddress, StringComparison.OrdinalIgnoreCase))
             {
                 throw new NeoException("Source and dest addresses are the same");
             }
@@ -658,15 +659,15 @@ namespace Phantasma.Neo.Core
             var toScriptHash = toAddress.GetScriptHashFromAddress();
             var target = new Transaction.Output() { scriptHash = new UInt160(toScriptHash), value = amount };
             var targets = new List<Transaction.Output>() { target };
-            return SendAsset(callback, unspent, fromKey, symbol, targets, interop);
+            return SendAsset(callback, unspent, fromKey, symbol, targets, interop, allowSameSourceAndDest);
         }
 
-        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string symbol, IEnumerable<Transaction.Output> targets, string interop)
+        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string symbol, IEnumerable<Transaction.Output> targets, string interop, bool allowSameSourceAndDest = false)
         {
             List<Transaction.Input> inputs;
             List<Transaction.Output> outputs;
 
-            GenerateInputsOutputs(unspent, fromKey, symbol, targets, out inputs, out outputs);
+            GenerateInputsOutputs(unspent, fromKey, symbol, targets, out inputs, out outputs, 0, allowSameSourceAndDest);
 
             Transaction tx = new Transaction()
             {
@@ -887,9 +888,9 @@ namespace Phantasma.Neo.Core
         }
 
         // Note: This current implementation requires NeoScan running at port 4000
-        public IEnumerator GetClaimable(UInt160 hash, Action<List<UnspentEntry>, decimal> callback)
+        public IEnumerator GetClaimable(string address, Action<List<UnspentEntry>, decimal> callback)
         {
-            var url = this.neoscanUrl + "/api/main_net/v1/get_claimable/" + hash.ToAddress();
+            var url = this.neoscanUrl + "/api/main_net/v1/get_claimable/" + address;
             return ExecuteRequestWeb(
                 (response) =>
                 {
@@ -908,6 +909,20 @@ namespace Phantasma.Neo.Core
                         result.Add(new UnspentEntry() { hash = new UInt256(NeoUtils.ReverseHex(txid).HexToBytes()), index = index, value = value });
                     }
 
+                    callback(result, amount);
+                }
+                , ErrorHandler, url);
+        }
+
+        public IEnumerator GetUnclaimed(string address, Action<decimal> callback)
+        {
+            var url = this.neoscanUrl + "/api/main_net/v1/get_unclaimed/" + address;
+            return ExecuteRequestWeb(
+                (response) =>
+                {
+                    var amount = response.GetDecimal("unclaimed");
+
+                    callback(amount);
                 }
                 , ErrorHandler, url);
         }

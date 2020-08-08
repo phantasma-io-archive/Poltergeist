@@ -203,7 +203,7 @@ namespace Poltergeist
 
         public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
         public Phantasma.SDK.EthereumAPI ethereumApi { get; private set; }
-        private Phantasma.Neo.Core.NeoAPI neoApi;
+        public Phantasma.Neo.Core.NeoAPI neoApi;
 
         public static PlatformKind[] AvailablePlatforms { get; private set; }
 
@@ -1500,36 +1500,47 @@ namespace Poltergeist
                                     }
                                 }
 
-                                RequestPendings(keys.Address, (swaps, error) =>
+                                StartCoroutine(neoApi.GetUnclaimed(keys.Address, (amount) =>
                                 {
-                                    var balanceMap = new Dictionary<string, Balance>();
+                                    RequestPendings(keys.Address, (swaps, error) =>
+                                    {
+                                        var balanceMap = new Dictionary<string, Balance>();
 
-                                    foreach (var neoToken in neoTokens)
-                                    {
-                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
-                                        if (tokenBalance != null)
-                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
-                                    }
+                                        foreach (var neoToken in neoTokens)
+                                        {
+                                            var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
 
-                                    if (swaps != null)
-                                    {
-                                        MergeSwaps(PlatformKind.Neo, balanceMap, swaps);
-                                    }
-                                    else
-                                    {
-                                        Log.WriteWarning(error);
-                                    }
+                                            if (tokenBalance != null)
+                                            {
+                                                balanceMap[tokenBalance.Symbol] = tokenBalance;
 
-                                    var state = new AccountState()
-                                    {
-                                        platform = platform,
-                                        address = keys.Address,
-                                        name = ValidationUtils.ANONYMOUS, // TODO support NNS
-                                        balances = balanceMap.Values.ToArray(),
-                                        flags = AccountFlags.None
-                                    };
-                                    ReportWalletBalance(platform, state);
-                                });
+                                                if (tokenBalance.Symbol.ToUpper() == "GAS")
+                                                {
+                                                    tokenBalance.Claimable += amount;
+                                                }
+                                            }
+                                        }
+
+                                        if (swaps != null)
+                                        {
+                                            MergeSwaps(PlatformKind.Neo, balanceMap, swaps);
+                                        }
+                                        else
+                                        {
+                                            Log.WriteWarning(error);
+                                        }
+
+                                        var state = new AccountState()
+                                        {
+                                            platform = platform,
+                                            address = keys.Address,
+                                            name = ValidationUtils.ANONYMOUS, // TODO support NNS
+                                            balances = balanceMap.Values.ToArray(),
+                                            flags = AccountFlags.None
+                                        };
+                                        ReportWalletBalance(platform, state);
+                                    });
+                                }));
 
                             }));
                         }
