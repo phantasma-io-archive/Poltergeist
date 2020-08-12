@@ -4326,7 +4326,7 @@ namespace Poltergeist
                 }
             });
 
-            modalHints = new Dictionary<string, string>() { { $"Max ({max} {symbol})", max.ToString() } };
+            modalHints = new Dictionary<string, string>() { { $"Max ({max:0.##} {symbol})", max.ToString() } };
         }
 
         private void ContinueNeoTransfer(string transferName, string symbol, string destAddress)
