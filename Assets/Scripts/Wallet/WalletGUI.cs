@@ -143,7 +143,9 @@ namespace Poltergeist
         private Dictionary<PlatformKind, Texture2D> QRCodeTextures = new Dictionary<PlatformKind, Texture2D>();
 
         public const string WalletTitle = "Poltergeist Wallet";
-        public const string MoneyFormat = "0.####";
+        public const string MoneyFormat = "#,0.####";
+        public const string MoneyFormatShort = "#,0.##";
+        public const string MoneyFormatLong = "#,0.############";
 
         public int Border => Units(1);
         public int HalfBorder => Border/2;
@@ -4151,11 +4153,11 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
+                        SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
                         {
                             if (hash != Hash.Null)
                             {
-                                MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
+                                MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash);
                             }
                         });
                     }
@@ -4240,7 +4242,7 @@ namespace Poltergeist
                     {
                         if (hash != Hash.Null)
                         {
-                            MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash);
+                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash);
 
                             // Removing sent NFTs from current NFT list.
                             var nfts = accountManager.CurrentNfts;
@@ -4281,7 +4283,7 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
-            var caption = $"Enter {symbol} amount:\nMax: {max} {symbol}";
+            var caption = $"Enter {symbol} amount:\nMax: {max.ToString(MoneyFormatLong)} {symbol}";
             if (symbol == "GAS" && accountManager.CurrentPlatform == PlatformKind.Phantasma && destination == null)
             {
                 caption += "\nWarning: Swapping back consumes GAS (around 0.1) so if your GAS balance falls below that, swap back to NEO will fail.";
@@ -4326,7 +4328,7 @@ namespace Poltergeist
                 }
             });
 
-            modalHints = new Dictionary<string, string>() { { $"Max ({max:0.##} {symbol})", max.ToString() } };
+            modalHints = new Dictionary<string, string>() { { $"Max ({max.ToString(MoneyFormatShort)} {symbol})", max.ToString() } };
         }
 
         private void ContinueNeoTransfer(string transferName, string symbol, string destAddress)
@@ -4369,11 +4371,11 @@ namespace Poltergeist
 
                 byte[] script = Serialization.Serialize(transfer);
 
-                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
                 {
                     if (hash != Hash.Null)
                     {
-                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
                     }
                 });
             });
@@ -4419,11 +4421,11 @@ namespace Poltergeist
 
                 byte[] script = Serialization.Serialize(transfer);
 
-                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
                 {
                     if (hash != Hash.Null)
                     {
-                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
                     }
                 });
             });
@@ -4501,11 +4503,11 @@ namespace Poltergeist
                                     return;
                                 }
 
-                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
+                                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
-                                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash:\n" + hash, () =>
+                                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash, () =>
                                         {
                                             accountManager.RefreshBalances(false);
                                         });
@@ -4539,11 +4541,11 @@ namespace Poltergeist
 
                                 byte[] script = Serialization.Serialize(transfer);
 
-                                SendTransaction($"Transfer {amount} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
+                                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
-                                        MessageBox(MessageKind.Success, $"You transfered {amount} {symbol}!\nTransaction hash: " + hash);
+                                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
                                     }
                                 });
                             }
