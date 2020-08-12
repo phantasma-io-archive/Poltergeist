@@ -893,7 +893,7 @@ namespace Poltergeist
                                                         {
                                                             callback(Hash.Null, error);
                                                         }
-                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop)
+                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop, Settings.neoGasFee)
                                                     );
                                                 }
                                                 else
@@ -905,7 +905,7 @@ namespace Poltergeist
                                                         var amount = System.Numerics.BigInteger.Parse(UnitConversion.ToBigInteger(transfer.amount, token.decimals).ToString());
 
                                                         var nep5 = new NEP5(neoApi, token.hash);
-                                                        CoroutineUtils.StartThrowingCoroutine(this, nep5.Transfer(unspent, keys, transfer.destination, amount, transfer.interop,
+                                                        CoroutineUtils.StartThrowingCoroutine(this, nep5.Transfer(unspent, keys, transfer.destination, amount, transfer.interop, Settings.neoGasFee,
                                                         (tx, error) =>
                                                         {
                                                             if (tx != null)

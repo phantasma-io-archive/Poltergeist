@@ -1900,10 +1900,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 19 elements with total height of (element height + spacing) * 19 = Units(3) * 19.
+            // 1) 20 elements with total height of (element height + spacing) * 20 = Units(3) * 20.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 19 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 20 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -2013,8 +2013,14 @@ namespace Poltergeist
                 curY += Units(3);
             }
 
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neo GAS fee");
+            var neoGasFee = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoGasFee.ToString());
+            neoGasFee = neoGasFee.EndsWith(".") || neoGasFee.EndsWith(",") ? neoGasFee + "0" : neoGasFee;
+            Decimal.TryParse(neoGasFee, out settings.neoGasFee);
+            curY += Units(3);
+
             // Ethereum fees, should be editable in all modes.
-            
+
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth gas price (Gwei)");
             var ethereumGasPriceGwei = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumGasPriceGwei.ToString());
             BigInteger.TryParse(ethereumGasPriceGwei, out settings.ethereumGasPriceGwei);
@@ -2932,7 +2938,7 @@ namespace Poltergeist
                                                                 }));
                                                             }
                                                         }));
-                                                    }, unspent, keys, keys.Address, "NEO", state.GetAvailableAmount("NEO"), null, true));
+                                                    }, unspent, keys, keys.Address, "NEO", state.GetAvailableAmount("NEO"), null, 0, true));
                                                 }));
                                             }));
                                         }
@@ -3983,6 +3989,10 @@ namespace Poltergeist
                 var estimatedFee = usedGas * accountManager.Settings.feePrice;
                 var feeDecimals = accountManager.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
                 description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
+            }
+            else if (accountManager.CurrentPlatform == PlatformKind.Neo)
+            {
+                description += $"\nFee: {accountManager.Settings.neoGasFee} GAS";
             }
             else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
             {

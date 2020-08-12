@@ -50,6 +50,8 @@ namespace Poltergeist
         public const string CurrencyTag = "settings.currency";
         public const string GasPriceTag = "settings.fee.price";
 
+        public const string NeoGasFeeTag = "settings.neo.gas.fee";
+
         public const string EthereumRPCTag = "settings.ethereum.rpc.url";
         public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
         public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
@@ -73,6 +75,7 @@ namespace Poltergeist
         public string nexusName;
         public string currency;
         public BigInteger feePrice;
+        public decimal neoGasFee;
         public string ethereumRPCURL;
         public BigInteger ethereumGasPriceGwei;
         public BigInteger ethereumTransferGasLimit;
@@ -124,6 +127,11 @@ namespace Poltergeist
                 this.feePrice = 100000;
             }
 
+            if (!Decimal.TryParse(PlayerPrefs.GetString(NeoGasFeeTag, "0.001"), out neoGasFee))
+            {
+                this.neoGasFee = 0.001m;
+            }
+
             // Ethereum
             this.ethereumRPCURL = PlayerPrefs.GetString(EthereumRPCTag, GetDefaultValue(EthereumRPCTag));
             if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumGasPriceGweiTag, "100"), out ethereumGasPriceGwei))
@@ -156,6 +164,7 @@ namespace Poltergeist
                       "                Fee price: " + this.feePrice + "\n" +
                       "                Neo RPC: " + this.neoRPCURL + "\n" +
                       "                Neoscan: " + this.neoscanURL + "\n" +
+                      "                Neo GAS fee: " + this.neoGasFee + "\n" +
                       "                Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                       "                Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
@@ -306,6 +315,7 @@ namespace Poltergeist
             //PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
+            PlayerPrefs.SetString(NeoGasFeeTag, this.neoGasFee.ToString());
 
             PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
             PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
@@ -329,6 +339,7 @@ namespace Poltergeist
                       "                Fee price: " + feePrice + "\n" +
                       "                Neo RPC: " + neoRPCURL + "\n" +
                       "                Neoscan: " + neoscanURL + "\n" +
+                      "                Neo GAS fee: " + neoGasFee + "\n" +
                       "                Ethereum RPC: " + ethereumRPCURL + "\n" +
                       "                Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
