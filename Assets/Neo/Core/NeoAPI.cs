@@ -703,9 +703,7 @@ namespace Phantasma.Neo.Core
                 throw new ArgumentException("No GAS to claim at this address");
             }
 
-            List<Transaction.Input> inputs;
-            List<Transaction.Output> outputs;
-            GenerateInputsOutputs(unspent, ownerKey, "GAS", null, out inputs, out outputs);
+            List<Transaction.Output> outputs = new List<Transaction.Output>();
 
             outputs.Add(
             new Transaction.Output()
@@ -722,7 +720,7 @@ namespace Phantasma.Neo.Core
                 script = null,
                 gas = -1,
                 claimReferences = references.ToArray(),
-                inputs = inputs.ToArray(),
+                inputs = new Transaction.Input[0],
                 outputs = outputs.ToArray(),
             };
 

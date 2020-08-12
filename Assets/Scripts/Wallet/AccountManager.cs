@@ -1519,6 +1519,24 @@ namespace Poltergeist
                                                     tokenBalance.Claimable += amount;
                                                 }
                                             }
+                                            else
+                                            {
+                                                if (neoToken.symbol.ToUpper() == "GAS" && amount > 0)
+                                                {
+                                                    // We should show GAS even if its balance is 0
+                                                    // if there's some GAS to be claimed.
+                                                    balanceMap[neoToken.symbol] = new Balance()
+                                                    {
+                                                        Symbol = neoToken.symbol,
+                                                        Available = 0,
+                                                        Pending = 0,
+                                                        Claimable = amount,
+                                                        Staked = 0,
+                                                        Chain = "main",
+                                                        Decimals = neoToken.decimals
+                                                    };
+                                                }
+                                            }
                                         }
 
                                         if (swaps != null)
