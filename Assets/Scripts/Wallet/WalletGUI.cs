@@ -4431,7 +4431,19 @@ namespace Poltergeist
                     accountManager.Settings.ethereumGasPriceGwei = fee;
                     accountManager.Settings.SaveOnExit();
 
-                    var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumGasPriceGwei * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
+                    BigInteger usedGas;
+                    if (symbol == "ETH")
+                    {
+                        // Eth transfer.
+                        usedGas = accountManager.Settings.ethereumTransferGasLimit;
+                    }
+                    else
+                    {
+                        // Simple token transfer.
+                        usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
+                    }
+
+                    var decimalFee = UnitConversion.ToDecimal(usedGas * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
 
                     RequestFee(symbol, "ETH", decimalFee, (feeResult) =>
                     {
@@ -4609,7 +4621,7 @@ namespace Poltergeist
                         accountManager.Settings.ethereumGasPriceGwei = gasPrice;
                         accountManager.Settings.SaveOnExit();
 
-                        var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumGasPriceGwei * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
+                        var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumContractGasLimit * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
 
                         proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
                     }
