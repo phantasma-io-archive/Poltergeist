@@ -127,10 +127,17 @@ namespace Poltergeist
                 this.feePrice = 100000;
             }
 
-            if (!Decimal.TryParse(PlayerPrefs.GetString(NeoGasFeeTag, "0.001"), out neoGasFee))
+            // Doing it in a bit more complex way to avoid decimal parsing problem for different cultures.
+            var neoGasFeeString = PlayerPrefs.GetString(NeoGasFeeTag, null);
+            if (!String.IsNullOrEmpty(neoGasFeeString))
             {
-                this.neoGasFee = 0.001m;
+                if (!Decimal.TryParse(neoGasFeeString, out neoGasFee))
+                {
+                    this.neoGasFee = 0.001m;
+                }
             }
+            else
+                this.neoGasFee = 0.001m;
 
             // Ethereum
             this.ethereumRPCURL = PlayerPrefs.GetString(EthereumRPCTag, GetDefaultValue(EthereumRPCTag));
