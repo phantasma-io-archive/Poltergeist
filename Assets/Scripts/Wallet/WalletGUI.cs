@@ -3524,7 +3524,14 @@ namespace Poltergeist
                     case 0:
                         {
                             AudioManager.Instance.PlaySFX("click");
-                            ShowModal("Private key export", $"Copy private key in Wallet Import Format (WIF) or in HEX format to the clipboard", ModalState.Message, 3, 16, ModalPkWif, 1, (result, name) =>
+                            ShowModal("Private key export", $"Copy private key in Wallet Import Format (WIF) or in HEX format to the clipboard" +
+                                "\n\nWIF can be used to import wallet in all Phantasma wallets, including Poltergeist, Phantom and Ecto." +
+                                "\nWIF format example (52 symbols):" +
+                                "\nKz9xQgW1U49x8d6yijwLaBgN9x5zEdZaqkjLaS88ZnagcmBjckNE" +
+                                "\n\nHEX can be used to import wallet in MEW Ethereum wallet and Neon Neo wallet." +
+                                "\nHEX format example (64 symbols):" +
+                                "\n5794a280d6d69c676855d6ffb63b40b20fde3c79d557cd058c95cd608a933fc3",
+                                ModalState.Message, 3, 16, ModalPkWif, 1, (result, name) =>
                             {
                                 if (result == PromptResult.Success)
                                 {
