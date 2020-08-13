@@ -4364,26 +4364,36 @@ namespace Poltergeist
                 return;
             }
 
-            var balance = state.GetAvailableAmount(symbol);
-            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
+            var min = accountManager.Settings.neoGasFee;
+            RequestFee(symbol, "GAS", min, (gasResult) =>
             {
-                var transfer = new TransferRequest()
+                if (gasResult != PromptResult.Success)
                 {
-                    platform = PlatformKind.Neo,
-                    amount = amount,
-                    symbol = symbol,
-                    key = accountManager.CurrentAccount.WIF,
-                    destination = destAddress
-                };
+                    MessageBox(MessageKind.Error, $"Without at least {min} GAS it is not possible to perform this transfer!");
+                    return;
+                }
 
-                byte[] script = Serialization.Serialize(transfer);
-
-                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                var balance = state.GetAvailableAmount(symbol);
+                RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
                 {
-                    if (hash != Hash.Null)
+                    var transfer = new TransferRequest()
                     {
-                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
-                    }
+                        platform = PlatformKind.Neo,
+                        amount = amount,
+                        symbol = symbol,
+                        key = accountManager.CurrentAccount.WIF,
+                        destination = destAddress
+                    };
+
+                    byte[] script = Serialization.Serialize(transfer);
+
+                    SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                    {
+                        if (hash != Hash.Null)
+                        {
+                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
+                        }
+                    });
                 });
             });
         }
@@ -4455,7 +4465,10 @@ namespace Poltergeist
             if (accountManager.CurrentPlatform == PlatformKind.Ethereum || destPlatform == PlatformKind.Ethereum)
                 feeSymbol = "ETH";
 
-            var min = feeSymbol == "GAS" ? accountManager.Settings.neoGasFee : 0.001m;
+            var min = 0.001m;
+            if(feeSymbol == "GAS" && accountManager.Settings.neoGasFee > 0)
+                min = accountManager.Settings.neoGasFee;
+
             RequestFee(symbol, feeSymbol, min, (gasResult) =>
             {
                 if (gasResult != PromptResult.Success)
