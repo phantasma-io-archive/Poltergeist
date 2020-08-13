@@ -339,11 +339,13 @@ namespace Poltergeist
             PlayerPrefs.SetInt(TtrsNftSortModeTag, this.ttrsNftSortMode);
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
+            PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
                       "                        NFT sort direction: " + nftSortDirection + "\n" +
-                      "                        Phantasma BP: " + phantasmaBPURL,
+                      "                        Phantasma BP: " + phantasmaBPURL + "\n" +
+                      "                        Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag,
                       Log.Level.Debug1);
         }
 

@@ -4030,7 +4030,6 @@ namespace Poltergeist
                     }
 
                     var estimatedFee = usedGas * accountManager.Settings.ethereumGasPriceGwei;
-                    var feeDecimals = accountManager.GetTokenDecimals("ETH", accountManager.CurrentPlatform);
                     description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} ETH"; // 9 because we convert from Gwei, not Wei
                 }
             }
@@ -4425,30 +4424,50 @@ namespace Poltergeist
             }
 
             var balance = state.GetAvailableAmount(symbol);
-            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
+            EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, (result, fee) =>
             {
-                var transfer = new TransferRequest()
+                if (result == PromptResult.Success)
                 {
-                    platform = PlatformKind.Ethereum,
-                    amount = amount,
-                    symbol = symbol,
-                    key = accountManager.CurrentAccount.WIF,
-                    destination = destAddress
-                };
+                    accountManager.Settings.ethereumGasPriceGwei = fee;
+                    accountManager.Settings.SaveOnExit();
 
-                byte[] script = Serialization.Serialize(transfer);
+                    var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumGasPriceGwei * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
 
-                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
-                {
-                    if (hash != Hash.Null)
+                    RequestFee(symbol, "ETH", decimalFee, (feeResult) =>
                     {
-                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
-                    }
-                });
+                        if (feeResult != PromptResult.Success)
+                        {
+                            MessageBox(MessageKind.Error, $"Without at least {decimalFee} ETH it is not possible to perform this transfer!");
+                            return;
+                        }
+
+                        RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
+                        {
+                            var transfer = new TransferRequest()
+                            {
+                                platform = PlatformKind.Ethereum,
+                                amount = amount,
+                                symbol = symbol,
+                                key = accountManager.CurrentAccount.WIF,
+                                destination = destAddress
+                            };
+
+                            byte[] script = Serialization.Serialize(transfer);
+
+                            SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                            {
+                                if (hash != Hash.Null)
+                                {
+                                    MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
+                                }
+                            });
+                        });
+                    });
+                }
             });
         }
 
-        private void ContinueSwap(PlatformKind destPlatform, string transferName, string symbol, string destination)
+        private void ContinueSwap(PlatformKind destPlatform, string transferName, string swappedSymbol, string destination)
         {
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
@@ -4461,122 +4480,145 @@ namespace Poltergeist
                 return;
             }
 
-            var feeSymbol = "GAS";
+            var feeSymbol0 = "GAS";
             if (accountManager.CurrentPlatform == PlatformKind.Ethereum || destPlatform == PlatformKind.Ethereum)
-                feeSymbol = "ETH";
+                feeSymbol0 = "ETH";
 
-            var min = 0.001m;
-            if(feeSymbol == "GAS" && accountManager.Settings.neoGasFee > 0)
-                min = accountManager.Settings.neoGasFee;
+            var fee = 0.001m;
+            if(feeSymbol0 == "GAS" && accountManager.Settings.neoGasFee > 0)
+                fee = accountManager.Settings.neoGasFee;
 
-            RequestFee(symbol, feeSymbol, min, (gasResult) =>
+            var proceedWithSwap = new Action<string, string, decimal>((symbol, feeSymbol, min) =>
             {
-                if (gasResult != PromptResult.Success)
+                RequestFee(symbol, feeSymbol, min, (gasResult) =>
                 {
-                    MessageBox(MessageKind.Error, $"Without at least {min} {feeSymbol} it is not possible to perform this swap!");
-                    return;
-                }
-
-                var balance = state.GetAvailableAmount(symbol);
-                RequireAmount(transferName, null, symbol, 0.001m, balance, (amount) =>
-                {
-                    if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                    if (gasResult != PromptResult.Success)
                     {
-                        Address destAddress;
+                        MessageBox(MessageKind.Error, $"Without at least {min} {feeSymbol} it is not possible to perform this swap!");
+                        return;
+                    }
 
-                        switch (destPlatform)
+                    var balance = state.GetAvailableAmount(symbol);
+                    RequireAmount(transferName, null, symbol, 0.001m, balance, (amount) =>
+                    {
+                        if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                         {
-                            case PlatformKind.Neo:
-                                destAddress = AccountManager.EncodeNeoAddress(destination);
-                                break;
-                            case PlatformKind.Ethereum:
-                                destAddress = AccountManager.EncodeEthereumAddress(destination);
-                                break;
-                            default:
-                                MessageBox(MessageKind.Error, $"Swaps to {destPlatform} are not possible yet.");
-                                break;
-                        }
+                            Address destAddress;
 
-                        RequestKCAL(symbol, (feeResult) =>
-                        {
-                            if (feeResult == PromptResult.Success)
+                            switch (destPlatform)
                             {
-                                byte[] script;
+                                case PlatformKind.Neo:
+                                    destAddress = AccountManager.EncodeNeoAddress(destination);
+                                    break;
+                                case PlatformKind.Ethereum:
+                                    destAddress = AccountManager.EncodeEthereumAddress(destination);
+                                    break;
+                                default:
+                                    MessageBox(MessageKind.Error, $"Swaps to {destPlatform} are not possible yet.");
+                                    break;
+                            }
 
-                                var source = Address.FromText(sourceAddress);
-
-                                try
+                            RequestKCAL(symbol, (feeResult) =>
+                            {
+                                if (feeResult == PromptResult.Success)
                                 {
-                                    var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
+                                    byte[] script;
 
-                                    var gasPrice = accountManager.Settings.feePrice;
+                                    var source = Address.FromText(sourceAddress);
 
-                                    var sb = new ScriptBuilder();
-                                    sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                    sb.TransferTokens(symbol, source, destAddress, UnitConversion.ToBigInteger(amount, decimals));
-                                    sb.SpendGas(source);
-                                    script = sb.EndScript();
-                                }
-                                catch (Exception e)
-                                {
-                                    MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
-                                    return;
-                                }
-
-                                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
-                                {
-                                    if (hash != Hash.Null)
+                                    try
                                     {
-                                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash, () =>
+                                        var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
+
+                                        var gasPrice = accountManager.Settings.feePrice;
+
+                                        var sb = new ScriptBuilder();
+                                        sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                        sb.TransferTokens(symbol, source, destAddress, UnitConversion.ToBigInteger(amount, decimals));
+                                        sb.SpendGas(source);
+                                        script = sb.EndScript();
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                                        return;
+                                    }
+
+                                    SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
+                                    {
+                                        if (hash != Hash.Null)
                                         {
-                                            accountManager.RefreshBalances(false);
-                                        });
-                                    }
-                                });
-                            }
-                            else
-                            if (feeResult == PromptResult.Failure)
-                            {
-                                MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
-                            }
-                        });
-                    }
-                    else
-                    {
-                        accountManager.FindInteropAddress(accountManager.CurrentPlatform, (interopAddress) =>
+                                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash, () =>
+                                            {
+                                                accountManager.RefreshBalances(false);
+                                            });
+                                        }
+                                    });
+                                }
+                                else
+                                if (feeResult == PromptResult.Failure)
+                                {
+                                    MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
+                                }
+                            });
+                        }
+                        else
                         {
-                            if (!string.IsNullOrEmpty(interopAddress))
+                            accountManager.FindInteropAddress(accountManager.CurrentPlatform, (interopAddress) =>
                             {
-                                Log.Write("Found interop address: " + interopAddress);
-
-                                var transfer = new TransferRequest()
+                                if (!string.IsNullOrEmpty(interopAddress))
                                 {
-                                    platform = accountManager.CurrentPlatform,
-                                    amount = amount,
-                                    symbol = symbol,
-                                    key = accountManager.CurrentAccount.WIF,
-                                    destination = interopAddress,
-                                    interop = destination,
-                                };
+                                    Log.Write("Found interop address: " + interopAddress);
 
-                                byte[] script = Serialization.Serialize(transfer);
-
-                                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
-                                {
-                                    if (hash != Hash.Null)
+                                    var transfer = new TransferRequest()
                                     {
-                                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
-                                    }
-                                });
-                            }
-                            else
-                            {
-                                MessageBox(MessageKind.Error, "Could not fetch interop address");
-                            }
-                        });
-                    }
+                                        platform = accountManager.CurrentPlatform,
+                                        amount = amount,
+                                        symbol = symbol,
+                                        key = accountManager.CurrentAccount.WIF,
+                                        destination = interopAddress,
+                                        interop = destination,
+                                    };
+
+                                    byte[] script = Serialization.Serialize(transfer);
+
+                                    SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
+                                    {
+                                        if (hash != Hash.Null)
+                                        {
+                                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, "Could not fetch interop address");
+                                }
+                            });
+                        }
+                    });
                 });
             });
+
+            if (feeSymbol0 == "ETH")
+            {
+                EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, (result, gasPrice) =>
+                {
+                    if (result == PromptResult.Success)
+                    {
+                        accountManager.Settings.ethereumGasPriceGwei = gasPrice;
+                        accountManager.Settings.SaveOnExit();
+
+                        var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumGasPriceGwei * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
+
+                        proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
+                    }
+                });
+            }
+            else
+            {
+                proceedWithSwap(swappedSymbol, feeSymbol0, fee);
+            }
         }
 
         private void RequestKCAL(string swapSymbol, Action<PromptResult> callback)
@@ -4677,6 +4719,35 @@ namespace Poltergeist
             {
                 MessageBox(MessageKind.Error, $"Not enough {feeSymbol} for transaction fees.\nHowever to use {swapSymbol} cosmic swaps, you need at least 2 {swapSymbol}.");
             }
+        }
+
+        private void EditBigIntegerFee(string message, BigInteger fee, Action<PromptResult, BigInteger> callback)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            ShowModal("Fees", $"{message}:", ModalState.Input, 1, 64, ModalConfirmCancel, 1,
+                (result, input) =>
+                {
+                    if (result == PromptResult.Success)
+                    {
+                        if (!String.IsNullOrEmpty(input) && input.All(char.IsDigit))
+                        {
+                            callback(PromptResult.Success, new BigInteger(input, 10));
+                        }
+                        else
+                        {
+                            MessageBox(MessageKind.Error, "Invalid fee!");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        callback(result, 0);
+                    }
+                });
+
+            modalInput = fee.ToString();
         }
         #endregion
 
