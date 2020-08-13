@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Poltergeist.Build
 {
@@ -48,13 +49,12 @@ namespace Poltergeist.Build
             {
                 filePath = "file://" + filePath;
             }
+
+            UnityWebRequest fileContent = UnityWebRequest.Get(filePath);
+            fileContent.SendWebRequest();
+            while (!fileContent.isDone) { }
  
-            WWW fileContent = new WWW(filePath);
- 
-            // wait for file was loaded!
-            while (!fileContent.isDone && string.IsNullOrEmpty(fileContent.error)) { }
- 
-            return fileContent.bytes;
+            return fileContent.downloadHandler.data;
         }
     }
  
