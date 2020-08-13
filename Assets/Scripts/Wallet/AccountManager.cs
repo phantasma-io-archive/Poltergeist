@@ -756,6 +756,10 @@ namespace Poltergeist
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             ethereumApi = new EthereumAPI(Settings.ethereumRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
+
+            // We should renew all interop addresses when switching between nets.
+            // Otherwise we might send funds to wrong interop address.
+            ClearInteropMap();
         }
 
         private void LoadNexus()
@@ -2119,6 +2123,7 @@ namespace Poltergeist
                     {
                         string interopAddress = entry.interop[0].external;
                         _interopMap[platform] = interopAddress;
+                        Log.Write($"Got {interopAddress} interop address for {platformName} platform");
                         callback(interopAddress);
                         return;
                     }
@@ -2143,6 +2148,11 @@ namespace Poltergeist
             }
 
             return null;
+        }
+
+        public void ClearInteropMap()
+        {
+            _interopMap.Clear();
         }
 
         internal void SettleSwap(string sourcePlatform, string destPlatform, string pendingHash, Action<Hash, string> callback)
