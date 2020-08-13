@@ -4455,7 +4455,7 @@ namespace Poltergeist
             if (accountManager.CurrentPlatform == PlatformKind.Ethereum || destPlatform == PlatformKind.Ethereum)
                 feeSymbol = "ETH";
 
-            var min = 0.001m;
+            var min = feeSymbol == "GAS" ? accountManager.Settings.neoGasFee : 0.001m;
             RequestFee(symbol, feeSymbol, min, (gasResult) =>
             {
                 if (gasResult != PromptResult.Success)

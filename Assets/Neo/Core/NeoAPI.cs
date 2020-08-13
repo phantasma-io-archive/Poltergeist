@@ -523,6 +523,9 @@ namespace Phantasma.Neo.Core
                             prevIndex = gasEntry.index,
                         });
                     }
+
+                    if (selected < system_fee)
+                        throw new NeoException($"Not enough {assetName} in address {from_address}");
                 }
                 // Console.WriteLine("SENDING " + selected + " GAS to source");
 

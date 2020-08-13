@@ -882,7 +882,7 @@ namespace Poltergeist
 
                                                 if (transfer.symbol == "NEO" || transfer.symbol == "GAS")
                                                 {
-                                                    StartCoroutine(neoApi.SendAsset((tx, error) =>
+                                                    CoroutineUtils.StartThrowingCoroutine(this, neoApi.SendAsset((tx, error) =>
                                                     {
                                                         if (tx != null)
                                                         {
@@ -893,8 +893,12 @@ namespace Poltergeist
                                                         {
                                                             callback(Hash.Null, error);
                                                         }
-                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop, Settings.neoGasFee)
-                                                    );
+                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop, Settings.neoGasFee), ex => {
+                                                        if (ex != null)
+                                                        {
+                                                            callback(Hash.Null, ex.ToString());
+                                                        }
+                                                    });
                                                 }
                                                 else
                                                 {
