@@ -190,6 +190,8 @@ namespace Poltergeist
 
         public string GetDefaultValue(string tag)
         {
+            string _return_value;
+
             switch (tag)
             {
                 /*case PhantasmaRPCTag:
@@ -211,25 +213,16 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                string _return_value = "http://207.148.17.86:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://207.148.17.86:7077/rpc";
+                            break;
 
                         case NexusKind.Local_Net:
-                            {
-                                string _return_value = "http://localhost:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Local_Net): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://localhost:7077/rpc";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "http://207.148.17.86:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://207.148.17.86:7077/rpc";
+                            break;
                     }
                     break;
 
@@ -237,20 +230,14 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
-                                int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
-                                string _return_value = neoRpcList[index];
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
+                            int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
+                            _return_value = neoRpcList[index];
+                            break;
 
                         default:
-                            {
-                                string _return_value = "http://mankinighost.phantasma.io:30333";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://mankinighost.phantasma.io:30333";
+                            break;
                     }
                     break;
 
@@ -258,18 +245,13 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         /*case NexusKind.Main_Net:
-                            {
-                                string _return_value = "";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }*/
+                            _return_value = "";
+                            break;
+                        */
 
                         default:
-                            {
-                                string _return_value = "http://13.91.228.58:7545";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://13.91.228.58:7545";
+                            break;
                     }
                     break;
 
@@ -277,18 +259,12 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                string _return_value = "https://neoscan.io";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "https://neoscan.io";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "http://mankinighost.phantasma.io:4000";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://mankinighost.phantasma.io:4000";
+                            break;
                     }
                     break;
 
@@ -296,24 +272,21 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                string _return_value = "mainnet";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "mainnet";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "simnet";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "simnet";
+                            break;
                     }
                     break;
 
                 default:
                     return "";
             }
+
+            Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
+            return _return_value;
         }
 
         public void Save()

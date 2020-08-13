@@ -93,7 +93,7 @@ namespace Poltergeist
                 }
                 catch (Exception e)
                 {
-                    callback(null, "InvokeScript call error");
+                    callback(null, "InvokeScript call error: " + e.Message);
                     return;
                 }
             });
