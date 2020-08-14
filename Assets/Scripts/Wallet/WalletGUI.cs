@@ -4751,7 +4751,25 @@ namespace Poltergeist
                     {
                         if (!String.IsNullOrEmpty(input) && input.All(char.IsDigit))
                         {
-                            callback(PromptResult.Success, new BigInteger(input, 10));
+                            fee = new BigInteger(input, 10);
+                            if (fee < safeLow)
+                            {
+                                PromptBox($"You set fee lower than safe low ({fee} < {safeLow}), transfer might take too long or fail.\nAre you sure you want to continue?", ModalYesNo, (wantToContinue) =>
+                                {
+                                    if (wantToContinue == PromptResult.Success)
+                                    {
+                                        callback(PromptResult.Success, fee);
+                                    }
+                                    else
+                                    {
+                                        return;
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                callback(PromptResult.Success, fee);
+                            }
                         }
                         else
                         {
