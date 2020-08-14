@@ -4424,58 +4424,61 @@ namespace Poltergeist
             }
 
             var balance = state.GetAvailableAmount(symbol);
-            EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, (result, fee) =>
+            EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
             {
-                if (result == PromptResult.Success)
+                EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, fee) =>
                 {
-                    accountManager.Settings.ethereumGasPriceGwei = fee;
-                    accountManager.Settings.SaveOnExit();
-
-                    BigInteger usedGas;
-                    if (symbol == "ETH")
+                    if (result == PromptResult.Success)
                     {
-                        // Eth transfer.
-                        usedGas = accountManager.Settings.ethereumTransferGasLimit;
-                    }
-                    else
-                    {
-                        // Simple token transfer.
-                        usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
-                    }
+                        accountManager.Settings.ethereumGasPriceGwei = fee;
+                        accountManager.Settings.SaveOnExit();
 
-                    var decimalFee = UnitConversion.ToDecimal(usedGas * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
-
-                    RequestFee(symbol, "ETH", decimalFee, (feeResult) =>
-                    {
-                        if (feeResult != PromptResult.Success)
+                        BigInteger usedGas;
+                        if (symbol == "ETH")
                         {
-                            MessageBox(MessageKind.Error, $"Without at least {decimalFee} ETH it is not possible to perform this transfer!");
-                            return;
+                            // Eth transfer.
+                            usedGas = accountManager.Settings.ethereumTransferGasLimit;
+                        }
+                        else
+                        {
+                            // Simple token transfer.
+                            usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
                         }
 
-                        RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
+                        var decimalFee = UnitConversion.ToDecimal(usedGas * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
+
+                        RequestFee(symbol, "ETH", decimalFee, (feeResult) =>
                         {
-                            var transfer = new TransferRequest()
+                            if (feeResult != PromptResult.Success)
                             {
-                                platform = PlatformKind.Ethereum,
-                                amount = amount,
-                                symbol = symbol,
-                                key = accountManager.CurrentAccount.WIF,
-                                destination = destAddress
-                            };
+                                MessageBox(MessageKind.Error, $"Without at least {decimalFee} ETH it is not possible to perform this transfer!");
+                                return;
+                            }
 
-                            byte[] script = Serialization.Serialize(transfer);
-
-                            SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
                             {
-                                if (hash != Hash.Null)
+                                var transfer = new TransferRequest()
                                 {
-                                    MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
-                                }
+                                    platform = PlatformKind.Ethereum,
+                                    amount = amount,
+                                    symbol = symbol,
+                                    key = accountManager.CurrentAccount.WIF,
+                                    destination = destAddress
+                                };
+
+                                byte[] script = Serialization.Serialize(transfer);
+
+                                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                                {
+                                    if (hash != Hash.Null)
+                                    {
+                                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
+                                    }
+                                });
                             });
                         });
-                    });
-                }
+                    }
+                });
             });
         }
 
@@ -4614,17 +4617,20 @@ namespace Poltergeist
 
             if (feeSymbol0 == "ETH")
             {
-                EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, (result, gasPrice) =>
+                EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
                 {
-                    if (result == PromptResult.Success)
+                    EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, gasPrice) =>
                     {
-                        accountManager.Settings.ethereumGasPriceGwei = gasPrice;
-                        accountManager.Settings.SaveOnExit();
+                        if (result == PromptResult.Success)
+                        {
+                            accountManager.Settings.ethereumGasPriceGwei = gasPrice;
+                            accountManager.Settings.SaveOnExit();
 
-                        var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumContractGasLimit * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
+                            var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumContractGasLimit * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
 
-                        proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
-                    }
+                            proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
+                        }
+                    });
                 });
             }
             else
@@ -4733,7 +4739,7 @@ namespace Poltergeist
             }
         }
 
-        private void EditBigIntegerFee(string message, BigInteger fee, Action<PromptResult, BigInteger> callback)
+        private void EditBigIntegerFee(string message, BigInteger fee, BigInteger safeLow, string safeLowWait, BigInteger standard, string standardWait, BigInteger fast, string fastWait, BigInteger fastest, string fastestWait, Action<PromptResult, BigInteger> callback)
         {
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
@@ -4760,6 +4766,31 @@ namespace Poltergeist
                 });
 
             modalInput = fee.ToString();
+            modalHints = new Dictionary<string, string>() { { $"Safe low: {safeLow} ({safeLowWait} min.)", safeLow.ToString() },
+                { $"Standard: {standard} ({standardWait} min.)", standard.ToString() },
+                { $"Fast: {fast} ({fastWait} min.)", fast.ToString() },
+                { $"Fastest: {fastest} ({fastestWait} min.)", fastest.ToString() } };
+        }
+
+        private void EthGasStationRequest(Action<BigInteger, string, BigInteger, string, BigInteger, string, BigInteger, string> callback)
+        {
+            var url = "https://ethgasstation.info/api/ethgasAPI.json?api-key=25d4c0f579cd9d98ac8a124269a0f752e598882a2e7f6fcbdb0c8aa6bbb9";
+            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                {
+                    Log.Write("EthGasStationRequest error: " + error);
+                    callback(0, "", 0, "", 0, "", 0, "");
+                },
+                (response) =>
+                {
+                    callback(response.GetInt32("safeLow", 0) / 10,
+                        response.GetString("safeLowWait"),
+                        response.GetInt32("average", 0) / 10,
+                        response.GetString("avgWait"),
+                        response.GetInt32("fast", 0) / 10,
+                        response.GetString("fastWait"),
+                        response.GetInt32("fastest", 0) / 10,
+                        response.GetString("fastestWait"));
+                }));
         }
         #endregion
 
