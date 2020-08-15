@@ -531,6 +531,7 @@ namespace Poltergeist
         private Vector2 modalCaptionScroll;
         private string modalTitle;
         private int modalMaxLines;
+        private string modalHintsLabel;
         private Dictionary<string, string> modalHints;
         private PromptResult modalResult;
         private int modalLineCount;
@@ -555,6 +556,7 @@ namespace Poltergeist
             modalCallback = callback;
             modalOptions = options;
             modalConfirmDelay = confirmDelay;
+            modalHintsLabel = "...";
             modalHints = null;
             modalMaxLines = multiLine;
             hintComboBox.SelectedItemIndex = -1;
@@ -1231,7 +1233,7 @@ namespace Poltergeist
                 var hintList = modalHints.Keys.ToList();
 
                 var prevHind = hintComboBox.SelectedItemIndex;
-                var hintIndex = hintComboBox.Show(new Rect(rect.width - hintWidth + 8, curY, hintWidth, Units(2)), hintList, (int)modalRect.height - (curY + Units(2)) - Border, out dropHeight, "...");
+                var hintIndex = hintComboBox.Show(new Rect(rect.width - hintWidth + 8, curY, hintWidth, Units(2)), hintList, (int)modalRect.height - (curY + Units(2)) - Border, out dropHeight, modalHintsLabel);
                 if (prevHind != hintIndex && hintIndex >= 0)
                 {
                     var key = hintList[hintIndex];
@@ -4426,7 +4428,7 @@ namespace Poltergeist
             var balance = state.GetAvailableAmount(symbol);
             EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
             {
-                EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, fee) =>
+                EditBigIntegerFee("Set transaction gas price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, fee) =>
                 {
                     if (result == PromptResult.Success)
                     {
@@ -4619,7 +4621,7 @@ namespace Poltergeist
             {
                 EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
                 {
-                    EditBigIntegerFee("Set transaction GAS price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, gasPrice) =>
+                    EditBigIntegerFee("Set transaction gas price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, gasPrice) =>
                     {
                         if (result == PromptResult.Success)
                         {
@@ -4784,10 +4786,11 @@ namespace Poltergeist
                 });
 
             modalInput = fee.ToString();
-            modalHints = new Dictionary<string, string>() { { $"Safe low: {safeLow} ({safeLowWait} min.)", safeLow.ToString() },
-                { $"Standard: {standard} ({standardWait} min.)", standard.ToString() },
-                { $"Fast: {fast} ({fastWait} min.)", fast.ToString() },
-                { $"Fastest: {fastest} ({fastestWait} min.)", fastest.ToString() } };
+            modalHintsLabel = "Gas prices";
+            modalHints = new Dictionary<string, string>() { { $"Safe low: {safeLow} ({safeLowWait} min)", safeLow.ToString() },
+                { $"Standard: {standard} ({standardWait} min)", standard.ToString() },
+                { $"Fast: {fast} ({fastWait} min)", fast.ToString() },
+                { $"Fastest: {fastest} ({fastestWait} min)", fastest.ToString() } };
         }
 
         private void EthGasStationRequest(Action<BigInteger, string, BigInteger, string, BigInteger, string, BigInteger, string> callback)
