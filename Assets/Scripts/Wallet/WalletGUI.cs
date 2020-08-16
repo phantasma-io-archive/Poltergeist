@@ -517,7 +517,7 @@ namespace Poltergeist
         private string[] ModalViewOk = new string[] { "View" , "Ok"};
         private string[] ModalConfirmCancel = new string[] { "Confirm", "Cancel" };
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
-        private string[] ModalPkWif = new string[] { "HEX format", "WIF format" };
+        private string[] ModalHexWif = new string[] { "HEX format", "WIF format" };
 
         private string[] modalOptions;
         private int modalConfirmDelay;
@@ -3536,8 +3536,10 @@ namespace Poltergeist
                                 "\n\nHEX can be used to import wallet in MEW Ethereum wallet and Neon Neo wallet." +
                                 "\nHEX format example (64 symbols):" +
                                 "\n5794a280d6d69c676855d6ffb63b40b20fde3c79d557cd058c95cd608a933fc3",
-                                ModalState.Message, 3, 16, ModalPkWif, 1, (result, name) =>
+                                ModalState.Message, 0, 0, ModalHexWif, 0, (result, input) =>
                             {
+                                AudioManager.Instance.PlaySFX("click");
+
                                 if (result == PromptResult.Success)
                                 {
                                     var keys = EthereumKey.FromWIF(accountManager.CurrentAccount.WIF);
