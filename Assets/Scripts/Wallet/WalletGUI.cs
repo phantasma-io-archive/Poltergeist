@@ -514,7 +514,8 @@ namespace Poltergeist
         private string[] ModalNone = new string[] { };
         private string[] ModalOk = new string[] { "Ok" };
         private string[] ModalCopyOk = new string[] { "Ok", "Copy to clipboard" };
-        private string[] ModalConfirmCancel = new string[] { "Confirm" , "Cancel"};
+        private string[] ModalViewOk = new string[] { "View" , "Ok"};
+        private string[] ModalConfirmCancel = new string[] { "Confirm", "Cancel" };
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
         private string[] ModalPkWif = new string[] { "HEX format", "WIF format" };
 
@@ -4167,7 +4168,17 @@ namespace Poltergeist
                         {
                             if (hash != Hash.Null)
                             {
-                                MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash);
+                                ShowModal("Success",
+                                    $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                    ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                    {
+                                        AudioManager.Instance.PlaySFX("click");
+                                    
+                                        if (viewTxChoice == PromptResult.Success)
+                                        {
+                                            Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                        }
+                                    });
                             }
                         });
                     }
@@ -4252,7 +4263,17 @@ namespace Poltergeist
                     {
                         if (hash != Hash.Null)
                         {
-                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash);
+                            ShowModal("Success",
+                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
+
+                                    if (viewTxChoice == PromptResult.Success)
+                                    {
+                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                    }
+                                });
 
                             // Removing sent NFTs from current NFT list.
                             var nfts = accountManager.CurrentNfts;
@@ -4394,7 +4415,17 @@ namespace Poltergeist
                     {
                         if (hash != Hash.Null)
                         {
-                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
+                            ShowModal("Success",
+                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
+
+                                    if (viewTxChoice == PromptResult.Success)
+                                    {
+                                        Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                    }
+                                });
                         }
                     });
                 });
@@ -4476,7 +4507,17 @@ namespace Poltergeist
                                 {
                                     if (hash != Hash.Null)
                                     {
-                                        MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
+                                        ShowModal("Success",
+                                            $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                            ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                            {
+                                                AudioManager.Instance.PlaySFX("click");
+
+                                                if (viewTxChoice == PromptResult.Success)
+                                                {
+                                                    Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                                }
+                                            });
                                     }
                                 });
                             });
@@ -4567,10 +4608,19 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
-                                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash, () =>
-                                            {
-                                                accountManager.RefreshBalances(false);
-                                            });
+                                            ShowModal("Success",
+                                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                                {
+                                                    AudioManager.Instance.PlaySFX("click");
+
+                                                    if (viewTxChoice == PromptResult.Success)
+                                                    {
+                                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                                    }
+
+                                                    accountManager.RefreshBalances(false);
+                                                });
                                         }
                                     });
                                 }
@@ -4605,7 +4655,22 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
-                                            MessageBox(MessageKind.Success, $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash: " + hash);
+                                            ShowModal("Success",
+                                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                                {
+                                                    AudioManager.Instance.PlaySFX("click");
+
+                                                    if (viewTxChoice == PromptResult.Success)
+                                                    {
+                                                        if(accountManager.CurrentPlatform == PlatformKind.Neo)
+                                                            Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                                        else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+                                                            Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                                    }
+
+                                                    accountManager.RefreshBalances(false);
+                                                });
                                         }
                                     });
                                 }

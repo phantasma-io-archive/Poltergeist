@@ -1964,7 +1964,7 @@ namespace Poltergeist
             }
         }
 
-        private string GetPhantasmaTransactionURL(string hash)
+        public string GetPhantasmaTransactionURL(string hash)
         {
             return $"https://explorer.phantasma.io/tx/{hash}";
         }
@@ -1984,7 +1984,7 @@ namespace Poltergeist
             }));
         }
 
-        private string GetEtherscanTransactionURL(string hash)
+        public string GetEtherscanTransactionURL(string hash)
         {
             if (string.IsNullOrEmpty(etherscanAPIToken))
             {
@@ -2004,7 +2004,7 @@ namespace Poltergeist
             return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
         }
 
-        private string GetNeoscanTransactionURL(string hash)
+        public string GetNeoscanTransactionURL(string hash)
         {
             var url = Settings.neoscanURL;
             if (!url.EndsWith("/"))
