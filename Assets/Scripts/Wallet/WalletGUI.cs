@@ -516,6 +516,7 @@ namespace Poltergeist
         private string[] ModalOkCopy = new string[] { "Ok", "Copy to clipboard" };
         private string[] ModalOkView = new string[] { "Ok", "View" };
         private string[] ModalConfirmCancel = new string[] { "Confirm", "Cancel" };
+        private string[] ModalSendCancel = new string[] { "Send", "Cancel" };
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
         private string[] ModalHexWif = new string[] { "HEX format", "WIF format" };
 
@@ -4055,7 +4056,7 @@ namespace Poltergeist
                     {
                         Animate(AnimationDirection.Left, false, () =>
                         {
-                            PromptBox($"Preparing Transaction...\n{description}", ModalConfirmCancel, (result) =>
+                            PromptBox($"Preparing transaction...\n{description}", ModalSendCancel, (result) =>
                             {
                                 if (result == PromptResult.Success)
                                 {
