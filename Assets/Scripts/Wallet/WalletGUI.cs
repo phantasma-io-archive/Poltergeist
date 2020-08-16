@@ -1202,6 +1202,12 @@ namespace Poltergeist
                         AudioManager.Instance.PlaySFX("click");
                         GUIUtility.systemCopyBuffer = modalCaption;
                     }
+                    else if(modalOptions == ModalHexWif ||
+                        modalOptions == ModalOkView)
+                    {
+                        AudioManager.Instance.PlaySFX("confirm");
+                        modalResult = PromptResult.Failure;
+                    }
                     else
                     {
                         AudioManager.Instance.PlaySFX("cancel");
