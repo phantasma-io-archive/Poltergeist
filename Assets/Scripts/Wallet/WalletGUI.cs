@@ -513,8 +513,8 @@ namespace Poltergeist
         #region MODAL PROMPTS
         private string[] ModalNone = new string[] { };
         private string[] ModalOk = new string[] { "Ok" };
-        private string[] ModalCopyOk = new string[] { "Ok", "Copy to clipboard" };
-        private string[] ModalViewOk = new string[] { "View" , "Ok"};
+        private string[] ModalOkCopy = new string[] { "Ok", "Copy to clipboard" };
+        private string[] ModalOkView = new string[] { "Ok", "View" };
         private string[] ModalConfirmCancel = new string[] { "Confirm", "Cancel" };
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
         private string[] ModalHexWif = new string[] { "HEX format", "WIF format" };
@@ -608,7 +608,7 @@ namespace Poltergeist
                 case MessageKind.Error:
                     AudioManager.Instance.PlaySFX("negative");
                     title = "Error";
-                    options = ModalCopyOk;
+                    options = ModalOkCopy;
                     Log.Write($"Error MessageBox: {caption}");
                     break;
 
@@ -1197,7 +1197,7 @@ namespace Poltergeist
 
                 DoButton(true, new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
                 {
-                    if (modalOptions == ModalCopyOk)
+                    if (modalOptions == ModalOkCopy)
                     {
                         AudioManager.Instance.PlaySFX("click");
                         GUIUtility.systemCopyBuffer = modalCaption;
@@ -4172,11 +4172,11 @@ namespace Poltergeist
                             {
                                 ShowModal("Success",
                                     $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
-                                    ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                     {
                                         AudioManager.Instance.PlaySFX("click");
                                     
-                                        if (viewTxChoice == PromptResult.Success)
+                                        if (viewTxChoice == PromptResult.Failure)
                                         {
                                             Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
                                         }
@@ -4267,11 +4267,11 @@ namespace Poltergeist
                         {
                             ShowModal("Success",
                                 $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
-                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                 {
                                     AudioManager.Instance.PlaySFX("click");
 
-                                    if (viewTxChoice == PromptResult.Success)
+                                    if (viewTxChoice == PromptResult.Failure)
                                     {
                                         Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
                                     }
@@ -4419,11 +4419,11 @@ namespace Poltergeist
                         {
                             ShowModal("Success",
                                 $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
-                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                 {
                                     AudioManager.Instance.PlaySFX("click");
 
-                                    if (viewTxChoice == PromptResult.Success)
+                                    if (viewTxChoice == PromptResult.Failure)
                                     {
                                         Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
                                     }
@@ -4511,11 +4511,11 @@ namespace Poltergeist
                                     {
                                         ShowModal("Success",
                                             $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
-                                            ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                             {
                                                 AudioManager.Instance.PlaySFX("click");
 
-                                                if (viewTxChoice == PromptResult.Success)
+                                                if (viewTxChoice == PromptResult.Failure)
                                                 {
                                                     Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
                                                 }
@@ -4612,11 +4612,11 @@ namespace Poltergeist
                                         {
                                             ShowModal("Success",
                                                 $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
-                                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                                 {
                                                     AudioManager.Instance.PlaySFX("click");
 
-                                                    if (viewTxChoice == PromptResult.Success)
+                                                    if (viewTxChoice == PromptResult.Failure)
                                                     {
                                                         Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
                                                     }
@@ -4659,11 +4659,11 @@ namespace Poltergeist
                                         {
                                             ShowModal("Success",
                                                 $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
-                                                ModalState.Message, 0, 0, ModalViewOk, 0, (viewTxChoice, input) =>
+                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                                 {
                                                     AudioManager.Instance.PlaySFX("click");
 
-                                                    if (viewTxChoice == PromptResult.Success)
+                                                    if (viewTxChoice == PromptResult.Failure)
                                                     {
                                                         if(accountManager.CurrentPlatform == PlatformKind.Neo)
                                                             Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
