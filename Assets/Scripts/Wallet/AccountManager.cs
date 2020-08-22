@@ -15,6 +15,8 @@ using Phantasma.Core.Utils;
 using Phantasma.Core.Types;
 using Phantasma.Ethereum;
 using LunarLabs.Parser;
+using Phantasma.VM.Utils;
+using Phantasma.Blockchain.Contracts;
 
 namespace Poltergeist
 {
@@ -835,7 +837,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, Action<Hash, string> callback)
+        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             var account = this.CurrentAccount;
 
@@ -848,7 +850,8 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     {
-                        var keys = PhantasmaKeys.FromWIF(account.WIF);
+                        var keys = (customKeys != null) ? customKeys : PhantasmaKeys.FromWIF(account.WIF);
+                        
                         StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload,  (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
@@ -860,7 +863,7 @@ namespace Poltergeist
                                 ChangeFaultyRPCURL();
                             }
                             callback(Hash.Null, msg);
-                        }));
+                        }, customSignFunction));
                         break;
                     }
 
@@ -1349,6 +1352,7 @@ namespace Poltergeist
                     case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(account.WIF);
+                            var ethKeys = EthereumKey.FromWIF(account.WIF);
                             StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
                             {
                                 var balanceMap = new Dictionary<string, Balance>();
@@ -1421,40 +1425,52 @@ namespace Poltergeist
                                     }
                                 }
 
-                                RequestPendings(keys.Address.Text, (swaps, error) =>
+                                RequestPendings(keys.Address.Text, (phaSwaps, phaError) =>
                                 {
-                                    if (swaps != null)
+                                    if (phaSwaps != null)
                                     {
-                                        MergeSwaps(PlatformKind.Phantasma, balanceMap, swaps);
+                                        MergeSwaps(PlatformKind.Phantasma, balanceMap, phaSwaps);
                                     }
                                     else
                                     {
-                                        Log.WriteWarning(error);
+                                        Log.WriteWarning(phaError);
                                     }
 
-
-                                    var state = new AccountState()
+                                    RequestPendings(ethKeys.Address, (swaps, error) =>
                                     {
-                                        platform = platform,
-                                        address = acc.address,
-                                        name = acc.name,
-                                        balances = balanceMap.Values.ToArray(),
-                                        flags = AccountFlags.None
-                                    };
+                                        if (swaps != null)
+                                        {
+                                            MergeSwaps(PlatformKind.Phantasma, balanceMap, swaps);
+                                        }
+                                        else
+                                        {
+                                            Log.WriteWarning(error);
+                                        }
 
-                                    if (stakedAmount >= SoulMasterStakeAmount)
-                                    {
-                                        state.flags |= AccountFlags.Master;
-                                    }
 
-                                    if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
-                                    {
-                                        state.flags |= AccountFlags.Validator;
-                                    }
+                                        var state = new AccountState()
+                                        {
+                                            platform = platform,
+                                            address = acc.address,
+                                            name = acc.name,
+                                            balances = balanceMap.Values.ToArray(),
+                                            flags = AccountFlags.None
+                                        };
 
-                                    state.stakeTime = stakeTimestamp;
+                                        if (stakedAmount >= SoulMasterStakeAmount)
+                                        {
+                                            state.flags |= AccountFlags.Master;
+                                        }
 
-                                    ReportWalletBalance(platform, state);
+                                        if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
+                                        {
+                                            state.flags |= AccountFlags.Validator;
+                                        }
+
+                                        state.stakeTime = stakeTimestamp;
+
+                                        ReportWalletBalance(platform, state);
+                                    });
                                 });
                             },
                             (error, msg) =>
@@ -2158,20 +2174,48 @@ namespace Poltergeist
             _interopMap.Clear();
         }
 
-        internal void SettleSwap(string sourcePlatform, string destPlatform, string pendingHash, Action<Hash, string> callback)
+        internal void SettleSwap(string sourcePlatform, string destPlatform, string symbol, string pendingHash, Action<Hash, string> callback)
         {
-            StartCoroutine(phantasmaApi.SettleSwap(sourcePlatform, destPlatform, pendingHash, (hash) =>
+            if (sourcePlatform.ToLower() == PlatformKind.Ethereum.ToString().ToLower())
             {
-                callback(Hash.Parse(hash), null);
-            }, (error, msg) =>
-            {
-                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                var account = this.CurrentAccount;
+                var ethKeys = EthereumKey.FromWIF(account.WIF);
+                var phantasmaKeys = PhantasmaKeys.FromWIF(account.WIF);
+
+                Hash ethTxHash = Hash.Parse(pendingHash);
+                var transcodedAddress = Address.FromKey(ethKeys);
+
+                var script = ScriptUtils.BeginScript()
+                    .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
+                    .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, MinGasLimit)
+                    .SpendGas(transcodedAddress)
+                    .EndScript();
+
+                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ethKeys, (hash, error) =>
                 {
-                    ChangeFaultyRPCURL();
-                }
-                Log.WriteWarning(msg);
-                callback(Hash.Null, msg);
-            }));
+                    callback(hash, error);
+                }, (message, prikey, pubkey) => 
+                {
+                    return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                });
+            }
+            else
+            {
+                StartCoroutine(phantasmaApi.SettleSwap(sourcePlatform, destPlatform, pendingHash, (hash) =>
+                {
+                    callback(Hash.Parse(hash), null);
+                }, (error, msg) =>
+                {
+                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                    {
+                        ChangeFaultyRPCURL();
+                    }
+                    Log.WriteWarning(msg);
+                    callback(Hash.Null, msg);
+                }));
+            }
         }
 
         internal void DeleteAccount(int currentIndex)

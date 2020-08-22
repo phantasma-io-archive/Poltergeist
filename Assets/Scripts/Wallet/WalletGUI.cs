@@ -2642,7 +2642,7 @@ namespace Poltergeist
                         if (result == PromptResult.Success)
                         {
                             BeginWaitingModal("Preparing swap transaction...");
-                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.PendingHash, (settleHash, error) =>
+                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.Symbol, balance.PendingHash, (settleHash, error) =>
                             {
                                 EndWaitingModal();
                                 if (settleHash != Hash.Null)
@@ -4062,7 +4062,7 @@ namespace Poltergeist
                                 {
                                     PushState(GUIState.Sending);
 
-                                    accountManager.SignAndSendTransaction(chain, script, payload, (hash, error) =>
+                                    accountManager.SignAndSendTransaction(chain, script, payload, null, (hash, error) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
