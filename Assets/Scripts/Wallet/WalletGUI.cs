@@ -4938,6 +4938,11 @@ namespace Poltergeist
 
                     if (targets.HasFlag(platform))
                     {
+                        if(accountManager.CurrentPlatform == PlatformKind.Ethereum && platform == PlatformKind.Phantasma)
+                        {
+                            // We supports Eth swaps (Eth -> Pha) only within same account.
+                            continue;
+                        }
                         var addr = accountManager.GetAddress(index, platform);
                         if (!string.IsNullOrEmpty(addr))
                         {
