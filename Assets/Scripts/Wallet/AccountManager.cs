@@ -2094,12 +2094,18 @@ namespace Poltergeist
             var nethereumAddressUtil = new Nethereum.Util.AddressUtil();
 
             Throw.If(!nethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
-            var scriptHash = addressText.Base58CheckDecode();
+
+            if (addressText.StartsWith("0x"))
+            {
+                addressText = addressText.Substring(2);
+            }
+
+            var scriptHash = Nethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
 
-            return Address.FromInterop(1/*NeoID*/, pubKey);
+            return Address.FromInterop(2/*Ethereum*/, pubKey);
         }
 
         public static string DecodeNeoInteropAddress(Address address)
