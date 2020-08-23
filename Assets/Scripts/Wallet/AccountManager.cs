@@ -2194,8 +2194,8 @@ namespace Poltergeist
                 var script = ScriptUtils.BeginScript()
                     .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
                     .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
                     .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, MinGasLimit)
+                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
                     .SpendGas(transcodedAddress)
                     .EndScript();
 
