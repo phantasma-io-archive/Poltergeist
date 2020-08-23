@@ -717,7 +717,8 @@ namespace Poltergeist
                 new Token() { symbol = "KCAL", apiSymbol = "", platform = "ethereum", hash = "a9858F0E2037C18dD6a0b4Bc082d41B0536D47E2", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
                 new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
                 new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "6b175474e89094c44da98b954eedeac495271d0f", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
-                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "dac17f958d2ee523a2206206994597c13d831ec7", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags }
+                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "dac17f958d2ee523a2206206994597c13d831ec7", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags },
+                new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "7CAc27eC98D616cecD188631bC92b9463F4698E3", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }
             };
 
             CurrentTokenCurrency = "";
