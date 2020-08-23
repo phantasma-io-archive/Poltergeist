@@ -4697,18 +4697,9 @@ namespace Poltergeist
             {
                 EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
                 {
-                    EditBigIntegerFee("Set transaction gas price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, gasPrice) =>
-                    {
-                        if (result == PromptResult.Success)
-                        {
-                            accountManager.Settings.ethereumGasPriceGwei = gasPrice;
-                            accountManager.Settings.SaveOnExit();
+                    var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumContractGasLimit * fast, 9); // 9 because we convert from Gwei, not Wei
 
-                            var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumContractGasLimit * accountManager.Settings.ethereumGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
-
-                            proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
-                        }
-                    });
+                    proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
                 });
             }
             else
