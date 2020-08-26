@@ -4710,8 +4710,29 @@ namespace Poltergeist
                 });
             });
 
-            if (feeSymbol0 == "ETH")
+            if (feeSymbol0 == "ETH" && accountManager.CurrentPlatform == PlatformKind.Ethereum)
             {
+                // Have to ask what fees user is willing to pay.
+
+                EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
+                {
+                    EditBigIntegerFee("Set transaction gas price in GWEI", accountManager.Settings.ethereumGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, gasPrice) =>
+                    {
+                        if (result == PromptResult.Success)
+                        {
+                            accountManager.Settings.ethereumGasPriceGwei = gasPrice;
+                            accountManager.Settings.SaveOnExit();
+
+                            var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "ETH" ? accountManager.Settings.ethereumTransferGasLimit : accountManager.Settings.ethereumTokenTransferGasLimit) * fast, 9); // 9 because we convert from Gwei, not Wei
+
+                            proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
+                        }
+                    });
+                });
+            }
+            else if (feeSymbol0 == "ETH" && accountManager.CurrentPlatform == PlatformKind.Phantasma)
+            {
+                // No sense in asking user for ETH fees - they are set by BP, we have to try to do our best with predicting them.
                 EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
                 {
                     var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "ETH" ? accountManager.Settings.ethereumTransferGasLimit : accountManager.Settings.ethereumTokenTransferGasLimit) * fast, 9); // 9 because we convert from Gwei, not Wei
