@@ -566,11 +566,9 @@ namespace Phantasma.Neo.Core
                     }
 
                 // incorporate fee in GAS utxo, if sending GAS
-                bool sendfee = false;
                 if (system_fee > 0 && assetName == "GAS")
                 {
                     done_fee = true;
-                    sendfee = true;
                     if (cost < 0)
                         cost = 0;
                     cost += system_fee;
@@ -604,7 +602,7 @@ namespace Phantasma.Neo.Core
                     foreach (var target in thistargets)
                         outputs.Add(target);
 
-                if (selected > cost || cost == 0 || sendfee)  /// is sendfee needed? yes if selected == cost
+                if (selected > cost)
                     outputs.Add(new Transaction.Output()
                     {
                         assetID = targetAssetID,
