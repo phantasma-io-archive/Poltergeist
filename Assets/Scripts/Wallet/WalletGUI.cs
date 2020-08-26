@@ -4502,6 +4502,8 @@ namespace Poltergeist
                                 return;
                             }
 
+                            balance -= decimalFee;
+
                             RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
                             {
                                 var transfer = new TransferRequest()
@@ -4571,7 +4573,7 @@ namespace Poltergeist
                     }
 
                     var balance = state.GetAvailableAmount(symbol);
-                    if (symbol == "GAS")
+                    if (symbol == "GAS" || symbol == "ETH")
                         balance -= min;
 
                     RequireAmount(transferName, null, symbol, 0.001m, balance, (amount) =>
