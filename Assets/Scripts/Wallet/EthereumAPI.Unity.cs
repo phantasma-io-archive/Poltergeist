@@ -4,7 +4,7 @@ using LunarLabs.Parser;
 using Phantasma.Numerics;
 using Phantasma.Cryptography;
 using Phantasma.Ethereum;
-using Nethereum.Signer;
+using Phantasma.Ethereum.Signer;
 
 namespace Phantasma.SDK
 {
@@ -88,7 +88,7 @@ namespace Phantasma.SDK
             var realAmount = System.Numerics.BigInteger.Parse(amount.ToString());
 
             //Create a transaction from scratch
-            var tx = new Nethereum.Signer.Transaction(receiveAddress, realAmount, nonce, 
+            var tx = new Phantasma.Ethereum.Signer.Transaction(receiveAddress, realAmount, nonce, 
                 System.Numerics.BigInteger.Parse(gasPrice.ToString()),
                 System.Numerics.BigInteger.Parse(gasLimit.ToString()),
                 data);
@@ -106,7 +106,7 @@ namespace Phantasma.SDK
             var amountHex = amount.ToHex().PadLeft(64, '0');
 
             //Create a transaction from scratch
-            var tx = new Nethereum.Signer.Transaction(tokenContract,
+            var tx = new Phantasma.Ethereum.Signer.Transaction(tokenContract,
                 0, // Ammount of ETH to be transfered (0)
                 nonce,
                 System.Numerics.BigInteger.Parse(gasPrice.ToString()),

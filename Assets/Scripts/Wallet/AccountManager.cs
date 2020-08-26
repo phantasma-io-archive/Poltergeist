@@ -2091,16 +2091,16 @@ namespace Poltergeist
 
         public static Address EncodeEthereumAddress(string addressText)
         {
-            var nethereumAddressUtil = new Nethereum.Util.AddressUtil();
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
 
-            Throw.If(!nethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
+            Throw.If(!ethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
 
             if (addressText.StartsWith("0x"))
             {
                 addressText = addressText.Substring(2);
             }
 
-            var scriptHash = Nethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
+            var scriptHash = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);

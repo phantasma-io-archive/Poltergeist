@@ -3054,7 +3054,7 @@ namespace Poltergeist
                          return; // user canceled
                      }
 
-                     var nethereumAddressUtil = new Nethereum.Util.AddressUtil();
+                     var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
 
                      if (Address.IsValidAddress(destAddress))
                      {
@@ -3085,7 +3085,7 @@ namespace Poltergeist
                          }
                      }
                      else
-                     if (nethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress))
+                     if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress))
                      {
                          if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
                          {
@@ -3545,7 +3545,7 @@ namespace Poltergeist
                                 if (result == PromptResult.Success)
                                 {
                                     var keys = EthereumKey.FromWIF(accountManager.CurrentAccount.WIF);
-                                    GUIUtility.systemCopyBuffer = Nethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
+                                    GUIUtility.systemCopyBuffer = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
                                     MessageBox(MessageKind.Default, "Private key (HEX format) copied to the clipboard.");
                                 }
                                 else
