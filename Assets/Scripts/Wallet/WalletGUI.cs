@@ -4031,16 +4031,8 @@ namespace Poltergeist
                     }
                     else
                     {
-                        if (accountManager.SearchInteropMapForAddress(PlatformKind.Ethereum) == transfer.destination)
-                        {
-                            // It's a swap.
-                            usedGas = accountManager.Settings.ethereumContractGasLimit;
-                        }
-                        else
-                        {
-                            // Simple token transfer.
-                            usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
-                        }
+                        // Token transfer.
+                        usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
                     }
 
                     var estimatedFee = usedGas * accountManager.Settings.ethereumGasPriceGwei;
@@ -4554,16 +4546,32 @@ namespace Poltergeist
                 return;
             }
 
+            // We set GAS as main fee symbol for both NEO -> PHA and PHA -> NEO swaps.
+            // We set ETH as main fee symbol for both ETH -> PHA and PHA -> ETH swaps.
+            // When we do swaps from PHA, KCAL also used for tx sending.
+            // When we do swaps to PHA, transfered token is partially cosmic-swapped to KCAL by bp, it's automatic.
             var feeSymbol0 = "GAS";
             if (accountManager.CurrentPlatform == PlatformKind.Ethereum || destPlatform == PlatformKind.Ethereum)
                 feeSymbol0 = "ETH";
 
-            var fee = 0.001m;
-            if(feeSymbol0 == "GAS" && accountManager.Settings.neoGasFee > 0)
-                fee = accountManager.Settings.neoGasFee;
-
             var proceedWithSwap = new Action<string, string, decimal>((symbol, feeSymbol, min) =>
             {
+                // Set proper min value depending on platform.
+                if (accountManager.CurrentPlatform == PlatformKind.Neo)
+                {
+                    min = Math.Max(0.001m, accountManager.Settings.neoGasFee);
+                }
+                else if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                {
+                    // Since these fees are calculated and taken by BP,
+                    // and we don't have a way of finding them out (at least for now)
+                    // we have to set them with a margin.
+                    if (destPlatform == PlatformKind.Neo)
+                        min = 0.1m; // For Neo use 0.1 GAS constant
+                    else if (destPlatform == PlatformKind.Ethereum)
+                        min *= 2; // Very rough calculation for now - we ask user to have twice the amount of ETH that's needed for transaction.
+                }
+
                 RequestFee(symbol, feeSymbol, min, (gasResult) =>
                 {
                     if (gasResult != PromptResult.Success)
@@ -4711,14 +4719,15 @@ namespace Poltergeist
             {
                 EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
                 {
-                    var decimalFee = UnitConversion.ToDecimal(accountManager.Settings.ethereumContractGasLimit * fast, 9); // 9 because we convert from Gwei, not Wei
+                    var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "ETH" ? accountManager.Settings.ethereumTransferGasLimit : accountManager.Settings.ethereumTokenTransferGasLimit) * fast, 9); // 9 because we convert from Gwei, not Wei
 
                     proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
                 });
             }
             else
             {
-                proceedWithSwap(swappedSymbol, feeSymbol0, fee);
+                // For Neo all fees are taken from constants or settings and set inside proceedWithSwap(), that's why we pass 0 here.
+                proceedWithSwap(swappedSymbol, feeSymbol0, 0);
             }
         }
 

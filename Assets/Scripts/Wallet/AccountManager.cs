@@ -1012,8 +1012,7 @@ namespace Poltergeist
                                                         var gasLimit = Settings.ethereumTokenTransferGasLimit;
                                                         if (SearchInteropMapForAddress(PlatformKind.Ethereum) == transfer.destination)
                                                         {
-                                                            // For swaps use contract gas limit
-                                                            gasLimit = Settings.ethereumContractGasLimit;
+                                                            gasLimit = Settings.ethereumTokenTransferGasLimit;
                                                         }
 
                                                         var hexTx = ethereumApi.SignTokenTransaction(keys, nonce,
