@@ -4517,7 +4517,7 @@ namespace Poltergeist
                                     if (hash != Hash.Null)
                                     {
                                         ShowModal("Success",
-                                            $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                            $"You sent transaction transferring {amount.ToString(MoneyFormatLong)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash,
                                             ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                             {
                                                 AudioManager.Instance.PlaySFX("click");
@@ -4664,8 +4664,14 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
+                                            string successMessage;
+                                            if(accountManager.CurrentPlatform == PlatformKind.Ethereum)
+                                                successMessage = $"You sent transaction transferring {amount.ToString(MoneyFormatLong)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
+                                            else
+                                                successMessage = $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash;
+
                                             ShowModal("Success",
-                                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                                successMessage,
                                                 ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                                 {
                                                     AudioManager.Instance.PlaySFX("click");
