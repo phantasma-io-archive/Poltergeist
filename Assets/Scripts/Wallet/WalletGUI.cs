@@ -1912,10 +1912,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 20 elements with total height of (element height + spacing) * 20 = Units(3) * 20.
+            // 1) 19 elements with total height of (element height + spacing) * 19 = Units(3) * 19.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 20 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 19 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -2046,11 +2046,6 @@ namespace Poltergeist
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth token tr. gas limit");
             var ethereumTokenTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumTokenTransferGasLimit.ToString());
             BigInteger.TryParse(ethereumTokenTransactionGasLimit, out settings.ethereumTokenTransferGasLimit);
-            curY += Units(3);
-
-            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth contract gas limit");
-            var ethereumContractGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumContractGasLimit.ToString());
-            BigInteger.TryParse(ethereumContractGasLimit, out settings.ethereumContractGasLimit);
             curY += Units(3);
 
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Log level");

@@ -56,7 +56,6 @@ namespace Poltergeist
         public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
         public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
         public const string EthereumTokenTransferGasLimitTag = "settings.ethereum.token.transfer.gas.limit";
-        public const string EthereumContractGasLimitTag = "settings.ethereum.contract.gas.limit";
 
         public const string SFXTag = "settings.sfx";
 
@@ -80,7 +79,6 @@ namespace Poltergeist
         public BigInteger ethereumGasPriceGwei;
         public BigInteger ethereumTransferGasLimit;
         public BigInteger ethereumTokenTransferGasLimit;
-        public BigInteger ethereumContractGasLimit;
         public NexusKind nexusKind;
         public bool sfx;
         public Log.Level logLevel;
@@ -153,10 +151,6 @@ namespace Poltergeist
             {
                 this.ethereumTokenTransferGasLimit = 100000;
             }
-            if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumContractGasLimitTag, "200000"), out ethereumContractGasLimit))
-            {
-                this.ethereumContractGasLimit = 200000;
-            }
 
             this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
 
@@ -176,7 +170,6 @@ namespace Poltergeist
                       "                Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
                       "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
-                      "                Ethereum contract gas limit: " + this.ethereumContractGasLimit + "\n" +
                       "                Nexus name: " + this.nexusName + "\n" +
                       "                Currency: " + this.currency + "\n" +
                       "                Sfx: " + this.sfx + "\n" +
@@ -304,7 +297,6 @@ namespace Poltergeist
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.SetString(EthereumTransferGasLimitTag, this.ethereumTransferGasLimit.ToString());
             PlayerPrefs.SetString(EthereumTokenTransferGasLimitTag, this.ethereumTokenTransferGasLimit.ToString());
-            PlayerPrefs.SetString(EthereumContractGasLimitTag, this.ethereumContractGasLimit.ToString());
 
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
             PlayerPrefs.SetString(CurrencyTag, this.currency);
@@ -324,7 +316,6 @@ namespace Poltergeist
                       "                Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
                       "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
-                      "                Ethereum contract gas limit: " + this.ethereumContractGasLimit + "\n" +
                       "                Nexus name: " + nexusName + "\n" +
                       "                Currency: " + currency + "\n" +
                       "                Sfx: " + sfx + "\n" +
