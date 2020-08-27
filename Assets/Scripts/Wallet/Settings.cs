@@ -236,7 +236,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://mankinitest.phantasma.io:7081/rpc";
+                            _return_value = "http://mankinitest.phantasma.io:7093/rpc";
                             break;
 
                         case NexusKind.Local_Net:
@@ -302,6 +302,10 @@ namespace Poltergeist
                     {
                         case NexusKind.Main_Net:
                             _return_value = "https://neoscan.io";
+                            break;
+
+                        case NexusKind.Test_Net:
+                            _return_value = "http://mankinighost.phantasma.io:4000";
                             break;
 
                         default:
