@@ -14,6 +14,14 @@ namespace Poltergeist
         Custom
     }
 
+    public enum EthereumNetwork
+    {
+        Unknown,
+        Main_Net,
+        Ropsten,
+        Local_Net
+    }
+
     public enum UiThemes
     {
         Classic,
@@ -52,6 +60,9 @@ namespace Poltergeist
 
         public const string NeoGasFeeTag = "settings.neo.gas.fee";
 
+        public const string EthereumNetworkTag = "settings.ethereum.network";
+        public const string EthereumLocalnetSoulContractTag = "settings.ethereum.localnet.soul.contract";
+        public const string EthereumLocalnetKcalContractTag = "settings.ethereum.localnet.kcal.contract";
         public const string EthereumRPCTag = "settings.ethereum.rpc.url";
         public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
         public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
@@ -75,6 +86,9 @@ namespace Poltergeist
         public string currency;
         public BigInteger feePrice;
         public decimal neoGasFee;
+        public EthereumNetwork ethereumNetwork;
+        public string ethereumLocalnetSoulContract;
+        public string ethereumLocalnetKcalContract;
         public string ethereumRPCURL;
         public BigInteger ethereumGasPriceGwei;
         public BigInteger ethereumTransferGasLimit;
@@ -138,6 +152,15 @@ namespace Poltergeist
                 this.neoGasFee = 0.001m;
 
             // Ethereum
+            var ethereumNetwork = PlayerPrefs.GetString(EthereumNetworkTag, EthereumNetwork.Main_Net.ToString());
+            if (!Enum.TryParse<EthereumNetwork>(ethereumNetwork, true, out this.ethereumNetwork))
+            {
+                this.ethereumNetwork = EthereumNetwork.Unknown;
+            }
+
+            this.ethereumLocalnetSoulContract = PlayerPrefs.GetString(EthereumLocalnetSoulContractTag, GetDefaultValue(EthereumLocalnetSoulContractTag));
+            this.ethereumLocalnetKcalContract = PlayerPrefs.GetString(EthereumLocalnetKcalContractTag, GetDefaultValue(EthereumLocalnetKcalContractTag));
+
             this.ethereumRPCURL = PlayerPrefs.GetString(EthereumRPCTag, GetDefaultValue(EthereumRPCTag));
             if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumGasPriceGweiTag, "100"), out ethereumGasPriceGwei))
             {
@@ -166,6 +189,9 @@ namespace Poltergeist
                       "                Neo RPC: " + this.neoRPCURL + "\n" +
                       "                Neoscan: " + this.neoscanURL + "\n" +
                       "                Neo GAS fee: " + this.neoGasFee + "\n" +
+                      "                Ethereum network: " + this.ethereumNetwork + "\n" +
+                      "                Ethereum localnet SOUL contract: " + this.ethereumLocalnetSoulContract + "\n" +
+                      "                Ethereum localnet KCAL contract: " + this.ethereumLocalnetKcalContract + "\n" +
                       "                Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                       "                Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
@@ -235,17 +261,32 @@ namespace Poltergeist
                     break;
 
                 case EthereumRPCTag:
-                    switch (nexusKind)
+                    switch (ethereumNetwork)
                     {
-                        /*case NexusKind.Main_Net:
+                        case EthereumNetwork.Main_Net:
                             _return_value = "";
                             break;
-                        */
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "https://ropsten.infura.io/v3/34a7c02e7f2f458181180c72c4de58a6";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = "http://mankinieth.phantasma.io:7545/";
+                            break;
 
                         default:
-                            _return_value = "http://13.91.228.58:7545";
+                            _return_value = "";
                             break;
                     }
+                    break;
+
+                case EthereumLocalnetSoulContractTag:
+                    _return_value = "4c2AF2fB374B988363deb535Bf0fF2D1Eb7b2106"; // Value from http://mankinieth.phantasma.io:7545/
+                    break;
+
+                case EthereumLocalnetKcalContractTag:
+                    _return_value = "a9858F0E2037C18dD6a0b4Bc082d41B0536D47E2"; // Value from http://mankinieth.phantasma.io:7545/
                     break;
 
                 case NeoscanAPITag:
@@ -293,6 +334,9 @@ namespace Poltergeist
             PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
             PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
 
+            PlayerPrefs.SetString(EthereumNetworkTag, this.ethereumNetwork.ToString());
+            PlayerPrefs.SetString(EthereumLocalnetSoulContractTag, this.ethereumLocalnetSoulContract.ToString());
+            PlayerPrefs.SetString(EthereumLocalnetKcalContractTag, this.ethereumLocalnetKcalContract.ToString());
             PlayerPrefs.SetString(EthereumRPCTag, this.ethereumRPCURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.SetString(EthereumTransferGasLimitTag, this.ethereumTransferGasLimit.ToString());
@@ -312,6 +356,9 @@ namespace Poltergeist
                       "                Neo RPC: " + neoRPCURL + "\n" +
                       "                Neoscan: " + neoscanURL + "\n" +
                       "                Neo GAS fee: " + neoGasFee + "\n" +
+                      "                Ethereum network: " + ethereumNetwork + "\n" +
+                      "                Ethereum localnet SOUL contract: " + ethereumLocalnetSoulContract + "\n" +
+                      "                Ethereum localnet KCAL contract: " + ethereumLocalnetKcalContract + "\n" +
                       "                Ethereum RPC: " + ethereumRPCURL + "\n" +
                       "                Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
@@ -351,6 +398,20 @@ namespace Poltergeist
             if (restoreName)
             {
                 this.nexusName = this.GetDefaultValue(NexusNameTag);
+
+                // Reset ethereum network on nexus change (except custom nexus).
+                switch (this.nexusKind)
+                {
+                    case NexusKind.Main_Net:
+                        this.ethereumNetwork = EthereumNetwork.Main_Net;
+                        break;
+                    case NexusKind.Test_Net:
+                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        break;
+                    case NexusKind.Local_Net:
+                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        break;
+                }
             }
 
             Log.Write("Settings: Restore endpoints: restoreName mode: " + restoreName + "\n" +
@@ -359,6 +420,15 @@ namespace Poltergeist
                       "                             Neoscan: " + this.neoscanURL + "\n" +
                       "                             Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                       "                             Nexus name: " + this.nexusName,
+                      Log.Level.Debug1);
+        }
+
+        public void RestoreEthereumEndpoint()
+        {
+            this.ethereumRPCURL = this.GetDefaultValue(EthereumRPCTag);
+
+            Log.Write("Settings: Restore ethereum endpoint:\n" +
+                      "                             Ethereum RPC: " + this.ethereumRPCURL,
                       Log.Level.Debug1);
         }
     }

@@ -192,6 +192,11 @@ namespace Poltergeist
 
         private NexusKind[] availableNexus = Enum.GetValues(typeof(NexusKind)).Cast<NexusKind>().ToArray();
 
+        private int ethereumNetworkIndex;
+        private ComboBox ethereumNetworkComboBox = new ComboBox();
+
+        private EthereumNetwork[] availableEthereumNetworks = Enum.GetValues(typeof(EthereumNetwork)).Cast<EthereumNetwork>().ToArray();
+
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
@@ -449,6 +454,17 @@ namespace Poltergeist
                             }
                         }
                         nexusComboBox.SelectedItemIndex = nexusIndex;
+
+                        ethereumNetworkIndex = 0;
+                        for (int i = 0; i < availableEthereumNetworks.Length; i++)
+                        {
+                            if (availableEthereumNetworks[i] == accountManager.Settings.ethereumNetwork)
+                            {
+                                ethereumNetworkIndex = i;
+                                break;
+                            }
+                        }
+                        ethereumNetworkComboBox.SelectedItemIndex = ethereumNetworkIndex;
 
                         logLevelIndex = 0;
                         for (int i = 0; i < availableLogLevels.Length; i++)
@@ -1912,10 +1928,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 19 elements with total height of (element height + spacing) * 19 = Units(3) * 19.
+            // 1) 22 elements with total height of (element height + spacing) * 22 = Units(3) * 22.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 19 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 22 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
 
@@ -2001,9 +2017,32 @@ namespace Poltergeist
                 settings.neoscanURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.neoscanURL);
                 curY += Units(3);
 
-                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Ethereum RPC URL");
-                settings.ethereumRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumRPCURL);
-                curY += Units(3);
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Ethereum network");
+                var ethereumNetworkList = availableEthereumNetworks.Select(x => x.ToString().Replace('_', ' ')).ToArray();
+                var prevEthereumNetworkNexus = ethereumNetworkIndex;
+                ethereumNetworkIndex = ethereumNetworkComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), ethereumNetworkList, 0, out dropHeight, null, 1);
+                settings.ethereumNetwork = availableEthereumNetworks[ethereumNetworkIndex];
+                curY += dropHeight + Units(1);
+
+                if (prevEthereumNetworkNexus != ethereumNetworkIndex)
+                {
+                    settings.RestoreEthereumEndpoint();
+                }
+
+                if (settings.ethereumNetwork == EthereumNetwork.Local_Net)
+                {
+                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth local SOUL hash");
+                    settings.ethereumLocalnetSoulContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetSoulContract);
+                    curY += Units(3);
+
+                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth local KCAL hash");
+                    settings.ethereumLocalnetKcalContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetKcalContract);
+                    curY += Units(3);
+
+                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Ethereum RPC URL");
+                    settings.ethereumRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumRPCURL);
+                    curY += Units(3);
+                }
             }
             else
             {

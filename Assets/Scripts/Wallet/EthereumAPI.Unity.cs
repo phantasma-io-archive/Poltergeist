@@ -39,6 +39,26 @@ namespace Phantasma.SDK
         //Returns the balance for a specific token, given a contract.
         public IEnumerator GetTokenBalance(string addressText, string tokenContract, string tokenSymbol, int tokenDecimals, Action<Poltergeist.Balance> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
+            if(String.IsNullOrEmpty(tokenContract))
+            {
+                // Don't query token balances if we haven't deployed contracts for them.
+
+                var balance = new Poltergeist.Balance()
+                {
+                    Symbol = tokenSymbol,
+                    Available = 0,
+                    Pending = 0,
+                    Claimable = 0,
+                    Staked = 0,
+                    Chain = "main",
+                    Decimals = tokenDecimals
+                };
+
+                callback(balance);
+
+                yield break;
+            }
+
             var balanceOf = "70a08231b98ef4ca268c9cc3f6b4590e4bfec28280db06bb5d45e689f2a360be";
             var data = balanceOf.Substring(0, 8) + addressText.Substring(2).PadLeft(64, '0');
 

@@ -666,6 +666,101 @@ namespace Poltergeist
 
         private const string TokenInfoTag = "info.tokens";
 
+        public string GetEthereumContract(string symbol)
+        {
+            string _return_value;
+
+            switch (symbol.ToUpper())
+            {
+                case "SOUL":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "53d5bdb2c8797218f8a0e11e997c4ab84f0b40ce";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = Settings.ethereumLocalnetSoulContract;
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                case "KCAL":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "67b132a32e7a3c4ba7debedeff6290351483008f";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = Settings.ethereumLocalnetKcalContract;
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                case "DAI":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                case "USDT":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                default:
+                    _return_value = "";
+                    break;
+            }
+
+            Log.Write($"GetEthereumContract({symbol}): {_return_value}", Log.Level.Debug1);
+
+            if (String.IsNullOrEmpty(_return_value))
+                Log.WriteWarning($"Ethereum contract for {symbol} [{Settings.ethereumNetwork}] not found!");
+
+            return _return_value;
+        }
+
         private void PrepareTokens()
         {
             var extFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString() + "," + TokenFlags.Divisible.ToString();
@@ -713,12 +808,12 @@ namespace Poltergeist
                 new Token() { symbol = "LX", apiSymbol = "lux", platform = "neo", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "1000000000", name = "Moonlight Lux", flags = extFlags },
                 new Token() { symbol = "BRDG", apiSymbol = "bridge-protocol", platform = "neo", hash = "78fd589f7894bf9642b4a573ec0e6957dfd84c48", decimals = 8, maxSupply = "1000000000", name = "Bridge Protocol", flags = extFlags },
 
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "4c2AF2fB374B988363deb535Bf0fF2D1Eb7b2106", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "", platform = "ethereum", hash = "a9858F0E2037C18dD6a0b4Bc082d41B0536D47E2", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "", platform = "ethereum", hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
                 new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
-                new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "6b175474e89094c44da98b954eedeac495271d0f", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
-                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "dac17f958d2ee523a2206206994597c13d831ec7", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags }/*,
-                new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "7CAc27eC98D616cecD188631bC92b9463F4698E3", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }*/
+                new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
+                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags }/*,
+                new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }*/
             };
 
             CurrentTokenCurrency = "";
@@ -1016,7 +1111,7 @@ namespace Poltergeist
                                                         }
 
                                                         var hexTx = ethereumApi.SignTokenTransaction(keys, nonce,
-                                                            ethToken.hash,
+                                                            GetEthereumContract(ethToken.symbol),
                                                             transfer.destination,
                                                             UnitConversion.ToBigInteger(transfer.amount, ethToken.decimals),
                                                             Settings.ethereumGasPriceGwei,
@@ -1652,7 +1747,7 @@ namespace Poltergeist
                                 else
                                 {
                                     StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
-                                        ethToken.hash,
+                                        GetEthereumContract(ethToken.symbol),
                                         ethToken.symbol, ethToken.decimals, (balanceSoul) =>
                                     {
                                         balances.Add(balanceSoul);
