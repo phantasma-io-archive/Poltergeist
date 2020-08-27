@@ -235,6 +235,10 @@ namespace Poltergeist
                             _return_value = "http://207.148.17.86:7077/rpc";
                             break;
 
+                        case NexusKind.Test_Net:
+                            _return_value = "http://mankinitest.phantasma.io:7081/rpc";
+                            break;
+
                         case NexusKind.Local_Net:
                             _return_value = "http://localhost:7077/rpc";
                             break;
@@ -252,6 +256,10 @@ namespace Poltergeist
                             var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
                             int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
                             _return_value = neoRpcList[index];
+                            break;
+
+                        case NexusKind.Test_Net:
+                            _return_value = "http://mankinighost.phantasma.io:30333";
                             break;
 
                         default:
@@ -360,7 +368,7 @@ namespace Poltergeist
                       "                Ethereum localnet SOUL contract: " + ethereumLocalnetSoulContract + "\n" +
                       "                Ethereum localnet KCAL contract: " + ethereumLocalnetKcalContract + "\n" +
                       "                Ethereum RPC: " + ethereumRPCURL + "\n" +
-                      "                Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag + "\n" +
+                      "                Ethereum gas price (Gwei): " + ethereumGasPriceGwei + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
                       "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
                       "                Nexus name: " + nexusName + "\n" +
@@ -383,7 +391,7 @@ namespace Poltergeist
             Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
                       "                        NFT sort direction: " + nftSortDirection + "\n" +
                       "                        Phantasma BP: " + phantasmaBPURL + "\n" +
-                      "                        Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag,
+                      "                        Ethereum gas price (Gwei): " + ethereumGasPriceGwei,
                       Log.Level.Debug1);
         }
 
