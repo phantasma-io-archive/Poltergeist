@@ -45,7 +45,7 @@ namespace Phantasma.SDK
             var paramData = DataNode.CreateArray("params");
             var callParams = DataNode.CreateObject();
             callParams.AddField("to", "0x" + tokenContract);
-            callParams.AddField("data", data);
+            callParams.AddField("data", "0x" + data);
             paramData.AddNode(callParams);
             paramData.AddField(null, "latest");
 
