@@ -81,7 +81,7 @@ namespace Phantasma.SDK
                 var nonce = Convert.ToInt32(hex, 16);
 
                 callback(nonce);
-            }, addressText, "latest");
+            }, addressText, "pending");
         }
         public string SignTransaction(EthereumKey keys, int nonce, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit, string data = null)
         {
