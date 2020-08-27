@@ -2032,41 +2032,68 @@ namespace Poltergeist
                     case PlatformKind.Ethereum:
                         {
                             var keys = EthereumKey.FromWIF(account.WIF);
-                            var url = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
+                            var urlEth = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
 
-                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            StartCoroutine(WebClient.RESTRequest(urlEth, (error, msg) =>
                             {
                                 ReportWalletHistory(platform, null);
                             },
-                            (response) =>
+                            (responseEth) =>
                             {
-                                var alreadyAddedHashes = new List<string>(); // This code copied from Neoscan which sends some transactions twice, should filter them.
-
-                                var history = new List<HistoryEntry>();
-
-                                if (response != null)
+                                var urlErc20 = GetEtherscanAPIUrl($"module=account&action=tokentx&address={keys.Address}&sort=desc");
+                                StartCoroutine(WebClient.RESTRequest(urlErc20, (error, msg) =>
                                 {
-                                    var entries = response.GetNode("result");
-                                    foreach (var entry in entries.Children)
+                                    ReportWalletHistory(platform, null);
+                                },
+                                (responseErc20) =>
+                                {
+                                    var ethHistory = new Dictionary<string, DateTime>();
+
+                                    // Adding ETH transactions to the dict.
+                                    if (responseEth != null)
                                     {
-                                        var hash = entry.GetString("hash");
-                                        if (alreadyAddedHashes.Contains(hash) == false)
+                                        var entries = responseEth.GetNode("result");
+                                        foreach (var entry in entries.Children)
                                         {
-                                            var time = entry.GetUInt32("timeStamp");
-
-                                            history.Add(new HistoryEntry()
+                                            var hash = entry.GetString("hash");
+                                            if (!ethHistory.Any(x => x.Key == hash))
                                             {
-                                                hash = hash,
-                                                date = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(time).ToLocalTime(),
-                                                url = GetEtherscanTransactionURL(hash),
-                                            });
-
-                                            alreadyAddedHashes.Add(hash);
+                                                ethHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
                                         }
                                     }
-                                }
 
-                                ReportWalletHistory(platform, history);
+                                    // Adding ERC20 transactions to the dict.
+                                    if (responseErc20 != null)
+                                    {
+                                        var entries = responseErc20.GetNode("result");
+                                        foreach (var entry in entries.Children)
+                                        {
+                                            var hash = entry.GetString("hash");
+                                            if (!ethHistory.Any(x => x.Key == hash))
+                                            {
+                                                ethHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
+                                        }
+                                    }
+
+                                    // Sorting tx-es by date.
+                                    var orderedEthHistory = ethHistory.OrderByDescending(x => x.Value);
+
+                                    var history = new List<HistoryEntry>();
+
+                                    foreach (var entry in orderedEthHistory)
+                                    {
+                                        history.Add(new HistoryEntry()
+                                        {
+                                            hash = entry.Key,
+                                            date = entry.Value,
+                                            url = GetEtherscanTransactionURL(entry.Key),
+                                        });
+                                    }
+
+                                    ReportWalletHistory(platform, history);
+                                }));
                             }));
                         }
                         break;
