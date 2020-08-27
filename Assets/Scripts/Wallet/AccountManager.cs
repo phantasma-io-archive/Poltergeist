@@ -2105,7 +2105,20 @@ namespace Poltergeist
                 return null;
             }
 
-            return $"https://etherscan.io/tx/{hash}";
+            if (!hash.StartsWith("0x"))
+                hash = "0x" + hash;
+
+            switch (Settings.ethereumNetwork)
+            {
+                case EthereumNetwork.Main_Net:
+                    return $"https://etherscan.io/tx/{hash}";
+
+                case EthereumNetwork.Ropsten:
+                    return $"https://ropsten.etherscan.io/tx/{hash}";
+
+                default:
+                    return null;
+            }
         }
 
         private string GetEtherscanAPIUrl(string request)
@@ -2115,7 +2128,17 @@ namespace Poltergeist
                 return null;
             }
 
-            return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+            switch (Settings.ethereumNetwork)
+            {
+                case EthereumNetwork.Main_Net:
+                    return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+
+                case EthereumNetwork.Ropsten:
+                    return $"https://api-ropsten.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+
+                default:
+                    return null;
+            }
         }
 
         public string GetNeoscanTransactionURL(string hash)
