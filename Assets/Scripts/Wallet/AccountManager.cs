@@ -1084,7 +1084,7 @@ namespace Poltergeist
                                                 {
                                                     var hexTx = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
                                                         UnitConversion.ToBigInteger(transfer.amount, 18), // Convert to WEI
-                                                        Settings.ethereumGasPriceGwei,
+                                                        Settings.ethereumGasPriceGwei * 1000000000, // Converting to WEI
                                                         Settings.ethereumTransferGasLimit);
 
                                                     StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
@@ -1114,7 +1114,7 @@ namespace Poltergeist
                                                             GetEthereumContract(ethToken.symbol),
                                                             transfer.destination,
                                                             UnitConversion.ToBigInteger(transfer.amount, ethToken.decimals),
-                                                            Settings.ethereumGasPriceGwei,
+                                                            Settings.ethereumGasPriceGwei * 1000000000, // Converting to WEI
                                                             gasLimit);
 
                                                         StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
