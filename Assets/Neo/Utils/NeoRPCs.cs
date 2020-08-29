@@ -7,6 +7,7 @@ namespace Phantasma.Neo.Utils
         public static List<string> GetList()
         {
             return new List<string> {
+                "http://jpc.phantasma.io:10332",
                 "https://seed0.cityofzion.io:443",
                 "https://seed6.cityofzion.io:443",
                 "https://seed7.cityofzion.io:443",
