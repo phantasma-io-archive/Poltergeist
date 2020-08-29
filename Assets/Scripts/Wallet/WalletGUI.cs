@@ -4983,9 +4983,14 @@ namespace Poltergeist
                     if (!string.IsNullOrEmpty(addr))
                     {
                         var shortenedPlatform = platform.ToString();
-                        if (platform.ToString() == "Phantasma")
+                        switch(platform)
                         {
-                            shortenedPlatform = "Pha";
+                            case PlatformKind.Phantasma:
+                                shortenedPlatform = "Pha";
+                                break;
+                            case PlatformKind.Ethereum:
+                                shortenedPlatform = "Eth";
+                                break;
                         }
                         var key = $"{accountManager.CurrentAccount.name} [{shortenedPlatform}]";
                         hints[key] = addr;
@@ -5016,9 +5021,14 @@ namespace Poltergeist
                         if (!string.IsNullOrEmpty(addr))
                         {
                             var shortenedPlatform = platform.ToString();
-                            if (platform.ToString() == "Phantasma")
+                            switch (platform)
                             {
-                                shortenedPlatform = "Pha";
+                                case PlatformKind.Phantasma:
+                                    shortenedPlatform = "Pha";
+                                    break;
+                                case PlatformKind.Ethereum:
+                                    shortenedPlatform = "Eth";
+                                    break;
                             }
                             var key = $"{account.name} [{shortenedPlatform}]";
                             hints[key] = addr;
