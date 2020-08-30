@@ -2733,6 +2733,13 @@ namespace Poltergeist
                                             {
                                                 if (kcal == PromptResult.Success)
                                                 {
+                                                    // In case we swapped SOUL to KCAL we should check if selected amound is still available
+                                                    // If not - reduce to balance
+                                                    // We should update balance object first
+                                                    balance = AccountManager.Instance.CurrentState.balances.Where(x => x.Symbol == balance.Symbol).FirstOrDefault();
+                                                    if (selectedAmount > balance.Available)
+                                                        selectedAmount = balance.Available;
+
                                                     var address = Address.FromText(state.address);
 
                                                     var sb = new ScriptBuilder();
@@ -4170,6 +4177,13 @@ namespace Poltergeist
                 {
                     if (feeResult == PromptResult.Success)
                     {
+                        // In case we swapped SOUL to KCAL we should check if selected amound is still available
+                        // If not - reduce to balance
+                        // We should update balance first
+                        balance = AccountManager.Instance.CurrentState.GetAvailableAmount(symbol);
+                        if (amount > balance)
+                            amount = balance;
+
                         byte[] script;
 
                         try
@@ -4641,6 +4655,13 @@ namespace Poltergeist
                             {
                                 if (feeResult == PromptResult.Success)
                                 {
+                                    // In case we swapped SOUL to KCAL we should check if selected amound is still available
+                                    // If not - reduce to balance
+                                    // We should update balance first
+                                    balance = AccountManager.Instance.CurrentState.GetAvailableAmount(symbol);
+                                    if (amount > balance)
+                                        amount = balance;
+
                                     byte[] script;
 
                                     var source = Address.FromText(sourceAddress);
