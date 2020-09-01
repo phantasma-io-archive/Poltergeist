@@ -2746,7 +2746,7 @@ namespace Poltergeist
                                 {
                                     var expectedDailyKCAL = (selectedAmount + balance.Staked) * 0.002m;
 
-                                    PromptBox($"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.", ModalYesNo, (result) =>
+                                    PromptBox($"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours.", ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
                                         {
@@ -2842,7 +2842,7 @@ namespace Poltergeist
                             secondaryEnabled = true;
                             secondaryCallback = () =>
                             {
-                                PromptBox($"Do you want to claim KCAL?\nThere is {balance.Claimable} KCAL available.", ModalYesNo, (result) =>
+                                PromptBox($"Do you want to claim KCAL?\nThere is {balance.Claimable} KCAL available.\n\nPlease note, after claiming KCAL you won't be able to unstake SOUL for next 24 hours.", ModalYesNo, (result) =>
                                 {
                                     if (result == PromptResult.Success)
                                     {
