@@ -235,6 +235,22 @@ namespace Poltergeist
 
         public static WalletGUI Instance { get; private set; }
 
+        // Helps to close opened drop-down lists when they are not needed any more.
+        private void ResetAllCombos()
+        {
+            currencyComboBox.ResetState();
+            platformComboBox.ResetState();
+            hintComboBox.ResetState();
+            nexusComboBox.ResetState();
+            ethereumNetworkComboBox.ResetState();
+            logLevelComboBox.ResetState();
+            uiThemeComboBox.ResetState();
+            nftSortModeComboBox.ResetState();
+            nftTypeComboBox.ResetState();
+            nftRarityComboBox.ResetState();
+            nftMintedComboBox.ResetState();
+        }
+
         public static int Units(int n)
         {
             return 16 * n;
@@ -338,6 +354,8 @@ namespace Poltergeist
 
         private void SetState(GUIState state)
         {
+            ResetAllCombos();
+
             switch (guiState)
             {
                 case GUIState.Backup:
@@ -874,6 +892,9 @@ namespace Poltergeist
                 modalState = ModalState.None;
                 modalCallback = null;
                 modalResult = PromptResult.Waiting;
+
+                ResetAllCombos();
+
                 temp?.Invoke(result, success ? modalInput.Trim() : null);
 
                 if (modalState == ModalState.None)

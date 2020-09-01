@@ -160,4 +160,10 @@ public class ComboBox
     {
         return isClickedComboButton;
     }
+
+    public void ResetState()
+    {
+        forceToUnShow = false;
+        isClickedComboButton = false;
+    }
 }
