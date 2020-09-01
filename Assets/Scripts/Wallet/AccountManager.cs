@@ -278,7 +278,7 @@ namespace Poltergeist
         {
             var separator = "%2C";
             var url = "https://api.coingecko.com/api/v3/simple/price?ids=" + string.Join(separator, symbols.Where(x => !String.IsNullOrEmpty(x.apiSymbol)).Select(x => x.apiSymbol).Distinct().ToList()) + "&vs_currencies=" + currency;
-            return WebClient.RESTRequest(url, (error, msg) =>
+            return WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
             {
 
             },
@@ -393,7 +393,7 @@ namespace Poltergeist
                 rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
 
                 StartCoroutine(
-                    WebClient.RESTRequest(url, (error, msg) =>
+                    WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                     {
                         Log.Write("auto error => " + error);
                     },
@@ -1345,7 +1345,7 @@ namespace Poltergeist
                 case PlatformKind.Neo:
                     var url = GetNeoscanAPIUrl($"get_transaction/{transactionHash}");
 
-                    StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                    StartCoroutine(WebClient.RESTRequest(url, WebClient.NoTimeout, (error, msg) =>
                     {
                         if (confirmationCount <= neoMaxConfirmations)
                         {
@@ -1585,7 +1585,7 @@ namespace Poltergeist
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
-                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                             {
                                 ReportWalletBalance(platform, null);
                             },
@@ -1995,7 +1995,7 @@ namespace Poltergeist
                             var keys = NeoKeys.FromWIF(account.WIF);
                             var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
 
-                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                             {
                                 ReportWalletHistory(platform, null);
                             },
@@ -2034,14 +2034,14 @@ namespace Poltergeist
                             var keys = EthereumKey.FromWIF(account.WIF);
                             var urlEth = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
 
-                            StartCoroutine(WebClient.RESTRequest(urlEth, (error, msg) =>
+                            StartCoroutine(WebClient.RESTRequest(urlEth, WebClient.DefaultTimeout, (error, msg) =>
                             {
                                 ReportWalletHistory(platform, null);
                             },
                             (responseEth) =>
                             {
                                 var urlErc20 = GetEtherscanAPIUrl($"module=account&action=tokentx&address={keys.Address}&sort=desc");
-                                StartCoroutine(WebClient.RESTRequest(urlErc20, (error, msg) =>
+                                StartCoroutine(WebClient.RESTRequest(urlErc20, WebClient.DefaultTimeout, (error, msg) =>
                                 {
                                     ReportWalletHistory(platform, null);
                                 },

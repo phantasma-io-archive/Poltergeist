@@ -791,12 +791,12 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator ExecuteRequestWeb(Action<DataNode> callback, Action<Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE, string> onError, string url)
         {
-            return WebClient.RESTRequest(url, onError, (response) => callback(response));
+            return WebClient.RESTRequest(url, WebClient.NoTimeout, onError, (response) => callback(response));
         }
 
         public IEnumerator ExecuteRequestRPC(Action<DataNode> callback, Action<Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE, string> onError, string method, object[] _params)
         {
-            return WebClient.RPCRequest(this.neoRPCUrl, method, onError, (response) => callback(response), _params);
+            return WebClient.RPCRequest(this.neoRPCUrl, method, WebClient.NoTimeout, onError, (response) => callback(response), _params);
         }
 
         private void ErrorHandler(Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE type, string msg)

@@ -18,7 +18,7 @@ namespace Phantasma.SDK
         }
         public IEnumerator GetBalance(string addressText, string tokenSymbol, int tokenDecimals, Action<Poltergeist.Balance> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_getBalance", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequest(Host, "eth_getBalance", WebClient.DefaultTimeout, errorHandlingCallback, (node) => {
                 var availableHex = node.Value;
                 var available = BigInteger.FromHex(availableHex.Substring(2));
 
@@ -69,7 +69,7 @@ namespace Phantasma.SDK
             paramData.AddNode(callParams);
             paramData.AddField(null, "latest");
 
-            yield return WebClient.RPCRequestEx(Host, "eth_call", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequestEx(Host, "eth_call", WebClient.DefaultTimeout, errorHandlingCallback, (node) => {
                 var availableHex = node.Value;
                 BigInteger available = 0;
                 if (!String.IsNullOrEmpty(availableHex) && availableHex != "0x")
@@ -91,7 +91,7 @@ namespace Phantasma.SDK
         }
         public IEnumerator GetNonce(string addressText, Action<Int32> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_getTransactionCount", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequest(Host, "eth_getTransactionCount", WebClient.NoTimeout, errorHandlingCallback, (node) => {
                 var hex = node.Value;
                 if (string.IsNullOrEmpty(hex))
                 {
@@ -141,14 +141,14 @@ namespace Phantasma.SDK
         }
         public IEnumerator SendRawTransaction(string hexTx, Action<Hash, string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_sendRawTransaction", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequest(Host, "eth_sendRawTransaction", WebClient.NoTimeout, errorHandlingCallback, (node) => {
                 var hash = Hash.Parse(node.Value);
                 callback(hash, null);
             }, hexTx);
         }
         public IEnumerator GetTransactionByHash(string hash, Action<DataNode> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_getTransactionByHash", errorHandlingCallback, callback, "0x" + hash);
+            yield return WebClient.RPCRequest(Host, "eth_getTransactionByHash", WebClient.NoTimeout, errorHandlingCallback, callback, "0x" + hash);
         }
     }
 }

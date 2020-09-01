@@ -4962,7 +4962,7 @@ namespace Poltergeist
         private void EthGasStationRequest(Action<BigInteger, string, BigInteger, string, BigInteger, string, BigInteger, string> callback)
         {
             var url = "https://ethgasstation.info/api/ethgasAPI.json?api-key=25d4c0f579cd9d98ac8a124269a0f752e598882a2e7f6fcbdb0c8aa6bbb9";
-            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+            StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                 {
                     Log.Write("EthGasStationRequest error: " + error);
                     callback(0, "", 0, "", 0, "", 0, "");

@@ -12,7 +12,9 @@ namespace Phantasma.SDK
 {
     public static class WebClient
     {
-        public static IEnumerator RPCRequest(string url, string method, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
+        public static int NoTimeout = 0;
+        public static int DefaultTimeout = 30;
+        public static IEnumerator RPCRequest(string url, string method, int timeout, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
                                             Action<DataNode> callback, params object[] parameters)
         {
             var paramData = DataNode.CreateArray("params");
@@ -52,8 +54,12 @@ namespace Phantasma.SDK
             request.SetRequestHeader("Content-Type", "application/json");
 
             DateTime startTime = DateTime.Now;
-            request.timeout = 30;
+
+            if(timeout > 0)
+                request.timeout = timeout;
+            
             yield return request.SendWebRequest();
+            
             TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)
@@ -115,7 +121,7 @@ namespace Phantasma.SDK
 
             yield break;
         }
-        public static IEnumerator RPCRequestEx(string url, string method, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
+        public static IEnumerator RPCRequestEx(string url, string method, int timeout, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
             Action<DataNode> callback, DataNode parametersNode)
         {
             var jsonRpcData = DataNode.CreateObject(null);
@@ -145,8 +151,12 @@ namespace Phantasma.SDK
             request.SetRequestHeader("Content-Type", "application/json");
 
             DateTime startTime = DateTime.Now;
-            request.timeout = 30;
+
+            if (timeout > 0)
+                request.timeout = timeout;
+
             yield return request.SendWebRequest();
+            
             TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)
@@ -208,7 +218,7 @@ namespace Phantasma.SDK
 
             yield break;
         }
-        public static IEnumerator RESTRequest(string url, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback, Action<DataNode> callback)
+        public static IEnumerator RESTRequest(string url, int timeout, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback, Action<DataNode> callback)
         {
             UnityWebRequest request;
 
@@ -218,8 +228,12 @@ namespace Phantasma.SDK
             request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
 
             DateTime startTime = DateTime.Now;
-            request.timeout = 30;
+
+            if (timeout > 0)
+                request.timeout = timeout;
+            
             yield return request.SendWebRequest();
+            
             TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)

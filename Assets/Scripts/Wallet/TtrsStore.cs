@@ -61,7 +61,7 @@ public static class TtrsStore
             yield break;
         }
 
-        yield return WebClient.RESTRequest(url, (error, msg) =>
+        yield return WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
         {
             Log.Write("LoadStoreInfo() error: " + error);
         },
