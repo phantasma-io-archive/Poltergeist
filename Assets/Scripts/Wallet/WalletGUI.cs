@@ -2746,7 +2746,13 @@ namespace Poltergeist
                                 {
                                     var expectedDailyKCAL = (selectedAmount + balance.Staked) * 0.002m;
 
-                                    PromptBox($"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours.", ModalYesNo, (result) =>
+                                    var twoSmsWarning = "";
+                                    if(selectedAmount >= 100000)
+                                    {
+                                        twoSmsWarning = "\n\nSoul Master rewards are distributed evenly to every wallet with 50K or more SOUL. As you are staking over 100K SOUL, to maximise your rewards, you may wish to stake each 50K SOUL in a separate wallet.";
+                                    }
+
+                                    PromptBox($"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
                                         {
