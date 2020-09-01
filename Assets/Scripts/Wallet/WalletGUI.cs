@@ -2712,7 +2712,7 @@ namespace Poltergeist
                                 }
                                 else
                                 {
-                                    MessageBox(MessageKind.Error, $"There was some error claiming your {balance.Symbol}...\n{error}");
+                                    MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
                                 }
                             });
                         }
