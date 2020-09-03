@@ -143,12 +143,9 @@ namespace Poltergeist
         private Dictionary<PlatformKind, Texture2D> QRCodeTextures = new Dictionary<PlatformKind, Texture2D>();
 
         public const string WalletTitle = "Poltergeist Wallet";
-        public const string MoneyFormat = "#,0.####";
-        public const string MoneyFormatShort = "#,0.##";
-        public const string MoneyFormatLong = "#,0.############";
 
         public int Border => Units(1);
-        public int HalfBorder => Border/2;
+        public int HalfBorder => Border / 2;
         public const bool fullScreen = true;
         public bool VerticalLayout => virtualWidth < virtualHeight; //virtualWidth < 420;
 
@@ -254,6 +251,30 @@ namespace Poltergeist
         public static int Units(int n)
         {
             return 16 * n;
+        }
+
+        public enum MoneyFormatType
+        {
+            Short,
+            Standard,
+            Long
+        }
+        public static string MoneyFormat(decimal amount, MoneyFormatType formatType = MoneyFormatType.Standard)
+        {
+            switch (formatType)
+            {
+                case MoneyFormatType.Short:
+                    amount -= amount % 0.01M; // Getting rid of deceiving rounding.
+                    return amount.ToString("#,0.##");
+                case MoneyFormatType.Standard:
+                    amount -= amount % 0.0001M;
+                    return amount.ToString("#,0.####");
+                case MoneyFormatType.Long:
+                    amount -= amount % 0.000000000001M;
+                    return amount.ToString("#,0.############");
+                default:
+                    return amount.ToString();
+            }
         }
 
         private void Awake()
@@ -2404,7 +2425,7 @@ namespace Poltergeist
                 style.normal.textColor = new Color(1, 1, 1, 0.75f);
                 style.fontSize -= VerticalLayout ? 4: 2;
 
-                GUI.Label(subRect, $"{amount.ToString(MoneyFormat)} {symbol} {caption} ({AccountManager.Instance.GetTokenWorth(symbol, amount)})");
+                GUI.Label(subRect, $"{MoneyFormat(amount)} {symbol} {caption} ({AccountManager.Instance.GetTokenWorth(symbol, amount)})");
                 style.fontSize += VerticalLayout ? 4 : 2;
                 style.normal.textColor = tempColor;
 
@@ -2670,7 +2691,7 @@ namespace Poltergeist
             var style = GUI.skin.label;
 
             style.fontSize -= VerticalLayout ? 0 : 4;
-            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{balance.Available.ToString(MoneyFormat)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
+            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{MoneyFormat(balance.Available)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
             style.fontSize += VerticalLayout ? 0 : 4;
 
             var subRect = new Rect(posX, posY + Units(1) + 4, Units(20), Units(2));
@@ -2891,7 +2912,7 @@ namespace Poltergeist
                             {
                                 RequireAmount("Burning KCAL", null, "KCAL", 0.1m, balance.Available, (amount) =>
                                 {
-                                    var amountText = amount.ToString(MoneyFormat);
+                                    var amountText = MoneyFormat(amount);
                                     PromptBox($"Do you want to burn {amountText} KCAL?\nIt will be sent to the SES energy bomb!", ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
@@ -4240,12 +4261,12 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
+                        SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
                         {
                             if (hash != Hash.Null)
                             {
                                 ShowModal("Success",
-                                    $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                    $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
                                     ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                     {
                                         AudioManager.Instance.PlaySFX("click");
@@ -4340,7 +4361,7 @@ namespace Poltergeist
                         if (hash != Hash.Null)
                         {
                             ShowModal("Success",
-                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
                                 ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                 {
                                     AudioManager.Instance.PlaySFX("click");
@@ -4390,7 +4411,7 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
             var state = accountManager.CurrentState;
-            var caption = $"Enter {symbol} amount:\nMax: {max.ToString(MoneyFormatLong)} {symbol}";
+            var caption = $"Enter {symbol} amount:\nMax: {MoneyFormat(max, MoneyFormatType.Long)} {symbol}";
             if (symbol == "GAS" && accountManager.CurrentPlatform == PlatformKind.Phantasma && destination == null)
             {
                 caption += "\nWarning: Swapping back consumes GAS (around 0.1) so if your GAS balance falls below that, swap back to NEO will fail.";
@@ -4435,7 +4456,7 @@ namespace Poltergeist
                 }
             });
 
-            modalHints = new Dictionary<string, string>() { { $"Max ({max.ToString(MoneyFormatShort)} {symbol})", max.ToString() } };
+            modalHints = new Dictionary<string, string>() { { $"Max ({MoneyFormat(max, MoneyFormatType.Short)} {symbol})", max.ToString() } };
         }
 
         private void ContinueNeoTransfer(string transferName, string symbol, string destAddress)
@@ -4490,12 +4511,12 @@ namespace Poltergeist
 
                     byte[] script = Serialization.Serialize(transfer);
 
-                    SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
                     {
                         if (hash != Hash.Null)
                         {
                             ShowModal("Success",
-                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
                                 ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                 {
                                     AudioManager.Instance.PlaySFX("click");
@@ -4584,12 +4605,12 @@ namespace Poltergeist
 
                                 byte[] script = Serialization.Serialize(transfer);
 
-                                SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
                                         ShowModal("Success",
-                                            $"You sent transaction transferring {amount.ToString(MoneyFormatLong)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash,
+                                            $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash,
                                             ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                             {
                                                 AudioManager.Instance.PlaySFX("click");
@@ -4711,12 +4732,12 @@ namespace Poltergeist
                                         return;
                                     }
 
-                                    SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
                                             ShowModal("Success",
-                                                $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash,
+                                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
                                                 ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                                 {
                                                     AudioManager.Instance.PlaySFX("click");
@@ -4758,15 +4779,15 @@ namespace Poltergeist
 
                                     byte[] script = Serialization.Serialize(transfer);
 
-                                    SendTransaction($"Transfer {amount.ToString(MoneyFormatLong)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
                                             string successMessage;
                                             if(accountManager.CurrentPlatform == PlatformKind.Ethereum)
-                                                successMessage = $"You sent transaction transferring {amount.ToString(MoneyFormatLong)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
+                                                successMessage = $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
                                             else
-                                                successMessage = $"You transfered {amount.ToString(MoneyFormatLong)} {symbol}!\nTransaction hash:\n" + hash;
+                                                successMessage = $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash;
 
                                             ShowModal("Success",
                                                 successMessage,

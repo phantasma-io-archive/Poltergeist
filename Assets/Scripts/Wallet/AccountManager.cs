@@ -266,7 +266,7 @@ namespace Poltergeist
             {
                 var price = _tokenPrices[symbol] * amount;
                 var ch = _currencyMap[CurrentTokenCurrency];
-                return $"{price.ToString(WalletGUI.MoneyFormat)} {ch}";
+                return $"{WalletGUI.MoneyFormat(price)} {ch}";
             }
             else
             {
