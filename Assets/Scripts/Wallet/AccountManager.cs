@@ -680,7 +680,7 @@ namespace Poltergeist
                             break;
 
                         case EthereumNetwork.Ropsten:
-                            _return_value = "53d5bdb2c8797218f8a0e11e997c4ab84f0b40ce";
+                            _return_value = "4BC24574D257E508878B0bD0d39D83B98b3C6748";
                             break;
 
                         case EthereumNetwork.Local_Net:
@@ -701,7 +701,7 @@ namespace Poltergeist
                             break;
 
                         case EthereumNetwork.Ropsten:
-                            _return_value = "67b132a32e7a3c4ba7debedeff6290351483008f";
+                            _return_value = "b3eEE38DD817154793163844f1e8134Cbc2B5955";
                             break;
 
                         case EthereumNetwork.Local_Net:
