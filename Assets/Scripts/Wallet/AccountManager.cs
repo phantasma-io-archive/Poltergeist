@@ -15,6 +15,8 @@ using Phantasma.Core.Utils;
 using Phantasma.Core.Types;
 using Phantasma.Ethereum;
 using LunarLabs.Parser;
+using Phantasma.VM.Utils;
+using Phantasma.Blockchain.Contracts;
 
 namespace Poltergeist
 {
@@ -86,16 +88,25 @@ namespace Poltergeist
                 return kind;
             }
 
+            PlatformKind targets;
+
             switch (kind)
             {
                 case PlatformKind.Phantasma:
-                    return PlatformKind.Phantasma | PlatformKind.Neo | PlatformKind.Ethereum;
+                    targets = PlatformKind.Phantasma;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Neo.ToString().ToUpper()) ? PlatformKind.Neo : PlatformKind.None;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Ethereum.ToString().ToUpper()) ? PlatformKind.Ethereum : PlatformKind.None;
+                    return targets;
 
                 case PlatformKind.Neo:
-                    return PlatformKind.Phantasma | PlatformKind.Neo;
+                    targets = PlatformKind.Neo;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Phantasma.ToString().ToUpper()) ? PlatformKind.Phantasma : PlatformKind.None;
+                    return targets;
 
                 case PlatformKind.Ethereum:
-                    return PlatformKind.Phantasma | PlatformKind.Ethereum;
+                    targets = PlatformKind.Ethereum;
+                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Phantasma.ToString().ToUpper()) ? PlatformKind.Phantasma : PlatformKind.None;
+                    return targets;
 
                 default:
                     return PlatformKind.None;
@@ -163,7 +174,7 @@ namespace Poltergeist
 
         public Account[] Accounts { get; private set; }
 
-        private List<Token> SupportedTokens = null;
+        public static List<Token> SupportedTokens = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
         public string CurrentTokenCurrency { get; private set; }
 
@@ -194,7 +205,7 @@ namespace Poltergeist
 
         public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
         public Phantasma.SDK.EthereumAPI ethereumApi { get; private set; }
-        private Phantasma.Neo.Core.NeoAPI neoApi;
+        public Phantasma.Neo.Core.NeoAPI neoApi;
 
         public static PlatformKind[] AvailablePlatforms { get; private set; }
 
@@ -255,7 +266,7 @@ namespace Poltergeist
             {
                 var price = _tokenPrices[symbol] * amount;
                 var ch = _currencyMap[CurrentTokenCurrency];
-                return $"{price.ToString(WalletGUI.MoneyFormat)} {ch}";
+                return $"{WalletGUI.MoneyFormat(price)} {ch}";
             }
             else
             {
@@ -267,7 +278,7 @@ namespace Poltergeist
         {
             var separator = "%2C";
             var url = "https://api.coingecko.com/api/v3/simple/price?ids=" + string.Join(separator, symbols.Where(x => !String.IsNullOrEmpty(x.apiSymbol)).Select(x => x.apiSymbol).Distinct().ToList()) + "&vs_currencies=" + currency;
-            return WebClient.RESTRequest(url, (error, msg) =>
+            return WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
             {
 
             },
@@ -382,7 +393,7 @@ namespace Poltergeist
                 rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
 
                 StartCoroutine(
-                    WebClient.RESTRequest(url, (error, msg) =>
+                    WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                     {
                         Log.Write("auto error => " + error);
                     },
@@ -655,26 +666,126 @@ namespace Poltergeist
 
         private const string TokenInfoTag = "info.tokens";
 
+        public string GetEthereumContract(string symbol)
+        {
+            string _return_value;
+
+            switch (symbol.ToUpper())
+            {
+                case "SOUL":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "4BC24574D257E508878B0bD0d39D83B98b3C6748";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = Settings.ethereumLocalnetSoulContract;
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                case "KCAL":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "b3eEE38DD817154793163844f1e8134Cbc2B5955";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = Settings.ethereumLocalnetKcalContract;
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                case "DAI":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                case "USDT":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                default:
+                    _return_value = "";
+                    break;
+            }
+
+            Log.Write($"GetEthereumContract({symbol}): {_return_value}", Log.Level.Debug1);
+
+            if (String.IsNullOrEmpty(_return_value))
+                Log.WriteWarning($"Ethereum contract for {symbol} [{Settings.ethereumNetwork}] not found!");
+
+            return _return_value;
+        }
+
         private void PrepareTokens()
         {
             var extFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString() + "," + TokenFlags.Divisible.ToString();
             var pepFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString();
             var nftFlags = TokenFlags.Transferable.ToString();
             SupportedTokens = new List<Token>() {
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = DomainSettings.PlatformName, hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("KCAL").ToString(), decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Divisible.ToString() },
-                new Token() { symbol = "GAS", apiSymbol = "gas", platform = DomainSettings.PlatformName, hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
+                new Token() { symbol = "NEO", apiSymbol = "neo", platform = DomainSettings.PlatformName, hash = "", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
+                new Token() { symbol = "GAS", apiSymbol = "gas", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
+                new Token() { symbol = "MKNI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags },
+                new Token() { symbol = "NACHO", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags },
+                new Token() { symbol = "TTRS", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "1000000", name = "22series", flags = nftFlags },
+                new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "1000000", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
+                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
+                new Token() { symbol = "DAI", apiSymbol = "dai", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
+                new Token() { symbol = "USDT", apiSymbol = "tether", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags },
 
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = "neo", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
                 new Token() { symbol = "GAS", apiSymbol = "gas", platform = "neo", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
                 new Token() { symbol = "SWTH", apiSymbol = "switcheo", platform = "neo", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = extFlags },
                 new Token() { symbol = "NEX", apiSymbol = "neon-exchange", platform = "neo", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = extFlags },
                 new Token() { symbol = "PKC", apiSymbol = "", platform = "neo", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = extFlags },
                 new Token() { symbol = "NOS", apiSymbol = "nos", platform = "neo", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "330000000", name = "Neo Operating System", flags = extFlags },
-                new Token() { symbol = "MKNI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags },
-                new Token() { symbol = "NACHO", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags },
-                new Token() { symbol = "TTRS", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "1000000", name = "22series", flags = nftFlags },
-                new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "1000000", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
                 new Token() { symbol = "TKY", apiSymbol = "thekey", platform = "neo", hash = "132947096727c84c7f9e076c90f08fec3bc17f18", decimals = 8, maxSupply = "1000000000", name = "The Key", flags = extFlags },
                 new Token() { symbol = "CGAS", apiSymbol = "", platform = "neo", hash = "74f2dc36a68fdc4682034178eb2220729231db76", decimals = 8, maxSupply = "1000000000", name = "NEP5 GAS", flags = extFlags },
                 new Token() { symbol = "MCT", apiSymbol = "master-contract-token", platform = "neo", hash = "a87cc2a513f5d8b4a42432343687c2127c60bc3f", decimals = 8, maxSupply = "1000000000", name = "Master Contract", flags = extFlags },
@@ -697,11 +808,12 @@ namespace Poltergeist
                 new Token() { symbol = "LX", apiSymbol = "lux", platform = "neo", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "1000000000", name = "Moonlight Lux", flags = extFlags },
                 new Token() { symbol = "BRDG", apiSymbol = "bridge-protocol", platform = "neo", hash = "78fd589f7894bf9642b4a573ec0e6957dfd84c48", decimals = 8, maxSupply = "1000000000", name = "Bridge Protocol", flags = extFlags },
 
-                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = Hash.FromString("ETH").ToString(), decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
-                new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "6b175474e89094c44da98b954eedeac495271d0f", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
-                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "dac17f958d2ee523a2206206994597c13d831ec7", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags },
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "4c2AF2fB374B988363deb535Bf0fF2D1Eb7b2106", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "", platform = "ethereum", hash = "a9858F0E2037C18dD6a0b4Bc082d41B0536D47E2", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags }
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "", platform = "ethereum", hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
+                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
+                new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
+                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags }/*,
+                new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }*/
             };
 
             CurrentTokenCurrency = "";
@@ -745,6 +857,10 @@ namespace Poltergeist
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             ethereumApi = new EthereumAPI(Settings.ethereumRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
+
+            // We should renew all interop addresses when switching between nets.
+            // Otherwise we might send funds to wrong interop address.
+            ClearInteropMap();
         }
 
         private void LoadNexus()
@@ -817,7 +933,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, Action<Hash, string> callback)
+        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             var account = this.CurrentAccount;
 
@@ -830,7 +946,8 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     {
-                        var keys = PhantasmaKeys.FromWIF(account.WIF);
+                        var keys = (customKeys != null) ? customKeys : PhantasmaKeys.FromWIF(account.WIF);
+                        
                         StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload,  (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
@@ -842,7 +959,7 @@ namespace Poltergeist
                                 ChangeFaultyRPCURL();
                             }
                             callback(Hash.Null, msg);
-                        }));
+                        }, customSignFunction));
                         break;
                     }
 
@@ -871,7 +988,7 @@ namespace Poltergeist
 
                                                 if (transfer.symbol == "NEO" || transfer.symbol == "GAS")
                                                 {
-                                                    StartCoroutine(neoApi.SendAsset((tx, error) =>
+                                                    CoroutineUtils.StartThrowingCoroutine(this, neoApi.SendAsset((tx, error) =>
                                                     {
                                                         if (tx != null)
                                                         {
@@ -882,8 +999,12 @@ namespace Poltergeist
                                                         {
                                                             callback(Hash.Null, error);
                                                         }
-                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop)
-                                                    );
+                                                    }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop, Settings.neoGasFee), ex => {
+                                                        if (ex != null)
+                                                        {
+                                                            callback(Hash.Null, ex.ToString());
+                                                        }
+                                                    });
                                                 }
                                                 else
                                                 {
@@ -894,7 +1015,7 @@ namespace Poltergeist
                                                         var amount = System.Numerics.BigInteger.Parse(UnitConversion.ToBigInteger(transfer.amount, token.decimals).ToString());
 
                                                         var nep5 = new NEP5(neoApi, token.hash);
-                                                        CoroutineUtils.StartThrowingCoroutine(this, nep5.Transfer(unspent, keys, transfer.destination, amount, transfer.interop,
+                                                        CoroutineUtils.StartThrowingCoroutine(this, nep5.Transfer(unspent, keys, transfer.destination, amount, transfer.interop, Settings.neoGasFee,
                                                         (tx, error) =>
                                                         {
                                                             if (tx != null)
@@ -963,7 +1084,7 @@ namespace Poltergeist
                                                 {
                                                     var hexTx = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
                                                         UnitConversion.ToBigInteger(transfer.amount, 18), // Convert to WEI
-                                                        Settings.ethereumGasPriceGwei,
+                                                        Settings.ethereumGasPriceGwei * 1000000000, // Converting to WEI
                                                         Settings.ethereumTransferGasLimit);
 
                                                     StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
@@ -986,15 +1107,14 @@ namespace Poltergeist
                                                         var gasLimit = Settings.ethereumTokenTransferGasLimit;
                                                         if (SearchInteropMapForAddress(PlatformKind.Ethereum) == transfer.destination)
                                                         {
-                                                            // For swaps use contract gas limit
-                                                            gasLimit = Settings.ethereumContractGasLimit;
+                                                            gasLimit = Settings.ethereumTokenTransferGasLimit;
                                                         }
 
                                                         var hexTx = ethereumApi.SignTokenTransaction(keys, nonce,
-                                                            ethToken.hash,
+                                                            GetEthereumContract(ethToken.symbol),
                                                             transfer.destination,
                                                             UnitConversion.ToBigInteger(transfer.amount, ethToken.decimals),
-                                                            Settings.ethereumGasPriceGwei,
+                                                            Settings.ethereumGasPriceGwei * 1000000000, // Converting to WEI
                                                             gasLimit);
 
                                                         StartCoroutine(ethereumApi.SendRawTransaction(hexTx, callback, (error, msg) =>
@@ -1225,7 +1345,7 @@ namespace Poltergeist
                 case PlatformKind.Neo:
                     var url = GetNeoscanAPIUrl($"get_transaction/{transactionHash}");
 
-                    StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                    StartCoroutine(WebClient.RESTRequest(url, WebClient.NoTimeout, (error, msg) =>
                     {
                         if (confirmationCount <= neoMaxConfirmations)
                         {
@@ -1327,6 +1447,7 @@ namespace Poltergeist
                     case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(account.WIF);
+                            var ethKeys = EthereumKey.FromWIF(account.WIF);
                             StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
                             {
                                 var balanceMap = new Dictionary<string, Balance>();
@@ -1399,40 +1520,52 @@ namespace Poltergeist
                                     }
                                 }
 
-                                RequestPendings(keys.Address.Text, (swaps, error) =>
+                                RequestPendings(keys.Address.Text, (phaSwaps, phaError) =>
                                 {
-                                    if (swaps != null)
+                                    if (phaSwaps != null)
                                     {
-                                        MergeSwaps(PlatformKind.Phantasma, balanceMap, swaps);
+                                        MergeSwaps(PlatformKind.Phantasma, balanceMap, phaSwaps);
                                     }
                                     else
                                     {
-                                        Log.WriteWarning(error);
+                                        Log.WriteWarning(phaError);
                                     }
 
-
-                                    var state = new AccountState()
+                                    RequestPendings(ethKeys.Address, (swaps, error) =>
                                     {
-                                        platform = platform,
-                                        address = acc.address,
-                                        name = acc.name,
-                                        balances = balanceMap.Values.ToArray(),
-                                        flags = AccountFlags.None
-                                    };
+                                        if (swaps != null)
+                                        {
+                                            MergeSwaps(PlatformKind.Phantasma, balanceMap, swaps);
+                                        }
+                                        else
+                                        {
+                                            Log.WriteWarning(error);
+                                        }
 
-                                    if (stakedAmount >= SoulMasterStakeAmount)
-                                    {
-                                        state.flags |= AccountFlags.Master;
-                                    }
 
-                                    if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
-                                    {
-                                        state.flags |= AccountFlags.Validator;
-                                    }
+                                        var state = new AccountState()
+                                        {
+                                            platform = platform,
+                                            address = acc.address,
+                                            name = acc.name,
+                                            balances = balanceMap.Values.ToArray(),
+                                            flags = AccountFlags.None
+                                        };
 
-                                    state.stakeTime = stakeTimestamp;
+                                        if (stakedAmount >= SoulMasterStakeAmount)
+                                        {
+                                            state.flags |= AccountFlags.Master;
+                                        }
 
-                                    ReportWalletBalance(platform, state);
+                                        if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
+                                        {
+                                            state.flags |= AccountFlags.Validator;
+                                        }
+
+                                        state.stakeTime = stakeTimestamp;
+
+                                        ReportWalletBalance(platform, state);
+                                    });
                                 });
                             },
                             (error, msg) =>
@@ -1452,12 +1585,14 @@ namespace Poltergeist
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
-                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                             {
                                 ReportWalletBalance(platform, null);
                             },
                             (response) =>
                             {
+                                var neoTokens = SupportedTokens.Where(x => x.platform.ToUpper() == PlatformKind.Neo.ToString().ToUpper());
+
                                 var balances = new List<Balance>();
 
                                 var balance = response.GetNode("balance");
@@ -1487,33 +1622,65 @@ namespace Poltergeist
                                     }
                                 }
 
-                                RequestPendings(keys.Address, (swaps, error) =>
+                                StartCoroutine(neoApi.GetUnclaimed(keys.Address, (amount) =>
                                 {
-                                    var balanceMap = new Dictionary<string, Balance>();
-                                    foreach (var entry in balances)
+                                    RequestPendings(keys.Address, (swaps, error) =>
                                     {
-                                        balanceMap[entry.Symbol] = entry;
-                                    }
+                                        var balanceMap = new Dictionary<string, Balance>();
 
-                                    if (swaps != null)
-                                    {
-                                        MergeSwaps(PlatformKind.Neo, balanceMap, swaps);
-                                    }
-                                    else
-                                    {
-                                        Log.WriteWarning(error);
-                                    }
+                                        foreach (var neoToken in neoTokens)
+                                        {
+                                            var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
 
-                                    var state = new AccountState()
-                                    {
-                                        platform = platform,
-                                        address = keys.Address,
-                                        name = ValidationUtils.ANONYMOUS, // TODO support NNS
-                                        balances = balanceMap.Values.ToArray(),
-                                        flags = AccountFlags.None
-                                    };
-                                    ReportWalletBalance(platform, state);
-                                });
+                                            if (tokenBalance != null)
+                                            {
+                                                balanceMap[tokenBalance.Symbol] = tokenBalance;
+
+                                                if (tokenBalance.Symbol.ToUpper() == "GAS")
+                                                {
+                                                    tokenBalance.Claimable += amount;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (neoToken.symbol.ToUpper() == "GAS" && amount > 0)
+                                                {
+                                                    // We should show GAS even if its balance is 0
+                                                    // if there's some GAS to be claimed.
+                                                    balanceMap[neoToken.symbol] = new Balance()
+                                                    {
+                                                        Symbol = neoToken.symbol,
+                                                        Available = 0,
+                                                        Pending = 0,
+                                                        Claimable = amount,
+                                                        Staked = 0,
+                                                        Chain = "main",
+                                                        Decimals = neoToken.decimals
+                                                    };
+                                                }
+                                            }
+                                        }
+
+                                        if (swaps != null)
+                                        {
+                                            MergeSwaps(PlatformKind.Neo, balanceMap, swaps);
+                                        }
+                                        else
+                                        {
+                                            Log.WriteWarning(error);
+                                        }
+
+                                        var state = new AccountState()
+                                        {
+                                            platform = platform,
+                                            address = keys.Address,
+                                            name = ValidationUtils.ANONYMOUS, // TODO support NNS
+                                            balances = balanceMap.Values.ToArray(),
+                                            flags = AccountFlags.None
+                                        };
+                                        ReportWalletBalance(platform, state);
+                                    });
+                                }));
 
                             }));
                         }
@@ -1531,11 +1698,11 @@ namespace Poltergeist
                                 RequestPendings(keys.Address, (swaps, error) =>
                                 {
                                     var balanceMap = new Dictionary<string, Balance>();
-                                    foreach (var entry in balances)
+                                    foreach (var ethToken in ethTokens)
                                     {
-                                        if (entry.Symbol == null)
-                                            Log.Write("entry.Symbol is NULL");
-                                        balanceMap[entry.Symbol] = entry;
+                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == ethToken.symbol.ToUpper()).SingleOrDefault();
+                                        if (tokenBalance != null)
+                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
                                     }
 
                                     if (swaps != null)
@@ -1580,7 +1747,7 @@ namespace Poltergeist
                                 else
                                 {
                                     StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
-                                        ethToken.hash,
+                                        GetEthereumContract(ethToken.symbol),
                                         ethToken.symbol, ethToken.decimals, (balanceSoul) =>
                                     {
                                         balances.Add(balanceSoul);
@@ -1828,7 +1995,7 @@ namespace Poltergeist
                             var keys = NeoKeys.FromWIF(account.WIF);
                             var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
 
-                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                             {
                                 ReportWalletHistory(platform, null);
                             },
@@ -1865,41 +2032,68 @@ namespace Poltergeist
                     case PlatformKind.Ethereum:
                         {
                             var keys = EthereumKey.FromWIF(account.WIF);
-                            var url = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
+                            var urlEth = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
 
-                            StartCoroutine(WebClient.RESTRequest(url, (error, msg) =>
+                            StartCoroutine(WebClient.RESTRequest(urlEth, WebClient.DefaultTimeout, (error, msg) =>
                             {
                                 ReportWalletHistory(platform, null);
                             },
-                            (response) =>
+                            (responseEth) =>
                             {
-                                var alreadyAddedHashes = new List<string>(); // This code copied from Neoscan which sends some transactions twice, should filter them.
-
-                                var history = new List<HistoryEntry>();
-
-                                if (response != null)
+                                var urlErc20 = GetEtherscanAPIUrl($"module=account&action=tokentx&address={keys.Address}&sort=desc");
+                                StartCoroutine(WebClient.RESTRequest(urlErc20, WebClient.DefaultTimeout, (error, msg) =>
                                 {
-                                    var entries = response.GetNode("result");
-                                    foreach (var entry in entries.Children)
+                                    ReportWalletHistory(platform, null);
+                                },
+                                (responseErc20) =>
+                                {
+                                    var ethHistory = new Dictionary<string, DateTime>();
+
+                                    // Adding ETH transactions to the dict.
+                                    if (responseEth != null)
                                     {
-                                        var hash = entry.GetString("hash");
-                                        if (alreadyAddedHashes.Contains(hash) == false)
+                                        var entries = responseEth.GetNode("result");
+                                        foreach (var entry in entries.Children)
                                         {
-                                            var time = entry.GetUInt32("timeStamp");
-
-                                            history.Add(new HistoryEntry()
+                                            var hash = entry.GetString("hash");
+                                            if (!ethHistory.Any(x => x.Key == hash))
                                             {
-                                                hash = hash,
-                                                date = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(time).ToLocalTime(),
-                                                url = GetEtherscanTransactionURL(hash),
-                                            });
-
-                                            alreadyAddedHashes.Add(hash);
+                                                ethHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
                                         }
                                     }
-                                }
 
-                                ReportWalletHistory(platform, history);
+                                    // Adding ERC20 transactions to the dict.
+                                    if (responseErc20 != null)
+                                    {
+                                        var entries = responseErc20.GetNode("result");
+                                        foreach (var entry in entries.Children)
+                                        {
+                                            var hash = entry.GetString("hash");
+                                            if (!ethHistory.Any(x => x.Key == hash))
+                                            {
+                                                ethHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
+                                        }
+                                    }
+
+                                    // Sorting tx-es by date.
+                                    var orderedEthHistory = ethHistory.OrderByDescending(x => x.Value);
+
+                                    var history = new List<HistoryEntry>();
+
+                                    foreach (var entry in orderedEthHistory)
+                                    {
+                                        history.Add(new HistoryEntry()
+                                        {
+                                            hash = entry.Key,
+                                            date = entry.Value,
+                                            url = GetEtherscanTransactionURL(entry.Key),
+                                        });
+                                    }
+
+                                    ReportWalletHistory(platform, history);
+                                }));
                             }));
                         }
                         break;
@@ -1911,7 +2105,7 @@ namespace Poltergeist
             }
         }
 
-        private string GetPhantasmaTransactionURL(string hash)
+        public string GetPhantasmaTransactionURL(string hash)
         {
             return $"https://explorer.phantasma.io/tx/{hash}";
         }
@@ -1931,14 +2125,27 @@ namespace Poltergeist
             }));
         }
 
-        private string GetEtherscanTransactionURL(string hash)
+        public string GetEtherscanTransactionURL(string hash)
         {
             if (string.IsNullOrEmpty(etherscanAPIToken))
             {
                 return null;
             }
 
-            return $"https://etherscan.io/tx/{hash}";
+            if (!hash.StartsWith("0x"))
+                hash = "0x" + hash;
+
+            switch (Settings.ethereumNetwork)
+            {
+                case EthereumNetwork.Main_Net:
+                    return $"https://etherscan.io/tx/{hash}";
+
+                case EthereumNetwork.Ropsten:
+                    return $"https://ropsten.etherscan.io/tx/{hash}";
+
+                default:
+                    return null;
+            }
         }
 
         private string GetEtherscanAPIUrl(string request)
@@ -1948,10 +2155,20 @@ namespace Poltergeist
                 return null;
             }
 
-            return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+            switch (Settings.ethereumNetwork)
+            {
+                case EthereumNetwork.Main_Net:
+                    return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+
+                case EthereumNetwork.Ropsten:
+                    return $"https://api-ropsten.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+
+                default:
+                    return null;
+            }
         }
 
-        private string GetNeoscanTransactionURL(string hash)
+        public string GetNeoscanTransactionURL(string hash)
         {
             var url = Settings.neoscanURL;
             if (!url.EndsWith("/"))
@@ -2019,15 +2236,21 @@ namespace Poltergeist
 
         public static Address EncodeEthereumAddress(string addressText)
         {
-            var nethereumAddressUtil = new Nethereum.Util.AddressUtil();
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
 
-            Throw.If(!nethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
-            var scriptHash = addressText.Base58CheckDecode();
+            Throw.If(!ethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
+
+            if (addressText.StartsWith("0x"))
+            {
+                addressText = addressText.Substring(2);
+            }
+
+            var scriptHash = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
 
-            return Address.FromInterop(1/*NeoID*/, pubKey);
+            return Address.FromInterop(2/*Ethereum*/, pubKey);
         }
 
         public static string DecodeNeoInteropAddress(Address address)
@@ -2070,6 +2293,7 @@ namespace Poltergeist
                     {
                         string interopAddress = entry.interop[0].external;
                         _interopMap[platform] = interopAddress;
+                        Log.Write($"Got {interopAddress} interop address for {platformName} platform");
                         callback(interopAddress);
                         return;
                     }
@@ -2096,20 +2320,53 @@ namespace Poltergeist
             return null;
         }
 
-        internal void SettleSwap(string sourcePlatform, string destPlatform, string pendingHash, Action<Hash, string> callback)
+        public void ClearInteropMap()
         {
-            StartCoroutine(phantasmaApi.SettleSwap(sourcePlatform, destPlatform, pendingHash, (hash) =>
+            _interopMap.Clear();
+        }
+
+        internal void SettleSwap(string sourcePlatform, string destPlatform, string symbol, string pendingHash, Action<Hash, string> callback)
+        {
+            if (sourcePlatform.ToLower() == PlatformKind.Ethereum.ToString().ToLower())
             {
-                callback(Hash.Parse(hash), null);
-            }, (error, msg) =>
-            {
-                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                var account = this.CurrentAccount;
+                var ethKeys = EthereumKey.FromWIF(account.WIF);
+                var phantasmaKeys = PhantasmaKeys.FromWIF(account.WIF);
+
+                Hash ethTxHash = Hash.Parse(pendingHash);
+                var transcodedAddress = Address.FromKey(ethKeys);
+
+                var script = ScriptUtils.BeginScript()
+                    .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
+                    .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, MinGasLimit)
+                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                    .SpendGas(transcodedAddress)
+                    .EndScript();
+
+                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ethKeys, (hash, error) =>
                 {
-                    ChangeFaultyRPCURL();
-                }
-                Log.WriteWarning(msg);
-                callback(Hash.Null, msg);
-            }));
+                    callback(hash, error);
+                }, (message, prikey, pubkey) => 
+                {
+                    return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                });
+            }
+            else
+            {
+                StartCoroutine(phantasmaApi.SettleSwap(sourcePlatform, destPlatform, pendingHash, (hash) =>
+                {
+                    callback(Hash.Parse(hash), null);
+                }, (error, msg) =>
+                {
+                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                    {
+                        ChangeFaultyRPCURL();
+                    }
+                    Log.WriteWarning(msg);
+                    callback(Hash.Null, msg);
+                }));
+            }
         }
 
         internal void DeleteAccount(int currentIndex)

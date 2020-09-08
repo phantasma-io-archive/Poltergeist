@@ -80,10 +80,19 @@ namespace Phantasma.Neo.Utils
             return concatSignature;
         }
 
-        public static byte[] Sign(byte[] message, byte[] prikey, byte[] pubkey)
+        public static byte[] Sign(byte[] message, byte[] prikey, byte[] pubkey, Phantasma.Cryptography.ECC.ECDsaCurve phaCurve = Phantasma.Cryptography.ECC.ECDsaCurve.Secp256r1)
         {
             var signer = SignerUtilities.GetSigner("SHA256withECDSA");
-            var curve = NistNamedCurves.GetByName("P-256");
+            Org.BouncyCastle.Asn1.X9.X9ECParameters curve;
+            switch(phaCurve)
+            {
+                case Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1:
+                    curve = Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetByName("secp256k1");
+                    break;
+                default:
+                    curve = NistNamedCurves.GetByName("P-256");
+                    break;
+            }
             var dom = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
             ECKeyParameters privateKeyParameters = new ECPrivateKeyParameters(new BigInteger(1, prikey), dom);
 

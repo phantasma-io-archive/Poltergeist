@@ -107,7 +107,7 @@ namespace Phantasma.SDK
 
         public static void Write(string message, Level level = Level.Logic, UnityDebugLogMode unityDebugLogMode = UnityDebugLogMode.Normal)
         {
-            if (MaxLevel != Level.Disabled && level <= MaxLevel)
+            if (LogStreamWriter != null && MaxLevel != Level.Disabled && level <= MaxLevel)
             {
                 DateTime _now = DateTime.Now;
 

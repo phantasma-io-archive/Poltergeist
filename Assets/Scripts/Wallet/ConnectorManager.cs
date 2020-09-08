@@ -89,7 +89,7 @@ namespace Poltergeist
                                 }
                                 catch (Exception e)
                                 {
-                                    Log.WriteWarning("websocket send failure, while answering phantasma link request: " + str);
+                                    Log.WriteWarning("websocket send failure, while answering phantasma link request: " + str + "\nExcepion: " + e.Message);
                                 }
                             });
                         });

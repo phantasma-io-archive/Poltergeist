@@ -4,7 +4,7 @@ using LunarLabs.Parser;
 using Phantasma.Numerics;
 using Phantasma.Cryptography;
 using Phantasma.Ethereum;
-using Nethereum.Signer;
+using Phantasma.Ethereum.Signer;
 
 namespace Phantasma.SDK
 {
@@ -18,7 +18,7 @@ namespace Phantasma.SDK
         }
         public IEnumerator GetBalance(string addressText, string tokenSymbol, int tokenDecimals, Action<Poltergeist.Balance> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_getBalance", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequest(Host, "eth_getBalance", WebClient.DefaultTimeout, errorHandlingCallback, (node) => {
                 var availableHex = node.Value;
                 var available = BigInteger.FromHex(availableHex.Substring(2));
 
@@ -39,17 +39,37 @@ namespace Phantasma.SDK
         //Returns the balance for a specific token, given a contract.
         public IEnumerator GetTokenBalance(string addressText, string tokenContract, string tokenSymbol, int tokenDecimals, Action<Poltergeist.Balance> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
+            if(String.IsNullOrEmpty(tokenContract))
+            {
+                // Don't query token balances if we haven't deployed contracts for them.
+
+                var balance = new Poltergeist.Balance()
+                {
+                    Symbol = tokenSymbol,
+                    Available = 0,
+                    Pending = 0,
+                    Claimable = 0,
+                    Staked = 0,
+                    Chain = "main",
+                    Decimals = tokenDecimals
+                };
+
+                callback(balance);
+
+                yield break;
+            }
+
             var balanceOf = "70a08231b98ef4ca268c9cc3f6b4590e4bfec28280db06bb5d45e689f2a360be";
             var data = balanceOf.Substring(0, 8) + addressText.Substring(2).PadLeft(64, '0');
 
             var paramData = DataNode.CreateArray("params");
             var callParams = DataNode.CreateObject();
             callParams.AddField("to", "0x" + tokenContract);
-            callParams.AddField("data", data);
+            callParams.AddField("data", "0x" + data);
             paramData.AddNode(callParams);
             paramData.AddField(null, "latest");
 
-            yield return WebClient.RPCRequestEx(Host, "eth_call", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequestEx(Host, "eth_call", WebClient.DefaultTimeout, errorHandlingCallback, (node) => {
                 var availableHex = node.Value;
                 BigInteger available = 0;
                 if (!String.IsNullOrEmpty(availableHex) && availableHex != "0x")
@@ -71,7 +91,7 @@ namespace Phantasma.SDK
         }
         public IEnumerator GetNonce(string addressText, Action<Int32> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_getTransactionCount", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequest(Host, "eth_getTransactionCount", WebClient.NoTimeout, errorHandlingCallback, (node) => {
                 var hex = node.Value;
                 if (string.IsNullOrEmpty(hex))
                 {
@@ -81,14 +101,14 @@ namespace Phantasma.SDK
                 var nonce = Convert.ToInt32(hex, 16);
 
                 callback(nonce);
-            }, addressText, "latest");
+            }, addressText, "pending");
         }
         public string SignTransaction(EthereumKey keys, int nonce, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit, string data = null)
         {
             var realAmount = System.Numerics.BigInteger.Parse(amount.ToString());
 
             //Create a transaction from scratch
-            var tx = new Nethereum.Signer.Transaction(receiveAddress, realAmount, nonce, 
+            var tx = new Phantasma.Ethereum.Signer.Transaction(receiveAddress, realAmount, nonce, 
                 System.Numerics.BigInteger.Parse(gasPrice.ToString()),
                 System.Numerics.BigInteger.Parse(gasLimit.ToString()),
                 data);
@@ -106,7 +126,7 @@ namespace Phantasma.SDK
             var amountHex = amount.ToHex().PadLeft(64, '0');
 
             //Create a transaction from scratch
-            var tx = new Nethereum.Signer.Transaction(tokenContract,
+            var tx = new Phantasma.Ethereum.Signer.Transaction(tokenContract,
                 0, // Ammount of ETH to be transfered (0)
                 nonce,
                 System.Numerics.BigInteger.Parse(gasPrice.ToString()),
@@ -121,14 +141,14 @@ namespace Phantasma.SDK
         }
         public IEnumerator SendRawTransaction(string hexTx, Action<Hash, string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_sendRawTransaction", errorHandlingCallback, (node) => {
+            yield return WebClient.RPCRequest(Host, "eth_sendRawTransaction", WebClient.NoTimeout, errorHandlingCallback, (node) => {
                 var hash = Hash.Parse(node.Value);
                 callback(hash, null);
             }, hexTx);
         }
         public IEnumerator GetTransactionByHash(string hash, Action<DataNode> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "eth_getTransactionByHash", errorHandlingCallback, callback, "0x" + hash);
+            yield return WebClient.RPCRequest(Host, "eth_getTransactionByHash", WebClient.NoTimeout, errorHandlingCallback, callback, "0x" + hash);
         }
     }
 }

@@ -14,6 +14,14 @@ namespace Poltergeist
         Custom
     }
 
+    public enum EthereumNetwork
+    {
+        Unknown,
+        Main_Net,
+        Ropsten,
+        Local_Net
+    }
+
     public enum UiThemes
     {
         Classic,
@@ -50,11 +58,15 @@ namespace Poltergeist
         public const string CurrencyTag = "settings.currency";
         public const string GasPriceTag = "settings.fee.price";
 
+        public const string NeoGasFeeTag = "settings.neo.gas.fee";
+
+        public const string EthereumNetworkTag = "settings.ethereum.network";
+        public const string EthereumLocalnetSoulContractTag = "settings.ethereum.localnet.soul.contract";
+        public const string EthereumLocalnetKcalContractTag = "settings.ethereum.localnet.kcal.contract";
         public const string EthereumRPCTag = "settings.ethereum.rpc.url";
         public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
         public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
         public const string EthereumTokenTransferGasLimitTag = "settings.ethereum.token.transfer.gas.limit";
-        public const string EthereumContractGasLimitTag = "settings.ethereum.contract.gas.limit";
 
         public const string SFXTag = "settings.sfx";
 
@@ -73,11 +85,14 @@ namespace Poltergeist
         public string nexusName;
         public string currency;
         public BigInteger feePrice;
+        public decimal neoGasFee;
+        public EthereumNetwork ethereumNetwork;
+        public string ethereumLocalnetSoulContract;
+        public string ethereumLocalnetKcalContract;
         public string ethereumRPCURL;
         public BigInteger ethereumGasPriceGwei;
         public BigInteger ethereumTransferGasLimit;
         public BigInteger ethereumTokenTransferGasLimit;
-        public BigInteger ethereumContractGasLimit;
         public NexusKind nexusKind;
         public bool sfx;
         public Log.Level logLevel;
@@ -124,7 +139,28 @@ namespace Poltergeist
                 this.feePrice = 100000;
             }
 
+            // Doing it in a bit more complex way to avoid decimal parsing problem for different cultures.
+            var neoGasFeeString = PlayerPrefs.GetString(NeoGasFeeTag, null);
+            if (!String.IsNullOrEmpty(neoGasFeeString))
+            {
+                if (!Decimal.TryParse(neoGasFeeString, out neoGasFee))
+                {
+                    this.neoGasFee = 0.001m;
+                }
+            }
+            else
+                this.neoGasFee = 0.001m;
+
             // Ethereum
+            var ethereumNetwork = PlayerPrefs.GetString(EthereumNetworkTag, EthereumNetwork.Main_Net.ToString());
+            if (!Enum.TryParse<EthereumNetwork>(ethereumNetwork, true, out this.ethereumNetwork))
+            {
+                this.ethereumNetwork = EthereumNetwork.Unknown;
+            }
+
+            this.ethereumLocalnetSoulContract = PlayerPrefs.GetString(EthereumLocalnetSoulContractTag, GetDefaultValue(EthereumLocalnetSoulContractTag));
+            this.ethereumLocalnetKcalContract = PlayerPrefs.GetString(EthereumLocalnetKcalContractTag, GetDefaultValue(EthereumLocalnetKcalContractTag));
+
             this.ethereumRPCURL = PlayerPrefs.GetString(EthereumRPCTag, GetDefaultValue(EthereumRPCTag));
             if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumGasPriceGweiTag, "100"), out ethereumGasPriceGwei))
             {
@@ -137,10 +173,6 @@ namespace Poltergeist
             if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumTokenTransferGasLimitTag, "100000"), out ethereumTokenTransferGasLimit))
             {
                 this.ethereumTokenTransferGasLimit = 100000;
-            }
-            if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumContractGasLimitTag, "200000"), out ethereumContractGasLimit))
-            {
-                this.ethereumContractGasLimit = 200000;
             }
 
             this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
@@ -156,11 +188,14 @@ namespace Poltergeist
                       "                Fee price: " + this.feePrice + "\n" +
                       "                Neo RPC: " + this.neoRPCURL + "\n" +
                       "                Neoscan: " + this.neoscanURL + "\n" +
+                      "                Neo GAS fee: " + this.neoGasFee + "\n" +
+                      "                Ethereum network: " + this.ethereumNetwork + "\n" +
+                      "                Ethereum localnet SOUL contract: " + this.ethereumLocalnetSoulContract + "\n" +
+                      "                Ethereum localnet KCAL contract: " + this.ethereumLocalnetKcalContract + "\n" +
                       "                Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                       "                Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
                       "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
-                      "                Ethereum contract gas limit: " + this.ethereumContractGasLimit + "\n" +
                       "                Nexus name: " + this.nexusName + "\n" +
                       "                Currency: " + this.currency + "\n" +
                       "                Sfx: " + this.sfx + "\n" +
@@ -174,6 +209,8 @@ namespace Poltergeist
 
         public string GetDefaultValue(string tag)
         {
+            string _return_value;
+
             switch (tag)
             {
                 /*case PhantasmaRPCTag:
@@ -195,25 +232,20 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                string _return_value = "http://207.148.17.86:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://207.148.17.86:7077/rpc";
+                            break;
+
+                        case NexusKind.Test_Net:
+                            _return_value = "http://mankinitest.phantasma.io:7093/rpc";
+                            break;
 
                         case NexusKind.Local_Net:
-                            {
-                                string _return_value = "http://localhost:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Local_Net): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://localhost:7077/rpc";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "http://207.148.17.86:7077/rpc";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://207.148.17.86:7077/rpc";
+                            break;
                     }
                     break;
 
@@ -221,58 +253,64 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
-                                int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
-                                string _return_value = neoRpcList[index];
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->NexusKind.Main_Net): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
+                            int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
+                            _return_value = neoRpcList[index];
+                            break;
+
+                        case NexusKind.Test_Net:
+                            _return_value = "http://mankinighost.phantasma.io:30333";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "http://mankinighost.phantasma.io:30333";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://mankinighost.phantasma.io:30333";
+                            break;
                     }
                     break;
 
                 case EthereumRPCTag:
-                    switch (nexusKind)
+                    switch (ethereumNetwork)
                     {
-                        /*case NexusKind.Main_Net:
-                            {
-                                string _return_value = "";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }*/
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "https://ropsten.infura.io/v3/34a7c02e7f2f458181180c72c4de58a6";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = "http://mankinieth.phantasma.io:7545/";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "http://13.91.228.58:7545";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "";
+                            break;
                     }
+                    break;
+
+                case EthereumLocalnetSoulContractTag:
+                    _return_value = "4c2AF2fB374B988363deb535Bf0fF2D1Eb7b2106"; // Value from http://mankinieth.phantasma.io:7545/
+                    break;
+
+                case EthereumLocalnetKcalContractTag:
+                    _return_value = "a9858F0E2037C18dD6a0b4Bc082d41B0536D47E2"; // Value from http://mankinieth.phantasma.io:7545/
                     break;
 
                 case NeoscanAPITag:
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                string _return_value = "https://neoscan.io";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "https://neoscan.io";
+                            break;
+
+                        case NexusKind.Test_Net:
+                            _return_value = "http://mankinighost.phantasma.io:4000";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "http://mankinighost.phantasma.io:4000";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "http://mankinighost.phantasma.io:4000";
+                            break;
                     }
                     break;
 
@@ -280,24 +318,21 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            {
-                                string _return_value = "mainnet";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "mainnet";
+                            break;
 
                         default:
-                            {
-                                string _return_value = "simnet";
-                                Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
-                                return _return_value;
-                            }
+                            _return_value = "simnet";
+                            break;
                     }
                     break;
 
                 default:
                     return "";
             }
+
+            Log.Write("Settings: GetDefaultValue(" + tag + "->default): " + _return_value, Log.Level.Debug2);
+            return _return_value;
         }
 
         public void Save()
@@ -306,15 +341,18 @@ namespace Poltergeist
             //PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
+            PlayerPrefs.SetString(NeoGasFeeTag, this.neoGasFee.ToString());
 
             PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
             PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
 
+            PlayerPrefs.SetString(EthereumNetworkTag, this.ethereumNetwork.ToString());
+            PlayerPrefs.SetString(EthereumLocalnetSoulContractTag, this.ethereumLocalnetSoulContract.ToString());
+            PlayerPrefs.SetString(EthereumLocalnetKcalContractTag, this.ethereumLocalnetKcalContract.ToString());
             PlayerPrefs.SetString(EthereumRPCTag, this.ethereumRPCURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.SetString(EthereumTransferGasLimitTag, this.ethereumTransferGasLimit.ToString());
             PlayerPrefs.SetString(EthereumTokenTransferGasLimitTag, this.ethereumTokenTransferGasLimit.ToString());
-            PlayerPrefs.SetString(EthereumContractGasLimitTag, this.ethereumContractGasLimit.ToString());
 
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
             PlayerPrefs.SetString(CurrencyTag, this.currency);
@@ -329,11 +367,14 @@ namespace Poltergeist
                       "                Fee price: " + feePrice + "\n" +
                       "                Neo RPC: " + neoRPCURL + "\n" +
                       "                Neoscan: " + neoscanURL + "\n" +
+                      "                Neo GAS fee: " + neoGasFee + "\n" +
+                      "                Ethereum network: " + ethereumNetwork + "\n" +
+                      "                Ethereum localnet SOUL contract: " + ethereumLocalnetSoulContract + "\n" +
+                      "                Ethereum localnet KCAL contract: " + ethereumLocalnetKcalContract + "\n" +
                       "                Ethereum RPC: " + ethereumRPCURL + "\n" +
-                      "                Ethereum gas price (Gwei): " + EthereumGasPriceGweiTag + "\n" +
+                      "                Ethereum gas price (Gwei): " + ethereumGasPriceGwei + "\n" +
                       "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
                       "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
-                      "                Ethereum contract gas limit: " + this.ethereumContractGasLimit + "\n" +
                       "                Nexus name: " + nexusName + "\n" +
                       "                Currency: " + currency + "\n" +
                       "                Sfx: " + sfx + "\n" +
@@ -348,11 +389,13 @@ namespace Poltergeist
             PlayerPrefs.SetInt(TtrsNftSortModeTag, this.ttrsNftSortMode);
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
+            PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
                       "                        NFT sort direction: " + nftSortDirection + "\n" +
-                      "                        Phantasma BP: " + phantasmaBPURL,
+                      "                        Phantasma BP: " + phantasmaBPURL + "\n" +
+                      "                        Ethereum gas price (Gwei): " + ethereumGasPriceGwei,
                       Log.Level.Debug1);
         }
 
@@ -367,6 +410,20 @@ namespace Poltergeist
             if (restoreName)
             {
                 this.nexusName = this.GetDefaultValue(NexusNameTag);
+
+                // Reset ethereum network on nexus change (except custom nexus).
+                switch (this.nexusKind)
+                {
+                    case NexusKind.Main_Net:
+                        this.ethereumNetwork = EthereumNetwork.Main_Net;
+                        break;
+                    case NexusKind.Test_Net:
+                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        break;
+                    case NexusKind.Local_Net:
+                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        break;
+                }
             }
 
             Log.Write("Settings: Restore endpoints: restoreName mode: " + restoreName + "\n" +
@@ -375,6 +432,15 @@ namespace Poltergeist
                       "                             Neoscan: " + this.neoscanURL + "\n" +
                       "                             Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                       "                             Nexus name: " + this.nexusName,
+                      Log.Level.Debug1);
+        }
+
+        public void RestoreEthereumEndpoint()
+        {
+            this.ethereumRPCURL = this.GetDefaultValue(EthereumRPCTag);
+
+            Log.Write("Settings: Restore ethereum endpoint:\n" +
+                      "                             Ethereum RPC: " + this.ethereumRPCURL,
                       Log.Level.Debug1);
         }
     }

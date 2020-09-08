@@ -446,7 +446,7 @@ namespace Phantasma.Neo.Core
 
         private Dictionary<string, Transaction> lastTransactions = new Dictionary<string, Transaction>();
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             var from_script_hash = new UInt160(key.signatureHash.ToArray());
             var info = GetAssetsInfo();
@@ -456,10 +456,10 @@ namespace Phantasma.Neo.Core
                     if (t.assetID == null)
                         t.assetID = targetAssetID;
             //else Console.WriteLine("ASSETID target already existed: " + symbol);
-            GenerateInputsOutputs(unspent, from_script_hash, targets, out inputs, out outputs, system_fee);
+            GenerateInputsOutputs(unspent, from_script_hash, targets, out inputs, out outputs, system_fee, allowSameSourceAndDest);
         }
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             var info = GetAssetsInfo();
             var targetAssetID = NeoUtils.ReverseHex(info[symbol]).HexToBytes();
@@ -468,16 +468,16 @@ namespace Phantasma.Neo.Core
                     if (t.assetID == null)
                         t.assetID = targetAssetID;
             // else  Console.WriteLine("ASSETID target already existed: " + symbol);
-            GenerateInputsOutputs(unspent, key, targets, out inputs, out outputs, system_fee);
+            GenerateInputsOutputs(unspent, key, targets, out inputs, out outputs, system_fee, allowSameSourceAndDest);
         }
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, NeoKeys key, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             var from_script_hash = new UInt160(key.signatureHash.ToArray());
             GenerateInputsOutputs(unspent, from_script_hash, targets, out inputs, out outputs, system_fee);
         }
 
-        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 from_script_hash, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0)
+        public void GenerateInputsOutputs(UnspentEntries unspent, UInt160 from_script_hash, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
             // filter any asset lists with zero unspent inputs
             var entries = unspent.entries.Where(pair => pair.Value.Count > 0).ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -491,34 +491,57 @@ namespace Phantasma.Neo.Core
             // dummy tx to self
             if (targets == null)
             {
+                // We get here from CallContract() method.
                 string assetName = "GAS";
                 string assetID = info[assetName];
                 var targetAssetID = NeoUtils.ReverseHex(assetID).HexToBytes();
                 if (!entries.ContainsKey(assetName))
                     throw new NeoException($"Not enough {assetName} in address {from_address}");
 
-                var src = entries[assetName][0];
-                decimal selected = src.value;
-                // Console.WriteLine("SENDING " + selected + " GAS to source");
-
-                inputs.Add(new Transaction.Input()
+                decimal selected = 0;
+                if (system_fee == 0)
                 {
-                    prevHash = src.hash,
-                    prevIndex = src.index,
-                });
+                    // Taking any GAS unspent entry if no fee is set.
+                    var src = entries[assetName][0];
+                    selected = src.value;
+
+                    inputs.Add(new Transaction.Input()
+                    {
+                        prevHash = src.hash,
+                        prevIndex = src.index,
+                    });
+                }
+                else
+                {
+                    // Taking ALL GAS unspent entries if fee is set and merging them.
+                    foreach (var gasEntry in entries[assetName])
+                    {
+                        selected += gasEntry.value;
+                        inputs.Add(new Transaction.Input()
+                        {
+                            prevHash = gasEntry.hash,
+                            prevIndex = gasEntry.index,
+                        });
+                    }
+
+                    if (selected < system_fee)
+                        throw new NeoException($"Not enough {assetName} in address {from_address}");
+                }
+                // Console.WriteLine("SENDING " + selected + " GAS to source");
 
                 outputs.Add(new Transaction.Output()
                 {
                     assetID = targetAssetID,
                     scriptHash = from_script_hash,
-                    value = selected
+                    value = selected - system_fee
                 });
                 return;
             }
 
-            foreach (var target in targets)
-                if (target.scriptHash.Equals(from_script_hash))
-                    throw new NeoException("Target can't be same as input");
+            if(!allowSameSourceAndDest)
+                foreach (var target in targets)
+                    if (target.scriptHash.Equals(from_script_hash))
+                        throw new NeoException("Target can't be same as input");
 
             bool done_fee = false;
             foreach (var asset in info)
@@ -543,11 +566,9 @@ namespace Phantasma.Neo.Core
                     }
 
                 // incorporate fee in GAS utxo, if sending GAS
-                bool sendfee = false;
                 if (system_fee > 0 && assetName == "GAS")
                 {
                     done_fee = true;
-                    sendfee = true;
                     if (cost < 0)
                         cost = 0;
                     cost += system_fee;
@@ -581,7 +602,7 @@ namespace Phantasma.Neo.Core
                     foreach (var target in thistargets)
                         outputs.Add(target);
 
-                if (selected > cost || cost == 0 || sendfee)  /// is sendfee needed? yes if selected == cost
+                if (selected > cost)
                     outputs.Add(new Transaction.Output()
                     {
                         assetID = targetAssetID,
@@ -591,18 +612,18 @@ namespace Phantasma.Neo.Core
             }
         }
 
-        public IEnumerator CallContract(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, string operation, object[] args, string interop, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
+        public IEnumerator CallContract(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, string operation, object[] args, string interop, decimal fee = 0, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
         {
-            return CallContract(callback, unspent, key, scriptHash, new object[] { operation, args }, interop, attachSymbol, attachTargets);
+            return CallContract(callback, unspent, key, scriptHash, new object[] { operation, args }, interop, fee, attachSymbol, attachTargets);
         }
 
-        public IEnumerator CallContract(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, object[] args, string interop, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
+        public IEnumerator CallContract(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, object[] args, string interop, decimal fee = 0, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
         {
             var bytes = GenerateScript(scriptHash, args);
-            return CallContract(callback, unspent, key, scriptHash, bytes, interop, attachSymbol, attachTargets);
+            return CallContract(callback, unspent, key, scriptHash, bytes, interop, fee, attachSymbol, attachTargets);
         }
 
-        public IEnumerator CallContract(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, byte[] bytes, string interop, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
+        public IEnumerator CallContract(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys key, UInt160 scriptHash, byte[] bytes, string interop, decimal fee = 0, string attachSymbol = null, IEnumerable<Transaction.Output> attachTargets = null)
         {
             List<Transaction.Input> inputs = null;
             List<Transaction.Output> outputs = null;
@@ -614,7 +635,7 @@ namespace Phantasma.Neo.Core
             
             if (!string.IsNullOrEmpty(attachSymbol))
             {
-                GenerateInputsOutputs(unspent, key, attachSymbol, attachTargets, out inputs, out outputs);
+                GenerateInputsOutputs(unspent, key, attachSymbol, attachTargets, out inputs, out outputs, fee);
 
                 if (inputs.Count == 0)
                 {
@@ -648,9 +669,9 @@ namespace Phantasma.Neo.Core
             return GetTransaction(val, callback);
         }
 
-        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string toAddress, string symbol, decimal amount, string interop)
+        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string toAddress, string symbol, decimal amount, string interop, decimal fee = 0, bool allowSameSourceAndDest = false)
         {
-            if (String.Equals(fromKey.Address, toAddress, StringComparison.OrdinalIgnoreCase))
+            if (!allowSameSourceAndDest && String.Equals(fromKey.Address, toAddress, StringComparison.OrdinalIgnoreCase))
             {
                 throw new NeoException("Source and dest addresses are the same");
             }
@@ -658,15 +679,15 @@ namespace Phantasma.Neo.Core
             var toScriptHash = toAddress.GetScriptHashFromAddress();
             var target = new Transaction.Output() { scriptHash = new UInt160(toScriptHash), value = amount };
             var targets = new List<Transaction.Output>() { target };
-            return SendAsset(callback, unspent, fromKey, symbol, targets, interop);
+            return SendAsset(callback, unspent, fromKey, symbol, targets, interop, fee, allowSameSourceAndDest);
         }
 
-        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string symbol, IEnumerable<Transaction.Output> targets, string interop)
+        public IEnumerator SendAsset(Action<Transaction, string> callback, UnspentEntries unspent, NeoKeys fromKey, string symbol, IEnumerable<Transaction.Output> targets, string interop, decimal fee = 0, bool allowSameSourceAndDest = false)
         {
             List<Transaction.Input> inputs;
             List<Transaction.Output> outputs;
 
-            GenerateInputsOutputs(unspent, fromKey, symbol, targets, out inputs, out outputs);
+            GenerateInputsOutputs(unspent, fromKey, symbol, targets, out inputs, out outputs, fee, allowSameSourceAndDest);
 
             Transaction tx = new Transaction()
             {
@@ -702,9 +723,7 @@ namespace Phantasma.Neo.Core
                 throw new ArgumentException("No GAS to claim at this address");
             }
 
-            List<Transaction.Input> inputs;
-            List<Transaction.Output> outputs;
-            GenerateInputsOutputs(unspent, ownerKey, "GAS", null, out inputs, out outputs);
+            List<Transaction.Output> outputs = new List<Transaction.Output>();
 
             outputs.Add(
             new Transaction.Output()
@@ -721,7 +740,7 @@ namespace Phantasma.Neo.Core
                 script = null,
                 gas = -1,
                 claimReferences = references.ToArray(),
-                inputs = inputs.ToArray(),
+                inputs = new Transaction.Input[0],
                 outputs = outputs.ToArray(),
             };
 
@@ -772,12 +791,12 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator ExecuteRequestWeb(Action<DataNode> callback, Action<Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE, string> onError, string url)
         {
-            return WebClient.RESTRequest(url, onError, (response) => callback(response));
+            return WebClient.RESTRequest(url, WebClient.NoTimeout, onError, (response) => callback(response));
         }
 
         public IEnumerator ExecuteRequestRPC(Action<DataNode> callback, Action<Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE, string> onError, string method, object[] _params)
         {
-            return WebClient.RPCRequest(this.neoRPCUrl, method, onError, (response) => callback(response), _params);
+            return WebClient.RPCRequest(this.neoRPCUrl, method, WebClient.NoTimeout, onError, (response) => callback(response), _params);
         }
 
         private void ErrorHandler(Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE type, string msg)
@@ -887,9 +906,9 @@ namespace Phantasma.Neo.Core
         }
 
         // Note: This current implementation requires NeoScan running at port 4000
-        public IEnumerator GetClaimable(UInt160 hash, Action<List<UnspentEntry>, decimal> callback)
+        public IEnumerator GetClaimable(string address, Action<List<UnspentEntry>, decimal> callback)
         {
-            var url = this.neoscanUrl + "/api/main_net/v1/get_claimable/" + hash.ToAddress();
+            var url = this.neoscanUrl + "/api/main_net/v1/get_claimable/" + address;
             return ExecuteRequestWeb(
                 (response) =>
                 {
@@ -908,6 +927,20 @@ namespace Phantasma.Neo.Core
                         result.Add(new UnspentEntry() { hash = new UInt256(NeoUtils.ReverseHex(txid).HexToBytes()), index = index, value = value });
                     }
 
+                    callback(result, amount);
+                }
+                , ErrorHandler, url);
+        }
+
+        public IEnumerator GetUnclaimed(string address, Action<decimal> callback)
+        {
+            var url = this.neoscanUrl + "/api/main_net/v1/get_unclaimed/" + address;
+            return ExecuteRequestWeb(
+                (response) =>
+                {
+                    var amount = response.GetDecimal("unclaimed");
+
+                    callback(amount);
                 }
                 , ErrorHandler, url);
         }
