@@ -38,7 +38,8 @@ namespace Poltergeist
 
     public struct Account
     {
-        public static readonly int MaxPasswordLength = 20;
+        public static readonly int MinPasswordLength = 6;
+        public static readonly int MaxPasswordLength = 32;
 
         public string name;
         public PlatformKind platforms;

@@ -697,7 +697,7 @@ namespace Poltergeist
             }
 
             AudioManager.Instance.PlaySFX("auth");
-            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
+            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, Account.MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
             {
                 var auth = result;
 
@@ -1466,11 +1466,11 @@ namespace Poltergeist
             "fuckyou", "trustno1", "ranger","buster","thomas","robert","bitcoin","phantasma","wallet","crypto"
         };
 
-        private const int MinPasswordLength = 6;
+        
 
         private bool IsGoodPassword(string name, string password)
         {
-            if (password == null || password.Length < MinPasswordLength)
+            if (password == null || password.Length < Account.MinPasswordLength)
             {
                 return false;
             }
@@ -1493,7 +1493,7 @@ namespace Poltergeist
 
         private void TrySettingWalletPassword(string name, string wif)
         {
-            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, MinPasswordLength, 32, ModalConfirmCancel, 1, (passResult, password) =>
+            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, Account.MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
             {
                 if (passResult == PromptResult.Success)
                 {
@@ -1503,7 +1503,7 @@ namespace Poltergeist
                     }
                     else
                     {
-                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {MinPasswordLength} characters and can't be easy to guess.", () =>
+                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {Account.MinPasswordLength} characters and can't be easy to guess.", () =>
                         {
                             TrySettingWalletPassword(name, wif);
                         });
