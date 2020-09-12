@@ -1594,7 +1594,7 @@ namespace Poltergeist
                             {
                                 if (result == PromptResult.Success)
                                 {
-                                    if (key.Length == 52 && (key.StartsWith("K") || key.StartsWith("L")))
+                                    if (PhantasmaAPI.IsValidPrivateKey(key))
                                     {
                                         ImportWallet(key, null);
                                     }

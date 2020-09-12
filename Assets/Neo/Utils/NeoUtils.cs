@@ -70,7 +70,13 @@ namespace Phantasma.Neo.Utils
                 return false;
             }
 
-            if (!address.StartsWith("A"))
+            // In Norway "Aa" combination means "å".
+            // By default StartsWith() uses current culture for comparison,
+            // and if culture is set to Norway, StartWith() believes, that
+            // Neo address "Aa..." starts with "å" letter,
+            // and address is treated as invalid.
+            // We should always use invariant culture for such comparisons.
+            if (!address.StartsWith("A", false, CultureInfo.InvariantCulture))
             {
                 return false;
             }
