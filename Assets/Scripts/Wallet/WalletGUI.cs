@@ -3684,7 +3684,7 @@ namespace Poltergeist
                                                     }
                                                     catch (Exception e)
                                                     {
-                                                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                                                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
                                                         return;
                                                     }
 
@@ -4257,7 +4257,7 @@ namespace Poltergeist
                         }
                         catch (Exception e)
                         {
-                            MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                            MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
                             return;
                         }
 
@@ -4336,8 +4336,9 @@ namespace Poltergeist
                             if(symbol == "TTRS")
                             {
                                 var item = TtrsStore.GetNft(nft);
-                                
-                                nftDescription = " " + ((item.NameEnglish.Length > 25) ? item.NameEnglish.Substring(0, 22) + "..." : item.NameEnglish);
+
+                                if (item.NameEnglish != null)
+                                    nftDescription = " " + ((item.NameEnglish.Length > 25) ? item.NameEnglish.Substring(0, 22) + "..." : item.NameEnglish);
 
                                 nftDescription += " Minted " + item.Timestamp.ToString("dd.MM.yy") + " #" + item.Mint;
                             }
@@ -4352,7 +4353,7 @@ namespace Poltergeist
                     }
                     catch (Exception e)
                     {
-                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
                         return;
                     }
 
@@ -4728,7 +4729,7 @@ namespace Poltergeist
                                     }
                                     catch (Exception e)
                                     {
-                                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
                                         return;
                                     }
 
@@ -4934,7 +4935,7 @@ namespace Poltergeist
                              }
                              catch (Exception e)
                              {
-                                 MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message);
+                                 MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
                                  return;
                              }
 

@@ -254,21 +254,25 @@ public static class TtrsStore
         },
         (response) =>
         {
-            LoadStoreNftFromDataNode(response, onItemLoadedCallback);
+            if (response != null)
+            {
+                LoadStoreNftFromDataNode(response, onItemLoadedCallback);
 
-            if (storeNft != null)
-            {
-                // Cache already exists, need to add new nfts to existing cache.
-                foreach(var node in response.Children)
+                if (storeNft != null)
                 {
-                    storeNft.AddNode(node);
+                    // Cache already exists, need to add new nfts to existing cache.
+                    foreach (var node in response.Children)
+                    {
+                        storeNft.AddNode(node);
+                    }
                 }
+                else
+                {
+                    storeNft = response;
+                }
+                if (storeNft != null)
+                    Cache.Add("ttrs-store-nft", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, storeNft));
             }
-            else
-            {
-                storeNft = response;
-            }
-            Cache.Add("ttrs-store-nft", Cache.FileType.JSON, DataFormats.SaveToString(DataFormat.JSON, storeNft));
             onAllItemsLoadedCallback();
         });
     }
