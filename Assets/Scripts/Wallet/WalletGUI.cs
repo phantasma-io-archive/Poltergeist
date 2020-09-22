@@ -1427,7 +1427,7 @@ namespace Poltergeist
                 {
                     if (account.WIF == wif)
                     {
-                        MessageBox(MessageKind.Error, "This private key is already imported in a different account.");
+                        MessageBox(MessageKind.Error, $"This private key is already imported in a different account: {account.name}.");
                         return;
                     }
                 }
