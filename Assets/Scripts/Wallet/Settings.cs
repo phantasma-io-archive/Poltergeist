@@ -272,11 +272,11 @@ namespace Poltergeist
                     switch (ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "";
+                            _return_value = "https://mainnet.infura.io/v3/2bc1e4018304466d95d02f3f28d246b0";
                             break;
 
                         case EthereumNetwork.Ropsten:
-                            _return_value = "https://ropsten.infura.io/v3/34a7c02e7f2f458181180c72c4de58a6";
+                            _return_value = "https://ropsten.infura.io/v3/2bc1e4018304466d95d02f3f28d246b0";
                             break;
 
                         case EthereumNetwork.Local_Net:
