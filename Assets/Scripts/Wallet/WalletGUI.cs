@@ -4927,7 +4927,7 @@ namespace Poltergeist
                                  }
                                  else
                                  {
-                                     sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.5m, decimals));
+                                     sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.1m, decimals));
                                  }
                                  sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
                                  sb.SpendGas(source);
