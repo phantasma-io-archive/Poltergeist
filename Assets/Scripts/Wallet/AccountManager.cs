@@ -677,7 +677,7 @@ namespace Poltergeist
                     switch (Settings.ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "";
+                            _return_value = "79C75E2e8720B39e258F41c37cC4f309E0b0fF80";
                             break;
 
                         case EthereumNetwork.Ropsten:
@@ -698,7 +698,7 @@ namespace Poltergeist
                     switch (Settings.ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "";
+                            _return_value = "14EB60F5f270B059B0c788De0Ddc51Da86f8a06d";
                             break;
 
                         case EthereumNetwork.Ropsten:
