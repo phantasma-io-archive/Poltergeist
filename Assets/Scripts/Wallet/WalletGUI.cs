@@ -1574,7 +1574,7 @@ namespace Poltergeist
         private void DoWalletsScreen()
         {
             int endY;
-            DoButtonGrid<int>(true, accountOptions.Length, 0, out endY, (index) =>
+            DoButtonGrid<int>(true, accountOptions.Length, 0, 0, out endY, (index) =>
             {
                 return new MenuEntry(index, accountOptions[index], true);
             },
@@ -1743,21 +1743,21 @@ namespace Poltergeist
             return i;
         }
 
-        private void DoButtonGrid<T>(bool showBackground, int buttonCount, int offset, out int posY, Func<int, MenuEntry> options, Action<T> callback)
+        private void DoButtonGrid<T>(bool showBackground, int buttonCount, int xOffset, int yOffset, out int posY, Func<int, MenuEntry> options, Action<T> callback)
         {
             var border = Units(1);
 
             int panelHeight = VerticalLayout ? Border * 2 + (Units(2)+4) *  buttonCount : (border + Units(3));
-            posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border)) + offset;
+            posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border)) + yOffset;
 
-            var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
+            var rect = new Rect(border + xOffset, posY, windowRect.width - border * 2 - xOffset * 2, panelHeight);
             
             if (showBackground)
             {
                 GUI.Box(rect, "");
             }
 
-            int divisionWidth = (int)(windowRect.width / buttonCount);
+            int divisionWidth = (int)((windowRect.width - xOffset * 2) / buttonCount);
             int btnWidth = (int)(divisionWidth * 0.8f);
 
             int maxBtnWidth = Units(8 + buttonCount * 2);
@@ -1783,7 +1783,7 @@ namespace Poltergeist
                 }
                 else
                 {
-                    btnRect = new Rect(divisionWidth * i + (divisionWidth - btnWidth) / 2, rect.y + border, btnWidth, Units(2));
+                    btnRect = new Rect(divisionWidth * i + (divisionWidth - btnWidth) / 2 + xOffset, rect.y + border, btnWidth, Units(2));
                 }
 
                 DoButton(entry.enabled, btnRect, entry.label, () =>
@@ -1975,7 +1975,7 @@ namespace Poltergeist
             // 3) Last element has additional Units(1) spacing before it.
             var insideRect = new Rect(0, 0, boxWidth, Units(3) * 22 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
-            var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - Units(4));
+            var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - ((VerticalLayout) ? Units(10) : Units(4)));
 
             bool needsScroll = insideRect.height > outsideRect.height;
             if (needsScroll)
@@ -2202,26 +2202,53 @@ namespace Poltergeist
                 confirmBtnRect = new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, btnHeight);
             }
 
-            DoButton(true, cancelBtnRect, "Cancel", () =>
+            string[] settingsMenu = new string[] { /*"Display settings", */"Open log location", "Cancel", "Confirm" };
+            int posY;
+            DoButtonGrid<int>(false, settingsMenu.Length, (VerticalLayout) ? 0 : Units(2), 0, out posY, (index) =>
             {
-                AudioManager.Instance.PlaySFX("cancel");
-
-                // Resetting changes by restoring current settings.
-                settings.Load();
-
-                // Restoring combos' selected items.
-                // If they are not restored, following calls of DoSettingsScreen() will change them again.
-                SetState(GUIState.Settings);
-
-                CloseCurrentStack();
-            });
-            DoButton(true, confirmBtnRect, "Confirm", () =>
+                return new MenuEntry(index, settingsMenu[index], true);
+            },
+            (selected) =>
             {
-                if (ValidateSettings())
+                switch (selected)
                 {
-                    AudioManager.Instance.PlaySFX("confirm");
-                    ResourceManager.Instance.UnloadTokens();
-                    CloseCurrentStack();
+                    /*case 0:
+                        {
+                            break;
+                        }
+                    */
+                    case 0:
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+                            Application.OpenURL(System.IO.Path.GetDirectoryName("file://" + Log.FilePath));
+                            break;
+                        }
+
+                    case 1:
+                        {
+                            AudioManager.Instance.PlaySFX("cancel");
+
+                            // Resetting changes by restoring current settings.
+                            settings.Load();
+
+                            // Restoring combos' selected items.
+                            // If they are not restored, following calls of DoSettingsScreen() will change them again.
+                            SetState(GUIState.Settings);
+
+                            CloseCurrentStack();
+                            break;
+                        }
+
+                    case 2:
+                        {
+                            if (ValidateSettings())
+                            {
+                                AudioManager.Instance.PlaySFX("confirm");
+                                ResourceManager.Instance.UnloadTokens();
+                                CloseCurrentStack();
+                            }
+                            break;
+                        }
                 }
             });
         }
@@ -2598,7 +2625,7 @@ namespace Poltergeist
         private void DoBackButton()
         {
             int posY;
-            DoButtonGrid<bool>(false, 1, Border, out posY, (index) =>
+            DoButtonGrid<bool>(false, 1, 0, Border, out posY, (index) =>
             {
                 return new MenuEntry(true, "Back", true);
             }, (val) =>
@@ -3588,7 +3615,7 @@ namespace Poltergeist
             }
 
             int posY;
-            DoButtonGrid<int>(false, accountMenu.Length, -btnOffset, out posY, (index) =>
+            DoButtonGrid<int>(false, accountMenu.Length, 0, -btnOffset, out posY, (index) =>
             {
                 var enabled = true;
 
@@ -3833,7 +3860,7 @@ namespace Poltergeist
         private int DoBottomMenu()
         {
             int posY;
-            DoButtonGrid<GUIState>(false, bottomMenu.Length, 0, out posY, (index) =>
+            DoButtonGrid<GUIState>(false, bottomMenu.Length, 0, 0, out posY, (index) =>
             {
                 var btnKind = bottomMenu[index];
                 return new MenuEntry(btnKind, btnKind.ToString(), btnKind != this.guiState);

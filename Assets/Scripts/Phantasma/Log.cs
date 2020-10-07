@@ -27,7 +27,7 @@ namespace Phantasma.SDK
             Error
         }
 
-        private static string FilePath;
+        public static string FilePath;
         private static FileStream LogFileStream;
         private static StreamWriter LogStreamWriter;
         private static Level MaxLevel = Level.Networking;
