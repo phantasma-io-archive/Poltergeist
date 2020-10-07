@@ -295,11 +295,6 @@ namespace Poltergeist
                             var price = node.GetDecimal(currency);
 
                             SetTokenPrice(symbol.symbol, price);
-
-                            if (symbol.symbol == "SOUL")
-                            {
-                                SetTokenPrice("KCAL", price / 5);
-                            }
                         }
                         else
                         {
@@ -769,7 +764,7 @@ namespace Poltergeist
             var nftFlags = TokenFlags.Transferable.ToString();
             SupportedTokens = new List<Token>() {
                 new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = DomainSettings.PlatformName, hash = "", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
                 new Token() { symbol = "GAS", apiSymbol = "gas", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
                 new Token() { symbol = "MKNI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags },
@@ -810,7 +805,7 @@ namespace Poltergeist
                 new Token() { symbol = "BRDG", apiSymbol = "bridge-protocol", platform = "neo", hash = "78fd589f7894bf9642b4a573ec0e6957dfd84c48", decimals = 8, maxSupply = "1000000000", name = "Bridge Protocol", flags = extFlags },
 
                 new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "", platform = "ethereum", hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = "ethereum", hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
                 new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
                 new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
                 new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags }/*,
