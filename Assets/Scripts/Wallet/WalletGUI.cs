@@ -1962,7 +1962,7 @@ namespace Poltergeist
             int startY = (int)(curY - Border);
             // boxWidth, boxHeight: Size of "Settings" box.
             int boxWidth = (int)(windowRect.width - (Border * 2));
-            int boxHeight = (int)(windowRect.height - (Border * 2 + curY));
+            int boxHeight = (int)(windowRect.height - curY);
             
             fieldWidth = Math.Min(fieldWidth, boxWidth - fieldX - Units(3));
             comboWidth = Math.Min(comboWidth, boxWidth - fieldX - Units(3));
@@ -2186,7 +2186,7 @@ namespace Poltergeist
             var btnWidth = Units(10);
             var btnHeight = Units(2);
             var btnVerticalSpacing = 4;
-            curY = (int)(windowRect.height - Units(6));
+            curY = (int)(windowRect.height - Units(4));
 
             Rect cancelBtnRect;
             Rect confirmBtnRect;
