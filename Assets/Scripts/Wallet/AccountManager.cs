@@ -233,7 +233,7 @@ namespace Poltergeist
             _currencyMap["AUD"] = "A$";
             _currencyMap["CAD"] = "C$";
             _currencyMap["EUR"] = "€";
-            _currencyMap["GBP"] = "?";
+            _currencyMap["GBP"] = "\u00A3";
             _currencyMap["RUB"] = "\u20BD";
             _currencyMap["USD"] = "$";
             _currencyMap["JPY"] = "¥";
