@@ -1710,10 +1710,12 @@ namespace Poltergeist
                                         Log.WriteWarning(error);
                                     }
 
+                                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
                                     var state = new AccountState()
                                     {
                                         platform = platform,
-                                        address = keys.Address,
+                                        address = ethereumAddressUtil.ConvertToChecksumAddress(keys.Address),
                                         name = ValidationUtils.ANONYMOUS, // TODO support NNS
                                         balances = balanceMap.Values.ToArray(),
                                         flags = AccountFlags.None
@@ -2475,7 +2477,8 @@ namespace Poltergeist
                     return NeoKeys.FromWIF(wif).Address;
 
                 case PlatformKind.Ethereum:
-                    return EthereumKey.FromWIF(wif).Address;
+                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                    return ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
             }
 
 
