@@ -3223,7 +3223,7 @@ namespace Poltergeist
                          }
                      }
                      else
-                     if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress))
+                     if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress))
                      {
                          if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
                          {
