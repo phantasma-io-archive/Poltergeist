@@ -2106,6 +2106,11 @@ namespace Poltergeist
             return $"https://explorer.phantasma.io/tx/{hash}";
         }
 
+        public string GetPhantasmaAddressURL(string address)
+        {
+            return $"https://explorer.phantasma.io/address/{address}";
+        }
+
         private void RequestPendings(string address, Action<Swap[], string> callback)
         {
             StartCoroutine(phantasmaApi.GetSwapsForAddress(address, (swaps) =>
@@ -2123,11 +2128,6 @@ namespace Poltergeist
 
         public string GetEtherscanTransactionURL(string hash)
         {
-            if (string.IsNullOrEmpty(etherscanAPIToken))
-            {
-                return null;
-            }
-
             if (!hash.StartsWith("0x"))
                 hash = "0x" + hash;
 
@@ -2138,6 +2138,24 @@ namespace Poltergeist
 
                 case EthereumNetwork.Ropsten:
                     return $"https://ropsten.etherscan.io/tx/{hash}";
+
+                default:
+                    return null;
+            }
+        }
+
+        public string GetEtherscanAddressURL(string address)
+        {
+            if (!address.StartsWith("0x"))
+                address = "0x" + address;
+
+            switch (Settings.ethereumNetwork)
+            {
+                case EthereumNetwork.Main_Net:
+                    return $"https://etherscan.io/address/{address}";
+
+                case EthereumNetwork.Ropsten:
+                    return $"https://ropsten.etherscan.io/address/{address}";
 
                 default:
                     return null;
@@ -2173,6 +2191,16 @@ namespace Poltergeist
             }
 
             return $"{url}transaction/{hash}";
+        }
+        public string GetNeoscanAddressURL(string address)
+        {
+            var url = Settings.neoscanURL;
+            if (!url.EndsWith("/"))
+            {
+                url += "/";
+            }
+
+            return $"{url}address/{address}";
         }
 
         private string GetNeoscanAPIUrl(string request)

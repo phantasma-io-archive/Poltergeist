@@ -2318,12 +2318,29 @@ namespace Poltergeist
 
             if (showCopyToClipboardButton)
             {
-                DoButton(true, new Rect((windowRect.width - btnWidth) / 2, curY, btnWidth, Units(1)), "Copy Address", () =>
+                DoButton(true, new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1)), "Copy Address", () =>
                   {
                       AudioManager.Instance.PlaySFX("click");
                       GUIUtility.systemCopyBuffer = state.address;
                       MessageBox(MessageKind.Default, "Address copied to clipboard.");
                   });
+
+                DoButton(true, new Rect(windowRect.width / 2 + Border, curY, btnWidth, Units(1)), "Explorer", () =>
+                {
+                    AudioManager.Instance.PlaySFX("click");
+                    switch(accountManager.CurrentPlatform)
+                    {
+                        case PlatformKind.Phantasma:
+                            Application.OpenURL(accountManager.GetPhantasmaAddressURL(state.address));
+                            break;
+                        case PlatformKind.Ethereum:
+                            Application.OpenURL(accountManager.GetEtherscanAddressURL(state.address));
+                            break;
+                        case PlatformKind.Neo:
+                            Application.OpenURL(accountManager.GetNeoscanAddressURL(state.address));
+                            break;
+                    }
+                });
 
                 curY += Units(3);
             }
