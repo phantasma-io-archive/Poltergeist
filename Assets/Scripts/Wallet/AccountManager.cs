@@ -2418,7 +2418,41 @@ namespace Poltergeist
                 }
             }
 
-            Accounts.Add(new Account() { name = name, WIF = wif, password = password, platforms = platforms, misc = "" });
+            var account = new Account() { name = name, platforms = platforms, misc = "" };
+
+            // Initializing public addresses.
+            var phaKeys = PhantasmaKeys.FromWIF(wif);
+            account.phaAddress = phaKeys.Address.ToString();
+
+            var neoKeys = NeoKeys.FromWIF(wif);
+            account.neoAddress = neoKeys.Address.ToString();
+
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
+
+            if (!String.IsNullOrEmpty(password))
+            {
+                account.passwordProtected = true;
+                account.passwordIterations = passwordIterations;
+
+                // Encrypting WIF.
+                GetPasswordHash(password, account.passwordIterations, out string salt, out string passwordHash);
+                account.password = "";
+                account.salt = salt;
+
+                account.WIF = EncryptWif(wif, passwordHash, out string iv);
+                account.iv = iv;
+
+                // Decrypting to ensure there are no exceptions.
+                DecryptWif(account.WIF, passwordHash, account.iv);
+            }
+            else
+            {
+                account.passwordProtected = false;
+                account.WIF = wif;
+            }
+
+            Accounts.Add(account);
 
             return Accounts.Count() - 1;
         }
