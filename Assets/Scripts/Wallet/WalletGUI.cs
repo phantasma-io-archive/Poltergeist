@@ -690,20 +690,31 @@ namespace Poltergeist
                 return;
             }
 
-            if (string.IsNullOrEmpty(accountManager.CurrentAccount.password) /*|| accountManager.Settings.nexusKind == NexusKind.Local_Net*/)
+            if (!accountManager.CurrentAccount.passwordProtected)
             {
                 callback(PromptResult.Success);
                 return;
             }
 
             AudioManager.Instance.PlaySFX("auth");
-            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, Account.MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
+            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
             {
                 var auth = result;
 
-                if (auth == PromptResult.Success && input != accountManager.CurrentAccount.password)
+                if (auth == PromptResult.Success)
                 {
-                    auth = PromptResult.Failure;
+                    AccountManager.GetPasswordHashBySalt(input, accountManager.CurrentAccount.passwordIterations, accountManager.CurrentAccount.salt, out string passwordHash);
+
+                    // Checking if we can get correct public key by decrypting WIF with given password.
+                    var wif = AccountManager.DecryptWif(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
+                    if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
+                    {
+                        accountManager.CurrentPasswordHash = passwordHash;
+                    }
+                    else
+                    {
+                        auth = PromptResult.Failure;
+                    }
                 }
 
                 callback(auth);                
@@ -1425,7 +1436,8 @@ namespace Poltergeist
                 var accountManager = AccountManager.Instance;
                 foreach (var account in accountManager.Accounts)
                 {
-                    if (account.WIF == wif)
+                    var keys = PhantasmaKeys.FromWIF(wif);
+                    if (account.phaAddress == keys.Address.ToString())
                     {
                         MessageBox(MessageKind.Error, $"This private key is already imported in a different account: {account.name}.");
                         return;
@@ -1470,7 +1482,7 @@ namespace Poltergeist
 
         private bool IsGoodPassword(string name, string password)
         {
-            if (password == null || password.Length < Account.MinPasswordLength)
+            if (password == null || password.Length < AccountManager.MinPasswordLength)
             {
                 return false;
             }
@@ -1493,7 +1505,7 @@ namespace Poltergeist
 
         private void TrySettingWalletPassword(string name, string wif)
         {
-            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, Account.MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
+            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
             {
                 if (passResult == PromptResult.Success)
                 {
@@ -1503,7 +1515,7 @@ namespace Poltergeist
                     }
                     else
                     {
-                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {Account.MinPasswordLength} characters and can't be easy to guess.", () =>
+                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {AccountManager.MinPasswordLength} characters and can't be easy to guess.", () =>
                         {
                             TrySettingWalletPassword(name, wif);
                         });
@@ -1927,7 +1939,7 @@ namespace Poltergeist
                 return false;
             }
 
-            if (accountManager.Accounts.Length == 0)
+            if (accountManager.Accounts.Count() == 0)
             {
                 accountManager.InitDemoAccounts(settings.nexusKind);
             }
@@ -2157,7 +2169,7 @@ namespace Poltergeist
             });
             curY += Units(3);
 
-            if (accountManager.Accounts.Length > 0)
+            if (accountManager.Accounts.Count() > 0)
             {
                 curY += Units(1);
                 DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Delete Everything", () =>
@@ -3020,7 +3032,7 @@ namespace Poltergeist
                                                 }));
                                             });
 
-                                            var keys = NeoKeys.FromWIF(accountManager.CurrentAccount.WIF);
+                                            var keys = NeoKeys.FromWIF(accountManager.CurrentWif);
 
                                             PushState(GUIState.Sending);
 
@@ -3682,13 +3694,13 @@ namespace Poltergeist
 
                                 if (result == PromptResult.Success)
                                 {
-                                    var keys = EthereumKey.FromWIF(accountManager.CurrentAccount.WIF);
+                                    var keys = EthereumKey.FromWIF(accountManager.CurrentWif);
                                     GUIUtility.systemCopyBuffer = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
                                     MessageBox(MessageKind.Default, "Private key (HEX format) copied to the clipboard.");
                                 }
                                 else
                                 {
-                                    GUIUtility.systemCopyBuffer = accountManager.CurrentAccount.WIF;
+                                    GUIUtility.systemCopyBuffer = accountManager.CurrentWif;
                                     MessageBox(MessageKind.Default, "Private key (WIF format) copied to the clipboard.");
                                 }
                             });
@@ -4550,7 +4562,7 @@ namespace Poltergeist
                         platform = PlatformKind.Neo,
                         amount = amount,
                         symbol = symbol,
-                        key = accountManager.CurrentAccount.WIF,
+                        key = accountManager.CurrentWif,
                         destination = destAddress
                     };
 
@@ -4644,7 +4656,7 @@ namespace Poltergeist
                                     platform = PlatformKind.Ethereum,
                                     amount = amount,
                                     symbol = symbol,
-                                    key = accountManager.CurrentAccount.WIF,
+                                    key = accountManager.CurrentWif,
                                     destination = destAddress
                                 };
 
@@ -4817,7 +4829,7 @@ namespace Poltergeist
                                         platform = accountManager.CurrentPlatform,
                                         amount = amount,
                                         symbol = symbol,
-                                        key = accountManager.CurrentAccount.WIF,
+                                        key = accountManager.CurrentWif,
                                         destination = interopAddress,
                                         interop = destination,
                                     };
@@ -5112,7 +5124,7 @@ namespace Poltergeist
                 }
             }
 
-            for (int index=0; index< accountManager.Accounts.Length; index++)
+            for (int index=0; index< accountManager.Accounts.Count(); index++)
             {
                 var account = accountManager.Accounts[index];
                 var platforms = account.platforms.Split();
