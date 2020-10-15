@@ -3756,7 +3756,7 @@ namespace Poltergeist
                                                         return;
                                                     }
 
-                                                    SendTransaction($"Register address name\nName:{name}\nAddress:{accountManager.CurrentState.address}?", script, null, "main", (hash) =>
+                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, null, "main", (hash) =>
                                                     {
                                                         if (hash != Hash.Null)
                                                         {
