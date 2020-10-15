@@ -1,6 +1,6 @@
 ﻿using LunarLabs.Retro;
 using LunarLabs.Retro.Resources;
-using Phantasma.Blockchain.Contracts;
+using Phantasma.Blockchain;
 using Phantasma.Cryptography;
 using Phantasma.Domain;
 using Phantasma.Numerics;

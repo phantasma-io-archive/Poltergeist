@@ -16,7 +16,7 @@ using Phantasma.Core.Types;
 using Phantasma.Ethereum;
 using LunarLabs.Parser;
 using Phantasma.VM.Utils;
-using Phantasma.Blockchain.Contracts;
+using Phantasma.Blockchain;
 
 namespace Poltergeist
 {

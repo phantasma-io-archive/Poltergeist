@@ -42,7 +42,7 @@ namespace Poltergeist
                 return new Account()
                 {
                     name = account.name,
-                    id = account.name,
+                    alias = account.name,
                     address = state.address,
                     balances = balances.ToArray(),
                     avatar = DefaultAvatar
@@ -55,7 +55,7 @@ namespace Poltergeist
             return new Account()
             {
                 name = "Unknown",
-                id = "unknown",
+                alias = "unknown",
                 address = Address.Null.Text,
                 balances = new Balance[0],
                 avatar = DefaultAvatar
@@ -136,7 +136,6 @@ namespace Poltergeist
                       {
                           if (success)
                           {
-                              // TODO show description of transfer :^)              
                               WalletGUI.Instance.SendTransaction(description, script, payload, chain, (hash) =>
                               {
                                   if (hash != Hash.Null)
@@ -164,6 +163,57 @@ namespace Poltergeist
             }
         }
 
+
+        protected override void SignData(byte[] data, SignatureKind kind, int id, Action<string, string> callback)
+        {
+            var state = AccountManager.Instance.CurrentState;
+            if (state == null)
+            {
+                callback(null, "not logged in");
+                return;
+            }
+
+            if (kind != SignatureKind.Ed25519)
+            {
+                callback(null, kind + " signatures unsupported");
+                return;
+            }
+
+            var account = AccountManager.Instance.CurrentAccount;
+
+            if (account.platforms.HasFlag(PlatformKind.Phantasma))
+            {
+                WalletGUI.Instance.CallOnUIThread(() =>
+                {
+                    var description = Base16.Encode(data);
+
+                    WalletGUI.Instance.Prompt("The dapp wants to sign the following data. Accept?\n" + description, (success) =>
+                    {
+                        if (success)
+                        {
+                            var phantasmaKeys = PhantasmaKeys.FromWIF(account.WIF);
+                            var signature = phantasmaKeys.Sign(data);
+
+                            var sigBytes = signature.ToByteArray();
+
+                            var hex = Base16.Encode(sigBytes);
+                            callback(hex, null);
+                        }
+                        else
+                        {
+                            callback(null, "user rejected");
+                        }
+                    });
+
+                });
+
+            }
+            else
+            {
+                callback(null, "current account does not support Phantasma platform");
+            }
+        }
+ 
         protected override void Authorize(string dapp, Action<bool, string> callback)
         {
             var state = AccountManager.Instance.CurrentState;
@@ -182,5 +232,5 @@ namespace Poltergeist
            });
 
         }
-    }
+   }
 }

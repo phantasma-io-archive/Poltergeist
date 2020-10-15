@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 using Phantasma.VM.Utils;
 using Phantasma.Cryptography;
-using Phantasma.Blockchain.Contracts;
+using Phantasma.Blockchain;
 using Phantasma.Numerics;
 using Phantasma.Storage;
 using Phantasma.Domain;
