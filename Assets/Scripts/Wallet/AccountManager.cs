@@ -662,19 +662,19 @@ namespace Poltergeist
                 }
             }
         }
-        private static int passwordIterations = 100000;
-        private static int passwordSaltByteSize = 64;
-        private static int passwordHashByteSize = 32;
+        private static readonly int PasswordIterations = 100000;
+        private static readonly int PasswordSaltByteSize = 64;
+        private static readonly int PasswordHashByteSize = 32;
         private static void GetPasswordHash(string password, int passwordIterations, out string salt, out string passwordHash)
         {
             BouncyCastleHashing hashing = new BouncyCastleHashing();
-            salt = Convert.ToBase64String(hashing.CreateSalt(passwordSaltByteSize));
-            passwordHash = hashing.PBKDF2_SHA256_GetHash(password, salt, passwordIterations, passwordHashByteSize);
+            salt = Convert.ToBase64String(hashing.CreateSalt(PasswordSaltByteSize));
+            passwordHash = hashing.PBKDF2_SHA256_GetHash(password, salt, passwordIterations, PasswordHashByteSize);
         }
         public static void GetPasswordHashBySalt(string password, int passwordIterations, string salt, out string passwordHash)
         {
             BouncyCastleHashing hashing = new BouncyCastleHashing();
-            passwordHash = hashing.PBKDF2_SHA256_GetHash(password, salt, passwordIterations, passwordHashByteSize);
+            passwordHash = hashing.PBKDF2_SHA256_GetHash(password, salt, passwordIterations, PasswordHashByteSize);
         }
         public static string EncryptWif(string wif, string key, out string iv)
         {
@@ -770,21 +770,22 @@ namespace Poltergeist
                 {
                     Log.Write($"Account {Accounts[i].name} version: {walletVersion}, will be upgraded");
 
+                    var account = Accounts[i];
+
+                    // Initializing public addresses.
+                    var phaKeys = PhantasmaKeys.FromWIF(account.WIF);
+                    account.phaAddress = phaKeys.Address.ToString();
+
+                    var neoKeys = NeoKeys.FromWIF(account.WIF);
+                    account.neoAddress = neoKeys.Address.ToString();
+
+                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                    account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
+
                     if (!String.IsNullOrEmpty(Accounts[i].password))
                     {
-                        var account = Accounts[i];
                         account.passwordProtected = true;
-                        account.passwordIterations = passwordIterations;
-
-                        // Initializing public addresses.
-                        var phaKeys = PhantasmaKeys.FromWIF(account.WIF);
-                        account.phaAddress = phaKeys.Address.ToString();
-                        
-                        var neoKeys = NeoKeys.FromWIF(account.WIF);
-                        account.neoAddress = neoKeys.Address.ToString();
-
-                        var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
-                        account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
+                        account.passwordIterations = PasswordIterations;
 
                         // Encrypting WIF.
                         GetPasswordHash(account.password, account.passwordIterations, out string salt, out string passwordHash);
@@ -796,26 +797,13 @@ namespace Poltergeist
 
                         // Decrypting to ensure there are no exceptions.
                         DecryptWif(account.WIF, passwordHash, account.iv);
-
-                        Accounts[i] = account;
                     }
                     else
                     {
-                        var account = Accounts[i];
                         account.passwordProtected = false;
-
-                        // Initializing public addresses.
-                        var phaKeys = PhantasmaKeys.FromWIF(account.WIF);
-                        account.phaAddress = phaKeys.Address.ToString();
-
-                        var neoKeys = NeoKeys.FromWIF(account.WIF);
-                        account.neoAddress = neoKeys.Address.ToString();
-
-                        var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
-                        account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
-
-                        Accounts[i] = account;
                     }
+
+                    Accounts[i] = account;
                 }
 
                 SaveAccounts();
@@ -2434,7 +2422,7 @@ namespace Poltergeist
             if (!String.IsNullOrEmpty(password))
             {
                 account.passwordProtected = true;
-                account.passwordIterations = passwordIterations;
+                account.passwordIterations = PasswordIterations;
 
                 // Encrypting WIF.
                 GetPasswordHash(password, account.passwordIterations, out string salt, out string passwordHash);
