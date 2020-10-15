@@ -706,14 +706,24 @@ namespace Poltergeist
                     AccountManager.GetPasswordHashBySalt(input, accountManager.CurrentAccount.passwordIterations, accountManager.CurrentAccount.salt, out string passwordHash);
 
                     // Checking if we can get correct public key by decrypting WIF with given password.
-                    var wif = AccountManager.DecryptWif(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
-                    if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
+                    string wif;
+                    try
                     {
-                        accountManager.CurrentPasswordHash = passwordHash;
+                        wif = AccountManager.DecryptWif(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
+
+                        if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
+                        {
+                            accountManager.CurrentPasswordHash = passwordHash;
+                        }
+                        else
+                        {
+                            auth = PromptResult.Failure;
+                        }
                     }
-                    else
+                    catch (Exception e)
                     {
                         auth = PromptResult.Failure;
+                        Log.WriteWarning("Authorization error: " + e.ToString());
                     }
                 }
 
