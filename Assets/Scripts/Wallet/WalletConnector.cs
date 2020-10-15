@@ -10,6 +10,7 @@ using Phantasma.SDK;
 using Phantasma.Numerics;
 using System.IO;
 using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
 
 namespace Poltergeist
 {
@@ -196,7 +197,8 @@ namespace Poltergeist
                             var randomValue = UnityEngine.Random.Range(0, int.MaxValue);
                             var randomBytes = BitConverter.GetBytes(randomValue);
 
-                            var signature = phantasmaKeys.Sign(data);
+                            var msg = ByteArrayUtils.ConcatBytes(randomBytes, data);
+                            var signature = phantasmaKeys.Sign(msg);
 
                             var sigBytes = signature.ToByteArray();
 
