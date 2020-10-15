@@ -818,7 +818,6 @@ namespace Poltergeist
                     }
                 }
 
-                PlayerPrefs.SetInt(WalletVersionTag, 2);
                 SaveAccounts();
             }
             else if (!string.IsNullOrEmpty(wallets))
@@ -830,6 +829,8 @@ namespace Poltergeist
 
         public void SaveAccounts()
         {
+            PlayerPrefs.SetInt(WalletVersionTag, 2);
+
             var bytes = Serialization.Serialize(Accounts.ToArray());
             PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
             PlayerPrefs.Save();
