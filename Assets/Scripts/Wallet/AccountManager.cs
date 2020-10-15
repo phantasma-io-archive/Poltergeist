@@ -799,6 +799,23 @@ namespace Poltergeist
 
                         Accounts[i] = account;
                     }
+                    else
+                    {
+                        var account = Accounts[i];
+                        account.passwordProtected = false;
+
+                        // Initializing public addresses.
+                        var phaKeys = PhantasmaKeys.FromWIF(account.WIF);
+                        account.phaAddress = phaKeys.Address.ToString();
+
+                        var neoKeys = NeoKeys.FromWIF(account.WIF);
+                        account.neoAddress = neoKeys.Address.ToString();
+
+                        var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                        account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
+
+                        Accounts[i] = account;
+                    }
                 }
 
                 PlayerPrefs.SetInt(WalletVersionTag, 2);
@@ -2637,7 +2654,6 @@ namespace Poltergeist
                 case PlatformKind.Ethereum:
                     return Accounts[index].ethAddress;
             }
-
 
             return null;
         }
