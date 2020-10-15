@@ -164,18 +164,18 @@ namespace Poltergeist
         }
 
 
-        protected override void SignData(byte[] data, SignatureKind kind, int id, Action<string, string> callback)
+        protected override void SignData(byte[] data, SignatureKind kind, int id, Action<string, string, string> callback)
         {
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
             {
-                callback(null, "not logged in");
+                callback(null, null, "not logged in");
                 return;
             }
 
             if (kind != SignatureKind.Ed25519)
             {
-                callback(null, kind + " signatures unsupported");
+                callback(null, null, kind + " signatures unsupported");
                 return;
             }
 
@@ -192,16 +192,22 @@ namespace Poltergeist
                         if (success)
                         {
                             var phantasmaKeys = PhantasmaKeys.FromWIF(account.WIF);
+
+                            var randomValue = UnityEngine.Random.Range(0, int.MaxValue);
+                            var randomBytes = BitConverter.GetBytes(randomValue);
+
                             var signature = phantasmaKeys.Sign(data);
 
                             var sigBytes = signature.ToByteArray();
 
-                            var hex = Base16.Encode(sigBytes);
-                            callback(hex, null);
+                            var hexSig = Base16.Encode(sigBytes);
+                            var hexRand = Base16.Encode(randomBytes);
+
+                            callback(hexSig, hexRand, null);
                         }
                         else
                         {
-                            callback(null, "user rejected");
+                            callback(null, null, "user rejected");
                         }
                     });
 
@@ -210,7 +216,7 @@ namespace Poltergeist
             }
             else
             {
-                callback(null, "current account does not support Phantasma platform");
+                callback(null, null, "current account does not support Phantasma platform");
             }
         }
  
