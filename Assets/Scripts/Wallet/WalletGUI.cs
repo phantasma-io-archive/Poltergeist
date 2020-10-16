@@ -2795,7 +2795,28 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
-                                            MessageBox(MessageKind.Success, $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
+                                            ShowModal("Success",
+                                                $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.\nTransaction hash:\n" + hash,
+                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                                {
+                                                    AudioManager.Instance.PlaySFX("click");
+
+                                                    if (viewTxChoice == PromptResult.Failure)
+                                                    {
+                                                        switch (accountManager.CurrentPlatform)
+                                                        {
+                                                            case PlatformKind.Phantasma:
+                                                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                                                break;
+                                                            case PlatformKind.Neo:
+                                                                Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                                                break;
+                                                            case PlatformKind.Ethereum:
+                                                                Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                                                break;
+                                                        }
+                                                    }
+                                                });
                                         }
                                     });
                                 }
