@@ -161,9 +161,9 @@ namespace Poltergeist
 
         private string transferSymbol;
         private Hash transactionHash;
-        private bool needsConfirmation;
-        private int confirmationCount;
-        private DateTime lastTransactionConfirmation;
+        private bool transactionStillPending;
+        private int transactionCheckCount;
+        private DateTime transactionLastCheck;
 
         private AnimationDirection currentAnimation;
         private float animationTime;
@@ -1357,16 +1357,17 @@ namespace Poltergeist
 
             DrawCenteredText($"Confirming transaction {transactionHash}...");
 
-            if (needsConfirmation)
+            if (transactionStillPending)
             {
                 var now = DateTime.UtcNow;
-                var diff = now - lastTransactionConfirmation;
+                var diff = now - transactionLastCheck;
+                // Checking for update every 3 seconds.
                 if (diff.TotalSeconds >= 3)
                 {
-                    lastTransactionConfirmation = now;
-                    needsConfirmation = false;
-                    confirmationCount++;
-                    accountManager.RequestConfirmation(transactionHash.ToString(), confirmationCount, (msg) =>
+                    transactionLastCheck = now;
+                    transactionStillPending = false;
+                    transactionCheckCount++;
+                    accountManager.RequestConfirmation(transactionHash.ToString(), transactionCheckCount, (msg) =>
                     {
                         if (msg == null)
                         {
@@ -1380,8 +1381,8 @@ namespace Poltergeist
                         else
                         if (msg.ToLower().Contains("pending"))
                         {
-                            needsConfirmation = true;
-                            lastTransactionConfirmation = DateTime.UtcNow;
+                            transactionStillPending = true;
+                            transactionLastCheck = DateTime.UtcNow;
                         }
                         else
                         {
@@ -4271,10 +4272,10 @@ namespace Poltergeist
         private void ShowConfirmationScreen(Hash hash, Action<Hash> callback)
         {
             transactionCallback = callback;
-            needsConfirmation = true;
-            confirmationCount = 0;
+            transactionStillPending = true;
+            transactionCheckCount = 0;
             transactionHash = hash;
-            lastTransactionConfirmation = DateTime.UtcNow;
+            transactionLastCheck = DateTime.UtcNow;
             
             if (guiState == GUIState.Sending)
             {
