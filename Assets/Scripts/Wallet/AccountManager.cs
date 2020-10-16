@@ -1481,11 +1481,9 @@ namespace Poltergeist
         }
 
 
-        private const int neoMaxConfirmations = 12;
-        private const int ethereumMaxConfirmations = 50;
-        private const string TempConfirmError = "Something went wrong when confirming.\nThe transaction might have been succesful.\nCheck back later.";
+        private const int maxChecks = 12; // Timeout after 36 seconds
 
-        public void RequestConfirmation(string transactionHash, int confirmationCount, Action<string> callback)
+        public void RequestConfirmation(string transactionHash, int checkCount, Action<string> callback)
         {
             switch (CurrentPlatform)
             {
@@ -1499,7 +1497,15 @@ namespace Poltergeist
                         {
                             ChangeFaultyRPCURL();
                         }
-                        callback(msg);
+                        
+                        if (checkCount <= maxChecks)
+                        {
+                            callback(msg);
+                        }
+                        else
+                        {
+                            callback("timeout");
+                        }
                     }));
                     break;
 
@@ -1508,13 +1514,13 @@ namespace Poltergeist
 
                     StartCoroutine(WebClient.RESTRequest(url, WebClient.NoTimeout, (error, msg) =>
                     {
-                        if (confirmationCount <= neoMaxConfirmations)
+                        if (checkCount <= maxChecks)
                         {
                             callback("pending");
                         }
                         else
                         {
-                            callback(TempConfirmError);
+                            callback("timeout");
                         }
                     },
                     (response) =>
@@ -1525,47 +1531,24 @@ namespace Poltergeist
                         }
                         else
                         {
-                            if (confirmationCount <= neoMaxConfirmations)
+                            if (checkCount <= maxChecks)
                             {
                                 callback("pending");
                             }
                             else
                             {
-                                callback(TempConfirmError);
+                                callback("timeout");
                             }
                         }
                     }));
                     break;
 
                 case PlatformKind.Ethereum:
-                    StartCoroutine(ethereumApi.GetTransactionByHash(transactionHash, (response) =>
-                    {
-                        if (response.HasNode("blockNumber"))
-                        {
-                            callback(null);
-                        }
-                        else
-                        {
-                            if (confirmationCount <= ethereumMaxConfirmations)
-                            {
-                                callback("pending");
-                            }
-                            else
-                            {
-                                callback(TempConfirmError);
-                            }
-                        }
-                    }, (error, msg) =>
-                    {
-                        if (confirmationCount <= ethereumMaxConfirmations)
-                        {
-                            callback("pending");
-                        }
-                        else
-                        {
-                            callback(TempConfirmError);
-                        }
-                    }));
+                    // For Ethereum we should return immediately
+                    // since it's unpredictable if we would be able to find tx in mempool
+                    // or it will appear there after several minutes.
+                    // And we are not waiting for a confirmation anyway.
+                    callback(null);
                     break;
 
                 default:
