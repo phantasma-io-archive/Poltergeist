@@ -781,6 +781,25 @@ namespace Poltergeist
         }
         private void Update()
         {
+            // This allows to touch scroll on mobile devices.
+            if (Input.touchCount > 0)
+            {
+                var touch = Input.touches[0];
+                if (touch.phase == TouchPhase.Moved)
+                {
+                    if(hintComboBox.DropDownIsOpened())
+                        hintComboBox.ListScroll.y += touch.deltaPosition.y;
+                    else if(guiState == GUIState.Wallets && !(modalState != ModalState.None && !modalRedirected))
+                        accountScroll.y += touch.deltaPosition.y;
+                    else if (guiState == GUIState.Balances && !(modalState != ModalState.None && !modalRedirected))
+                        balanceScroll.y += touch.deltaPosition.y;
+                    else if (guiState == GUIState.TtrsNftView && !(modalState != ModalState.None && !modalRedirected))
+                        nftScroll.y += touch.deltaPosition.y;
+                    else if (guiState == GUIState.TtrsNftTransferList && !(modalState != ModalState.None && !modalRedirected))
+                        nftTransferListScroll.y += touch.deltaPosition.y;
+                }
+            }
+
             /*if (Input.GetKeyDown(KeyCode.Z))
             {
                 AccountState state = null;
