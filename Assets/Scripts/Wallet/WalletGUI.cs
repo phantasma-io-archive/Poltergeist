@@ -679,7 +679,6 @@ namespace Poltergeist
 
             ShowModal(title, caption, ModalState.Message, 0, 0, options, 1, (result, input) =>
             {
-                AppFocus.Instance.EndFocus();
                 callback?.Invoke();
             });
         }
@@ -772,7 +771,6 @@ namespace Poltergeist
             {
                 var temp = _promptCallback;
                 _promptText = null;
-                AppFocus.Instance.EndFocus();
                 temp(result == PromptResult.Success);
             });
         }

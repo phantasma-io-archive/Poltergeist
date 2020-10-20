@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -140,6 +140,8 @@ namespace Poltergeist
                           {
                               WalletGUI.Instance.SendTransaction(description, script, payload, chain, (hash) =>
                               {
+                                  AppFocus.Instance.EndFocus();
+
                                   if (hash != Hash.Null)
                                   {
                                       callback(hash, null);
@@ -152,6 +154,7 @@ namespace Poltergeist
                           }
                           else
                           {
+                              AppFocus.Instance.EndFocus();
                               callback(Hash.Null, "user rejected");
                           }
                       });
@@ -191,6 +194,8 @@ namespace Poltergeist
 
                     WalletGUI.Instance.Prompt("The dapp wants to sign the following data. Accept?\n" + description, (success) =>
                     {
+                        AppFocus.Instance.EndFocus();
+
                         if (success)
                         {
                             var phantasmaKeys = PhantasmaKeys.FromWIF(account.GetWif(AccountManager.Instance.CurrentPasswordHash));
