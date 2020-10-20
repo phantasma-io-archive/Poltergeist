@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -239,9 +239,25 @@ namespace Poltergeist
 
             WalletGUI.Instance.CallOnUIThread(() =>
             {
+                // NOTE this assumes "dapp" as the same name as a valid contract. Otherwise we don't have a way to fetch the methods
+                WalletGUI.Instance.StartCoroutine(
+                api.GetContract(dapp, (contract) =>
+                    {
+                        Debug.LogWarning($"Registering {contract.methods.Length} methods for {dapp}");
+
+                        foreach (var method in contract.methods)
+                        {
+                            DescriptionUtils.RegisterContractMethod($"{dapp}.{method.name}", method.parameters.Length);
+                        }
+                    }, (error, msg) =>
+                    {
+                        Debug.LogWarning("Could not fetch contract info: " + dapp);
+                }));
+
                 WalletGUI.Instance.Prompt($"Give access to dapp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
                {
-                   callback(result, "rejected");
+                   AppFocus.Instance.EndFocus();
+                   callback(result,  result ? null :"rejected");
                });
            });
 

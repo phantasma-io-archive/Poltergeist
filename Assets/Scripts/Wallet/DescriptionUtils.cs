@@ -79,12 +79,22 @@ namespace Poltergeist
             }
         }
 
+        private static Dictionary<string, int> methodTable = DisasmUtils.GetDefaultDisasmTable();
+
+
+        public static void RegisterContractMethod(string contractMethod, int paramCount)
+        {
+            methodTable[contractMethod] = paramCount;
+        }
+
         public static string GetDescription(byte[] script)
         {
-            var table = DisasmUtils.GetDefaultDisasmTable();
-            // adding missing stuff here like table["methodname"] = 5 where 5 is arg count
+            foreach (var entry in methodTable.Keys)
+            {
+                Debug.Log("disam method: " + entry);
+            }
 
-            var disasm = DisasmUtils.ExtractMethodCalls(script, table);
+            var disasm = DisasmUtils.ExtractMethodCalls(script, methodTable);
 
             // Checking if all calls are "market.SellToken" calls only or "Runtime.TransferToken" only,
             // and we can group them.
