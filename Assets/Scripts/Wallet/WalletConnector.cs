@@ -41,7 +41,8 @@ namespace Poltergeist
                 });
 
                 return new Account()
-                {
+                {                    
+                    nexus = AccountManager.Instance.Settings.nexusName,
                     name = account.name,
                     alias = account.name,
                     address = state.address,
