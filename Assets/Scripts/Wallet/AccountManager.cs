@@ -38,6 +38,32 @@ namespace Poltergeist
 
     public struct Account
     {
+        public string name;
+        public PlatformKind platforms;
+        public string phaAddress;
+        public string neoAddress;
+        public string ethAddress;
+        public string WIF;
+        public bool passwordProtected;
+        public int passwordIterations;
+        public string salt;
+        public string iv;
+        public string password; // Not used after account upgrade to version 2.
+        public string misc;
+
+        public override string ToString()
+        {
+            return $"{name.ToUpper()} [{platforms}]";
+        }
+
+        public string GetWif(string passwordHash)
+        {
+            return String.IsNullOrEmpty(passwordHash) ? WIF : AccountManager.DecryptWif(WIF, passwordHash, iv);
+        }
+    }
+
+    public struct AccountLegacyV1
+    {
         public static readonly int MinPasswordLength = 6;
         public static readonly int MaxPasswordLength = 32;
 
@@ -167,13 +193,15 @@ namespace Poltergeist
 
     public class AccountManager : MonoBehaviour
     {
+        public static readonly int MinPasswordLength = 6;
+        public static readonly int MaxPasswordLength = 32;
         public string WalletIdentifier => "PGT" + UnityEngine.Application.version;
 
         public static readonly int MinGasLimit = 800;
 
         public Settings Settings { get; private set; }
 
-        public Account[] Accounts { get; private set; }
+        public List<Account> Accounts { get; private set; }
 
         public static List<Token> SupportedTokens = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
@@ -182,8 +210,10 @@ namespace Poltergeist
         private int _selectedAccountIndex;
         public int CurrentIndex => _selectedAccountIndex;
         public Account CurrentAccount => HasSelection ? Accounts[_selectedAccountIndex] : new Account() { };
+        public string CurrentPasswordHash;
+        public string CurrentWif => Accounts[_selectedAccountIndex].GetWif(CurrentPasswordHash);
 
-        public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Length;
+        public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Count();
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
         private Dictionary<PlatformKind, List<string>> _nfts = new Dictionary<PlatformKind, List<string>>();
@@ -318,7 +348,10 @@ namespace Poltergeist
             _tokenPrices[symbol] = price;
         }
 
+        private const string WalletVersionTag = "wallet.list.version";
         private const string WalletTag = "wallet.list";
+        // TODO: Remove before release.
+        private const string WalletLegacyTag = "wallet.list.legacy";
 
         private int rpcNumberPhantasma; // Total number of Phantasma RPCs, received from getpeers.json.
         private int rpcNumberNeo; // Total number of Neo RPCs.
@@ -629,6 +662,68 @@ namespace Poltergeist
                 }
             }
         }
+        private static readonly int PasswordIterations = 100000;
+        private static readonly int PasswordSaltByteSize = 64;
+        private static readonly int PasswordHashByteSize = 32;
+        private static void GetPasswordHash(string password, int passwordIterations, out string salt, out string passwordHash)
+        {
+            BouncyCastleHashing hashing = new BouncyCastleHashing();
+            salt = Convert.ToBase64String(hashing.CreateSalt(PasswordSaltByteSize));
+            passwordHash = hashing.PBKDF2_SHA256_GetHash(password, salt, passwordIterations, PasswordHashByteSize);
+        }
+        public static void GetPasswordHashBySalt(string password, int passwordIterations, string salt, out string passwordHash)
+        {
+            BouncyCastleHashing hashing = new BouncyCastleHashing();
+            passwordHash = hashing.PBKDF2_SHA256_GetHash(password, salt, passwordIterations, PasswordHashByteSize);
+        }
+        public static string EncryptWif(string wif, string key, out string iv)
+        {
+            var ivBytes = new byte[16];
+
+            //Set up
+            var keyParam = new Org.BouncyCastle.Crypto.Parameters.KeyParameter(Convert.FromBase64String(key));
+
+            var secRandom = new Org.BouncyCastle.Security.SecureRandom();
+            secRandom.NextBytes(ivBytes);
+
+            var keyParamWithIV = new Org.BouncyCastle.Crypto.Parameters.ParametersWithIV(keyParam, ivBytes, 0, 16);
+
+            var engine = new Org.BouncyCastle.Crypto.Engines.AesEngine();
+            var blockCipher = new Org.BouncyCastle.Crypto.Modes.CbcBlockCipher(engine); //CBC
+            var cipher = new Org.BouncyCastle.Crypto.Paddings.PaddedBufferedBlockCipher(blockCipher); //Default scheme is PKCS5/PKCS7
+
+            // Encrypt
+            cipher.Init(true, keyParamWithIV);
+            var inputBytes = System.Text.Encoding.UTF8.GetBytes(wif);
+            var outputBytes = new byte[cipher.GetOutputSize(inputBytes.Length)];
+            var length = cipher.ProcessBytes(inputBytes, outputBytes, 0);
+            cipher.DoFinal(outputBytes, length); //Do the final block
+            
+            iv = Convert.ToBase64String(ivBytes);
+            return Convert.ToBase64String(outputBytes);
+        }
+        public static string DecryptWif(string wif, string key, string iv)
+        {
+            //Set up
+            var keyParam = new Org.BouncyCastle.Crypto.Parameters.KeyParameter(Convert.FromBase64String(key));
+            var ivBytes = Convert.FromBase64String(iv);
+            var keyParamWithIV = new Org.BouncyCastle.Crypto.Parameters.ParametersWithIV(keyParam, ivBytes, 0, 16);
+
+            var engine = new Org.BouncyCastle.Crypto.Engines.AesEngine();
+            var blockCipher = new Org.BouncyCastle.Crypto.Modes.CbcBlockCipher(engine); //CBC
+            var cipher = new Org.BouncyCastle.Crypto.Paddings.PaddedBufferedBlockCipher(blockCipher);
+
+            cipher.Init(false, keyParamWithIV);
+            var inputBytes = Convert.FromBase64String(wif);
+            var resultExtraSize = new byte[cipher.GetOutputSize(inputBytes.Length)];
+            var length = cipher.ProcessBytes(inputBytes, resultExtraSize, 0);
+            length += cipher.DoFinal(resultExtraSize, length); //Do the final block
+
+            var result = new byte[length];
+            Array.Copy(resultExtraSize, result, length);
+
+            return System.Text.Encoding.UTF8.GetString(result);
+        }
 
         // Start is called before the first frame update
         void Start()
@@ -640,22 +735,91 @@ namespace Poltergeist
 
             LoadNexus();
 
+            // Version 1 - original account version used in PG up to version 1.9.
+            // Version 2 - new account version.
+            var walletVersion = PlayerPrefs.GetInt(WalletVersionTag, 1);
+
             var wallets = PlayerPrefs.GetString(WalletTag, "");
 
-            if (!string.IsNullOrEmpty(wallets))
+            Accounts = new List<Account>();
+
+            if (walletVersion == 1 && !string.IsNullOrEmpty(wallets))
+            {
+                // TODO: Remove before release.
+                // Saving old accounts for now.
+                PlayerPrefs.SetString(WalletLegacyTag, wallets);
+
+                // Legacy format, should be converted.
+                var bytes = Base16.Decode(wallets);
+                var accountsLegacy = Serialization.Unserialize<AccountLegacyV1[]>(bytes);
+
+                foreach (var account in accountsLegacy)
+                {
+                    Accounts.Add(new Account
+                    {
+                        name = account.name,
+                        platforms = account.platforms,
+                        WIF = account.WIF,
+                        password = account.password,
+                        misc = account.misc
+                    });
+                }
+
+                // Upgrading accounts.
+                for (var i = 0; i < Accounts.Count(); i++)
+                {
+                    Log.Write($"Account {Accounts[i].name} version: {walletVersion}, will be upgraded");
+
+                    var account = Accounts[i];
+
+                    // Initializing public addresses.
+                    var phaKeys = PhantasmaKeys.FromWIF(account.WIF);
+                    account.phaAddress = phaKeys.Address.ToString();
+
+                    var neoKeys = NeoKeys.FromWIF(account.WIF);
+                    account.neoAddress = neoKeys.Address.ToString();
+
+                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                    account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
+
+                    if (!String.IsNullOrEmpty(Accounts[i].password))
+                    {
+                        account.passwordProtected = true;
+                        account.passwordIterations = PasswordIterations;
+
+                        // Encrypting WIF.
+                        GetPasswordHash(account.password, account.passwordIterations, out string salt, out string passwordHash);
+                        account.password = "";
+                        account.salt = salt;
+
+                        account.WIF = EncryptWif(account.WIF, passwordHash, out string iv);
+                        account.iv = iv;
+
+                        // Decrypting to ensure there are no exceptions.
+                        DecryptWif(account.WIF, passwordHash, account.iv);
+                    }
+                    else
+                    {
+                        account.passwordProtected = false;
+                    }
+
+                    Accounts[i] = account;
+                }
+
+                SaveAccounts();
+            }
+            else if (!string.IsNullOrEmpty(wallets))
             {
                 var bytes = Base16.Decode(wallets);
-                Accounts = Serialization.Unserialize<Account[]>(bytes);
-            }
-            else
-            {
-                Accounts = new Account[] { };
+                Accounts = Serialization.Unserialize<Account[]>(bytes).ToList();
             }
         }
 
         public void SaveAccounts()
         {
-            var bytes = Serialization.Serialize(Accounts);
+            PlayerPrefs.SetInt(WalletVersionTag, 2);
+
+            var bytes = Serialization.Serialize(Accounts.ToArray());
             PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
             PlayerPrefs.Save();
         }
@@ -931,8 +1095,6 @@ namespace Poltergeist
 
         public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
-            var account = this.CurrentAccount;
-
             if (payload == null)
             {
                 payload = System.Text.Encoding.UTF8.GetBytes(WalletIdentifier);
@@ -942,7 +1104,7 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     {
-                        var keys = (customKeys != null) ? customKeys : PhantasmaKeys.FromWIF(account.WIF);
+                        var keys = (customKeys != null) ? customKeys : PhantasmaKeys.FromWIF(CurrentWif);
                         
                         StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload,  (hashText) =>
                         {
@@ -1197,6 +1359,7 @@ namespace Poltergeist
             _lastNftRefreshSymbol = "";
             _lastHistoryRefresh = DateTime.MinValue;
             _selectedAccountIndex = index;
+            CurrentPasswordHash = "";
 
             _accountInitialized = false;
 
@@ -1205,7 +1368,9 @@ namespace Poltergeist
             // We should add Ethereum platform to old accounts.
             if (!platforms.Contains(PlatformKind.Ethereum))
             {
-                Accounts[_selectedAccountIndex].platforms |= PlatformKind.Ethereum;
+                var account = Accounts[_selectedAccountIndex];
+                account.platforms |= PlatformKind.Ethereum;
+                Accounts[_selectedAccountIndex] = account;
 
                 _states[PlatformKind.Ethereum] = new AccountState()
                 {
@@ -1316,11 +1481,9 @@ namespace Poltergeist
         }
 
 
-        private const int neoMaxConfirmations = 12;
-        private const int ethereumMaxConfirmations = 50;
-        private const string TempConfirmError = "Something went wrong when confirming.\nThe transaction might have been succesful.\nCheck back later.";
+        private const int maxChecks = 12; // Timeout after 36 seconds
 
-        public void RequestConfirmation(string transactionHash, int confirmationCount, Action<string> callback)
+        public void RequestConfirmation(string transactionHash, int checkCount, Action<string> callback)
         {
             switch (CurrentPlatform)
             {
@@ -1334,7 +1497,15 @@ namespace Poltergeist
                         {
                             ChangeFaultyRPCURL();
                         }
-                        callback(msg);
+                        
+                        if (checkCount <= maxChecks)
+                        {
+                            callback(msg);
+                        }
+                        else
+                        {
+                            callback("timeout");
+                        }
                     }));
                     break;
 
@@ -1343,13 +1514,13 @@ namespace Poltergeist
 
                     StartCoroutine(WebClient.RESTRequest(url, WebClient.NoTimeout, (error, msg) =>
                     {
-                        if (confirmationCount <= neoMaxConfirmations)
+                        if (checkCount <= maxChecks)
                         {
                             callback("pending");
                         }
                         else
                         {
-                            callback(TempConfirmError);
+                            callback("timeout");
                         }
                     },
                     (response) =>
@@ -1360,47 +1531,24 @@ namespace Poltergeist
                         }
                         else
                         {
-                            if (confirmationCount <= neoMaxConfirmations)
+                            if (checkCount <= maxChecks)
                             {
                                 callback("pending");
                             }
                             else
                             {
-                                callback(TempConfirmError);
+                                callback("timeout");
                             }
                         }
                     }));
                     break;
 
                 case PlatformKind.Ethereum:
-                    StartCoroutine(ethereumApi.GetTransactionByHash(transactionHash, (response) =>
-                    {
-                        if (response.HasNode("blockNumber"))
-                        {
-                            callback(null);
-                        }
-                        else
-                        {
-                            if (confirmationCount <= ethereumMaxConfirmations)
-                            {
-                                callback("pending");
-                            }
-                            else
-                            {
-                                callback(TempConfirmError);
-                            }
-                        }
-                    }, (error, msg) =>
-                    {
-                        if (confirmationCount <= ethereumMaxConfirmations)
-                        {
-                            callback("pending");
-                        }
-                        else
-                        {
-                            callback(TempConfirmError);
-                        }
-                    }));
+                    // For Ethereum we should return immediately
+                    // since it's unpredictable if we would be able to find tx in mempool
+                    // or it will appear there after several minutes.
+                    // And we are not waiting for a confirmation anyway.
+                    callback(null);
                     break;
 
                 default:
@@ -1434,7 +1582,7 @@ namespace Poltergeist
             var platforms = CurrentAccount.platforms.Split();
             _pendingRequestCount = platforms.Count;
 
-            var account = this.CurrentAccount;
+            var wif = CurrentWif;
 
             foreach (var platform in platforms)
             {
@@ -1442,8 +1590,8 @@ namespace Poltergeist
                 {
                     case PlatformKind.Phantasma:
                         {
-                            var keys = PhantasmaKeys.FromWIF(account.WIF);
-                            var ethKeys = EthereumKey.FromWIF(account.WIF);
+                            var keys = PhantasmaKeys.FromWIF(wif);
+                            var ethKeys = EthereumKey.FromWIF(wif);
                             StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
                             {
                                 var balanceMap = new Dictionary<string, Balance>();
@@ -1577,7 +1725,7 @@ namespace Poltergeist
 
                     case PlatformKind.Neo:
                         {
-                            var keys = NeoKeys.FromWIF(account.WIF);
+                            var keys = NeoKeys.FromWIF(wif);
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
@@ -1684,7 +1832,7 @@ namespace Poltergeist
 
                     case PlatformKind.Ethereum:
                         {
-                            var keys = EthereumKey.FromWIF(account.WIF);
+                            var keys = EthereumKey.FromWIF(wif);
 
                             var ethTokens = SupportedTokens.Where(x => x.platform.ToUpper() == PlatformKind.Ethereum.ToString().ToUpper());
                             var balances = new List<Balance>();
@@ -1855,13 +2003,13 @@ namespace Poltergeist
             }
             */
 
-            this.Accounts = accounts.ToArray();
+            this.Accounts = accounts;
             SaveAccounts();
         }
 
         internal void DeleteAll()
         {
-            this.Accounts = new Account[0];
+            this.Accounts = new List<Account>();
         }
 
         public void RefreshNft(bool force, string symbol, Action callback = null)
@@ -1882,7 +2030,7 @@ namespace Poltergeist
             var platforms = CurrentAccount.platforms.Split();
             _pendingRequestCount = platforms.Count;
 
-            var account = this.CurrentAccount;
+            var wif = this.CurrentWif;
 
             foreach (var platform in platforms)
             {
@@ -1894,7 +2042,7 @@ namespace Poltergeist
                 {
                     case PlatformKind.Phantasma:
                         {
-                            var keys = PhantasmaKeys.FromWIF(account.WIF);
+                            var keys = PhantasmaKeys.FromWIF(wif);
 
                             Log.Write("Getting NFTs...");
                             foreach (var balanceEntry in CurrentState.balances)
@@ -1952,7 +2100,7 @@ namespace Poltergeist
             var platforms = CurrentAccount.platforms.Split();
             _pendingRequestCount = platforms.Count;
 
-            var account = this.CurrentAccount;
+            var wif = this.CurrentWif;
 
             foreach (var platform in platforms)
             {
@@ -1960,7 +2108,7 @@ namespace Poltergeist
                 {
                     case PlatformKind.Phantasma:
                         {
-                            var keys = PhantasmaKeys.FromWIF(account.WIF);
+                            var keys = PhantasmaKeys.FromWIF(wif);
                             StartCoroutine(phantasmaApi.GetAddressTransactions(keys.Address.Text, 1, 20, (x, page, max) =>
                             {
                                 var history = new List<HistoryEntry>();
@@ -1990,7 +2138,7 @@ namespace Poltergeist
 
                     case PlatformKind.Neo:
                         {
-                            var keys = NeoKeys.FromWIF(account.WIF);
+                            var keys = NeoKeys.FromWIF(wif);
                             var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
 
                             StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
@@ -2029,7 +2177,7 @@ namespace Poltergeist
 
                     case PlatformKind.Ethereum:
                         {
-                            var keys = EthereumKey.FromWIF(account.WIF);
+                            var keys = EthereumKey.FromWIF(wif);
                             var urlEth = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
 
                             StartCoroutine(WebClient.RESTRequest(urlEth, WebClient.DefaultTimeout, (error, msg) =>
@@ -2234,7 +2382,7 @@ namespace Poltergeist
                 throw new Exception("Name is too long.");
             }
 
-            for (int i = 0; i < Accounts.Length; i++)
+            for (int i = 0; i < Accounts.Count(); i++)
             {
                 if (Accounts[i].name.Equals(name, StringComparison.OrdinalIgnoreCase))
                 {
@@ -2242,11 +2390,43 @@ namespace Poltergeist
                 }
             }
 
-            var list = this.Accounts.ToList();
-            list.Add(new Account() { name = name, WIF = wif, password = password, platforms = platforms, misc = "" });
+            var account = new Account() { name = name, platforms = platforms, misc = "" };
 
-            this.Accounts = list.ToArray();
-            return Accounts.Length - 1;
+            // Initializing public addresses.
+            var phaKeys = PhantasmaKeys.FromWIF(wif);
+            account.phaAddress = phaKeys.Address.ToString();
+
+            var neoKeys = NeoKeys.FromWIF(wif);
+            account.neoAddress = neoKeys.Address.ToString();
+
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
+
+            if (!String.IsNullOrEmpty(password))
+            {
+                account.passwordProtected = true;
+                account.passwordIterations = PasswordIterations;
+
+                // Encrypting WIF.
+                GetPasswordHash(password, account.passwordIterations, out string salt, out string passwordHash);
+                account.password = "";
+                account.salt = salt;
+
+                account.WIF = EncryptWif(wif, passwordHash, out string iv);
+                account.iv = iv;
+
+                // Decrypting to ensure there are no exceptions.
+                DecryptWif(account.WIF, passwordHash, account.iv);
+            }
+            else
+            {
+                account.passwordProtected = false;
+                account.WIF = wif;
+            }
+
+            Accounts.Add(account);
+
+            return Accounts.Count() - 1;
         }
 
         public static Address EncodeNeoAddress(string addressText)
@@ -2355,9 +2535,9 @@ namespace Poltergeist
         {
             if (sourcePlatform.ToLower() == PlatformKind.Ethereum.ToString().ToLower())
             {
-                var account = this.CurrentAccount;
-                var ethKeys = EthereumKey.FromWIF(account.WIF);
-                var phantasmaKeys = PhantasmaKeys.FromWIF(account.WIF);
+                var wif = this.CurrentWif;
+                var ethKeys = EthereumKey.FromWIF(wif);
+                var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
 
                 Hash ethTxHash = Hash.Parse(pendingHash);
                 var transcodedAddress = Address.FromKey(ethKeys);
@@ -2397,25 +2577,25 @@ namespace Poltergeist
 
         internal void DeleteAccount(int currentIndex)
         {
-            if (currentIndex<0 || currentIndex >= Accounts.Length)
+            if (currentIndex<0 || currentIndex >= Accounts.Count())
             {
                 return;
             }
 
-            var temp = Accounts.ToList();
-            temp.RemoveAt(currentIndex);
-            this.Accounts = temp.ToArray();
+            Accounts.RemoveAt(currentIndex);
             SaveAccounts();
         }
 
         internal void ReplaceAccountWIF(int currentIndex, string wif)
         {
-            if (currentIndex < 0 || currentIndex >= Accounts.Length)
+            if (currentIndex < 0 || currentIndex >= Accounts.Count())
             {
                 return;
             }
 
-            Accounts[currentIndex].WIF = wif;
+            var account = Accounts[currentIndex];
+            account.WIF = wif;
+            Accounts[currentIndex] = account;
             SaveAccounts();
         }
 
@@ -2429,7 +2609,9 @@ namespace Poltergeist
                 }
             }
 
-            Accounts[CurrentIndex].name = newName;
+            var account2 = Accounts[CurrentIndex];
+            account2.name = newName;
+            Accounts[CurrentIndex] = account2;
             SaveAccounts();
             return true;
         }
@@ -2454,7 +2636,7 @@ namespace Poltergeist
 
         public string GetAddress(int index, PlatformKind platform)
         {
-            if (index < 0 || index >= Accounts.Length)
+            if (index < 0 || index >= Accounts.Count())
             {
                 return null;
             }
@@ -2467,20 +2649,17 @@ namespace Poltergeist
                 }
             }
 
-            var wif = Accounts[index].WIF;
             switch (platform)
             {
                 case PlatformKind.Phantasma:
-                    return PhantasmaKeys.FromWIF(wif).Address.Text;
+                    return Accounts[index].phaAddress;
 
                 case PlatformKind.Neo:
-                    return NeoKeys.FromWIF(wif).Address;
+                    return Accounts[index].neoAddress;
 
                 case PlatformKind.Ethereum:
-                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
-                    return ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
+                    return Accounts[index].ethAddress;
             }
-
 
             return null;
         }

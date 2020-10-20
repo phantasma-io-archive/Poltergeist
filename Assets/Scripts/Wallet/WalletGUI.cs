@@ -161,9 +161,9 @@ namespace Poltergeist
 
         private string transferSymbol;
         private Hash transactionHash;
-        private bool needsConfirmation;
-        private int confirmationCount;
-        private DateTime lastTransactionConfirmation;
+        private bool transactionStillPending;
+        private int transactionCheckCount;
+        private DateTime transactionLastCheck;
 
         private AnimationDirection currentAnimation;
         private float animationTime;
@@ -694,20 +694,41 @@ namespace Poltergeist
                 return;
             }
 
-            if (string.IsNullOrEmpty(accountManager.CurrentAccount.password) /*|| accountManager.Settings.nexusKind == NexusKind.Local_Net*/)
+            if (!accountManager.CurrentAccount.passwordProtected)
             {
                 callback(PromptResult.Success);
                 return;
             }
 
             AudioManager.Instance.PlaySFX("auth");
-            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, Account.MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
+            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
             {
                 var auth = result;
 
-                if (auth == PromptResult.Success && input != accountManager.CurrentAccount.password)
+                if (auth == PromptResult.Success)
                 {
-                    auth = PromptResult.Failure;
+                    AccountManager.GetPasswordHashBySalt(input, accountManager.CurrentAccount.passwordIterations, accountManager.CurrentAccount.salt, out string passwordHash);
+
+                    // Checking if we can get correct public key by decrypting WIF with given password.
+                    string wif;
+                    try
+                    {
+                        wif = AccountManager.DecryptWif(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
+
+                        if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
+                        {
+                            accountManager.CurrentPasswordHash = passwordHash;
+                        }
+                        else
+                        {
+                            auth = PromptResult.Failure;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        auth = PromptResult.Failure;
+                        Log.WriteWarning("Authorization error: " + e.ToString());
+                    }
                 }
 
                 callback(auth);                
@@ -766,6 +787,25 @@ namespace Poltergeist
         }
         private void Update()
         {
+            // This allows to touch scroll on mobile devices.
+            if (Input.touchCount > 0)
+            {
+                var touch = Input.touches[0];
+                if (touch.phase == TouchPhase.Moved)
+                {
+                    if(hintComboBox.DropDownIsOpened())
+                        hintComboBox.ListScroll.y += touch.deltaPosition.y;
+                    else if(guiState == GUIState.Wallets && !(modalState != ModalState.None && !modalRedirected))
+                        accountScroll.y += touch.deltaPosition.y;
+                    else if (guiState == GUIState.Balances && !(modalState != ModalState.None && !modalRedirected))
+                        balanceScroll.y += touch.deltaPosition.y;
+                    else if (guiState == GUIState.TtrsNftView && !(modalState != ModalState.None && !modalRedirected))
+                        nftScroll.y += touch.deltaPosition.y;
+                    else if (guiState == GUIState.TtrsNftTransferList && !(modalState != ModalState.None && !modalRedirected))
+                        nftTransferListScroll.y += touch.deltaPosition.y;
+                }
+            }
+
             /*if (Input.GetKeyDown(KeyCode.Z))
             {
                 AccountState state = null;
@@ -1342,16 +1382,17 @@ namespace Poltergeist
 
             DrawCenteredText($"Confirming transaction {transactionHash}...");
 
-            if (needsConfirmation)
+            if (transactionStillPending)
             {
                 var now = DateTime.UtcNow;
-                var diff = now - lastTransactionConfirmation;
+                var diff = now - transactionLastCheck;
+                // Checking for update every 3 seconds.
                 if (diff.TotalSeconds >= 3)
                 {
-                    lastTransactionConfirmation = now;
-                    needsConfirmation = false;
-                    confirmationCount++;
-                    accountManager.RequestConfirmation(transactionHash.ToString(), confirmationCount, (msg) =>
+                    transactionLastCheck = now;
+                    transactionStillPending = false;
+                    transactionCheckCount++;
+                    accountManager.RequestConfirmation(transactionHash.ToString(), transactionCheckCount, (msg) =>
                     {
                         if (msg == null)
                         {
@@ -1365,16 +1406,46 @@ namespace Poltergeist
                         else
                         if (msg.ToLower().Contains("pending"))
                         {
-                            needsConfirmation = true;
-                            lastTransactionConfirmation = DateTime.UtcNow;
+                            transactionStillPending = true;
+                            transactionLastCheck = DateTime.UtcNow;
                         }
                         else
                         {
                             PopState();
-                            MessageBox(MessageKind.Error, msg, () =>
+
+                            if (msg == "timeout")
                             {
-                                InvokeTransactionCallback(Hash.Null);
-                            });
+                                ShowModal("Attention",
+                                    $"Your transaction has been broadcasted but its state cannot be determined.\nPlease use explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + transactionHash,
+                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                    {
+                                        AudioManager.Instance.PlaySFX("click");
+
+                                        if (viewTxChoice == PromptResult.Failure)
+                                        {
+                                            // We cannot get here for Ethereum tx,
+                                            // since RequestConfirmation() returns success immediatly for Eth.
+                                            switch (accountManager.CurrentPlatform)
+                                            {
+                                                case PlatformKind.Phantasma:
+                                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(transactionHash.ToString()));
+                                                    break;
+                                                case PlatformKind.Neo:
+                                                    Application.OpenURL(accountManager.GetNeoscanTransactionURL(transactionHash.ToString()));
+                                                    break;
+                                            }
+                                        }
+
+                                        InvokeTransactionCallback(Hash.Null);
+                                    });
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Error, msg, () =>
+                                {
+                                    InvokeTransactionCallback(Hash.Null);
+                                });
+                            }
                         }
                     });
                 }
@@ -1431,7 +1502,8 @@ namespace Poltergeist
                 var accountManager = AccountManager.Instance;
                 foreach (var account in accountManager.Accounts)
                 {
-                    if (account.WIF == wif)
+                    var keys = PhantasmaKeys.FromWIF(wif);
+                    if (account.phaAddress == keys.Address.ToString())
                     {
                         MessageBox(MessageKind.Error, $"This private key is already imported in a different account: {account.name}.");
                         return;
@@ -1476,7 +1548,7 @@ namespace Poltergeist
 
         private bool IsGoodPassword(string name, string password)
         {
-            if (password == null || password.Length < Account.MinPasswordLength)
+            if (password == null || password.Length < AccountManager.MinPasswordLength)
             {
                 return false;
             }
@@ -1499,7 +1571,7 @@ namespace Poltergeist
 
         private void TrySettingWalletPassword(string name, string wif)
         {
-            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, Account.MinPasswordLength, Account.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
+            ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
             {
                 if (passResult == PromptResult.Success)
                 {
@@ -1509,7 +1581,7 @@ namespace Poltergeist
                     }
                     else
                     {
-                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {Account.MinPasswordLength} characters and can't be easy to guess.", () =>
+                        MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {AccountManager.MinPasswordLength} characters and can't be easy to guess.", () =>
                         {
                             TrySettingWalletPassword(name, wif);
                         });
@@ -1633,7 +1705,9 @@ namespace Poltergeist
                                     else
                                     if (key.Count(x => x == ' ') == 11)
                                     {
-                                        ShowModal("Seed import", "Enter seed password.\nIf you put a wrong password, the wrong public address will be generated.\n\nFor wallets created with v1.3 or later, it is ok to leave this blank.\n", ModalState.Input, 0, 64, ModalConfirmCancel, 1, (seedResult, password) =>
+                                        ShowModal("Seed import",
+                                            "For wallets created with Poltergeist v1.0-v1.2: Enter seed password.\nIf you put a wrong password, the wrong public address will be generated.\n\nNOTE: For wallets created with v1.3 or later (without a seed password), you must leave this field blank.\nThis is NOT your wallet password used to log into the wallet.\n",
+                                            ModalState.Input, 0, 64, ModalConfirmCancel, 1, (seedResult, password) =>
                                         {
                                             if (seedResult != PromptResult.Success)
                                             {
@@ -1933,7 +2007,7 @@ namespace Poltergeist
                 return false;
             }
 
-            if (accountManager.Accounts.Length == 0)
+            if (accountManager.Accounts.Count() == 0)
             {
                 accountManager.InitDemoAccounts(settings.nexusKind);
             }
@@ -2163,7 +2237,7 @@ namespace Poltergeist
             });
             curY += Units(3);
 
-            if (accountManager.Accounts.Length > 0)
+            if (accountManager.Accounts.Count() > 0)
             {
                 curY += Units(1);
                 DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Delete Everything", () =>
@@ -2777,7 +2851,28 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
-                                            MessageBox(MessageKind.Success, $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
+                                            ShowModal("Success",
+                                                $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.\nTransaction hash:\n" + hash,
+                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                                {
+                                                    AudioManager.Instance.PlaySFX("click");
+
+                                                    if (viewTxChoice == PromptResult.Failure)
+                                                    {
+                                                        switch (accountManager.CurrentPlatform)
+                                                        {
+                                                            case PlatformKind.Phantasma:
+                                                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                                                break;
+                                                            case PlatformKind.Neo:
+                                                                Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                                                break;
+                                                            case PlatformKind.Ethereum:
+                                                                Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                                                break;
+                                                        }
+                                                    }
+                                                });
                                         }
                                     });
                                 }
@@ -3026,7 +3121,7 @@ namespace Poltergeist
                                                 }));
                                             });
 
-                                            var keys = NeoKeys.FromWIF(accountManager.CurrentAccount.WIF);
+                                            var keys = NeoKeys.FromWIF(accountManager.CurrentWif);
 
                                             PushState(GUIState.Sending);
 
@@ -3688,13 +3783,13 @@ namespace Poltergeist
 
                                 if (result == PromptResult.Success)
                                 {
-                                    var keys = EthereumKey.FromWIF(accountManager.CurrentAccount.WIF);
+                                    var keys = EthereumKey.FromWIF(accountManager.CurrentWif);
                                     GUIUtility.systemCopyBuffer = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
                                     MessageBox(MessageKind.Default, "Private key (HEX format) copied to the clipboard.");
                                 }
                                 else
                                 {
-                                    GUIUtility.systemCopyBuffer = accountManager.CurrentAccount.WIF;
+                                    GUIUtility.systemCopyBuffer = accountManager.CurrentWif;
                                     MessageBox(MessageKind.Default, "Private key (WIF format) copied to the clipboard.");
                                 }
                             });
@@ -3738,7 +3833,7 @@ namespace Poltergeist
                                                         return;
                                                     }
 
-                                                    SendTransaction($"Register address name\nName:{name}\nAddress:{accountManager.CurrentState.address}?", script, null, "main", (hash) =>
+                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, null, "main", (hash) =>
                                                     {
                                                         if (hash != Hash.Null)
                                                         {
@@ -4232,10 +4327,10 @@ namespace Poltergeist
         private void ShowConfirmationScreen(Hash hash, Action<Hash> callback)
         {
             transactionCallback = callback;
-            needsConfirmation = true;
-            confirmationCount = 0;
+            transactionStillPending = true;
+            transactionCheckCount = 0;
             transactionHash = hash;
-            lastTransactionConfirmation = DateTime.UtcNow;
+            transactionLastCheck = DateTime.UtcNow;
             
             if (guiState == GUIState.Sending)
             {
@@ -4556,7 +4651,7 @@ namespace Poltergeist
                         platform = PlatformKind.Neo,
                         amount = amount,
                         symbol = symbol,
-                        key = accountManager.CurrentAccount.WIF,
+                        key = accountManager.CurrentWif,
                         destination = destAddress
                     };
 
@@ -4650,7 +4745,7 @@ namespace Poltergeist
                                     platform = PlatformKind.Ethereum,
                                     amount = amount,
                                     symbol = symbol,
-                                    key = accountManager.CurrentAccount.WIF,
+                                    key = accountManager.CurrentWif,
                                     destination = destAddress
                                 };
 
@@ -4823,7 +4918,7 @@ namespace Poltergeist
                                         platform = accountManager.CurrentPlatform,
                                         amount = amount,
                                         symbol = symbol,
-                                        key = accountManager.CurrentAccount.WIF,
+                                        key = accountManager.CurrentWif,
                                         destination = interopAddress,
                                         interop = destination,
                                     };
@@ -5118,7 +5213,7 @@ namespace Poltergeist
                 }
             }
 
-            for (int index=0; index< accountManager.Accounts.Length; index++)
+            for (int index=0; index< accountManager.Accounts.Count(); index++)
             {
                 var account = accountManager.Accounts[index];
                 var platforms = account.platforms.Split();

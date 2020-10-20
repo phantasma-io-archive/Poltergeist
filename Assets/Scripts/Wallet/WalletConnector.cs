@@ -66,7 +66,7 @@ namespace Poltergeist
         protected override PhantasmaKeys Keys {
             get
             {
-                var currentWIF = AccountManager.Instance.CurrentAccount.WIF;
+                var currentWIF = AccountManager.Instance.CurrentWif;
                 if (currentWIF != _WIF)
                 {
                     _WIF = currentWIF;
@@ -192,7 +192,7 @@ namespace Poltergeist
                     {
                         if (success)
                         {
-                            var phantasmaKeys = PhantasmaKeys.FromWIF(account.WIF);
+                            var phantasmaKeys = PhantasmaKeys.FromWIF(account.GetWif(AccountManager.Instance.CurrentPasswordHash));
 
                             var randomValue = UnityEngine.Random.Range(0, int.MaxValue);
                             var randomBytes = BitConverter.GetBytes(randomValue);
