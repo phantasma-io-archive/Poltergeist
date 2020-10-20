@@ -651,6 +651,9 @@ namespace Poltergeist
 
         public void MessageBox(MessageKind kind, string caption, Action callback = null)
         {
+            // try to have focus for Phantasma Link requests
+            AppFocus.Instance.StartFocus();
+
             string title;
             string[] options;
             switch (kind)
@@ -676,6 +679,7 @@ namespace Poltergeist
 
             ShowModal(title, caption, ModalState.Message, 0, 0, options, 1, (result, input) =>
             {
+                AppFocus.Instance.EndFocus();
                 callback?.Invoke();
             });
         }
@@ -720,7 +724,7 @@ namespace Poltergeist
         private bool _promptVisible;
 
         public void Prompt(string text, Action<bool> callback)
-        {
+        {           
             // if theres an active prompt, this new one automatically fails
             if (_promptText != null)
             {
@@ -731,6 +735,7 @@ namespace Poltergeist
             _promptText = text;
             _promptCallback = callback;
             _promptVisible = false;
+            AppFocus.Instance.StartFocus();
         }
 
         private void UpdatePrompt()
@@ -746,6 +751,7 @@ namespace Poltergeist
             {
                 var temp = _promptCallback;
                 _promptText = null;
+                AppFocus.Instance.EndFocus();
                 temp(result == PromptResult.Success);
             });
         }
