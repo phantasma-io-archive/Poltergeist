@@ -9,6 +9,7 @@ using LunarLabs.Parser;
 using Phantasma.Numerics;
 using Phantasma.Cryptography;
 using System.Text;
+using Phantasma.Domain;
 
 namespace Phantasma.SDK
 {
@@ -220,7 +221,79 @@ namespace Phantasma.SDK
             return result;			
 		}
 	}
-	
+
+	public struct ContractParameter
+	{
+		public string name;
+		public string type;
+	}
+
+	public struct ContractMethod
+	{
+		public string name;
+		public string returnType;
+		public ContractParameter[] parameters;
+	}
+
+	public struct Contract
+	{
+		public string address; //
+		public string name; //
+		public string script; //
+		public ContractMethod[] methods;
+
+		public static Contract FromNode(DataNode node)
+		{
+			Contract result;
+
+			result.address = node.GetString("address");
+			result.name = node.GetString("name");
+			result.script = node.GetString("script");
+
+			var methodNode = node.GetNode("methods");
+			if (methodNode != null)
+			{
+				result.methods = new ContractMethod[methodNode.ChildCount];
+				for (int i = 0; i < result.methods.Length; i++)
+				{
+					var child = methodNode.GetNodeByIndex(i);
+					var method = new ContractMethod();
+					method.name = child.GetString("name");
+					method.returnType = child.GetString("returnType");
+
+					var paramsNode = child.GetNode("parameters");
+					if (paramsNode != null)
+					{
+						method.parameters = new ContractParameter[paramsNode.ChildCount];
+						for (int j = 0; j < method.parameters.Length; j++)
+						{
+							var temp = paramsNode.GetNodeByIndex(j);
+							var p = new ContractParameter();
+
+							p.name = temp.GetString("name");
+							p.type = temp.GetString("type");
+
+							method.parameters[j] = p;
+						}
+					}
+					else
+					{
+						method.parameters = new ContractParameter[0];
+					}
+
+					result.methods[i] = method;
+				}
+			}
+			else
+			{
+				result.methods = new ContractMethod[0];
+			}
+
+			return result;
+		}
+	}
+
+
 	public struct Chain 
 	{
 		public string name; //
@@ -768,8 +841,16 @@ namespace Phantasma.SDK
 				callback(result);
 			} , addressText);		   
 		}
-		
-		
+
+		public IEnumerator GetContract(string contractName, Action<Contract> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+		{
+			yield return WebClient.RPCRequest(Host, "getContract", WebClient.DefaultTimeout, errorHandlingCallback, (node) => {
+				var result = Contract.FromNode(node);
+				callback(result);
+			}, DomainSettings.RootChainName, contractName);
+		}
+
+
 		//Returns the address that owns a given name.
 		public IEnumerator LookUpName(string name, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
