@@ -58,7 +58,7 @@ namespace Poltergeist
         Account,
         Sending,
         Confirming,
-        WalletManagement,
+        WalletsManagement,
         Settings,
         ScanQR,
         Backup,
@@ -471,8 +471,8 @@ namespace Poltergeist
                     }
                     break;
 
-                case GUIState.WalletManagement:
-                    currentTitle = "Wallet Management";
+                case GUIState.WalletsManagement:
+                    currentTitle = "Wallets Management";
                     accountManagementSelectedList.Clear();
                     break;
 
@@ -1164,8 +1164,8 @@ namespace Poltergeist
                     DoWalletsScreen();
                     break;
 
-                case GUIState.WalletManagement:
-                    DoWalletManagementScreen();
+                case GUIState.WalletsManagement:
+                    DoWalletsManagementScreen();
                     break;
 
                 case GUIState.Settings:
@@ -1653,7 +1653,7 @@ namespace Poltergeist
 
         private string[] accountOptions = new string[] { "Generate new wallet", "Import wallet", "Manage", "Settings" };
 
-        private string[] walletManagementOptions = new string[] { "Export", "Import", "Delete", "Save and Close" };
+        private string[] walletsManagementOptions = new string[] { "Export", "Import", "Delete", "Save and Close" };
 
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
@@ -1742,7 +1742,7 @@ namespace Poltergeist
                         {
                             Animate(AnimationDirection.Up, true, () =>
                             {
-                                PushState(GUIState.WalletManagement);
+                                PushState(GUIState.WalletsManagement);
                                 Animate(AnimationDirection.Down, false);
                             });
                             break;
@@ -1803,17 +1803,17 @@ namespace Poltergeist
                 });
         }
 
-        private void DoWalletManagementScreen()
+        private void DoWalletsManagementScreen()
         {
             var accountManager = AccountManager.Instance;
 
             int endY;
-            DoButtonGrid<int>(true, walletManagementOptions.Length, Units(2), 0, out endY, (index) =>
+            DoButtonGrid<int>(true, walletsManagementOptions.Length, Units(2), 0, out endY, (index) =>
             {
                 var enabled = true;
                 if (index == 2 && accountManagementSelectedList.Count() == 0) // We disable Delete button if nothing is selected.
                     enabled = false;
-                return new MenuEntry(index, walletManagementOptions[index], enabled);
+                return new MenuEntry(index, walletsManagementOptions[index], enabled);
             },
             (selected) =>
             {
