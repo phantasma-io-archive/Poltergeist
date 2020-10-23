@@ -58,7 +58,7 @@ namespace Poltergeist
 
         public string GetWif(string passwordHash)
         {
-            return String.IsNullOrEmpty(passwordHash) ? WIF : AccountManager.DecryptWif(WIF, passwordHash, iv);
+            return String.IsNullOrEmpty(passwordHash) ? WIF : AccountManager.DecryptString(WIF, passwordHash, iv);
         }
     }
 
@@ -77,6 +77,15 @@ namespace Poltergeist
         {
             return $"{name.ToUpper()} [{platforms}]";
         }
+    }
+
+    public struct AccountsExport
+    {
+        public string accounts;
+        public bool passwordProtected;
+        public int passwordIterations;
+        public string salt;
+        public string iv;
     }
 
     public struct HistoryEntry
@@ -195,6 +204,8 @@ namespace Poltergeist
     {
         public static readonly int MinPasswordLength = 6;
         public static readonly int MaxPasswordLength = 32;
+        public static readonly int MinAccountNameLength = 3;
+        public static readonly int MaxAccountNameLength = 16;
         public string WalletIdentifier => "PGT" + UnityEngine.Application.version;
 
         public static readonly int MinGasLimit = 800;
@@ -662,10 +673,10 @@ namespace Poltergeist
                 }
             }
         }
-        private static readonly int PasswordIterations = 100000;
+        public static readonly int PasswordIterations = 100000;
         private static readonly int PasswordSaltByteSize = 64;
         private static readonly int PasswordHashByteSize = 32;
-        private static void GetPasswordHash(string password, int passwordIterations, out string salt, out string passwordHash)
+        public static void GetPasswordHash(string password, int passwordIterations, out string salt, out string passwordHash)
         {
             BouncyCastleHashing hashing = new BouncyCastleHashing();
             salt = Convert.ToBase64String(hashing.CreateSalt(PasswordSaltByteSize));
@@ -676,7 +687,7 @@ namespace Poltergeist
             BouncyCastleHashing hashing = new BouncyCastleHashing();
             passwordHash = hashing.PBKDF2_SHA256_GetHash(password, salt, passwordIterations, PasswordHashByteSize);
         }
-        public static string EncryptWif(string wif, string key, out string iv)
+        public static string EncryptString(string stringToEncrypt, string key, out string iv)
         {
             var ivBytes = new byte[16];
 
@@ -694,7 +705,7 @@ namespace Poltergeist
 
             // Encrypt
             cipher.Init(true, keyParamWithIV);
-            var inputBytes = System.Text.Encoding.UTF8.GetBytes(wif);
+            var inputBytes = System.Text.Encoding.UTF8.GetBytes(stringToEncrypt);
             var outputBytes = new byte[cipher.GetOutputSize(inputBytes.Length)];
             var length = cipher.ProcessBytes(inputBytes, outputBytes, 0);
             cipher.DoFinal(outputBytes, length); //Do the final block
@@ -702,7 +713,7 @@ namespace Poltergeist
             iv = Convert.ToBase64String(ivBytes);
             return Convert.ToBase64String(outputBytes);
         }
-        public static string DecryptWif(string wif, string key, string iv)
+        public static string DecryptString(string stringToDecrypt, string key, string iv)
         {
             //Set up
             var keyParam = new Org.BouncyCastle.Crypto.Parameters.KeyParameter(Convert.FromBase64String(key));
@@ -714,7 +725,7 @@ namespace Poltergeist
             var cipher = new Org.BouncyCastle.Crypto.Paddings.PaddedBufferedBlockCipher(blockCipher);
 
             cipher.Init(false, keyParamWithIV);
-            var inputBytes = Convert.FromBase64String(wif);
+            var inputBytes = Convert.FromBase64String(stringToDecrypt);
             var resultExtraSize = new byte[cipher.GetOutputSize(inputBytes.Length)];
             var length = cipher.ProcessBytes(inputBytes, resultExtraSize, 0);
             length += cipher.DoFinal(resultExtraSize, length); //Do the final block
@@ -792,11 +803,11 @@ namespace Poltergeist
                         account.password = "";
                         account.salt = salt;
 
-                        account.WIF = EncryptWif(account.WIF, passwordHash, out string iv);
+                        account.WIF = EncryptString(account.WIF, passwordHash, out string iv);
                         account.iv = iv;
 
                         // Decrypting to ensure there are no exceptions.
-                        DecryptWif(account.WIF, passwordHash, account.iv);
+                        DecryptString(account.WIF, passwordHash, account.iv);
                     }
                     else
                     {
@@ -2412,11 +2423,11 @@ namespace Poltergeist
                 account.password = "";
                 account.salt = salt;
 
-                account.WIF = EncryptWif(wif, passwordHash, out string iv);
+                account.WIF = EncryptString(wif, passwordHash, out string iv);
                 account.iv = iv;
 
                 // Decrypting to ensure there are no exceptions.
-                DecryptWif(account.WIF, passwordHash, account.iv);
+                DecryptString(account.WIF, passwordHash, account.iv);
             }
             else
             {
