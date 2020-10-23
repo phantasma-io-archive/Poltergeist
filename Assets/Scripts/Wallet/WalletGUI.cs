@@ -63,6 +63,7 @@ namespace Poltergeist
         Account,
         Sending,
         Confirming,
+        WalletsManagement,
         Settings,
         ScanQR,
         Backup,
@@ -228,6 +229,8 @@ namespace Poltergeist
         private Log.Level[] availableLogLevels = Enum.GetValues(typeof(Log.Level)).Cast<Log.Level>().ToArray();
 
         private UiThemes[] availableUiThemes = Enum.GetValues(typeof(UiThemes)).Cast<UiThemes>().ToArray();
+
+        private List<string> accountManagementSelectedList = new List<string>();
 
         private bool initialized;
 
@@ -477,6 +480,11 @@ namespace Poltergeist
                     }
                     break;
 
+                case GUIState.WalletsManagement:
+                    currentTitle = "Wallets Management";
+                    accountManagementSelectedList.Clear();
+                    break;
+
                 case GUIState.Settings:
                     {
                         currentTitle = accountManager.Settings.nexusKind != NexusKind.Unknown ? "Settings" : "Wallet Setup";
@@ -724,7 +732,7 @@ namespace Poltergeist
                     string wif;
                     try
                     {
-                        wif = AccountManager.DecryptWif(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
+                        wif = AccountManager.DecryptString(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
 
                         if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
                         {
@@ -805,7 +813,7 @@ namespace Poltergeist
                 {
                     if(hintComboBox.DropDownIsOpened())
                         hintComboBox.ListScroll.y += touch.deltaPosition.y;
-                    else if(guiState == GUIState.Wallets && !(modalState != ModalState.None && !modalRedirected))
+                    else if((guiState == GUIState.Wallets || guiState == GUIState.WalletsManagement) && !(modalState != ModalState.None && !modalRedirected))
                         accountScroll.y += touch.deltaPosition.y;
                     else if (guiState == GUIState.Balances && !(modalState != ModalState.None && !modalRedirected))
                         balanceScroll.y += touch.deltaPosition.y;
@@ -813,6 +821,8 @@ namespace Poltergeist
                         nftScroll.y += touch.deltaPosition.y;
                     else if (guiState == GUIState.TtrsNftTransferList && !(modalState != ModalState.None && !modalRedirected))
                         nftTransferListScroll.y += touch.deltaPosition.y;
+                    else if (guiState == GUIState.Settings && !(modalState != ModalState.None && !modalRedirected))
+                        settingsScroll.y += touch.deltaPosition.y;
                 }
             }
 
@@ -1166,6 +1176,10 @@ namespace Poltergeist
 
                 case GUIState.Wallets:
                     DoWalletsScreen();
+                    break;
+
+                case GUIState.WalletsManagement:
+                    DoWalletsManagementScreen();
                     break;
 
                 case GUIState.Settings:
@@ -1530,7 +1544,7 @@ namespace Poltergeist
                 }
             }
 
-            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, 3, 16, ModalConfirmCancel, 1, (result, name) =>
+            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, AccountManager.MinAccountNameLength, AccountManager.MaxAccountNameLength, ModalConfirmCancel, 1, (result, name) =>
             {
                 if (result == PromptResult.Success)
                 {
@@ -1660,7 +1674,9 @@ namespace Poltergeist
             }
         }
 
-        private string[] accountOptions = new string[] { "Generate new wallet", "Import wallet", "Settings" };
+        private string[] accountOptions = new string[] { "Generate new wallet", "Import wallet", "Manage", "Settings" };
+
+        private string[] walletsManagementOptions = new string[] { "Export", "Import", "Delete", "Save and Close" };
 
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
@@ -1671,7 +1687,7 @@ namespace Poltergeist
         private void DoWalletsScreen()
         {
             int endY;
-            DoButtonGrid<int>(true, accountOptions.Length, 0, 0, out endY, (index) =>
+            DoButtonGrid<int>(true, accountOptions.Length, Units(2), 0, out endY, (index) =>
             {
                 return new MenuEntry(index, accountOptions[index], true);
             },
@@ -1749,6 +1765,26 @@ namespace Poltergeist
                         {
                             Animate(AnimationDirection.Up, true, () =>
                             {
+                                PushState(GUIState.WalletsManagement);
+                                Animate(AnimationDirection.Down, false);
+                            });
+                            break;
+                        }
+
+                    case 3:
+                        {
+                            Animate(AnimationDirection.Up, true, () =>
+                            {
+                                PushState(GUIState.Settings);
+                                Animate(AnimationDirection.Down, false);
+                            });
+                            break;
+                        }
+
+                    case 4:
+                        {
+                            Animate(AnimationDirection.Up, true, () =>
+                            {
                                 PushState(GUIState.Settings);
                                 Animate(AnimationDirection.Down, false);
                             });
@@ -1790,6 +1826,280 @@ namespace Poltergeist
                 });
         }
 
+        private void DoWalletsManagementScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            int endY;
+            DoButtonGrid<int>(true, walletsManagementOptions.Length, Units(2), 0, out endY, (index) =>
+            {
+                var enabled = true;
+                if (index == 2 && accountManagementSelectedList.Count() == 0) // We disable Delete button if nothing is selected.
+                    enabled = false;
+                return new MenuEntry(index, walletsManagementOptions[index], enabled);
+            },
+            (selected) =>
+            {
+                switch (selected)
+                {
+                    case 0:
+                        {
+                            ShowModal("Wallets Export", 
+                                ((accountManagementSelectedList.Count() == 0) ? $"All {accountManager.Accounts.Count()} wallets will be exported.\n\n" : $"Selected {accountManagementSelectedList.Count()} wallets will be exported.\n\n") +
+                                "Do you want to protect exported data with a password?\nIf not, leave this field blank.", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
+                            {
+                                var accountsExport = new AccountsExport();
+                                List<Account> accountsToExport;
+                                if (accountManagementSelectedList.Count() > 0)
+                                    accountsToExport = accountManager.Accounts.Where(x => accountManagementSelectedList.Contains(x.phaAddress)).ToList();
+                                else
+                                    accountsToExport = accountManager.Accounts;
+
+                                if (passResult == PromptResult.Success)
+                                {
+                                    if (!String.IsNullOrEmpty(password))
+                                    {
+                                        accountsExport.passwordProtected = true;
+                                        accountsExport.passwordIterations = AccountManager.PasswordIterations;
+
+                                        var bytes = Serialization.Serialize(accountsToExport.ToArray());
+
+                                        // Getting password hash.
+                                        AccountManager.GetPasswordHash(password, accountsExport.passwordIterations, out accountsExport.salt, out string passwordHash);
+
+                                        // Encrypting accounts.
+                                        accountsExport.accounts = AccountManager.EncryptString(Convert.ToBase64String(bytes), passwordHash, out string iv);
+                                        accountsExport.iv = iv;
+
+                                        // Decrypting to ensure there are no exceptions.
+                                        AccountManager.DecryptString(accountsExport.accounts, passwordHash, accountsExport.iv);
+                                    }
+                                    else
+                                    {
+                                        accountsExport.passwordProtected = false;
+                                        var bytes = Serialization.Serialize(accountsToExport.ToArray());
+                                        accountsExport.accounts = Convert.ToBase64String(bytes);
+                                    }
+
+                                    var serializedExportData = Convert.ToBase64String(Serialization.Serialize(accountsExport));
+
+                                    ShowModal("Wallets Export", $"Copy wallets export data to the clipboard?",
+                                        ModalState.Message, 0, 0, ModalConfirmCancel, 0, (result, input) =>
+                                        {
+                                            AudioManager.Instance.PlaySFX("click");
+
+                                            if (result == PromptResult.Success)
+                                            {
+                                                GUIUtility.systemCopyBuffer = serializedExportData;
+                                                MessageBox(MessageKind.Default, "Wallets export data copied to the clipboard.");
+                                            }
+                                        });
+                                }
+                            });
+                            break;
+                        }
+
+                    case 1:
+                        {
+                            ShowModal("Wallets Import", "Please enter wallets data:", ModalState.Input, 1, -1, ModalConfirmCancel, 4, (result, walletsData) =>
+                            {
+                                if (result == PromptResult.Success)
+                                {
+                                    var accountsExport = Serialization.Unserialize<AccountsExport>(Convert.FromBase64String(walletsData));
+
+                                    var import = new Action<AccountsExport>((data) =>
+                                    {
+                                        var accounts = Serialization.Unserialize<Account[]>(Convert.FromBase64String(accountsExport.accounts)).ToList();
+                                        var messageWillBeImported = "Following accounts will be imported:\n\n";
+                                        var someWillBeImported = false;
+                                        var messageWillBeSkipped = "Following accounts already exist and will be skipped:\n\n";
+                                        var someWillBeSkipped = false;
+
+                                        var accountsToImport = new List<Account>();
+                                        foreach (var account in accounts)
+                                        {
+                                            if(accountManager.Accounts.Where(x => x.phaAddress.ToUpper() == account.phaAddress.ToUpper()).Any())
+                                            {
+                                                messageWillBeSkipped += $"- {account.name} [{account.phaAddress}]\n";
+                                                someWillBeSkipped = true;
+                                            }
+                                            else
+                                            {
+                                                messageWillBeImported += $"+ {account.name} [{account.phaAddress}]\n";
+                                                someWillBeImported = true;
+
+                                                accountsToImport.Add(account);
+                                            }
+                                        }
+
+                                        ShowModal("Wallets Import",
+                                            (someWillBeImported ? (messageWillBeImported + "\n\n") : "") + (someWillBeSkipped ? messageWillBeSkipped : ""),
+                                            ModalState.Message, 0, 0, ModalConfirmCancel, 0, (result2, input) =>
+                                            {
+                                                AudioManager.Instance.PlaySFX("click");
+
+                                                if (result2 == PromptResult.Success)
+                                                {
+                                                    var count = 0;
+                                                    foreach (var accountToImport in accountsToImport)
+                                                    {
+                                                        accountManager.Accounts.Add(accountToImport);
+                                                        count++;
+                                                    }
+                                                    MessageBox(MessageKind.Default, $"{count} wallets successfully imported.");
+                                                }
+                                            });
+                                    });
+
+                                    if (accountsExport.passwordProtected)
+                                    {
+                                        ShowModal("Wallets Import",
+                                            "Please enter password:", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
+                                            {
+                                                if (passResult == PromptResult.Success && !String.IsNullOrEmpty(password))
+                                                {
+                                                    // Getting password hash.
+                                                    AccountManager.GetPasswordHashBySalt(password, accountsExport.passwordIterations, accountsExport.salt, out string passwordHash);
+
+                                                    // Decrypting accounts.
+                                                    accountsExport.accounts = AccountManager.DecryptString(accountsExport.accounts, passwordHash, accountsExport.iv);
+
+                                                    import(accountsExport);
+                                                }
+                                            });
+                                    }
+                                    else
+                                    {
+                                        import(accountsExport);
+                                    }
+                                }
+                            });
+                            break;
+                        }
+
+                    case 2:
+                        {
+                            PromptBox($"{accountManagementSelectedList.Count()} selected wallets will be deleted.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", ModalConfirmCancel, (result) =>
+                            {
+                                if (result == PromptResult.Success)
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
+
+                                    var counter = 0;
+                                    foreach(var accountToDelete in accountManagementSelectedList)
+                                    {
+                                        accountManager.Accounts.Remove(accountManager.Accounts.Where(x => x.phaAddress.ToUpper() == accountToDelete.ToUpper()).First());
+                                        counter++;
+                                    }
+
+                                    MessageBox(MessageKind.Default, $"{counter} wallets removed from this device.");
+                                }
+                            }, 15);
+                            break;
+                        }
+
+                    case 3:
+                        {
+                            accountManager.SaveAccounts();
+                            CloseCurrentStack();
+                            return;
+                        }
+                }
+            });
+
+            int startY = (int)(windowRect.y + Units(5));
+
+            int panelHeight = VerticalLayout ? Units(7) : Units(4);
+
+            // We should create copy since main list will be modified.
+            var accountsListCopy = new List<Account>();
+            accountManager.Accounts.ForEach(x => accountsListCopy.Add(x));
+
+            DoScrollArea<Account>(ref accountScroll, startY, endY, panelHeight, accountsListCopy,
+                (account, index, curY, rect) =>
+                {
+                    int btnWidth = Units(6);
+                    int halfWidth = (int)(rect.width / 2);
+
+                    Rect btnRect;
+                    Rect btnRect2;
+                    Rect btnRect3;
+                    Rect btnRectToggle;
+
+                    if (VerticalLayout)
+                    {
+                        GUI.Label(new Rect(Border * 2, curY, windowRect.width - Border * 2, Units(2) + 4), account.name);
+                        var style = GUI.skin.label;
+                        style.fontSize -= 4;
+                        GUI.Label(new Rect(Border * 2, curY + Units(1) + 8, windowRect.width - Border * 2, Units(2) + 4), $"{account.phaAddress}");
+                        style.fontSize += 4;
+
+                        btnRect = new Rect(rect.width - (btnWidth + Units(2)), curY + Units(4), btnWidth, Units(2));
+                        btnRect2 = new Rect(rect.width - (btnWidth + Units(1)) * 2 - Units(1), curY + Units(4), btnWidth, Units(2));
+                        btnRect3 = new Rect(rect.width - (btnWidth + Units(1)) * 3 - Units(1), curY + Units(4), btnWidth, Units(2));
+
+                        btnRectToggle = new Rect(rect.width - (btnWidth + Units(1) + 4) * 3 - Units(2), curY + Units(4) + 4, Units(1), Units(1));
+                    }
+                    else
+                    {
+                        GUI.Label(new Rect(Border * 2, curY, windowRect.width - Border * 2, Units(2) + 4), account.ToString());
+                        var style = GUI.skin.label;
+                        style.fontSize -= 4;
+                        GUI.Label(new Rect(Border * 2, curY + Units(1) + 8, windowRect.width - Border * 2, Units(2) + 4), $"{account.phaAddress}");
+                        style.fontSize += 4;
+                        
+                        btnRect = new Rect(rect.width - (btnWidth + Units(2)), curY + Units(1), btnWidth, Units(2));
+                        btnRect2 = new Rect(rect.width - (btnWidth + Units(1)) * 2 - Units(1), curY + Units(1), btnWidth, Units(2));
+                        btnRect3 = new Rect(rect.width - (btnWidth + Units(1)) * 3 - Units(1), curY + Units(1), btnWidth, Units(2));
+
+                        btnRectToggle = new Rect(rect.width - (btnWidth + Units(1) + 4) * 3 - Units(2), curY + Units(1) + 4, Units(1), Units(1));
+                    }
+
+                    var accountIsSelected = accountManagementSelectedList.Exists(x => x == account.phaAddress);
+                    if (GUI.Toggle(btnRectToggle, accountIsSelected, ""))
+                    {
+                        if (!accountIsSelected)
+                        {
+                            accountManagementSelectedList.Add(account.phaAddress);
+                        }
+                    }
+                    else
+                    {
+                        if (accountIsSelected)
+                        {
+                            accountManagementSelectedList.Remove(accountManagementSelectedList.Single(x => x == account.phaAddress));
+                        }
+                    }
+
+
+
+                    DoButton(index != 0, btnRect3, "Move up", () =>
+                    {
+                        var accountToMoveUp = accountManager.Accounts.ElementAt(index);
+                        accountManager.Accounts.RemoveAt(index);
+                        accountManager.Accounts.Insert(index - 1, accountToMoveUp);
+                    });
+
+                    DoButton(index < accountManager.Accounts.Count() - 1, btnRect2, "Move down", () =>
+                    {
+                        var accountToMoveDown = accountManager.Accounts.ElementAt(index);
+                        accountManager.Accounts.RemoveAt(index);
+                        accountManager.Accounts.Insert(index + 1, accountToMoveDown);
+                    });
+
+                    DoButton(true, btnRect, "Rename", () =>
+                    {
+                        ShowModal("Rename", $"Current local name: {account.name}\nPhantasma address: {account.phaAddress}\nNeo address: {account.neoAddress}\nEthereum address: {account.ethAddress}\n\nEnter new local account name:", ModalState.Input, AccountManager.MinAccountNameLength, AccountManager.MaxAccountNameLength, ModalConfirmCancel, 1, (result, input) =>
+                        {
+                            if (result == PromptResult.Success)
+                            {
+                                account.name = input;
+                                accountManager.Accounts[index] = account;
+                            }
+                        });
+                    });
+                });
+        }
 
         private void ImportSeedPhrase(string key, string password)
         {
@@ -1849,7 +2159,7 @@ namespace Poltergeist
             int panelHeight = VerticalLayout ? Border * 2 + (Units(2)+4) *  buttonCount : (border + Units(3));
             posY = (int)((windowRect.y + windowRect.height) - (panelHeight+ border)) + yOffset;
 
-            var rect = new Rect(border + xOffset, posY, windowRect.width - border * 2 - xOffset * 2, panelHeight);
+            var rect = new Rect(border, posY, windowRect.width - border * 2, panelHeight);
             
             if (showBackground)
             {
@@ -4228,7 +4538,7 @@ namespace Poltergeist
 
                             if (stake >= 1)
                             {
-                                ShowModal("Setup Name", $"Enter a name for the chain address.\nOther users will be able to transfer assets directly to this name.", ModalState.Input, 3, 16, ModalConfirmCancel, 1, (result, name) =>
+                                ShowModal("Setup Name", $"Enter a name for the chain address.\nOther users will be able to transfer assets directly to this name.", ModalState.Input, AccountManager.MinAccountNameLength, AccountManager.MaxAccountNameLength, ModalConfirmCancel, 1, (result, name) =>
                                 {
                                     if (result == PromptResult.Success)
                                     {
