@@ -184,12 +184,46 @@ namespace Phantasma.SDK
         }
     }
 
-    public struct Account 
+	public struct Storage
+	{
+		public uint available;
+		public uint used; //
+		public Archive[] archives; //
+
+		public static Storage FromNode(DataNode node)
+		{
+			Storage result;
+
+			result.available = node.GetUInt32("available");
+			result.used = node.GetUInt32("used");
+
+			var archive_array = node.GetNode("archives");
+			if (archive_array != null)
+			{
+				result.archives = new Archive[archive_array.ChildCount];
+				for (int i = 0; i < archive_array.ChildCount; i++)
+				{
+
+					result.archives[i] = Archive.FromNode(archive_array.GetNodeByIndex(i));
+
+				}
+			}
+			else
+			{
+				result.archives = new Archive[0];
+			}
+
+			return result;
+		}
+	}
+
+	public struct Account 
 	{
         public string address; //
         public string name; //
-        public Stake stake; //
-        public string relay; //
+		public Stake stake; //
+		public Storage storage; //
+		public string relay; //
         public string validator; //
         public Balance[] balances; //
 
@@ -199,8 +233,9 @@ namespace Phantasma.SDK
 
             result.address = node.GetString("address");
             result.name = node.GetString("name");
-            result.stake = Stake.FromNode(node.GetNode("stakes"));
-            result.relay = node.GetString("relay");
+			result.stake = Stake.FromNode(node.GetNode("stakes"));
+			result.storage = Storage.FromNode(node.GetNode("storage"));
+			result.relay = node.GetString("relay");
             result.validator = node.GetString("validator");
             var balances_array = node.GetNode("balances");
             if (balances_array != null)
@@ -623,7 +658,9 @@ namespace Phantasma.SDK
 	public struct Archive 
 	{
 		public string hash; //
+		public string name; //
 		public uint size; //
+		public uint time; //
 		public string flags; //
 		public string key; //
 		public int blockCount; //
@@ -632,9 +669,11 @@ namespace Phantasma.SDK
 		public static Archive FromNode(DataNode node) 
 		{
 			Archive result;
-						
-			result.hash = node.GetString("hash");						
-			result.size = node.GetUInt32("size");						
+
+			result.hash = node.GetString("hash");
+			result.name = node.GetString("name");
+			result.size = node.GetUInt32("size");
+			result.time = node.GetUInt32("time");
 			result.flags = node.GetString("flags");						
 			result.key = node.GetString("key");						
 			result.blockCount = node.GetInt32("blockCount");			
@@ -1299,10 +1338,10 @@ namespace Phantasma.SDK
             yield return SendRawTransaction(Base16.Encode(tx.ToByteArray(true)), callback, errorHandlingCallback);
         }
 
-        public static bool IsValidPrivateKey(string address)
+        public static bool IsValidPrivateKey(string key)
         {
-            return (address.StartsWith("L", false, CultureInfo.InvariantCulture) ||
-                    address.StartsWith("K", false, CultureInfo.InvariantCulture)) && address.Length == 52;
+            return (key.StartsWith("L", false, CultureInfo.InvariantCulture) ||
+                    key.StartsWith("K", false, CultureInfo.InvariantCulture)) && key.Length == 52;
         }
 
         public static bool IsValidAddress(string address)

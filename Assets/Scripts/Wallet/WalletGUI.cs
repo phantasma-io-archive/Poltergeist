@@ -17,11 +17,16 @@ using ZXing;
 using ZXing.QrCode;
 using System.Globalization;
 using Phantasma.Core.Types;
-using Tetrochain;
 using System.Collections;
 using Phantasma.Ethereum;
 using System.Threading;
 using Phantasma.Neo.Core;
+using SFB;
+using System.IO;
+using Org.BouncyCastle.Utilities.Encoders;
+using System.Text;
+using Archive = Phantasma.SDK.Archive;
+using Phantasma.Blockchain.Contracts;
 
 namespace Poltergeist
 {
@@ -62,6 +67,7 @@ namespace Poltergeist
         ScanQR,
         Backup,
         Dapps,
+        Storage,
         Exit,
         Fatal
     }
@@ -135,7 +141,7 @@ namespace Poltergeist
         Last_Month
     }
 
-    public class WalletGUI : MonoBehaviour, IWalletConnector
+    public class WalletGUI : MonoBehaviour
     {
         public RawImage background;
         private Texture2D soulMasterLogo;
@@ -391,8 +397,8 @@ namespace Poltergeist
                     }
                     break;
 
-                case GUIState.Dapps:
-                    EmulatorManager.Instance.UnloadROM();
+                case GUIState.Account:
+                    _accountSubMenu = 0;
                     break;
             }
 
@@ -416,7 +422,10 @@ namespace Poltergeist
 
                 case GUIState.Dapps:
                     currentTitle = "Dapps";
-                    EmulatorManager.Instance.LoadROM();
+                    break;
+
+                case GUIState.Storage:
+                    currentTitle = $"Storage space: {BytesToString(accountManager.CurrentState.usedStorage)} used / {BytesToString(accountManager.CurrentState.totalStorage)} total";
                     break;
 
                 case GUIState.Wallets:
@@ -593,6 +602,8 @@ namespace Poltergeist
         private PromptResult modalResult;
         private int modalLineCount;
 
+        private Texture2D _promptPicture;
+
         private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback, int confirmDelay = 0)
         {
             if (modalState == ModalState.None)
@@ -645,6 +656,7 @@ namespace Poltergeist
         {
             ShowModal("Confirmation", caption, ModalState.Message, 0, 0, options, 1, (result, input) =>
             {
+                _promptPicture = null;
                 callback(result);
             }, confirmDelay);
         }
@@ -1193,6 +1205,10 @@ namespace Poltergeist
                     DoDappScreen();
                     break;
 
+                case GUIState.Storage:
+                    DoStorageScreen();
+                    break;
+
                 case GUIState.Fatal:
                     DoFatalScreen();
                     break;
@@ -1241,6 +1257,11 @@ namespace Poltergeist
             GUI.Label(insideRect, modalCaption);
 
             GUI.EndScrollView();
+
+            if (_promptPicture != null)
+            {
+                GUI.DrawTexture(new Rect(16, curY - 32, 32, 32), _promptPicture, ScaleMode.ScaleToFit, true);
+            }
 
             curY += Units(2);
 
@@ -2635,25 +2656,278 @@ namespace Poltergeist
             DoBackButton();
         }
 
+        public struct DappEntry
+        {
+            public string Title;
+            public string Category;
+            public string url;
+
+            public DappEntry(string title, string category, string uRL)
+            {
+                Title = title;
+                Category = category;
+                url = uRL;
+            }
+        }
+
+        private DappEntry[] availableDapps = new DappEntry[]
+        {
+            new DappEntry("GhostMarket", "marketplace", "https://ghostmarket.io/"),
+            new DappEntry("Katacomb", "game", "http://katacomb.io/"),
+            new DappEntry("Nachomen", "game", "https://nacho.men/"),
+        };
+
         private void DoDappScreen()
         {
             var accountManager = AccountManager.Instance;
 
-            var dappTexture = EmulatorManager.Instance.screenTexture;
+            int curY = Units(5);
 
-            /*            var dappHeight = windowRect.height - Units(12);
-                        var dappWidth = (int)((dappTexture.width * dappHeight) / (float)dappTexture.height);
-                        */
+            int startY = curY;
+            int endY = (int)(windowRect.yMax - Units(4));
 
-            var scale = 2;
-            var dappWidth = dappTexture.width * scale;
-            var dappHeight = dappTexture.height * scale;
-
-            var camRect = new Rect((windowRect.width - dappWidth) / 2, (windowRect.height - dappHeight) / 2, dappWidth, dappHeight);
-            DrawDropshadow(camRect);
-            GUI.DrawTexture(camRect, dappTexture, ScaleMode.ScaleToFit);
+            DoScrollArea<DappEntry>(ref balanceScroll, startY, endY, VerticalLayout ? Units(4) : Units(3), availableDapps, DoDappEntry);
 
             DoBackButton();
+        }
+
+        private void DoDappEntry(DappEntry entry, int index, int curY, Rect rect)
+        {
+            int panelHeight = Units(3);
+            int panelWidth = (int)(windowRect.width - Units(2));
+            int padding = 4;
+
+            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
+            int heightPerItem = panelHeight + padding;
+            int maxEntries = availableHeight / heightPerItem;
+
+            var accountManager = AccountManager.Instance;
+
+            int halfWidth = (int)(rect.width / 2);
+
+            GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), entry.Title);
+
+            Rect btnRect;
+
+            if (VerticalLayout)
+            {
+                curY += Units(2);
+                GUI.Label(new Rect(Units(2), curY, Units(20), Units(2)), entry.Category);
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY - 8, Units(4), Units(1));
+            }
+            else
+            {
+                GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), entry.Category);
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
+            }
+
+            DoButton(!string.IsNullOrEmpty(entry.url), btnRect, "View", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                Application.OpenURL(entry.url);
+            });
+
+            curY += panelHeight + padding;
+        }
+
+        private void DoStorageScreen()
+        {
+            var accountManager = AccountManager.Instance;
+
+            int curY = Units(5);
+
+            int startY = curY;
+            int endY = (int)(windowRect.yMax - Units(4));
+
+            DoScrollArea<Archive>(ref balanceScroll, startY, endY, VerticalLayout ? Units(4) : Units(3), accountManager.CurrentState.archives, DoStorageEntry);
+
+            int posY;
+            DoButtonGrid<int>(false, storageMenu.Length, 0, -Units(2), out posY, (index) =>
+            {
+                return new MenuEntry(index, storageMenu[index], true);
+            },
+            (selected) =>
+            {
+                switch (selected)
+                {
+                    case 0:
+                        {
+                            var path = GetDocumentPath();
+                            var targetFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", path, "", false).FirstOrDefault();
+
+                            if (!string.IsNullOrEmpty(targetFilePath))
+                            {
+                                if (File.Exists(targetFilePath))
+                                {
+                                    var size = new System.IO.FileInfo(targetFilePath).Length;
+
+                                    if (size > accountManager.CurrentState.availableStorage)
+                                    {
+                                        MessageBox(MessageKind.Error, "Not enough storage available in this account");
+                                    }
+                                    else
+                                    if (size < DomainSettings.ArchiveMinSize)
+                                    {
+                                        MessageBox(MessageKind.Error, "File is to small to upload");
+                                    }
+                                    else
+                                    {
+                                        UploadArchive(targetFilePath, size);
+                                    }
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, "File not found");
+                                }
+                            }
+
+                            break;
+                        }
+                }
+            });
+
+            DoBackButton();
+        }
+
+        private void DoStorageEntry(Archive entry, int index, int curY, Rect rect)
+        {
+            int panelHeight = Units(3);
+            int panelWidth = (int)(windowRect.width - Units(2));
+            int padding = 4;
+
+            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
+            int heightPerItem = panelHeight + padding;
+            int maxEntries = availableHeight / heightPerItem;
+
+            var accountManager = AccountManager.Instance;
+
+            int halfWidth = (int)(rect.width / 2);
+
+            GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), entry.name);
+
+            GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), BytesToString(entry.size));
+
+            var btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
+
+            DoButton(true, btnRect, "Delete", () =>
+            {
+                DeleteArchive(entry.name, entry.size, Hash.Parse(entry.hash));
+            });
+
+            curY += panelHeight + padding;
+        }
+
+        private void DeleteArchive(string fileName, uint size, Hash fileHash)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
+                return;
+            }
+
+            var source = Address.FromText(state.address);
+
+            byte[] script;
+
+            try
+            {
+                var gasPrice = accountManager.Settings.feePrice;
+
+                var sb = new ScriptBuilder();
+                sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                sb.CallContract(NativeContractKind.Storage, "DeleteFile", source, fileHash);
+                sb.SpendGas(source);
+                script = sb.EndScript();
+            }
+            catch (Exception e)
+            {
+                MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
+                return;
+            }
+
+            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, null, "main", (hash) =>
+            {
+                if (hash != Hash.Null)
+                {
+                    ShowModal("Success",
+                        $"The archive '{fileName}' was deleted!\nTransaction hash:\n" + hash,
+                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+
+                            if (viewTxChoice == PromptResult.Failure)
+                            {
+                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                            }
+                        });
+                }
+            });
+
+        }
+
+        private void UploadArchive(string fileName, long fileSize)
+        {
+            if (fileSize > MerkleTree.ChunkSize)
+            {
+                MessageBox(MessageKind.Error, "Uploading of large files not supported yet");
+                return;
+            }
+
+            var accountManager = AccountManager.Instance;
+
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
+                return;
+            }
+
+            var source = Address.FromText(state.address);
+
+            byte[] script;
+
+            var targetFileName = Path.GetFileName(fileName);
+            var targetBytes = File.ReadAllBytes(fileName);
+
+            try
+            {
+                var gasPrice = accountManager.Settings.feePrice;
+
+                var sb = new ScriptBuilder();
+                sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, targetFileName, targetBytes, ArchiveFlags.None, new byte[0]);
+                sb.SpendGas(source);
+                script = sb.EndScript();
+            }
+            catch (Exception e)
+            {
+                MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
+                return;
+            }
+
+            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(targetBytes.Length)}", script, null, "main", (hash) =>
+            {
+                if (hash != Hash.Null)
+                {
+                    ShowModal("Success",
+                        $"The archive '{fileName}' was uploaded!\nTransaction hash:\n" + hash,
+                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+
+                            if (viewTxChoice == PromptResult.Failure)
+                            {
+                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                            }
+                        });
+                }
+            });
+
         }
 
         private void DoBackupScreen()
@@ -2886,19 +3160,6 @@ namespace Poltergeist
             else
                 switch (balance.Symbol)
                 {
-                    case "MKNI":
-                        // Temporary hide this button because of a crash in dapp.
-                        /*if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                        {
-                            secondaryAction = "Dapps";
-                            secondaryEnabled = true;
-                            secondaryCallback = () =>
-                            {
-                                PushState(GUIState.Dapps);
-                            };
-                        }*/
-                        break;
-
                     case "SOUL":
                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                         {
@@ -3689,6 +3950,8 @@ namespace Poltergeist
         }
 
 
+        private int _accountSubMenu;
+
         private void DoAccountScreen()
         {
             var accountManager = AccountManager.Instance;
@@ -3730,8 +3993,62 @@ namespace Poltergeist
                 btnOffset += Units(6);
             }
 
+            switch (_accountSubMenu)
+            {
+                case 0: DoAccountSubMenu(btnOffset); break;
+                case 1: DoAccountManagementMenu(btnOffset); break;
+                case 2: DoAccountCustomizationMenu(btnOffset); break;
+            }
+
+            DoBottomMenu();
+        }
+
+        private void DoAccountSubMenu(int btnOffset)
+        {
+            var accountManager = AccountManager.Instance;
             int posY;
+
             DoButtonGrid<int>(false, accountMenu.Length, 0, -btnOffset, out posY, (index) =>
+            {
+                return new MenuEntry(index, accountMenu[index], true);
+            },
+            (selected) =>
+            {
+                switch (selected)
+                {
+                    case 0:
+                        {
+                            _accountSubMenu = 1;
+                            break;
+                        }
+
+                    case 1:
+                        {
+                            _accountSubMenu = 2;
+                            break;
+                        }
+
+                    case 2:
+                        {
+                            PushState(GUIState.Storage);
+                            break;
+                        }
+
+                    case 3:
+                        {
+                            PushState(GUIState.Dapps);
+                            break;
+                        }
+                }
+            });
+        }
+
+        private void DoAccountManagementMenu(int btnOffset)
+        {
+            var accountManager = AccountManager.Instance;
+            int posY;
+
+            DoButtonGrid<int>(false, managerMenu.Length, 0, -btnOffset, out posY, (index) =>
             {
                 var enabled = true;
 
@@ -3740,13 +4057,6 @@ namespace Poltergeist
                     switch (index)
                     {
                         case 1:
-                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma || accountManager.CurrentState.name != "anonymous")
-                            {
-                                enabled = false;
-                            }
-                            break;
-
-                        case 2:
                             if (accountManager.CurrentPlatform != PlatformKind.Phantasma || !accountManager.CurrentState.flags.HasFlag(AccountFlags.Validator))
                             {
                                 enabled = false;
@@ -3759,7 +4069,7 @@ namespace Poltergeist
                     enabled = false;
                 }
 
-                return new MenuEntry(index, accountMenu[index], enabled);
+                return new MenuEntry(index, managerMenu[index], enabled);
             },
             (selected) =>
             {
@@ -3776,25 +4086,142 @@ namespace Poltergeist
                                 "\nHEX format example (64 symbols):" +
                                 "\n5794a280d6d69c676855d6ffb63b40b20fde3c79d557cd058c95cd608a933fc3",
                                 ModalState.Message, 0, 0, ModalHexWif, 0, (result, input) =>
-                            {
-                                AudioManager.Instance.PlaySFX("click");
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
 
-                                if (result == PromptResult.Success)
-                                {
-                                    var keys = EthereumKey.FromWIF(accountManager.CurrentWif);
-                                    GUIUtility.systemCopyBuffer = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
-                                    MessageBox(MessageKind.Default, "Private key (HEX format) copied to the clipboard.");
-                                }
-                                else
-                                {
-                                    GUIUtility.systemCopyBuffer = accountManager.CurrentWif;
-                                    MessageBox(MessageKind.Default, "Private key (WIF format) copied to the clipboard.");
-                                }
-                            });
+                                    if (result == PromptResult.Success)
+                                    {
+                                        var keys = EthereumKey.FromWIF(accountManager.CurrentWif);
+                                        GUIUtility.systemCopyBuffer = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
+                                        MessageBox(MessageKind.Default, "Private key (HEX format) copied to the clipboard.");
+                                    }
+                                    else
+                                    {
+                                        GUIUtility.systemCopyBuffer = accountManager.CurrentWif;
+                                        MessageBox(MessageKind.Default, "Private key (WIF format) copied to the clipboard.");
+                                    }
+                                });
                             break;
                         }
 
                     case 1:
+                        {
+                            ShowModal("Account migration", "Insert WIF of the target account", ModalState.Input, 32, 64, ModalConfirmCancel, 1, (wifResult, wif) =>
+                            {
+                                if (wifResult != PromptResult.Success)
+                                {
+                                    return; // user cancelled
+                                }
+
+                                var newKeys = PhantasmaKeys.FromWIF(wif);
+                                if (newKeys.Address.Text != accountManager.CurrentState.address)
+                                {
+                                    PromptBox("Are you sure you want to migrate this account?\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
+                                    {
+                                        if (result == PromptResult.Success)
+                                        {
+                                            var address = Address.FromText(accountManager.CurrentState.address);
+
+                                            var sb = new ScriptBuilder();
+                                            var gasPrice = accountManager.Settings.feePrice;
+
+                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                            sb.CallContract("validator", "Migrate", address, newKeys.Address);
+                                            sb.SpendGas(address);
+                                            var script = sb.EndScript();
+
+                                            SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, (hash) =>
+                                            {
+                                                if (hash != Hash.Null)
+                                                {
+                                                    accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif);
+                                                    AudioManager.Instance.PlaySFX("click");
+                                                    CloseCurrentStack();
+                                                    MessageBox(MessageKind.Default, "The account was migrated.");
+                                                }
+                                                else
+                                                {
+                                                    MessageBox(MessageKind.Error, "It was not possible to migrate the account.");
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, "You need to provide a different WIF.");
+                                }
+
+                            });
+                            break;
+                        }
+
+                    case 2:
+                        {
+                            PromptBox("Are you sure you want to delete this account?\nYou can only restore it if you made a backup of the private keys.", ModalConfirmCancel, (result) =>
+                            {
+                                if (result == PromptResult.Success)
+                                {
+                                    RequestPassword("Account Deletion", accountManager.CurrentAccount.platforms, (delete) =>
+                                    {
+                                        if (delete == PromptResult.Success)
+                                        {
+                                            accountManager.DeleteAccount(accountManager.CurrentIndex);
+                                            AudioManager.Instance.PlaySFX("click");
+                                            CloseCurrentStack();
+                                            MessageBox(MessageKind.Default, "The account was deleted.");
+                                        }
+                                        else
+                                        if (delete == PromptResult.Failure)
+                                        {
+                                            MessageBox(MessageKind.Error, "Auth failed.");
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        break;
+                }
+            });
+        }
+
+        private void DoAccountCustomizationMenu(int btnOffset)
+        {
+            var accountManager = AccountManager.Instance;
+            int posY;
+
+            DoButtonGrid<int>(false, customizationMenu.Length, 0, -btnOffset, out posY, (index) =>
+            {
+                var enabled = true;
+
+                if (accountManager.CurrentState != null)
+                {
+                    switch (index)
+                    {
+                        case 1:
+                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma || accountManager.CurrentState.name != "anonymous")
+                            {
+                                enabled = false;
+                            }
+                            break;
+
+                        case 2:
+                            enabled = false;
+                            break;
+                    }
+                }
+                else
+                {
+                    enabled = false;
+                }
+
+                return new MenuEntry(index, customizationMenu[index], enabled);
+            },
+            (selected) =>
+            {
+                switch (selected)
+                {
+                    case 0:
                         {
                             var state = accountManager.CurrentState;
                             decimal stake = state != null ? state.balances.Where(x => x.Symbol == DomainSettings.StakingTokenSymbol).Select(x => x.Staked).FirstOrDefault() : 0;
@@ -3878,87 +4305,158 @@ namespace Poltergeist
                             break;
                         }
 
-                    case 2:
+                    case 1:
                         {
-                            ShowModal("Account migration", "Insert WIF of the target account", ModalState.Input, 32, 64, ModalConfirmCancel, 1, (wifResult, wif) =>
+                            // Open file with filter
+                            var extensions = new[] {
+                                new ExtensionFilter("Image Files", "png", "jpg", "jpeg" ),
+                            };
+
+                            var path = GetDocumentPath();
+                            var avatarFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", path, extensions, false).FirstOrDefault();
+
+                            if (!string.IsNullOrEmpty(avatarFilePath))
                             {
-                                if (wifResult != PromptResult.Success)
+                                if (File.Exists(avatarFilePath))
                                 {
-                                    return; // user cancelled
-                                }
+                                    int expectedSize = 32;
 
-                                var newKeys = PhantasmaKeys.FromWIF(wif);
-                                if (newKeys.Address.Text != accountManager.CurrentState.address)
-                                {
-                                    PromptBox("Are you sure you want to migrate this account?\nTarget address: "+newKeys.Address.Text, ModalYesNo, (result) =>
+                                    var avatarTex = new Texture2D(expectedSize, expectedSize, TextureFormat.RGBA32, false, true);
+                                    var bytes = File.ReadAllBytes(avatarFilePath);
+                                    avatarTex.LoadImage(bytes);
+
+                                    //avatarTex.Resize(expectedSize, expectedSize); this could be used maybe..
+
+                                    if (avatarTex.width != expectedSize || avatarTex.height != expectedSize)
                                     {
-                                        if (result == PromptResult.Success)
+                                        Texture2D.Destroy(avatarTex);
+                                        MessageBox(MessageKind.Error, $"Avatar picture must have dimensions {expectedSize} x {expectedSize}");
+                                    }
+                                    else
+                                    {
+                                        var rgbs = avatarTex.GetPixels();
+                                        bool hasTransparency = false;
+                                        foreach (var color in rgbs)
                                         {
-                                            var address = Address.FromText(accountManager.CurrentState.address);
-
-                                            var sb = new ScriptBuilder();
-                                            var gasPrice = accountManager.Settings.feePrice;
-
-                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                            sb.CallContract("validator", "Migrate", address, newKeys.Address);
-                                            sb.SpendGas(address);
-                                            var script = sb.EndScript();
-
-                                            SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, (hash) =>
+                                            if (color.a < 1)
                                             {
-                                                if (hash != Hash.Null)
+                                                hasTransparency = true;
+                                                break;
+                                            }
+                                        }
+
+                                        if (hasTransparency)
+                                        {
+                                            MessageBox(MessageKind.Error, "Avatar picture can't have transparent pixels");
+                                        }
+                                        else
+                                        {
+                                            _promptPicture = avatarTex;
+                                            PromptBox("Do you want to upload this picture as your account avatar?", ModalYesNo, (wantsUpload) =>
+                                            {
+                                                if (wantsUpload == PromptResult.Success)
                                                 {
-                                                    accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif);
-                                                    AudioManager.Instance.PlaySFX("click");
-                                                    CloseCurrentStack();
-                                                    MessageBox(MessageKind.Default, "The account was migrated.");
+                                                    var exportedAvatarBytes = avatarTex.EncodeToPNG();
+
+                                                    var avatarData = "data:image/png;base64," + System.Convert.ToBase64String(exportedAvatarBytes);
+
+                                                    if (avatarData.Length < MerkleTree.ChunkSize && avatarData.Length < accountManager.CurrentState.availableStorage)
+                                                    {
+                                                        UploadAvatar(avatarData);
+
+                                                    }
+                                                    else
+                                                    {
+                                                        MessageBox(MessageKind.Error, $"Not enough available storage space to upload");
+                                                    }
                                                 }
-                                                else
-                                                {
-                                                    MessageBox(MessageKind.Error, "It was not possible to migrate the account.");
-                                                }
+
+                                                Texture2D.Destroy(avatarTex);
                                             });
                                         }
-                                    });
+
+                                    }
                                 }
                                 else
                                 {
-                                    MessageBox(MessageKind.Error, "You need to provide a different WIF.");
+                                    MessageBox(MessageKind.Error, "File not found");
                                 }
+                            }
 
-                            });
                             break;
                         }
 
                     case 3:
-                        {
-                            PromptBox("Are you sure you want to delete this account?\nYou can only restore it if you made a backup of the private keys.", ModalConfirmCancel, (result) =>
-                            {
-                                if (result == PromptResult.Success)
-                                {
-                                    RequestPassword("Account Deletion", accountManager.CurrentAccount.platforms, (delete) =>
-                                    {
-                                        if (delete == PromptResult.Success)
-                                        {
-                                            accountManager.DeleteAccount(accountManager.CurrentIndex);
-                                            AudioManager.Instance.PlaySFX("click");
-                                            CloseCurrentStack();
-                                            MessageBox(MessageKind.Default, "The account was deleted.");
-                                        }
-                                        else 
-                                        if (delete == PromptResult.Failure)
-                                        {
-                                            MessageBox(MessageKind.Error, "Auth failed.");
-                                        }
-                                    });
-                                }
-                            });
-                        }
+                        _accountSubMenu = 0;
                         break;
                 }
             });
+        }
 
-            DoBottomMenu();
+        private void UploadAvatar(string avatarData)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
+                return;
+            }
+
+            var source = Address.FromText(state.address);
+
+            byte[] script;
+            var avatarBytes = Encoding.ASCII.GetBytes(avatarData);
+
+            try
+            {
+                var gasPrice = accountManager.Settings.feePrice;
+
+                var sb = new ScriptBuilder();
+                sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, "avatar", avatarBytes, ArchiveFlags.None, new byte[0]);
+                sb.SpendGas(source);
+                script = sb.EndScript();
+            }
+            catch (Exception e)
+            {
+                MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
+                return;
+            }
+
+            SendTransaction($"Upload avatar.\nSize: {avatarBytes.Length} bytes", script, null, "main", (hash) =>
+            {
+                if (hash != Hash.Null)
+                {
+                    ShowModal("Success",
+                        $"You uploaded the avatar!\nTransaction hash:\n" + hash,
+                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+
+                            if (viewTxChoice == PromptResult.Failure)
+                            {
+                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                            }
+                        });
+                }
+            });
+        }
+
+        private string GetDocumentPath()
+        {
+            if (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer)
+                return System.IO.Path.Combine(Environment.ExpandEnvironmentVariables("%userprofile%"), "Documents");
+            else if (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer)
+                return System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/Documents/";
+            else if (Application.platform == RuntimePlatform.LinuxPlayer)
+                return System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            else 
+            {
+                return Application.persistentDataPath;
+            }
         }
 
         private void DrawDropshadow(Rect rect)
@@ -3970,7 +4468,12 @@ namespace Poltergeist
             GUI.DrawTexture(dropRect, ResourceManager.Instance.Dropshadow);
         }
 
-        private string[] accountMenu = new string[] { "Export Private Key", "Setup Name", "Migrate", "Delete Account" };
+        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "Storage", "Dapps"};
+        private string[] managerMenu = new string[] { "Export Private Key", "Migrate", "Delete Account", "Back" };
+        private string[] customizationMenu = new string[] { "Setup Name", "Setup Avatar", "Multi-signature", "Back" };
+
+        private string[] storageMenu = new string[] { "Upload File" };
+        
         private GUIState[] bottomMenu = new GUIState[] { GUIState.Balances, GUIState.History, GUIState.Account, GUIState.Exit };
 
         private int DoBottomMenu()
@@ -5289,6 +5792,17 @@ namespace Poltergeist
             }
 
             return -1;
+        }
+
+        static string BytesToString(long byteCount)
+        {
+            string[] suf = { "B", "KB", "MB", "GB", "TB", "PB", "EB" }; //Longs run out around EB
+            if (byteCount == 0)
+                return "0" + suf[0];
+            long bytes = Math.Abs(byteCount);
+            int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
+            double num = Math.Round(bytes / Math.Pow(1024, place), 1);
+            return (Math.Sign(byteCount) * num).ToString() + suf[place];
         }
 
         #region UI THREAD UTILS
