@@ -47,7 +47,7 @@ namespace Poltergeist
                     alias = account.name,
                     address = state.address,
                     balances = balances.ToArray(),
-                    avatar = DefaultAvatar
+                    avatar = state.avatarData,
                 };
             }
 

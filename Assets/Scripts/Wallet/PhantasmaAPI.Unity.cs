@@ -188,6 +188,7 @@ namespace Phantasma.SDK
 	{
 		public uint available;
 		public uint used; //
+		public string avatar; //
 		public Archive[] archives; //
 
 		public static Storage FromNode(DataNode node)
@@ -196,6 +197,7 @@ namespace Phantasma.SDK
 
 			result.available = node.GetUInt32("available");
 			result.used = node.GetUInt32("used");
+			result.avatar = node.GetString("avatar");
 
 			var archive_array = node.GetNode("archives");
 			if (archive_array != null)

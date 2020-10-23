@@ -171,6 +171,7 @@ namespace Poltergeist
         public Timestamp stakeTime;
 
         public Archive[] archives;
+        public string avatarData;
         public uint availableStorage;
         public uint usedStorage;
         public uint totalStorage => availableStorage + usedStorage;
@@ -1728,6 +1729,7 @@ namespace Poltergeist
                                         state.usedStorage = acc.storage.used;
                                         state.availableStorage = acc.storage.available;
                                         state.archives = acc.storage.archives;
+                                        state.avatarData = acc.storage.avatar;
 
                                         ReportWalletBalance(platform, state);
                                     });
