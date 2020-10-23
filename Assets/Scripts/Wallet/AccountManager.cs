@@ -17,6 +17,7 @@ using Phantasma.Ethereum;
 using LunarLabs.Parser;
 using Phantasma.VM.Utils;
 using Phantasma.Blockchain;
+using Archive = Phantasma.SDK.Archive;
 
 namespace Poltergeist
 {
@@ -168,6 +169,12 @@ namespace Poltergeist
         public Balance[] balances;
         public AccountFlags flags;
         public Timestamp stakeTime;
+
+        public Archive[] archives;
+        public string avatarData;
+        public uint availableStorage;
+        public uint usedStorage;
+        public uint totalStorage => availableStorage + usedStorage;
 
         public decimal GetAvailableAmount(string symbol)
         {
@@ -1718,6 +1725,11 @@ namespace Poltergeist
                                         }
 
                                         state.stakeTime = stakeTimestamp;
+
+                                        state.usedStorage = acc.storage.used;
+                                        state.availableStorage = acc.storage.available;
+                                        state.archives = acc.storage.archives;
+                                        state.avatarData = acc.storage.avatar;
 
                                         ReportWalletBalance(platform, state);
                                     });
