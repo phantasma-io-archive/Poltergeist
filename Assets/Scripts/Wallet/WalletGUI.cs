@@ -1997,7 +1997,7 @@ namespace Poltergeist
             DoScrollArea<Account>(ref accountScroll, startY, endY, panelHeight, accountsListCopy,
                 (account, index, curY, rect) =>
                 {
-                    int btnWidth = Units(7);
+                    int btnWidth = Units(6);
                     int halfWidth = (int)(rect.width / 2);
 
                     Rect btnRect;
