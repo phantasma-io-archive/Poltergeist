@@ -1364,6 +1364,37 @@ namespace Poltergeist
             }
         }
 
+        public void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback)
+        {
+            var account = this.CurrentAccount;
+
+            switch (CurrentPlatform)
+            {
+                case PlatformKind.Phantasma:
+                    {
+                        Log.Write("WriteArchive: " + hash, Log.Level.Debug1);
+                        StartCoroutine(phantasmaApi.WriteArchive(hash.ToString(), blockIndex, Base16.Encode(data), (result) =>
+                        {
+                            Log.Write("WriteArchive result: " + result, Log.Level.Debug1);
+                            callback(result, null);
+                        }, (error, log) =>
+                        {
+                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                            {
+                                ChangeFaultyRPCURL();
+                            }
+                            callback(false, log);
+                        }));
+                        break;
+                    }
+                default:
+                    {
+                        callback(false, "not implemented for " + CurrentPlatform);
+                        break;
+                    }
+            }
+        }
+
         private Action _refreshCallback;
         private DateTime _lastBalanceRefresh = DateTime.MinValue;
         private DateTime _lastNftRefresh = DateTime.MinValue;

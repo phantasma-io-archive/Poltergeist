@@ -6186,12 +6186,11 @@ namespace Poltergeist
             this.SendTransaction(description, script, null, chain, callback);
         }
 
-        public void InvokeScript(string chain, byte[] script, Action<byte[]> callback)
+        public void InvokeScript(string chain, byte[] script, Action<byte[], string> callback)
         {
-            if (script == null)
+            if (script == null || script.Length == 0)
             {
-                Log.Write($"Error invoking script. Script is null.");
-                callback(null);
+                callback(null, $"Error invoking script. Script is null.");
             }
 
             var accountManager = AccountManager.Instance;
@@ -6200,13 +6199,27 @@ namespace Poltergeist
             {
                 if (String.IsNullOrEmpty(error))
                 {
-                    callback(result);
+                    callback(result, null);
                 }
                 else
                 {
-                    Log.Write($"Error invoking script.\n{error}\nScript: {System.Text.Encoding.UTF8.GetString(script)}");
-                    callback(null);
+                    callback(null, $"Error invoking script.\n{error}\nScript: {System.Text.Encoding.UTF8.GetString(script)}");
                 }
+            });
+        }
+
+        public void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback)
+        {
+            if (data == null || data.Length == 0)
+            {
+                callback(false, $"Error writing archive. No data available.");
+            }
+
+            var accountManager = AccountManager.Instance;
+
+            accountManager.WriteArchive(hash, blockIndex, data, (result, error) =>
+            {
+                callback(result, error);
             });
         }
         #endregion

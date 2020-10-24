@@ -88,14 +88,33 @@ namespace Poltergeist
             {
                 try
                 {
-                    WalletGUI.Instance.InvokeScript("main", script, (result) =>
+                    WalletGUI.Instance.InvokeScript("main", script, (result, msg) =>
                     {
-                        callback(result, null);
+                        callback(result, msg);
                     });
                 }
                 catch (Exception e)
                 {
                     callback(null, "InvokeScript call error: " + e.Message);
+                    return;
+                }
+            });
+        }
+
+        protected override void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback)
+        {
+            WalletGUI.Instance.CallOnUIThread(() =>
+            {
+                try
+                {
+                    WalletGUI.Instance.WriteArchive(hash, blockIndex, data, (result, msg) =>
+                    {
+                        callback(result, msg);
+                    });
+                }
+                catch (Exception e)
+                {
+                    callback(false, "WriteArchive call error: " + e.Message);
                     return;
                 }
             });
