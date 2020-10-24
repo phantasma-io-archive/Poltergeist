@@ -23,10 +23,8 @@ using System.Threading;
 using Phantasma.Neo.Core;
 using SFB;
 using System.IO;
-using Org.BouncyCastle.Utilities.Encoders;
 using System.Text;
 using Archive = Phantasma.SDK.Archive;
-using Phantasma.Blockchain.Contracts;
 
 namespace Poltergeist
 {
@@ -69,6 +67,7 @@ namespace Poltergeist
         Backup,
         Dapps,
         Storage,
+        Upload,
         Exit,
         Fatal
     }
@@ -557,6 +556,10 @@ namespace Poltergeist
                     currentTitle = "QR scanning";
                     cameraError = false;
                     scanTime = Time.time;
+                    break;
+
+                case GUIState.Upload:
+                    currentTitle = "Archive upload";
                     break;
             }
         }
@@ -1221,6 +1224,10 @@ namespace Poltergeist
 
                 case GUIState.Storage:
                     DoStorageScreen();
+                    break;
+
+                case GUIState.Upload:
+                    DrawCenteredText($"Uploading chunk {_currentUploadChunk + 1} out of {_totalUploadChunks}...");
                     break;
 
                 case GUIState.Fatal:
@@ -3134,7 +3141,8 @@ namespace Poltergeist
                                         {
                                             if (sucess)
                                             {
-                                                UploadArchive(targetFilePath, size);
+                                                var content = File.ReadAllBytes(targetFilePath);
+                                                UploadArchive(targetFilePath, content);
                                             }
 
                                         });
@@ -3234,13 +3242,9 @@ namespace Poltergeist
 
         }
 
-        private void UploadArchive(string fileName, long fileSize)
+        private void UploadArchive(string fileName, byte[] content)
         {
-            if (fileSize > MerkleTree.ChunkSize)
-            {
-                MessageBox(MessageKind.Error, "Uploading of large files not supported yet");
-                return;
-            }
+            var fileSize = content.Length;
 
             var accountManager = AccountManager.Instance;
 
@@ -3252,21 +3256,22 @@ namespace Poltergeist
                 return;
             }
 
-            var source = Address.FromText(state.address);
+            var target = Address.FromText(state.address);
+
+            var newFileName = Path.GetFileName(fileName);
+
+            var merkleTree = new MerkleTree(content);
+            var merkleBytes = merkleTree.ToByteArray();
 
             byte[] script;
-
-            var targetFileName = Path.GetFileName(fileName);
-            var targetBytes = File.ReadAllBytes(fileName);
-
             try
             {
                 var gasPrice = accountManager.Settings.feePrice;
 
                 var sb = new ScriptBuilder();
-                sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, targetFileName, targetBytes, new byte[0]);
-                sb.SpendGas(source);
+                sb.AllowGas(target, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                sb.CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, new byte[0]);
+                sb.SpendGas(target);
                 script = sb.EndScript();
             }
             catch (Exception e)
@@ -3275,23 +3280,74 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(targetBytes.Length)}", script, null, "main", (hash) =>
+            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, null, "main", (hash) =>
             {
                 if (hash != Hash.Null)
                 {
-                    ShowModal("Success",
-                        $"The archive '{fileName}' was uploaded!\nTransaction hash:\n" + hash,
-                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                        {
-                            AudioManager.Instance.PlaySFX("click");
+                    PushState(GUIState.Upload);
 
-                            if (viewTxChoice == PromptResult.Failure)
-                            {
-                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                            }
-                        });
+                    _totalUploadChunks = MerkleTree.GetChunkCountForSize((uint)content.Length); ;
+                    UploadChunk(fileName, merkleTree, content, hash, 0);
                 }
             });
+
+        }
+
+        private uint _currentUploadChunk;
+        private uint _totalUploadChunks;
+
+        private void UploadChunk(string fileName, MerkleTree merkleTree, byte[] content, Hash creationTxHash, int blockIndex)
+        {
+            _currentUploadChunk = (uint)blockIndex;
+
+            var accountManager = AccountManager.Instance;
+
+            var lastChunk = _totalUploadChunks - 1;
+
+            var isLast = blockIndex == lastChunk;
+
+            var chunkSize = isLast ? content.Length % MerkleTree.ChunkSize : MerkleTree.ChunkSize;
+            var chunkData = new byte[chunkSize];
+
+            var offset = blockIndex * MerkleTree.ChunkSize;
+            for (int i=0; i<chunkSize; i++)
+            {
+                chunkData[i] = content[i + offset];
+            }
+
+            accountManager.WriteArchive(merkleTree.Root, blockIndex, chunkData, (result, error) =>
+            {
+                if (result)
+                {
+                    // if this was the last chunk, show completion msg
+                    if (isLast)
+                    {
+                        ShowModal("Success",
+                            $"The archive '{fileName}' was uploaded!\nTransaction hash:\n" + creationTxHash,
+                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                            {
+                                AudioManager.Instance.PlaySFX("click");
+
+                                if (viewTxChoice == PromptResult.Failure)
+                                {
+                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(creationTxHash.ToString()));
+                                }
+                            });
+                    }
+                    else
+                    {
+                        // otherwise upload next chunk
+                        UploadChunk(fileName, merkleTree, content, creationTxHash, blockIndex + 1);
+                    }
+                }
+                else
+                {
+                    MessageBox(MessageKind.Error, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!");
+                    // TODO allow user to retry ?
+                }
+                    
+            });
+
 
         }
 
@@ -4697,7 +4753,8 @@ namespace Poltergeist
 
                                                     RequireStorage(avatarData.Length, (success) =>
                                                     {
-                                                        UploadAvatar(avatarData);
+                                                        var avatarBytes = Encoding.ASCII.GetBytes(avatarData);
+                                                        UploadArchive("avatar", avatarBytes);
                                                     });
                                                 }
 
@@ -4737,13 +4794,15 @@ namespace Poltergeist
 
             var currentStake = state.balances.Where(x => x.Symbol == DomainSettings.StakingTokenSymbol).Select(x => x.Staked).FirstOrDefault();
 
-            var requiredStake = accountManager.CalculateRequireStakeForStorage(bytesRequired);
+            var expectedStake = accountManager.CalculateRequireStakeForStorage(bytesRequired);
 
-            if (accountManager.CurrentState.availableStorage >= bytesRequired)
+            if (currentStake >= expectedStake)
             {
                 callback(true);
                 return;
             }
+
+            var requiredStake = expectedStake - currentStake;
 
             StakeSOUL(requiredStake, $"Not enough available storage space to upload.\nStake {requiredStake} {DomainSettings.StakingTokenSymbol} to increase your storage?", (hash) =>
             {
@@ -4789,64 +4848,6 @@ namespace Poltergeist
                             });
                         }
                     });
-                }
-            });
-        }
-
-        private void UploadAvatar(string avatarData)
-        {
-            var accountManager = AccountManager.Instance;
-
-            var state = accountManager.CurrentState;
-
-            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
-            {
-                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
-                return;
-            }
-
-            var source = Address.FromText(state.address);
-
-            byte[] script;
-            var avatarBytes = Encoding.ASCII.GetBytes(avatarData);
-
-            if (avatarBytes.Length > MerkleTree.ChunkSize)
-            {
-                MessageBox(MessageKind.Error, $"Support for uploading non-small files is not implemented yet");
-                return;
-            }
-
-            try
-            {
-                var gasPrice = accountManager.Settings.feePrice;
-
-                var sb = new ScriptBuilder();
-                sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, "avatar", avatarBytes, new byte[0]);
-                sb.SpendGas(source);
-                script = sb.EndScript();
-            }
-            catch (Exception e)
-            {
-                MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
-                return;
-            }
-
-            SendTransaction($"Upload avatar.\nSize: {avatarBytes.Length} bytes", script, null, "main", (hash) =>
-            {
-                if (hash != Hash.Null)
-                {
-                    ShowModal("Success",
-                        $"You uploaded the avatar!\nTransaction hash:\n" + hash,
-                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                        {
-                            AudioManager.Instance.PlaySFX("click");
-
-                            if (viewTxChoice == PromptResult.Failure)
-                            {
-                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                            }
-                        });
                 }
             });
         }

@@ -2775,7 +2775,7 @@ namespace Poltergeist
 
         public decimal CalculateRequireStakeForStorage(int totalSize)
         {            
-            var kilobytesPerStake = 40; // TODO this should be governance value obtained from chain
+            var kilobytesPerStake = 39; // TODO this should be governance value obtained from chain
             var stakeAmount = (totalSize * UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals))  / (kilobytesPerStake * 1024);
             return UnitConversion.ToDecimal(stakeAmount, DomainSettings.StakingTokenDecimals);
         }
