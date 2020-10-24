@@ -2611,7 +2611,7 @@ namespace Poltergeist
                 confirmBtnRect = new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, btnHeight);
             }
 
-            string[] settingsMenu = new string[] { /*"Display settings", */"Open log location", "Cancel", "Confirm" };
+            string[] settingsMenu = new string[] { "Display settings", "Open log location", "Cancel", "Confirm" };
             int posY;
             DoButtonGrid<int>(false, settingsMenu.Length, (VerticalLayout) ? 0 : Units(2), 0, out posY, (index) =>
             {
@@ -2621,19 +2621,30 @@ namespace Poltergeist
             {
                 switch (selected)
                 {
-                    /*case 0:
+                    case 0:
                         {
+                            var currentSettings = accountManager.Settings.ToString();
+                            ShowModal("Display Settings",
+                                currentSettings,
+                                ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) =>
+                                {
+                                    if (result == PromptResult.Failure)
+                                    {
+                                        AudioManager.Instance.PlaySFX("click");
+                                        GUIUtility.systemCopyBuffer = currentSettings;
+                                    }
+                                });
+
                             break;
                         }
-                    */
-                    case 0:
+                    case 1:
                         {
                             AudioManager.Instance.PlaySFX("click");
                             Application.OpenURL(System.IO.Path.GetDirectoryName("file://" + Log.FilePath));
                             break;
                         }
 
-                    case 1:
+                    case 2:
                         {
                             AudioManager.Instance.PlaySFX("cancel");
 
@@ -2648,7 +2659,7 @@ namespace Poltergeist
                             break;
                         }
 
-                    case 2:
+                    case 3:
                         {
                             if (ValidateSettings())
                             {
