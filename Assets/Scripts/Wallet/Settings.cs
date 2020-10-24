@@ -101,6 +101,32 @@ namespace Poltergeist
         public int ttrsNftSortMode;
         public int nftSortDirection;
 
+        public override string ToString()
+        {
+            return "Nexus kind: " + this.nexusKind.ToString() + "\n" +
+                "Phantasma BP: " + this.phantasmaBPURL + "\n" +
+                "Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
+                "Fee price: " + this.feePrice + "\n" +
+                "Neo RPC: " + this.neoRPCURL + "\n" +
+                "Neoscan: " + this.neoscanURL + "\n" +
+                "Neo GAS fee: " + this.neoGasFee + "\n" +
+                "Ethereum network: " + this.ethereumNetwork + "\n" +
+                "Ethereum localnet SOUL contract: " + this.ethereumLocalnetSoulContract + "\n" +
+                "Ethereum localnet KCAL contract: " + this.ethereumLocalnetKcalContract + "\n" +
+                "Ethereum RPC: " + this.ethereumRPCURL + "\n" +
+                "Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
+                "Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
+                "Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
+                "Nexus name: " + this.nexusName + "\n" +
+                "Currency: " + this.currency + "\n" +
+                "Sfx: " + this.sfx + "\n" +
+                "UI theme: " + this.uiThemeName + "\n" +
+                "Log level: " + this.logLevel + "\n" +
+                "Log overwrite: " + this.logOverwriteMode + "\n" +
+                "TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
+                "NFT sort direction: " + this.nftSortDirection;
+        }
+
         public void LoadLogSettings()
         {
             var logLevel = PlayerPrefs.GetString(LogLevelTag, Log.Level.Networking.ToString());
@@ -182,29 +208,7 @@ namespace Poltergeist
             this.ttrsNftSortMode = PlayerPrefs.GetInt(TtrsNftSortModeTag, 0);
             this.nftSortDirection = PlayerPrefs.GetInt(NftSortDirectionTag, 0);
 
-            Log.Write("Settings: Load: Nexus kind: " + this.nexusKind.ToString() + "\n" +
-                      "                Phantasma BP: " + this.phantasmaBPURL + "\n" +
-                      "                Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
-                      "                Fee price: " + this.feePrice + "\n" +
-                      "                Neo RPC: " + this.neoRPCURL + "\n" +
-                      "                Neoscan: " + this.neoscanURL + "\n" +
-                      "                Neo GAS fee: " + this.neoGasFee + "\n" +
-                      "                Ethereum network: " + this.ethereumNetwork + "\n" +
-                      "                Ethereum localnet SOUL contract: " + this.ethereumLocalnetSoulContract + "\n" +
-                      "                Ethereum localnet KCAL contract: " + this.ethereumLocalnetKcalContract + "\n" +
-                      "                Ethereum RPC: " + this.ethereumRPCURL + "\n" +
-                      "                Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
-                      "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
-                      "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
-                      "                Nexus name: " + this.nexusName + "\n" +
-                      "                Currency: " + this.currency + "\n" +
-                      "                Sfx: " + this.sfx + "\n" +
-                      "                UI theme: " + this.uiThemeName + "\n" +
-                      "                Log level: " + this.logLevel + "\n" +
-                      "                Log overwrite: " + this.logOverwriteMode + "\n" +
-                      "                TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
-                      "                NFT sort direction: " + this.nftSortDirection
-                     );
+            Log.Write("Settings: Load: " + ToString());
         }
 
         public string GetDefaultValue(string tag)
@@ -362,26 +366,7 @@ namespace Poltergeist
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.Save();
 
-            Log.Write("Settings: Save: Nexus kind: " + nexusKind.ToString() + "\n" +
-                      "                Phantasma BP: " + phantasmaBPURL + "\n" +
-                      "                Fee price: " + feePrice + "\n" +
-                      "                Neo RPC: " + neoRPCURL + "\n" +
-                      "                Neoscan: " + neoscanURL + "\n" +
-                      "                Neo GAS fee: " + neoGasFee + "\n" +
-                      "                Ethereum network: " + ethereumNetwork + "\n" +
-                      "                Ethereum localnet SOUL contract: " + ethereumLocalnetSoulContract + "\n" +
-                      "                Ethereum localnet KCAL contract: " + ethereumLocalnetKcalContract + "\n" +
-                      "                Ethereum RPC: " + ethereumRPCURL + "\n" +
-                      "                Ethereum gas price (Gwei): " + ethereumGasPriceGwei + "\n" +
-                      "                Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
-                      "                Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
-                      "                Nexus name: " + nexusName + "\n" +
-                      "                Currency: " + currency + "\n" +
-                      "                Sfx: " + sfx + "\n" +
-                      "                UI Theme: " + uiThemeName + "\n" +
-                      "                Log level: " + logLevel.ToString() + "\n" +
-                      "                Log overwrite: " + logOverwriteMode
-                     );
+            Log.Write("Settings: Save: " + ToString());
         }
 
         public void SaveOnExit()

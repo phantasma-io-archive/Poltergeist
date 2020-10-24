@@ -195,6 +195,15 @@ namespace Phantasma.SDK
 		{
 			Storage result;
 
+			if (node == null)
+			{
+				result.archives = null;
+				result.available = 0;
+				result.avatar = null;
+				result.used = 0;
+				return result;
+			}
+
 			result.available = node.GetUInt32("available");
 			result.used = node.GetUInt32("used");
 			result.avatar = node.GetString("avatar");
