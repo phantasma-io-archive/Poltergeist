@@ -2741,5 +2741,12 @@ namespace Poltergeist
             currentTtrsNftsSortMode = (TtrsNftSortMode)Settings.ttrsNftSortMode;
             currentTtrsNftsSortDirection = (SortDirection)Settings.nftSortDirection;
         }
+
+        public decimal CalculateRequireStakeForStorage(int totalSize)
+        {            
+            var kilobytesPerStake = 40; // TODO this should be governance value obtained from chain
+            var stakeAmount = (totalSize * UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals))  / (kilobytesPerStake * 1024);
+            return UnitConversion.ToDecimal(stakeAmount, DomainSettings.StakingTokenDecimals);
+        }
     }
 }

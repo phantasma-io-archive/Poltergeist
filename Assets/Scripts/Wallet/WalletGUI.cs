@@ -3069,20 +3069,22 @@ namespace Poltergeist
                             {
                                 if (File.Exists(targetFilePath))
                                 {
-                                    var size = new System.IO.FileInfo(targetFilePath).Length;
+                                    var size = (int)(new System.IO.FileInfo(targetFilePath).Length);
 
-                                    if (size > accountManager.CurrentState.availableStorage)
-                                    {
-                                        MessageBox(MessageKind.Error, "Not enough storage available in this account");
-                                    }
-                                    else
                                     if (size < DomainSettings.ArchiveMinSize)
                                     {
                                         MessageBox(MessageKind.Error, "File is to small to upload");
                                     }
                                     else
                                     {
-                                        UploadArchive(targetFilePath, size);
+                                        RequireStorage(size, (sucess) =>
+                                        {
+                                            if (sucess)
+                                            {
+                                                UploadArchive(targetFilePath, size);
+                                            }
+
+                                        });
                                     }
                                 }
                                 else
@@ -3210,7 +3212,7 @@ namespace Poltergeist
 
                 var sb = new ScriptBuilder();
                 sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, targetFileName, targetBytes, ArchiveFlags.None, new byte[0]);
+                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, targetFileName, targetBytes, new byte[0]);
                 sb.SpendGas(source);
                 script = sb.EndScript();
             }
@@ -3487,41 +3489,11 @@ namespace Poltergeist
                                         twoSmsWarning = "\n\nSoul Master rewards are distributed evenly to every wallet with 50K or more SOUL. As you are staking over 100K SOUL, to maximise your rewards, you may wish to stake each 50K SOUL in a separate wallet.";
                                     }
 
-                                    PromptBox($"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, ModalYesNo, (result) =>
+                                    StakeSOUL(selectedAmount, $"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, (hash) =>
                                     {
-                                        if (result == PromptResult.Success)
+                                        if (hash != Hash.Null)
                                         {
-                                            RequestKCAL("SOUL", (kcal) =>
-                                            {
-                                                if (kcal == PromptResult.Success)
-                                                {
-                                                    // In case we swapped SOUL to KCAL we should check if selected amound is still available
-                                                    // If not - reduce to balance
-                                                    // We should update balance object first
-                                                    balance = AccountManager.Instance.CurrentState.balances.Where(x => x.Symbol == balance.Symbol).FirstOrDefault();
-                                                    if (selectedAmount > balance.Available)
-                                                        selectedAmount = balance.Available;
-
-                                                    var address = Address.FromText(state.address);
-
-                                                    var sb = new ScriptBuilder();
-                                                    var gasPrice = accountManager.Settings.feePrice;
-
-                                                    sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                                    sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(selectedAmount, balance.Decimals));
-                                                    sb.SpendGas(address);
-
-                                                    var script = sb.EndScript();
-
-                                                    SendTransaction($"Stake {selectedAmount} SOUL", script, null, "main", (hash) =>
-                                                    {
-                                                        if (hash != Hash.Null)
-                                                        {
-                                                            MessageBox(MessageKind.Success, "Your SOUL was staked!\nTransaction hash: " + hash);
-                                                        }
-                                                    });
-                                                }
-                                            });
+                                            MessageBox(MessageKind.Success, "Your SOUL was staked!\nTransaction hash: " + hash);
                                         }
                                     });
                                 });
@@ -4670,15 +4642,10 @@ namespace Poltergeist
 
                                                     var avatarData = "data:image/png;base64," + System.Convert.ToBase64String(exportedAvatarBytes);
 
-                                                    if (avatarData.Length < MerkleTree.ChunkSize && avatarData.Length < accountManager.CurrentState.availableStorage)
+                                                    RequireStorage(avatarData.Length, (success) =>
                                                     {
                                                         UploadAvatar(avatarData);
-
-                                                    }
-                                                    else
-                                                    {
-                                                        MessageBox(MessageKind.Error, $"Not enough available storage space to upload");
-                                                    }
+                                                    });
                                                 }
 
                                                 Texture2D.Destroy(avatarTex);
@@ -4703,6 +4670,76 @@ namespace Poltergeist
             });
         }
 
+        private void RequireStorage(int bytesRequired, Action<bool> callback)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
+                return;
+            }
+
+            var currentStake = state.balances.Where(x => x.Symbol == DomainSettings.StakingTokenSymbol).Select(x => x.Staked).FirstOrDefault();
+
+            var requiredStake = accountManager.CalculateRequireStakeForStorage(bytesRequired);
+
+            if (accountManager.CurrentState.availableStorage >= bytesRequired)
+            {
+                callback(true);
+                return;
+            }
+
+            StakeSOUL(requiredStake, $"Not enough available storage space to upload.\nStake {requiredStake} {DomainSettings.StakingTokenSymbol} to increase your storage?", (hash) =>
+            {
+                callback(hash != Hash.Null);                       
+            });
+        }
+
+        private void StakeSOUL(decimal selectedAmount, string msg, Action<Hash> callback)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            PromptBox(msg, ModalYesNo, (result) =>
+            {
+                if (result == PromptResult.Success)
+                {
+                    RequestKCAL("SOUL", (kcal) =>
+                    {
+                        if (kcal == PromptResult.Success)
+                        {
+                            // In case we swapped SOUL to KCAL we should check if selected amound is still available
+                            // If not - reduce to balance
+                            // We should update balance object first
+                            var balance = AccountManager.Instance.CurrentState.balances.Where(x => x.Symbol == "SOUL").FirstOrDefault();
+
+                            if (selectedAmount > balance.Available)
+                                selectedAmount = balance.Available;
+
+                            var address = Address.FromText(state.address);
+
+                            var sb = new ScriptBuilder();
+                            var gasPrice = accountManager.Settings.feePrice;
+
+                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                            sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(selectedAmount, balance.Decimals));
+                            sb.SpendGas(address);
+
+                            var script = sb.EndScript();
+
+                            SendTransaction($"Stake {selectedAmount} SOUL", script, null, "main", (hash) =>
+                            {
+                                callback(hash);
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
         private void UploadAvatar(string avatarData)
         {
             var accountManager = AccountManager.Instance;
@@ -4720,13 +4757,19 @@ namespace Poltergeist
             byte[] script;
             var avatarBytes = Encoding.ASCII.GetBytes(avatarData);
 
+            if (avatarBytes.Length > MerkleTree.ChunkSize)
+            {
+                MessageBox(MessageKind.Error, $"Support for uploading non-small files is not implemented yet");
+                return;
+            }
+
             try
             {
                 var gasPrice = accountManager.Settings.feePrice;
 
                 var sb = new ScriptBuilder();
                 sb.AllowGas(source, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, "avatar", avatarBytes, ArchiveFlags.None, new byte[0]);
+                sb.CallContract(NativeContractKind.Storage, "UploadSmallFile", source, "avatar", avatarBytes, new byte[0]);
                 sb.SpendGas(source);
                 script = sb.EndScript();
             }
