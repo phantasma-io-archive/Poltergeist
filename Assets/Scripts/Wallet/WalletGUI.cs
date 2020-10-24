@@ -1916,74 +1916,90 @@ namespace Poltergeist
                             {
                                 if (result == PromptResult.Success)
                                 {
-                                    var accountsExport = Serialization.Unserialize<AccountsExport>(Convert.FromBase64String(walletsData));
-
-                                    Log.Write($"Importing wallets. Source wallet identifier: {accountsExport.walletIdentifier}, accounts version: {accountsExport.accountsVersion}");
-
-                                    var import = new Action<AccountsExport>((data) =>
+                                    try
                                     {
-                                        var accounts = Serialization.Unserialize<Account[]>(Convert.FromBase64String(accountsExport.accounts)).ToList();
-                                        var messageWillBeImported = "Following accounts will be imported:\n\n";
-                                        var someWillBeImported = false;
-                                        var messageWillBeSkipped = "Following accounts already exist and will be skipped:\n\n";
-                                        var someWillBeSkipped = false;
+                                        var accountsExport = Serialization.Unserialize<AccountsExport>(Convert.FromBase64String(walletsData));
 
-                                        var accountsToImport = new List<Account>();
-                                        foreach (var account in accounts)
+                                        Log.Write($"Importing wallets. Source wallet identifier: {accountsExport.walletIdentifier}, accounts version: {accountsExport.accountsVersion}");
+
+                                        var import = new Action<AccountsExport>((data) =>
                                         {
-                                            if(accountManager.Accounts.Where(x => x.phaAddress.ToUpper() == account.phaAddress.ToUpper()).Any())
-                                            {
-                                                messageWillBeSkipped += $"- {account.name} [{account.phaAddress}]\n";
-                                                someWillBeSkipped = true;
-                                            }
-                                            else
-                                            {
-                                                messageWillBeImported += $"+ {account.name} [{account.phaAddress}]\n";
-                                                someWillBeImported = true;
+                                            var accounts = Serialization.Unserialize<Account[]>(Convert.FromBase64String(accountsExport.accounts)).ToList();
+                                            var messageWillBeImported = "Following accounts will be imported:\n\n";
+                                            var someWillBeImported = false;
+                                            var messageWillBeSkipped = "Following accounts already exist and will be skipped:\n\n";
+                                            var someWillBeSkipped = false;
 
-                                                accountsToImport.Add(account);
-                                            }
-                                        }
-
-                                        ShowModal("Wallets Import",
-                                            (someWillBeImported ? (messageWillBeImported + "\n\n") : "") + (someWillBeSkipped ? messageWillBeSkipped : ""),
-                                            ModalState.Message, 0, 0, ModalConfirmCancel, 0, (result2, input) =>
+                                            var accountsToImport = new List<Account>();
+                                            foreach (var account in accounts)
                                             {
-                                                AudioManager.Instance.PlaySFX("click");
-
-                                                if (result2 == PromptResult.Success)
+                                                if(accountManager.Accounts.Where(x => x.phaAddress.ToUpper() == account.phaAddress.ToUpper()).Any())
                                                 {
-                                                    var count = 0;
-                                                    foreach (var accountToImport in accountsToImport)
+                                                    messageWillBeSkipped += $"- {account.name} [{account.phaAddress}]\n";
+                                                    someWillBeSkipped = true;
+                                                }
+                                                else
+                                                {
+                                                    messageWillBeImported += $"+ {account.name} [{account.phaAddress}]\n";
+                                                    someWillBeImported = true;
+
+                                                    accountsToImport.Add(account);
+                                                }
+                                            }
+
+                                            ShowModal("Wallets Import",
+                                                (someWillBeImported ? (messageWillBeImported + "\n\n") : "") + (someWillBeSkipped ? messageWillBeSkipped : ""),
+                                                ModalState.Message, 0, 0, ModalConfirmCancel, 0, (result2, input) =>
+                                                {
+                                                    AudioManager.Instance.PlaySFX("click");
+
+                                                    if (result2 == PromptResult.Success)
                                                     {
-                                                        accountManager.Accounts.Add(accountToImport);
-                                                        count++;
+                                                        var count = 0;
+                                                        foreach (var accountToImport in accountsToImport)
+                                                        {
+                                                            accountManager.Accounts.Add(accountToImport);
+                                                            count++;
+                                                        }
+                                                        MessageBox(MessageKind.Default, $"{count} wallets successfully imported.");
                                                     }
-                                                    MessageBox(MessageKind.Default, $"{count} wallets successfully imported.");
-                                                }
-                                            });
-                                    });
+                                                });
+                                        });
 
-                                    if (accountsExport.passwordProtected)
-                                    {
-                                        ShowModal("Wallets Import",
-                                            "Please enter password:", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
-                                            {
-                                                if (passResult == PromptResult.Success && !String.IsNullOrEmpty(password))
+                                        if (accountsExport.passwordProtected)
+                                        {
+                                            ShowModal("Wallets Import",
+                                                "Please enter password:", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
                                                 {
-                                                    // Getting password hash.
-                                                    AccountManager.GetPasswordHashBySalt(password, accountsExport.passwordIterations, accountsExport.salt, out string passwordHash);
+                                                    if (passResult == PromptResult.Success && !String.IsNullOrEmpty(password))
+                                                    {
+                                                        // Getting password hash.
+                                                        AccountManager.GetPasswordHashBySalt(password, accountsExport.passwordIterations, accountsExport.salt, out string passwordHash);
 
-                                                    // Decrypting accounts.
-                                                    accountsExport.accounts = AccountManager.DecryptString(accountsExport.accounts, passwordHash, accountsExport.iv);
+                                                        try
+                                                        {
+                                                            // Decrypting accounts.
+                                                            accountsExport.accounts = AccountManager.DecryptString(accountsExport.accounts, passwordHash, accountsExport.iv);
 
-                                                    import(accountsExport);
-                                                }
-                                            });
+                                                            import(accountsExport);
+                                                        }
+                                                        catch (Exception e)
+                                                        {
+                                                            Log.WriteWarning("Cannot decrypt wallets data: " + e.ToString());
+                                                            MessageBox(MessageKind.Error, $"Cannot decrypt wallets data.");
+                                                        }
+                                                    }
+                                                });
+                                        }
+                                        else
+                                        {
+                                            import(accountsExport);
+                                        }
                                     }
-                                    else
+                                    catch (Exception e)
                                     {
-                                        import(accountsExport);
+                                        Log.WriteWarning("Cannot open wallets data: " + e.ToString());
+                                        MessageBox(MessageKind.Error, $"Cannot open wallets data.");
                                     }
                                 }
                             });
