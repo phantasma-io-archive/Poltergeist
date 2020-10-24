@@ -5,6 +5,8 @@ using UnityEngine;
 // class to set app focus on demand
 // NOTE - only Windows OS supported for now...
 // https://stackoverflow.com/questions/5206633/find-out-what-application-window-is-in-focus-in-java/18275492
+// https://gist.github.com/yuliyv/e886314574cd9a73fe91
+// https://stackoverflow.com/questions/49351704/applescript-to-focus-on-a-window-in-preview-app
 public class AppFocus : MonoBehaviour
 {
     public static AppFocus Instance;
