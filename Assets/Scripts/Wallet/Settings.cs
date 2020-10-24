@@ -148,11 +148,23 @@ namespace Poltergeist
                 this.nexusKind = NexusKind.Unknown;
             }
 
-            //this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
-            this.phantasmaBPURL = PlayerPrefs.GetString(PhantasmaBPTag, GetDefaultValue(PhantasmaBPTag));
-            this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));
-            this.neoscanURL = PlayerPrefs.GetString(NeoscanAPITag, GetDefaultValue(NeoscanAPITag));
-            this.nexusName = PlayerPrefs.GetString(NexusNameTag, GetDefaultValue(NexusNameTag));
+            if (this.nexusKind == NexusKind.Main_Net || this.nexusKind == NexusKind.Test_Net)
+            {
+                // For mainnet/testnet we always load defaults for hidden settings,
+                // to avoid dealing with "stuck" values from old PG version that had different defaults.
+                this.phantasmaBPURL = GetDefaultValue(PhantasmaBPTag);
+                this.neoRPCURL = GetDefaultValue(NeoRPCTag);
+                this.neoscanURL = GetDefaultValue(NeoscanAPITag);
+                this.nexusName = GetDefaultValue(NexusNameTag);
+            }
+            else
+            {
+                //this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
+                this.phantasmaBPURL = PlayerPrefs.GetString(PhantasmaBPTag, GetDefaultValue(PhantasmaBPTag));
+                this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));
+                this.neoscanURL = PlayerPrefs.GetString(NeoscanAPITag, GetDefaultValue(NeoscanAPITag));
+                this.nexusName = PlayerPrefs.GetString(NexusNameTag, GetDefaultValue(NexusNameTag));
+            }
 
             this.currency = PlayerPrefs.GetString(CurrencyTag, "USD");
             this.sfx = PlayerPrefs.GetInt(SFXTag, 0)!=0;
@@ -187,7 +199,17 @@ namespace Poltergeist
             this.ethereumLocalnetSoulContract = PlayerPrefs.GetString(EthereumLocalnetSoulContractTag, GetDefaultValue(EthereumLocalnetSoulContractTag));
             this.ethereumLocalnetKcalContract = PlayerPrefs.GetString(EthereumLocalnetKcalContractTag, GetDefaultValue(EthereumLocalnetKcalContractTag));
 
-            this.ethereumRPCURL = PlayerPrefs.GetString(EthereumRPCTag, GetDefaultValue(EthereumRPCTag));
+            if (this.ethereumNetwork == EthereumNetwork.Main_Net || this.ethereumNetwork == EthereumNetwork.Ropsten)
+            {
+                // For mainnet/testnet we always load defaults for hidden settings,
+                // to avoid dealing with "stuck" values from old PG version that had different defaults.
+                this.ethereumRPCURL = GetDefaultValue(EthereumRPCTag);
+            }
+            else
+            {
+                this.ethereumRPCURL = PlayerPrefs.GetString(EthereumRPCTag, GetDefaultValue(EthereumRPCTag));
+            }
+
             if (!BigInteger.TryParse(PlayerPrefs.GetString(EthereumGasPriceGweiTag, "100"), out ethereumGasPriceGwei))
             {
                 this.ethereumGasPriceGwei = 100;
