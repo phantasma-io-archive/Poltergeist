@@ -3456,7 +3456,13 @@ namespace Poltergeist
 
             if (state == null)
             {
-                DrawCenteredText("Temporary error, cannot display balances...");
+                var message = "Temporary error, cannot display balances...";
+                if(accountManager.rpcAvailablePhantasma == 0 || accountManager.rpcAvailableNeo == 0)
+                {
+                    var rpcMessagePart = (accountManager.rpcAvailablePhantasma == 0 && accountManager.rpcAvailableNeo == 0) ? "Phantasma and Neo" : (accountManager.rpcAvailablePhantasma == 0 ? "Phantasma" : "Neo");
+                    message = $"Please check your internet connection. All {rpcMessagePart} RPC servers are unavailable.";
+                }
+                DrawCenteredText(message);
                 return;
             }
 
@@ -4282,7 +4288,13 @@ namespace Poltergeist
 
             if (history == null)
             {
-                DrawCenteredText("Temporary error, cannot display history...");
+                var message = "Temporary error, cannot display history...";
+                if (accountManager.rpcAvailablePhantasma == 0 || accountManager.rpcAvailableNeo == 0)
+                {
+                    var rpcMessagePart = (accountManager.rpcAvailablePhantasma == 0 && accountManager.rpcAvailableNeo == 0) ? "Phantasma and Neo" : (accountManager.rpcAvailablePhantasma == 0 ? "Phantasma" : "Neo");
+                    message = $"Please check your internet connection. All {rpcMessagePart} RPC servers are unavailable.";
+                }
+                DrawCenteredText(message);
                 return;
             }
 

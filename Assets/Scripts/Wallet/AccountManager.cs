@@ -375,6 +375,8 @@ namespace Poltergeist
         private int rpcNumberNeo; // Total number of Neo RPCs.
         private int rpcBenchmarkedPhantasma; // Number of Phantasma RPCs which speed already measured.
         private int rpcBenchmarkedNeo; // Number of Neo RPCs which speed already measured.
+        public int rpcAvailablePhantasma = 0;
+        public int rpcAvailableNeo = 0;
         private class RpcBenchmarkData
         {
             public string Url;
@@ -486,7 +488,7 @@ namespace Poltergeist
 
                                         if (String.IsNullOrEmpty(bestRpcUrl))
                                         {
-                                            Log.WriteWarning("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                                            Log.WriteWarning("All Phantasma RPC servers are unavailable. Please check your network connection.");
                                         }
                                         else
                                         {
@@ -502,6 +504,8 @@ namespace Poltergeist
                                 {
                                     rpcBenchmarkedPhantasma++;
 
+                                    rpcAvailablePhantasma++;
+
                                     lock (rpcResponseTimesPhantasma)
                                     {
                                         rpcResponseTimesPhantasma.Add(new RpcBenchmarkData(rpcUrl, false, responseTime));
@@ -515,7 +519,7 @@ namespace Poltergeist
 
                                         if (String.IsNullOrEmpty(bestRpcUrl))
                                         {
-                                            Log.WriteWarning("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                                            Log.WriteWarning("All Phantasma RPC servers are unavailable. Please check your network connection.");
                                         }
                                         else
                                         {
@@ -574,7 +578,7 @@ namespace Poltergeist
 
                                 if (String.IsNullOrEmpty(bestRpcUrl))
                                 {
-                                    Log.WriteWarning("All Neo RPC severs are unavailable. Please check your network connection.");
+                                    Log.WriteWarning("All Neo RPC servers are unavailable. Please check your network connection.");
                                 }
                                 else
                                 {
@@ -589,6 +593,8 @@ namespace Poltergeist
                         {
                             rpcBenchmarkedNeo++;
 
+                            rpcAvailableNeo++;
+
                             lock (rpcResponseTimesNeo)
                             {
                                 rpcResponseTimesNeo.Add(new RpcBenchmarkData(rpcUrl, false, responseTime));
@@ -602,7 +608,7 @@ namespace Poltergeist
 
                                 if (String.IsNullOrEmpty(bestRpcUrl))
                                 {
-                                    Log.WriteWarning("All Neo RPC severs are unavailable. Please check your network connection.");
+                                    Log.WriteWarning("All Neo RPC servers are unavailable. Please check your network connection.");
                                 }
                                 else
                                 {
@@ -632,6 +638,10 @@ namespace Poltergeist
             {
                 Log.Write($"Changing faulty Phantasma RPC {Settings.phantasmaRPCURL}.");
 
+                // Now we have one less working RPC.
+                if(rpcAvailablePhantasma > 0)
+                    rpcAvailablePhantasma--;
+
                 // Marking faulty RPC.
                 var currentRpc = rpcResponseTimesPhantasma.Find(x => x.Url == Settings.phantasmaRPCURL);
                 if (currentRpc != null)
@@ -643,7 +653,7 @@ namespace Poltergeist
 
                 if (String.IsNullOrEmpty(bestRpcUrl))
                 {
-                    Log.WriteWarning("All Phantasma RPC severs are unavailable. Please check your network connection.");
+                    Log.WriteWarning("All Phantasma RPC servers are unavailable. Please check your network connection.");
                 }
                 else
                 {
@@ -659,6 +669,10 @@ namespace Poltergeist
 
                 Log.Write($"Changing faulty Neo RPC {Settings.neoRPCURL}.");
 
+                // Now we have one less working RPC.
+                if (rpcAvailableNeo > 0)
+                    rpcAvailableNeo--;
+
                 // Marking faulty RPC.
                 var currentRpc = rpcResponseTimesNeo.Find(x => x.Url == Settings.neoRPCURL);
                 if (currentRpc != null)
@@ -670,7 +684,7 @@ namespace Poltergeist
 
                 if (String.IsNullOrEmpty(bestRpcUrl))
                 {
-                    Log.WriteWarning("All Neo RPC severs are unavailable. Please check your network connection.");
+                    Log.WriteWarning("All Neo RPC servers are unavailable. Please check your network connection.");
                 }
                 else
                 {
