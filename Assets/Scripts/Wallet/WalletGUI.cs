@@ -1856,6 +1856,10 @@ namespace Poltergeist
                                 "Do you want to protect exported data with a password?\nIf not, leave this field blank.", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
                             {
                                 var accountsExport = new AccountsExport();
+
+                                accountsExport.walletIdentifier = accountManager.WalletIdentifier;
+                                accountsExport.accountsVersion = PlayerPrefs.GetInt(AccountManager.WalletVersionTag, 1);
+
                                 List<Account> accountsToExport;
                                 if (accountManagementSelectedList.Count() > 0)
                                     accountsToExport = accountManager.Accounts.Where(x => accountManagementSelectedList.Contains(x.phaAddress)).ToList();
@@ -1913,6 +1917,8 @@ namespace Poltergeist
                                 if (result == PromptResult.Success)
                                 {
                                     var accountsExport = Serialization.Unserialize<AccountsExport>(Convert.FromBase64String(walletsData));
+
+                                    Log.Write($"Importing wallets. Source wallet identifier: {accountsExport.walletIdentifier}, accounts version: {accountsExport.accountsVersion}");
 
                                     var import = new Action<AccountsExport>((data) =>
                                     {
