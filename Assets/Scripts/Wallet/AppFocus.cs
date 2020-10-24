@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using TMPro;
 using UnityEngine;
 
 // class to set app focus on demand
 // NOTE - only Windows OS supported for now...
+// https://stackoverflow.com/questions/5206633/find-out-what-application-window-is-in-focus-in-java/18275492
 public class AppFocus : MonoBehaviour
 {
     public static AppFocus Instance;
@@ -48,12 +46,62 @@ public class AppFocus : MonoBehaviour
             SetForegroundWindow(_otherHandle);
         }
     }
-#else
-    public static void Focus()
+#elif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+
+    private string _otherEXE;
+
+    public void StartFocus()
     {
-        Debug.Warning("Focus() not supported on this platform");
+        _otherEXE = GetForegroundWindow();
+        ExecuteProcessTerminal("open " + _thisEXE);
     }
 
+    public void EndFocus()
+    {
+        if (!string.IsNullOrEmpty(_otherEXE))
+        {
+            ExecuteProcessTerminal("open " + _otherEXE);
+        }
+    }
+
+
+    private void ExecuteProcessTerminal(string argument)
+    {
+        try
+        {
+            Debug.Log("============== Start Executing [" + argument + "] ===============");
+            ProcessStartInfo startInfo = new ProcessStartInfo("/bin/bash")
+            {
+                WorkingDirectory = "/",
+                UseShellExecute = false,
+                RedirectStandardOutput = true
+            };
+            Process myProcess = new Process
+            {
+                StartInfo = startInfo
+            };
+            myProcess.StartInfo.Arguments = argument;
+            myProcess.Start();
+            string output = myProcess.StandardOutput.ReadToEnd();
+            Debug.Log("Result for [" + argument + "] is : \n" + output);
+            myProcess.WaitForExit();
+            Debug.Log("============== End ===============");
+        }
+        catch (Exception e)
+        {
+            Debug.Warning(e);
+        }
+    }
+#else
+    public static void StartFocus()
+    {
+        Debug.Warning("StartFocus() not implemented on this platform");
+    }
+
+    public static void EndFocus()
+    {
+        Debug.Warning("EndFocus() not implemented on this platform");
+    }
 #endif
 
 }
