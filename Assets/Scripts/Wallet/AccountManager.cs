@@ -366,10 +366,10 @@ namespace Poltergeist
             _tokenPrices[symbol] = price;
         }
 
-        private const string WalletVersionTag = "wallet.list.version";
-        private const string WalletTag = "wallet.list";
+        public const string WalletVersionTag = "wallet.list.version";
+        public const string WalletTag = "wallet.list";
         // TODO: Remove before release.
-        private const string WalletLegacyTag = "wallet.list.legacy";
+        public const string WalletLegacyTag = "wallet.list.legacy";
 
         private int rpcNumberPhantasma; // Total number of Phantasma RPCs, received from getpeers.json.
         private int rpcNumberNeo; // Total number of Neo RPCs.

@@ -2566,10 +2566,52 @@ namespace Poltergeist
             });
             curY += Units(3);
 
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Reset settings", () =>
+            {
+                PromptBox("All settings will be set to default values.\nMake sure you have backups of your private keys!", ModalConfirmCancel, (result) =>
+                {
+                    if (result == PromptResult.Success)
+                    {
+                        AudioManager.Instance.PlaySFX("click");
+
+                        // Saving wallets before settings reset.
+                        var walletsVersion = PlayerPrefs.GetInt(AccountManager.WalletVersionTag);
+                        var wallets = PlayerPrefs.GetString(AccountManager.WalletTag, "");
+                        // TODO: Remove before release.
+                        var walletsLegacy = PlayerPrefs.GetString(AccountManager.WalletLegacyTag, "");
+
+                        PlayerPrefs.DeleteAll();
+
+                        // Restoring wallets before settings reset.
+                        PlayerPrefs.SetInt(AccountManager.WalletVersionTag, walletsVersion);
+                        PlayerPrefs.SetString(AccountManager.WalletTag, wallets);
+                        // TODO: Remove before release.
+                        PlayerPrefs.SetString(AccountManager.WalletLegacyTag, walletsLegacy);
+
+                        // Loading default settings.
+                        accountManager.Settings.Load();
+
+                        // Finding fastest Phantasma and Neo RPCs.
+                        accountManager.UpdateRPCURL(PlatformKind.Phantasma);
+                        accountManager.UpdateRPCURL(PlatformKind.Neo);
+
+                        // Restoring combos' selected items.
+                        // If they are not restored, following calls of DoSettingsScreen() will change them again.
+                        SetState(GUIState.Settings);
+
+                        MessageBox(MessageKind.Default, "All settings set to default values.", () =>
+                        {
+                            CloseCurrentStack();
+                        });
+                    }
+                }, 0);
+            });
+            curY += Units(3);
+
             if (accountManager.Accounts.Count() > 0)
             {
                 curY += Units(1);
-                DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Delete Everything", () =>
+                DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Delete everything", () =>
                 {
                     PromptBox("All wallets and settings stored in this device will be lost.\nMake sure you have backups of your private keys!\nOtherwise you will lose access to your funds.", ModalConfirmCancel, (result) =>
                     {
