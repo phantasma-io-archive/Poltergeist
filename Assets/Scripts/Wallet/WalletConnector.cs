@@ -247,7 +247,7 @@ namespace Poltergeist
             }
         }
  
-        protected override void Authorize(string dapp, Action<bool, string> callback)
+        protected override void Authorize(string dapp, string token, Action<bool, string> callback)
         {
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
@@ -276,10 +276,16 @@ namespace Poltergeist
                 WalletGUI.Instance.Prompt($"Give access to dapp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
                {
                    AppFocus.Instance.EndFocus();
+
+                   if (result)
+                   {
+                       state.RegisterDappToken(dapp, token);
+                   }
+
                    callback(result,  result ? null :"rejected");
                });
            });
 
         }
-   }
+    }
 }

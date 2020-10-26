@@ -5176,7 +5176,7 @@ namespace Poltergeist
 
                 try
                 {
-                    var vm = new GasMachine(script);
+                    var vm = new GasMachine(script, 0, null);
                     var result = vm.Execute();
                     usedGas = vm.UsedGas;
                 }

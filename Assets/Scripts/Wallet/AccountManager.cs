@@ -178,6 +178,8 @@ namespace Poltergeist
         public uint usedStorage;
         public uint totalStorage => availableStorage + usedStorage;
 
+        public Dictionary<string, string> dappTokens = new Dictionary<string, string>();
+
         public decimal GetAvailableAmount(string symbol)
         {
             for (int i = 0; i < balances.Length; i++)
@@ -190,6 +192,11 @@ namespace Poltergeist
             }
 
             return 0;
+        }
+
+        public void RegisterDappToken(string dapp, string token)
+        {
+            dappTokens[dapp] = token;
         }
     }
 
@@ -1460,6 +1467,18 @@ namespace Poltergeist
             _selectedAccountIndex = -1;
 
             _accountInitialized = false;
+
+            // revoke all dapps connected to this account via Phantasma Link
+            if (_states.ContainsKey(PlatformKind.Phantasma))
+            {
+                var link = ConnectorManager.Instance.PhantasmaLink;
+
+                var state = _states[PlatformKind.Phantasma];
+                foreach (var entry in state.dappTokens)
+                {
+                    link.Revoke(entry.Key, entry.Value);
+                }
+            }
 
             _states.Clear();
             _nfts.Clear();

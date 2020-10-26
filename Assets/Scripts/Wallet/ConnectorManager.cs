@@ -19,7 +19,8 @@ namespace Poltergeist
 
     public class ConnectorManager : MonoBehaviour
     {
-        private WalletConnector link;
+        public WalletConnector PhantasmaLink { get; private set; }
+        public static ConnectorManager Instance { get; private set; }
 
         private Socket listener;
 
@@ -33,7 +34,9 @@ namespace Poltergeist
         // Start is called before the first frame update
         void Start()
         {
-            this.link = new WalletConnector();
+            Instance = this;
+
+            this.PhantasmaLink = new WalletConnector();
 
             var port = WalletLink.WebSocketPort;
 
@@ -76,7 +79,7 @@ namespace Poltergeist
 
                         WalletGUI.Instance.CallOnUIThread(() =>
                         {
-                            link.Execute(str, (id, root, success) =>
+                            PhantasmaLink.Execute(str, (id, root, success) =>
                             {
                                 root.AddField("id", id);
                                 root.AddField("success", success);
