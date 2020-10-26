@@ -292,6 +292,19 @@ namespace Poltergeist
                             sb.AppendLine($"\u2605 Burn {total} {symbol} from {address}.");
                             break;
                         }
+                    case "Nexus.CreateToken":
+                        {
+                            var address = GetStringArg(entry, 0);
+                            var symbol = GetStringArg(entry, 1);
+                            var name = GetStringArg(entry, 2);
+                            var maxSupply = GetNumberArg(entry, 3);
+                            var decimals = GetNumberArg(entry, 4);
+                            var flags = GetNumberArg(entry, 5);
+                            var ctScript = GetByteArrayArg(entry, 6);
+
+                            sb.AppendLine($"\u2605 Create token {symbol} with name '{name}', {maxSupply} max supply, {decimals} decimals from {address}.");
+                            break;
+                        }
 
                     default:
                         sb.AppendLine(entry.ToString());
