@@ -79,6 +79,18 @@ namespace Poltergeist
             }
         }
 
+        private static byte[] GetByteArrayArg(DisasmMethodCall call, int argumentNumber)
+        {
+            try
+            {
+                return call.Arguments[argumentNumber].AsByteArray();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"{GetCallFullName(call)}: Error: Cannot get description for argument #{argumentNumber + 1} [String]: {e.Message}");
+            }
+        }
+
         private static Dictionary<string, int> methodTable = DisasmUtils.GetDefaultDisasmTable();
 
 
@@ -165,7 +177,7 @@ namespace Poltergeist
                                 if (transferTokenCounter == 0)
                                 {
                                     // Desc line #1.
-                                    sb.AppendLine("Transfer:");
+                                    sb.AppendLine("\u2605 Transfer:");
                                 }
                                 
                                 if (transferTokenCounter == groupSize - 1)
@@ -182,7 +194,7 @@ namespace Poltergeist
                             }
                             else
                             {
-                                sb.AppendLine($"Transfer {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} to {dst}.");
+                                sb.AppendLine($"\u2605 Transfer {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} to {dst}.");
                             }
 
                             transferTokenCounter++;
@@ -201,7 +213,7 @@ namespace Poltergeist
 
                             var total = UnitConversion.ToDecimal(amount, token.decimals);
 
-                            sb.AppendLine($"Transfer {total} {symbol} from {src} to {dst}.");
+                            sb.AppendLine($"\u2605 Transfer {total} {symbol} from {src} to {dst}.");
                             break;
                         }
                     case "market.BuyToken":
@@ -210,7 +222,7 @@ namespace Poltergeist
                             var symbol = GetStringArg(entry, 1);
                             var nftNumber = GetStringArg(entry, 2);
 
-                            sb.AppendLine($"Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
+                            sb.AppendLine($"\u2605 Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
                             break;
                         }
                     case "market.SellToken":
@@ -232,7 +244,7 @@ namespace Poltergeist
                                 if (sellTokenCounter == 0)
                                 {
                                     // Desc line #1.
-                                    sb.AppendLine("Sell:");
+                                    sb.AppendLine("\u2605 Sell:");
                                     sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
                                 }
                                 else if (sellTokenCounter == groupSize - 1)
@@ -249,11 +261,35 @@ namespace Poltergeist
                             }
                             else
                             {
-                                sb.AppendLine($"Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
+                                sb.AppendLine($"\u2605 Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
                             }
 
                             sellTokenCounter++;
 
+                            break;
+                        }
+                    case "Runtime.MintToken":
+                        {
+                            var owner = GetStringArg(entry, 0);
+                            var recepient = GetStringArg(entry, 1);
+                            var symbol = GetStringArg(entry, 2);
+                            var bytes = GetByteArrayArg(entry, 3);
+
+                            sb.AppendLine($"\u2605 Mint {symbol} NFT from {owner} with {recepient} as recipient.");
+                            break;
+                        }
+                    case "Runtime.BurnTokens":
+                        {
+                            var address = GetStringArg(entry, 0);
+                            var symbol = GetStringArg(entry, 1);
+                            var amount = GetNumberArg(entry, 2);
+
+                            Token token;
+                            AccountManager.Instance.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
+
+                            var total = UnitConversion.ToDecimal(amount, token.decimals);
+
+                            sb.AppendLine($"\u2605 Burn {total} {symbol} from {address}.");
                             break;
                         }
 
