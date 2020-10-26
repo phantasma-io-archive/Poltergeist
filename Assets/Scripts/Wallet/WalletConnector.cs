@@ -26,7 +26,11 @@ namespace Poltergeist
 
         protected override Account GetAccount()
         {
+            var accountManager = AccountManager.Instance;
             var account = AccountManager.Instance.CurrentAccount;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+                accountManager.CurrentPlatform = PlatformKind.Phantasma;
 
             var state = AccountManager.Instance.CurrentState;
 
@@ -122,6 +126,11 @@ namespace Poltergeist
 
         protected override void SignTransaction(string nexus, string chain, byte[] script, byte[] payload, int id, Action<Hash, string> callback)
         {
+            var accountManager = AccountManager.Instance;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+                accountManager.CurrentPlatform = PlatformKind.Phantasma;
+
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
             {
@@ -190,6 +199,11 @@ namespace Poltergeist
 
         protected override void SignData(byte[] data, SignatureKind kind, int id, Action<string, string, string> callback)
         {
+            var accountManager = AccountManager.Instance;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+                accountManager.CurrentPlatform = PlatformKind.Phantasma;
+
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
             {
@@ -249,6 +263,11 @@ namespace Poltergeist
  
         protected override void Authorize(string dapp, string token, Action<bool, string> callback)
         {
+            var accountManager = AccountManager.Instance;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+                accountManager.CurrentPlatform = PlatformKind.Phantasma;
+
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
             {
