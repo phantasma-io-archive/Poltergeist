@@ -2348,12 +2348,24 @@ namespace Poltergeist
 
         public string GetPhantasmaTransactionURL(string hash)
         {
-            return $"https://explorer.phantasma.io/tx/{hash}";
+            var url = Settings.phantasmaExplorer;
+            if (!url.EndsWith("/"))
+            {
+                url += "/";
+            }
+
+            return $"{url}tx/{hash}";
         }
 
         public string GetPhantasmaAddressURL(string address)
         {
-            return $"https://explorer.phantasma.io/address/{address}";
+            var url = Settings.phantasmaExplorer;
+            if (!url.EndsWith("/"))
+            {
+                url += "/";
+            }
+
+            return $"{url}address/{address}";
         }
 
         private void RequestPendings(string address, Action<Swap[], string> callback)

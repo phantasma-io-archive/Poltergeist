@@ -2347,6 +2347,12 @@ namespace Poltergeist
                 return false;
             }
 
+            if (!settings.phantasmaExplorer.IsValidURL())
+            {
+                MessageBox(MessageKind.Error, "Invalid URL for Phantasma Explorer URL.\n" + settings.phantasmaExplorer);
+                return false;
+            }
+
             if (!settings.neoRPCURL.IsValidURL())
             {
                 MessageBox(MessageKind.Error, "Invalid URL for NEO RPC URL.\n" + settings.neoRPCURL);
@@ -2487,6 +2493,10 @@ namespace Poltergeist
             {
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma RPC URL");
                 settings.phantasmaBPURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
+                curY += Units(3);
+
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma Explorer URL");
+                settings.phantasmaExplorer = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaExplorer);
                 curY += Units(3);
 
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neo RPC URL");

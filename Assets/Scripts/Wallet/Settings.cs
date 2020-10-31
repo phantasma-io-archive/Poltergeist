@@ -50,6 +50,7 @@ namespace Poltergeist
     {
         //public const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
         public const string PhantasmaBPTag = "settings.phantasma.bp.url";
+        public const string PhantasmaExplorerTag = "settings.phantasma.explorer.url";
         public const string NeoRPCTag = "settings.neo.rpc.url";
         public const string NeoscanAPITag = "settings.neoscan.url";
         public const string NexusNameTag = "settings.nexus.name";
@@ -80,6 +81,7 @@ namespace Poltergeist
 
         public string phantasmaRPCURL;
         public string phantasmaBPURL;
+        public string phantasmaExplorer;
         public string neoRPCURL;
         public string neoscanURL;
         public string nexusName;
@@ -153,6 +155,7 @@ namespace Poltergeist
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
                 this.phantasmaBPURL = GetDefaultValue(PhantasmaBPTag);
+                this.phantasmaExplorer = GetDefaultValue(PhantasmaExplorerTag);
                 this.neoRPCURL = GetDefaultValue(NeoRPCTag);
                 this.neoscanURL = GetDefaultValue(NeoscanAPITag);
                 this.nexusName = GetDefaultValue(NexusNameTag);
@@ -161,6 +164,7 @@ namespace Poltergeist
             {
                 //this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
                 this.phantasmaBPURL = PlayerPrefs.GetString(PhantasmaBPTag, GetDefaultValue(PhantasmaBPTag));
+                this.phantasmaExplorer = PlayerPrefs.GetString(PhantasmaExplorerTag, GetDefaultValue(PhantasmaExplorerTag));
                 this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));
                 this.neoscanURL = PlayerPrefs.GetString(NeoscanAPITag, GetDefaultValue(NeoscanAPITag));
                 this.nexusName = PlayerPrefs.GetString(NexusNameTag, GetDefaultValue(NexusNameTag));
@@ -275,6 +279,27 @@ namespace Poltergeist
                     }
                     break;
 
+                case PhantasmaExplorerTag:
+                    switch (nexusKind)
+                    {
+                        case NexusKind.Main_Net:
+                            _return_value = "https://explorer.phantasma.io";
+                            break;
+
+                        case NexusKind.Test_Net:
+                            _return_value = "http://localhost:7074/";
+                            break;
+
+                        case NexusKind.Local_Net:
+                            _return_value = "http://localhost:7074/";
+                            break;
+
+                        default:
+                            _return_value = "https://explorer.phantasma.io";
+                            break;
+                    }
+                    break;
+
                 case NeoRPCTag:
                     switch (nexusKind)
                     {
@@ -366,6 +391,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(NexusKindTag, nexusKind.ToString());
             //PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
+            PlayerPrefs.SetString(PhantasmaExplorerTag, this.phantasmaExplorer);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
             PlayerPrefs.SetString(NeoGasFeeTag, this.neoGasFee.ToString());
 
@@ -410,6 +436,7 @@ namespace Poltergeist
         {
             //this.phantasmaRPCURL = this.GetDefaultValue(PhantasmaRPCTag);
             this.phantasmaBPURL = this.GetDefaultValue(PhantasmaBPTag);
+            this.phantasmaExplorer = this.GetDefaultValue(PhantasmaExplorerTag);
             this.neoRPCURL = this.GetDefaultValue(NeoRPCTag);
             this.neoscanURL = this.GetDefaultValue(NeoscanAPITag);
             this.ethereumRPCURL = this.GetDefaultValue(EthereumRPCTag);
@@ -435,6 +462,7 @@ namespace Poltergeist
 
             Log.Write("Settings: Restore endpoints: restoreName mode: " + restoreName + "\n" +
                       "                             Phantasma BP: " + this.phantasmaBPURL + "\n" +
+                      "                             Phantasma Explorer: " + this.phantasmaExplorer + "\n" +
                       "                             Neo RPC: " + this.neoRPCURL + "\n" +
                       "                             Neoscan: " + this.neoscanURL + "\n" +
                       "                             Ethereum RPC: " + this.ethereumRPCURL + "\n" +
