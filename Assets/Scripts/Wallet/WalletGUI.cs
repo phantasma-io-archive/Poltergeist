@@ -6026,9 +6026,70 @@ namespace Poltergeist
                                  return;
                              }
 
+                             var swapSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
+                             var feeSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
+                             Log.Write($"Balance before swap: {swapSymbol}: {swapSymbolBalance}, {feeSymbol}: {feeSymbolBalance}.");
                              SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, null, "main", (hash) =>
                              {
-                                 callback(hash != Hash.Null ? PromptResult.Success : PromptResult.Failure);
+                                 if (hash == Hash.Null)
+                                 {
+                                     callback(PromptResult.Failure);
+                                 }
+                                 else
+                                 {
+                                     // We should check if balance is properly updated,
+                                     // to prevent further potential errors.
+                                     var swapSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
+                                     var feeSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
+
+                                     if (swapSymbolBalance == swapSymbolBalanceNew || feeSymbolBalance == feeSymbolBalanceNew)
+                                     {
+                                         Log.Write($"Balance is not refreshed properly, #1. {swapSymbol}: {swapSymbolBalanceNew}, {feeSymbol}: {feeSymbolBalanceNew}");
+                                         // Balance is not refreshed properly, retrying.
+                                         Thread.Sleep(2000);
+                                         accountManager.RefreshBalances(true, () =>
+                                         {
+                                             swapSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
+                                             feeSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
+
+                                             if (swapSymbolBalance == swapSymbolBalanceNew || feeSymbolBalance == feeSymbolBalanceNew)
+                                             {
+                                                 Log.Write($"Balance is not refreshed properly, #2. {swapSymbol}: {swapSymbolBalanceNew}, {feeSymbol}: {feeSymbolBalanceNew}");
+                                                 // Still not updated, waiting another 4 seconds.
+                                                 Thread.Sleep(4000);
+                                                 accountManager.RefreshBalances(true, () =>
+                                                 {
+                                                     swapSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
+                                                     feeSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
+
+                                                     if (swapSymbolBalance == swapSymbolBalanceNew || feeSymbolBalance == feeSymbolBalanceNew)
+                                                     {
+                                                         Log.Write($"Balance is not refreshed properly, #3. {swapSymbol}: {swapSymbolBalanceNew}, {feeSymbol}: {feeSymbolBalanceNew}");
+                                                         // Still not updated, aborting.
+
+                                                         MessageBox(MessageKind.Error, "Cannot update balance after cosmic swap.\nPlease try again later.");
+                                                         return;
+                                                     }
+                                                     else
+                                                     {
+                                                         // Balance updated after swap.
+                                                         callback(PromptResult.Success);
+                                                     }
+                                                 });
+                                             }
+                                             else
+                                             {
+                                                 // Balance updated after swap.
+                                                 callback(PromptResult.Success);
+                                             }
+                                         });
+                                     }
+                                     else
+                                     {
+                                         // Balance updated after swap.
+                                         callback(PromptResult.Success);
+                                     }
+                                 }
                              });
                          }
                          else
