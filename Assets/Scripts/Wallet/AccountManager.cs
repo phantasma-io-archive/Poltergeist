@@ -436,10 +436,16 @@ namespace Poltergeist
                 Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
 
             if (Settings.nexusKind == NexusKind.Custom)
+            {
+                rpcAvailablePhantasma = 1;
+                rpcAvailableNeo = 1;
                 return; // No need to change RPC, it is set by custom settings.
+            }
 
             if (Settings.nexusName != "mainnet")
             {
+                rpcAvailablePhantasma = 1;
+                rpcAvailableNeo = 1;
                 return; // HACK getpeers only for mainnet
             }
 
