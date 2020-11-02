@@ -54,15 +54,15 @@ public class AppFocus : MonoBehaviour
 
     public void StartFocus()
     {
-        _otherEXE = GetForegroundWindow();
-        ExecuteProcessTerminal("open " + _thisEXE);
+        //_otherEXE = GetForegroundWindow();
+        //ExecuteProcessTerminal("open " + _thisEXE);
     }
 
     public void EndFocus()
     {
         if (!string.IsNullOrEmpty(_otherEXE))
         {
-            ExecuteProcessTerminal("open " + _otherEXE);
+            //ExecuteProcessTerminal("open " + _otherEXE);
         }
     }
 
@@ -71,7 +71,7 @@ public class AppFocus : MonoBehaviour
     {
         try
         {
-            Debug.Log("============== Start Executing [" + argument + "] ===============");
+            /*Debug.Log("============== Start Executing [" + argument + "] ===============");
             ProcessStartInfo startInfo = new ProcessStartInfo("/bin/bash")
             {
                 WorkingDirectory = "/",
@@ -87,11 +87,11 @@ public class AppFocus : MonoBehaviour
             string output = myProcess.StandardOutput.ReadToEnd();
             Debug.Log("Result for [" + argument + "] is : \n" + output);
             myProcess.WaitForExit();
-            Debug.Log("============== End ===============");
+            Debug.Log("============== End ===============");*/
         }
         catch (Exception e)
         {
-            Debug.Warning(e);
+            //Debug.Warning(e);
         }
     }
 #else
