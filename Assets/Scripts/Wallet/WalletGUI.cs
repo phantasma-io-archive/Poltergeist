@@ -427,6 +427,9 @@ namespace Poltergeist
                     break;
 
                 case GUIState.Storage:
+                    if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+                        accountManager.CurrentPlatform = PlatformKind.Phantasma;
+
                     currentTitle = $"Storage space: {BytesToString(accountManager.CurrentState.usedStorage)} used / {BytesToString(accountManager.CurrentState.totalStorage)} total";
                     break;
 
@@ -2150,7 +2153,7 @@ namespace Poltergeist
         {
             int panelWidth = (int)(windowRect.width - (Border * 2));
 
-            var itemCount = items.Count();
+            var itemCount = items != null ? items.Count() : 0;
             var insideRect = new Rect(0, 0, panelWidth, Border + ((panelHeight + Border) * itemCount));
             var outsideRect = new Rect(Border, startY, panelWidth, endY - (startY + Border));
 
@@ -2165,16 +2168,19 @@ namespace Poltergeist
 
             int i = 0;
             scroll = GUI.BeginScrollView(outsideRect, scroll, insideRect);
-            foreach (var item in items)
+            if (items != null)
             {
-                var rect = new Rect(0, curY, insideRect.width, panelHeight);
-                GUI.Box(rect, "");
+                foreach (var item in items)
+                {
+                    var rect = new Rect(0, curY, insideRect.width, panelHeight);
+                    GUI.Box(rect, "");
 
-                callback(item, i, curY, rect);
+                    callback(item, i, curY, rect);
 
-                curY += panelHeight;
-                curY += Border;
-                i++;
+                    curY += panelHeight;
+                    curY += Border;
+                    i++;
+                }
             }
             GUI.EndScrollView();
 
