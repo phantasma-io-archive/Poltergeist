@@ -3089,7 +3089,7 @@ namespace Poltergeist
         {
             new DappEntry("GhostMarket", "marketplace", "https://ghostmarket.io/"),
             new DappEntry("Katacomb", "game", "http://katacomb.io/"),
-            new DappEntry("Nachomen", "game", "https://nacho.men/"),
+            /*new DappEntry("Nachomen", "game", "https://nacho.men/"),*/
         };
 
         private void DoDappScreen()
