@@ -1686,7 +1686,7 @@ namespace Poltergeist
 
         private string[] accountOptions = new string[] { "Generate new wallet", "Import wallet", "Manage", "Settings" };
 
-        private string[] walletsManagementOptions = new string[] { "Export", "Import", "Delete", "Save and Close" };
+        private string[] walletsManagementOptions = new string[] { "Export", "Import", "Delete", "Cancel", "Save and Close" };
 
         private Vector2 accountScroll;
         private Vector2 balanceScroll;
@@ -2031,6 +2031,12 @@ namespace Poltergeist
                         }
 
                     case 3:
+                        {
+                            CloseCurrentStack();
+                            return;
+                        }
+
+                    case 4:
                         {
                             accountManager.SaveAccounts();
                             CloseCurrentStack();
