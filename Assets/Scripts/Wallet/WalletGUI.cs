@@ -2721,7 +2721,8 @@ namespace Poltergeist
                     case 1:
                         {
                             AudioManager.Instance.PlaySFX("click");
-                            Application.OpenURL(System.IO.Path.GetDirectoryName("file://" + Log.FilePath));
+                            string path = System.IO.Path.GetDirectoryName(Log.FilePath).TrimEnd(new[] { '\\', '/' }); // Mac doesn't like trailing slash
+                            System.Diagnostics.Process.Start(path);
                             break;
                         }
 
