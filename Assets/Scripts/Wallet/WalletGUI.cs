@@ -3622,7 +3622,10 @@ namespace Poltergeist
                                 }
                                 else
                                 {
-                                    MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
+                                    if(accountManager.CurrentPlatform == PlatformKind.Ethereum && error.Contains("destination hash is not yet available"))
+                                        MessageBox(MessageKind.Default, $"Claim was processed but it will take some time for Ethereum transaction to be mined.\nPlease press claim again later to finalize claim procedure.");
+                                    else
+                                        MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
                                 }
                             });
                         }
