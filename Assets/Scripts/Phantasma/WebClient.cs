@@ -7,6 +7,7 @@ using UnityEngine.Networking;
 using LunarLabs.Parser;
 using LunarLabs.Parser.JSON;
 using System.Text;
+using System.Threading;
 
 namespace Phantasma.SDK
 {
@@ -28,7 +29,7 @@ namespace Phantasma.SDK
 
             return requestNumber;
         }
-        public static IEnumerator RPCRequest(string url, string method, int timeout, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
+        public static IEnumerator RPCRequest(string url, string method, int timeout, int retriesOnNetworkError, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
                                             Action<DataNode> callback, params object[] parameters)
         {
             var paramData = DataNode.CreateArray("params");
@@ -47,7 +48,6 @@ namespace Phantasma.SDK
             jsonRpcData.AddField("id", "1");
             jsonRpcData.AddNode(paramData);
 
-            UnityWebRequest request;
             string json;
 
             try
@@ -62,19 +62,33 @@ namespace Phantasma.SDK
             var requestNumber = GetNextRequestNumber();
             Log.Write($"RPC request [{requestNumber}]\nurl: {url}\njson: {json}", Log.Level.Networking);
 
-            request = new UnityWebRequest(url, "POST");
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-            request.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
-            request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
 
             DateTime startTime = DateTime.Now;
 
-            if(timeout > 0)
-                request.timeout = timeout;
-            
-            yield return request.SendWebRequest();
-            
+            UnityWebRequest request;
+            for (; ; )
+            {
+                request = new UnityWebRequest(url, "POST");
+                request.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
+                request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/json");
+                if (timeout > 0)
+                    request.timeout = timeout;
+
+                yield return request.SendWebRequest();
+
+                if (request.error == null || retriesOnNetworkError == 0)
+                {
+                    // success
+                    break;
+                }
+
+                Log.Write($"RPC network error [{requestNumber}], {retriesOnNetworkError} retries left.", Log.Level.Networking);
+                Thread.Sleep(1000);
+                retriesOnNetworkError--;
+            }
+
             TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)
@@ -136,7 +150,7 @@ namespace Phantasma.SDK
 
             yield break;
         }
-        public static IEnumerator RPCRequestEx(string url, string method, int timeout, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
+        public static IEnumerator RPCRequestEx(string url, string method, int timeout, int retriesOnNetworkError, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
             Action<DataNode> callback, DataNode parametersNode)
         {
             var jsonRpcData = DataNode.CreateObject(null);
@@ -145,7 +159,6 @@ namespace Phantasma.SDK
             jsonRpcData.AddField("id", "1");
             jsonRpcData.AddNode(parametersNode);
 
-            UnityWebRequest request;
             string json;
 
             try
@@ -160,19 +173,34 @@ namespace Phantasma.SDK
             var requestNumber = GetNextRequestNumber();
             Log.Write($"RPC request [{requestNumber}]\nurl: {url}\njson: {json}", Log.Level.Networking);
 
-            request = new UnityWebRequest(url, "POST");
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-            request.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
-            request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
 
             DateTime startTime = DateTime.Now;
 
-            if (timeout > 0)
-                request.timeout = timeout;
+            UnityWebRequest request;
+            for (; ; )
+            {
+                request = new UnityWebRequest(url, "POST");
+                request.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
+                request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/json");
 
-            yield return request.SendWebRequest();
-            
+                if (timeout > 0)
+                    request.timeout = timeout;
+
+                yield return request.SendWebRequest();
+
+                if (request.error == null || retriesOnNetworkError == 0)
+                {
+                    // success
+                    break;
+                }
+
+                Log.Write($"RPC network error [{requestNumber}], {retriesOnNetworkError} retries left.", Log.Level.Networking);
+                Thread.Sleep(1000);
+                retriesOnNetworkError--;
+            }
+
             TimeSpan responseTime = DateTime.Now - startTime;
 
             if (request.isNetworkError || request.isHttpError)

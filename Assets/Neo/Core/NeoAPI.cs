@@ -796,7 +796,7 @@ namespace Phantasma.Neo.Core
 
         public IEnumerator ExecuteRequestRPC(Action<DataNode> callback, Action<Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE, string> onError, string method, object[] _params)
         {
-            return WebClient.RPCRequest(this.neoRPCUrl, method, WebClient.NoTimeout, onError, (response) => callback(response), _params);
+            return WebClient.RPCRequest(this.neoRPCUrl, method, WebClient.NoTimeout, 0, onError, (response) => callback(response), _params);
         }
 
         private void ErrorHandler(Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE type, string msg)
