@@ -1299,7 +1299,7 @@ namespace Poltergeist
                                                 },
                                                 (error, msg) =>
                                                 {
-                                                    throw new Exception("Failure: " + msg);
+                                                    callback(Hash.Null, msg);
                                                 }));
                                             }
                                             else
@@ -1329,12 +1329,12 @@ namespace Poltergeist
                                                     },
                                                     (error, msg) =>
                                                     {
-                                                        throw new Exception("Failure: " + msg);
+                                                        callback(Hash.Null, msg);
                                                     }));
                                                 }
                                                 else
                                                 {
-                                                    throw new Exception($"Token {transfer.symbol} not supported");
+                                                    callback(Hash.Null, $"Token {transfer.symbol} not supported");
                                                 }
                                             }
 
