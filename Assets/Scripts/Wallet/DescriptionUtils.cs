@@ -6,6 +6,7 @@ using Phantasma.VM.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 
@@ -91,6 +92,7 @@ namespace Poltergeist
             }
         }
 
+        private static List<string> knownContracts = null;
         private static Dictionary<string, int> methodTable = DisasmUtils.GetDefaultDisasmTable();
 
 
@@ -99,14 +101,60 @@ namespace Poltergeist
             methodTable[contractMethod] = paramCount;
         }
 
-        public static string GetDescription(byte[] script)
+        public static IEnumerator GetDescription(byte[] script, Action<string, string> callback)
         {
             foreach (var entry in methodTable.Keys)
             {
                 Debug.Log("disam method: " + entry);
             }
 
-            var disasm = DisasmUtils.ExtractMethodCalls(script, methodTable);
+            if(knownContracts == null)
+            {
+                // Collecting known contract names
+                knownContracts = methodTable.Keys.Select(x => x.IndexOf(".") > 0 ? x.Substring(0, x.IndexOf(".")) : x).Distinct().ToList();
+            }
+
+            var accountManager = AccountManager.Instance;
+
+            var contracts = DisasmUtils.ExtractContractNames(script).Where(x => !knownContracts.Contains(x));
+            var contractsToLoad = contracts.Count();
+            var contractsProcessed = 0;
+            foreach(var contract in contracts)
+            {
+                WalletGUI.Instance.StartCoroutine(
+                    accountManager.phantasmaApi.GetContract(contract, (contractStruct) =>
+                    {
+                        Log.Write($"Registering {contractStruct.methods.Length} methods for {contract}");
+
+                        foreach (var method in contractStruct.methods)
+                        {
+                            Log.Write($"Registering contract method {contract}.{method.name} with {method.parameters.Length} parameters");
+                            DescriptionUtils.RegisterContractMethod($"{contract}.{method.name}", method.parameters.Length);
+                        }
+
+                        contractsProcessed++;
+                    }, (error, msg) =>
+                    {
+                        Log.WriteWarning("Could not fetch contract info: " + contract);
+                        contractsProcessed++;
+                    }));
+            }
+
+            while (contractsProcessed < contractsToLoad)
+            {
+                yield return null;
+            }
+
+            IEnumerable<DisasmMethodCall> disasm;
+            try
+            {
+                disasm = DisasmUtils.ExtractMethodCalls(script, methodTable);
+            }
+            catch (Exception e)
+            {
+                callback(null, e.Message);
+                yield break;
+            }
 
             // Checking if all calls are "market.SellToken" calls only or "Runtime.TransferToken" only,
             // and we can group them.
@@ -209,7 +257,7 @@ namespace Poltergeist
                             var amount = GetNumberArg(entry, 3);
 
                             Token token;
-                            AccountManager.Instance.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
+                            accountManager.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
 
                             var total = UnitConversion.ToDecimal(amount, token.decimals);
 
@@ -233,7 +281,7 @@ namespace Poltergeist
                             var nftNumber = GetStringArg(entry, 3);
 
                             Token priceToken;
-                            AccountManager.Instance.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
 
                             var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
 
@@ -285,7 +333,7 @@ namespace Poltergeist
                             var amount = GetNumberArg(entry, 2);
 
                             Token token;
-                            AccountManager.Instance.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
+                            accountManager.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
 
                             var total = UnitConversion.ToDecimal(amount, token.decimals);
 
@@ -315,10 +363,11 @@ namespace Poltergeist
 
             if (sb.Length > 0)
             {
-                return sb.ToString();
+                callback(sb.ToString(), null);
+                yield break;
             }
 
-            return "Unknown transaction content.";
+            callback(null, "Unknown transaction content.");
         }
     }
 }

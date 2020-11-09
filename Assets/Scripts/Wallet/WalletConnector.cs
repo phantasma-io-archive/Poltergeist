@@ -151,10 +151,42 @@ namespace Poltergeist
             {
                 WalletGUI.Instance.CallOnUIThread(() =>
                 {
-                    string description;
                     try
                     {
-                        description = DescriptionUtils.GetDescription(script);
+                        WalletGUI.Instance.StartCoroutine(DescriptionUtils.GetDescription(script, (description, error) => {
+
+                            if (description == null)
+                            {
+                                WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + error);
+                                callback(Hash.Null, "description parsing error");
+                                return;
+                            }
+
+                            WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
+                            {
+                                if (success)
+                                {
+                                    WalletGUI.Instance.SendTransaction(description, script, payload, chain, (hash) =>
+                                    {
+                                        AppFocus.Instance.EndFocus();
+
+                                        if (hash != Hash.Null)
+                                        {
+                                            callback(hash, null);
+                                        }
+                                        else
+                                        {
+                                            callback(Hash.Null, "something bad happend while sending");
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    AppFocus.Instance.EndFocus();
+                                    callback(Hash.Null, "user rejected");
+                                }
+                            });
+                        }));
                     }
                     catch( Exception e )
                     {
@@ -162,31 +194,6 @@ namespace Poltergeist
                         callback(Hash.Null, "description parsing error");
                         return;
                     }
-                    WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
-                      {
-                          if (success)
-                          {
-                              WalletGUI.Instance.SendTransaction(description, script, payload, chain, (hash) =>
-                              {
-                                  AppFocus.Instance.EndFocus();
-
-                                  if (hash != Hash.Null)
-                                  {
-                                      callback(hash, null);
-                                  }
-                                  else
-                                  {
-                                      callback(Hash.Null, "something bad happend while sending");
-                                  }
-                              });
-                          }
-                          else
-                          {
-                              AppFocus.Instance.EndFocus();
-                              callback(Hash.Null, "user rejected");
-                          }
-                      });
-
                 });
 
             }
@@ -277,21 +284,6 @@ namespace Poltergeist
 
             WalletGUI.Instance.CallOnUIThread(() =>
             {
-                // NOTE this assumes "dapp" as the same name as a valid contract. Otherwise we don't have a way to fetch the methods
-                WalletGUI.Instance.StartCoroutine(
-                api.GetContract(dapp, (contract) =>
-                    {
-                        Debug.LogWarning($"Registering {contract.methods.Length} methods for {dapp}");
-
-                        foreach (var method in contract.methods)
-                        {
-                            DescriptionUtils.RegisterContractMethod($"{dapp}.{method.name}", method.parameters.Length);
-                        }
-                    }, (error, msg) =>
-                    {
-                        Debug.LogWarning("Could not fetch contract info: " + dapp);
-                }));
-
                 WalletGUI.Instance.Prompt($"Give access to dapp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
                {
                    AppFocus.Instance.EndFocus();
