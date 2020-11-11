@@ -3375,6 +3375,8 @@ namespace Poltergeist
                     // if this was the last chunk, show completion msg
                     if (isLast)
                     {
+                        PopState();
+
                         ShowModal("Success",
                             $"The archive '{fileName}' was uploaded!\nTransaction hash:\n" + creationTxHash,
                             ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
@@ -3395,6 +3397,7 @@ namespace Poltergeist
                 }
                 else
                 {
+                    PopState();
                     MessageBox(MessageKind.Error, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!");
                     // TODO allow user to retry ?
                 }
