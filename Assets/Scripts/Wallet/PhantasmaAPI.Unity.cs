@@ -1197,8 +1197,17 @@ namespace Phantasma.SDK
 				callback(result);
 			} , hashText, blockIndex, blockContent);		   
 		}
-		
-		
+
+		// Reads the contents of an archive block.
+		public IEnumerator ReadArchive(string hashText, int blockIndex, Action<byte[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+		{
+			yield return WebClient.RPCRequest(Host, "readArchive", WebClient.NoTimeout, 5, errorHandlingCallback, (node) => {
+				var result = Base16.Decode(node.Value);
+				callback(result);
+			}, hashText, blockIndex);
+		}
+
+
 		//Returns the ABI interface of specific contract.
 		public IEnumerator GetABI(string chainAddressOrName, string contractName, Action<ABIContract> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   

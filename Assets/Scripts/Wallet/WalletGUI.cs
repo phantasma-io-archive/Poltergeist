@@ -68,6 +68,7 @@ namespace Poltergeist
         Dapps,
         Storage,
         Upload,
+        Download,
         Exit,
         Fatal
     }
@@ -563,6 +564,10 @@ namespace Poltergeist
 
                 case GUIState.Upload:
                     currentTitle = "Archive upload";
+                    break;
+
+                case GUIState.Download:
+                    currentTitle = "Archive download";
                     break;
             }
         }
@@ -1231,6 +1236,10 @@ namespace Poltergeist
 
                 case GUIState.Upload:
                     DrawCenteredText($"Uploading chunk {_currentUploadChunk + 1} out of {_totalUploadChunks}...");
+                    break;
+
+                case GUIState.Download:
+                    DrawCenteredText($"Downloading chunk {_currentDownloadChunk + 1} out of {_totalDownloadChunks}...");
                     break;
 
                 case GUIState.Fatal:
@@ -3233,9 +3242,19 @@ namespace Poltergeist
 
             GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), BytesToString(entry.size));
 
-            var btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
+            var btnRect = new Rect(rect.x + rect.width - Units(11), curY + Units(1), Units(4), Units(1));
+            var btnRect2 = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
 
-            DoButton(true, btnRect, "Delete", () =>
+            DoButton(true, btnRect, "Download", () =>
+            {
+                var path = GetDocumentPath();
+                var outputFolderPath = StandaloneFileBrowser.OpenFolderPanel("Select output folder", path, false).FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(outputFolderPath))
+                    DownloadArchive(Hash.Parse(entry.hash), outputFolderPath);
+            });
+
+            DoButton(true, btnRect2, "Delete", () =>
             {
                 DeleteArchive(entry.name, entry.size, Hash.Parse(entry.hash));
             });
@@ -3403,8 +3422,70 @@ namespace Poltergeist
                 }
                     
             });
+        }
 
+        private void DownloadArchive(Hash hash, string outputFolderPath)
+        {
+            var accountManager = AccountManager.Instance;
 
+            accountManager.GetArchive(hash, (result, archive, error) =>
+            {
+                if (result)
+                {
+                    PushState(GUIState.Download);
+
+                    _totalDownloadChunks = archive.blockCount;
+                    DownloadChunk(hash, Path.Combine(outputFolderPath, archive.name), 0);
+                }
+                else
+                {
+                    PopState();
+                    MessageBox(MessageKind.Error, $"Something went wrong while downloading archive {archive.name}!");
+                }
+            });
+        }
+
+        private int _currentDownloadChunk;
+        private int _totalDownloadChunks;
+
+        private void DownloadChunk(Hash archiveHash, string filePath, int blockIndex)
+        {
+            _currentDownloadChunk = blockIndex;
+
+            var accountManager = AccountManager.Instance;
+
+            var lastChunk = _totalDownloadChunks - 1;
+
+            var isLast = blockIndex == lastChunk;
+
+            accountManager.ReadArchive(archiveHash, blockIndex, (result, chunkData, error) =>
+            {
+                if (result)
+                {
+                    using (var stream = new FileStream(filePath, FileMode.Append))
+                    {
+                        stream.Write(chunkData, 0, chunkData.Length);
+                    }
+
+                    // if this was the last chunk, show completion msg
+                    if (isLast)
+                    {
+                        PopState();
+
+                        MessageBox(MessageKind.Default, $"The archive '{filePath}' was downloaded!");
+                    }
+                    else
+                    {
+                        // otherwise download next chunk
+                        DownloadChunk(archiveHash, filePath, blockIndex + 1);
+                    }
+                }
+                else
+                {
+                    PopState();
+                    MessageBox(MessageKind.Error, $"Something went wrong while downloading chunk {blockIndex} for {filePath}!");
+                }
+            });
         }
 
         private void DoBackupScreen()

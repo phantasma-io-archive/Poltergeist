@@ -1426,6 +1426,68 @@ namespace Poltergeist
             }
         }
 
+        public void GetArchive(Hash hash, Action<bool, Archive, string> callback)
+        {
+            var account = this.CurrentAccount;
+
+            switch (CurrentPlatform)
+            {
+                case PlatformKind.Phantasma:
+                    {
+                        Log.Write("GetArchive: " + hash, Log.Level.Debug1);
+                        StartCoroutine(phantasmaApi.GetArchive(hash.ToString(), (result) =>
+                        {
+                            Log.Write("GetArchive result: " + result, Log.Level.Debug1);
+                            callback(true, result, null);
+                        }, (error, log) =>
+                        {
+                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                            {
+                                ChangeFaultyRPCURL();
+                            }
+                            callback(false, new Archive(), log);
+                        }));
+                        break;
+                    }
+                default:
+                    {
+                        callback(false, new Archive(), "not implemented for " + CurrentPlatform);
+                        break;
+                    }
+            }
+        }
+
+        public void ReadArchive(Hash hash, int blockIndex, Action<bool, byte[], string> callback)
+        {
+            var account = this.CurrentAccount;
+
+            switch (CurrentPlatform)
+            {
+                case PlatformKind.Phantasma:
+                    {
+                        Log.Write("ReadArchive: " + hash, Log.Level.Debug1);
+                        StartCoroutine(phantasmaApi.ReadArchive(hash.ToString(), blockIndex, (result) =>
+                        {
+                            Log.Write("ReadArchive result: " + result, Log.Level.Debug1);
+                            callback(true, result, null);
+                        }, (error, log) =>
+                        {
+                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                            {
+                                ChangeFaultyRPCURL();
+                            }
+                            callback(false, null, log);
+                        }));
+                        break;
+                    }
+                default:
+                    {
+                        callback(false, null, "not implemented for " + CurrentPlatform);
+                        break;
+                    }
+            }
+        }
+
         public void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback)
         {
             var account = this.CurrentAccount;
