@@ -745,7 +745,7 @@ namespace Poltergeist
             var outputBytes = new byte[cipher.GetOutputSize(inputBytes.Length)];
             var length = cipher.ProcessBytes(inputBytes, outputBytes, 0);
             cipher.DoFinal(outputBytes, length); //Do the final block
-            
+
             iv = Convert.ToBase64String(ivBytes);
             return Convert.ToBase64String(outputBytes);
         }
@@ -955,6 +955,40 @@ namespace Poltergeist
                     }
                     break;
 
+                case "USDC":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
+                case "WBTC":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
                 default:
                     _return_value = "";
                     break;
@@ -974,52 +1008,51 @@ namespace Poltergeist
             var pepFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString();
             var nftFlags = TokenFlags.Transferable.ToString();
             SupportedTokens = new List<Token>() {
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "0", name = "Phantasma Energy", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = DomainSettings.PlatformName, hash = "", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
-                new Token() { symbol = "GAS", apiSymbol = "gas", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
+                new Token() { symbol = "GAS", apiSymbol = "gas", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "100000000", name = "GAS (Neo)", flags = extFlags },
                 new Token() { symbol = "MKNI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags },
                 new Token() { symbol = "NACHO", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags },
-                new Token() { symbol = "TTRS", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "1000000", name = "22series", flags = nftFlags },
-                new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "1000000", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
-                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
-                new Token() { symbol = "DAI", apiSymbol = "dai", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
-                new Token() { symbol = "USDT", apiSymbol = "tether", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags },
+                new Token() { symbol = "TTRS", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "0", name = "22series", flags = nftFlags },
+                new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "0", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
+                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Ethereum", flags = extFlags },
+                new Token() { symbol = "DAI", apiSymbol = "dai", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
+                new Token() { symbol = "USDT", apiSymbol = "tether", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
+                new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
+                new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags },
 
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = "neo", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
-                new Token() { symbol = "GAS", apiSymbol = "gas", platform = "neo", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "16580739", name = "GAS (Neo)", flags = extFlags },
-                new Token() { symbol = "SWTH", apiSymbol = "switcheo", platform = "neo", hash = "ab38352559b8b203bde5fddfa0b07d8b2525e132", decimals = 8, maxSupply = "1000000000", name = "Switcheo", flags = extFlags },
-                new Token() { symbol = "NEX", apiSymbol = "neon-exchange", platform = "neo", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "56460100", name = "Nex", flags = extFlags },
-                new Token() { symbol = "PKC", apiSymbol = "", platform = "neo", hash = "af7c7328eee5a275a3bcaee2bf0cf662b5e739be", decimals = 8, maxSupply = "111623273", name = "Pikcio Token", flags = extFlags },
-                new Token() { symbol = "NOS", apiSymbol = "nos", platform = "neo", hash = "c9c0fc5a2b66a29d6b14601e752e6e1a445e088d", decimals = 8, maxSupply = "330000000", name = "Neo Operating System", flags = extFlags },
+                new Token() { symbol = "GAS", apiSymbol = "gas", platform = "neo", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "100000000", name = "GAS (Neo)", flags = extFlags },
+                new Token() { symbol = "SWTH", apiSymbol = "switcheo", platform = "neo", hash = "3e09e602eeeb401a2fec8e8ea137d59aae54a139", decimals = 8, maxSupply = "2160000000", name = "Switcheo", flags = extFlags },
+                new Token() { symbol = "NEX", apiSymbol = "neon-exchange", platform = "neo", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "50000000", name = "Nex", flags = extFlags },
                 new Token() { symbol = "TKY", apiSymbol = "thekey", platform = "neo", hash = "132947096727c84c7f9e076c90f08fec3bc17f18", decimals = 8, maxSupply = "1000000000", name = "The Key", flags = extFlags },
                 new Token() { symbol = "CGAS", apiSymbol = "", platform = "neo", hash = "74f2dc36a68fdc4682034178eb2220729231db76", decimals = 8, maxSupply = "1000000000", name = "NEP5 GAS", flags = extFlags },
                 new Token() { symbol = "MCT", apiSymbol = "master-contract-token", platform = "neo", hash = "a87cc2a513f5d8b4a42432343687c2127c60bc3f", decimals = 8, maxSupply = "1000000000", name = "Master Contract", flags = extFlags },
                 new Token() { symbol = "DBC", apiSymbol = "deepbrain-chain", platform = "neo", hash = "b951ecbbc5fe37a9c280a76cb0ce0014827294cf", decimals = 8, maxSupply = "1000000000", name = "DeepBrain Coin", flags = extFlags },
                 new Token() { symbol = "FTW", apiSymbol = "ftw", platform = "neo", hash = "11dbc2316f35ea031449387f615d9e4b0cbafe8b", decimals = 8, maxSupply = "1000000000", name = "For The Win", flags = extFlags },
-                new Token() { symbol = "ZPT", apiSymbol = "zeepin", platform = "neo", hash = "ac116d4b8d4ca55e6b6d4ecce2192039b51cccc5", decimals = 8, maxSupply = "1000000000", name = "Zeepin Token", flags = extFlags },
                 new Token() { symbol = "ACAT", apiSymbol = "alphacat", platform = "neo", hash = "7f86d61ff377f1b12e589a5907152b57e2ad9a7a", decimals = 8, maxSupply = "1000000000", name = "Alphacat", flags = extFlags },
                 new Token() { symbol = "QLC", apiSymbol = "qlink", platform = "neo", hash = "0d821bd7b6d53f5c2b40e217c6defc8bbe896cf5", decimals = 8, maxSupply = "1000000000", name = "Qlink Token", flags = extFlags },
                 new Token() { symbol = "TNC", apiSymbol = "trinity-network-credit", platform = "neo", hash = "08e8c4400f1af2c20c28e0018f29535eb85d15b6", decimals = 8, maxSupply = "1000000000", name = "Trinity Network Credit", flags = extFlags },
                 new Token() { symbol = "PHX", apiSymbol = "red-pulse", platform = "neo", hash = "1578103c13e39df15d0d29826d957e85d770d8c9", decimals = 8, maxSupply = "1000000000", name = "Red Pulse Phoenix", flags = extFlags },
-                new Token() { symbol = "APH", apiSymbol = "aphelion", platform = "neo", hash = "a0777c3ce2b169d4a23bcba4565e3225a0122d95", decimals = 8, maxSupply = "1000000000", name = "Aphelion", flags = extFlags },
-                new Token() { symbol = "GALA", apiSymbol = "", platform = "neo", hash = "9577c3f972d769220d69d1c4ddbd617c44d067aa", decimals = 8, maxSupply = "1000000000", name = "Galaxy Token", flags = extFlags },
-                new Token() { symbol = "AVA", apiSymbol = "concierge-io", platform = "neo", hash = "de2ed49b691e76754c20fe619d891b78ef58e537", decimals = 8, maxSupply = "1000000000", name = "Travala", flags = extFlags },
-                new Token() { symbol = "NKN", apiSymbol = "nkn", platform = "neo", hash = "c36aee199dbba6c3f439983657558cfb67629599", decimals = 8, maxSupply = "1000000000", name = "NKN", flags = extFlags },
                 new Token() { symbol = "LRN", apiSymbol = "loopring-neo", platform = "neo", hash = "06fa8be9b6609d963e8fc63977b9f8dc5f10895f", decimals = 8, maxSupply = "1000000000", name = "Loopring Neo Token", flags = extFlags },
                 new Token() { symbol = "ASA", apiSymbol = "asura", platform = "neo", hash = "a58b56b30425d3d1f8902034996fcac4168ef71d", decimals = 8, maxSupply = "1000000000", name = "Asura World Coin", flags = extFlags },
                 new Token() { symbol = "OBT", apiSymbol = "orbis-token", platform = "neo", hash = "0e86a40588f715fcaf7acd1812d50af478e6e917", decimals = 8, maxSupply = "1000000000", name = "Orbis", flags = extFlags },
-                new Token() { symbol = "NRVE", apiSymbol = "narrative", platform = "neo", hash = "a721d5893480260bd28ca1f395f2c465d0b5b1c2", decimals = 8, maxSupply = "1000000000", name = "Narrative Token", flags = extFlags },
                 new Token() { symbol = "RHT", apiSymbol = "hashpuppy-token", platform = "neo", hash = "2328008e6f6c7bd157a342e789389eb034d9cbc4", decimals = 8, maxSupply = "1000000000", name = "HashPuppy Token", flags = extFlags },
                 new Token() { symbol = "LX", apiSymbol = "lux", platform = "neo", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "1000000000", name = "Moonlight Lux", flags = extFlags },
                 new Token() { symbol = "BRDG", apiSymbol = "bridge-protocol", platform = "neo", hash = "78fd589f7894bf9642b4a573ec0e6957dfd84c48", decimals = 8, maxSupply = "1000000000", name = "Bridge Protocol", flags = extFlags },
+                new Token() { symbol = "ALEPH", apiSymbol = "aleph", platform = "neo", hash = "2efdb22c152896964665d0a8214dc7bd59232162", decimals = 8, maxSupply = "0", name = "Aleph.im", flags = extFlags },
+                new Token() { symbol = "TMN", apiSymbol = "translateme-network-token", platform = "neo", hash = "d613223fa138a1555ff711581982462acde209c5", decimals = 8, maxSupply = "0", name = "TranslateMe Network Token", flags = extFlags },
+                new Token() { symbol = "FLM", apiSymbol = "flamingo-finance", platform = "neo", hash = "4d9eab13620fe3569ba3b0e56e2877739e4145e3", decimals = 8, maxSupply = "0", name = "Flamingo Finance", flags = extFlags },
 
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "", decimals = 8, maxSupply = "100000000", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = "ethereum", hash = "", decimals = 10, maxSupply = "100000000", name = "Phantasma Energy", flags = extFlags },
-                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Ethereum", flags = extFlags },
-                new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "", decimals = 18, maxSupply = "100000000", name = "Dai Stablecoin", flags = extFlags },
-                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "100000000", name = "Tether USD", flags = extFlags }/*,
+                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
+                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = "ethereum", hash = "", decimals = 10, maxSupply = "0", name = "Phantasma Energy", flags = extFlags },
+                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "Ethereum", flags = extFlags },
+                new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
+                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
+                new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
+                new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = "ethereum", hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags }/*,
                 new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }*/
             };
 
@@ -1152,7 +1185,7 @@ namespace Poltergeist
                 case PlatformKind.Phantasma:
                     {
                         var keys = (customKeys != null) ? customKeys : PhantasmaKeys.FromWIF(CurrentWif);
-                        
+
                         StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload,  (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
@@ -1587,7 +1620,7 @@ namespace Poltergeist
                         {
                             ChangeFaultyRPCURL();
                         }
-                        
+
                         if (checkCount <= maxChecks)
                         {
                             callback(msg);
@@ -2660,7 +2693,7 @@ namespace Poltergeist
                 SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ethKeys, (hash, error) =>
                 {
                     callback(hash, error);
-                }, (message, prikey, pubkey) => 
+                }, (message, prikey, pubkey) =>
                 {
                     return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
                 });
@@ -2827,7 +2860,7 @@ namespace Poltergeist
         }
 
         public decimal CalculateRequireStakeForStorage(int totalSize)
-        {            
+        {
             var kilobytesPerStake = 39; // TODO this should be governance value obtained from chain
             var stakeAmount = (totalSize * UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals))  / (kilobytesPerStake * 1024);
             return UnitConversion.ToDecimal(stakeAmount, DomainSettings.StakingTokenDecimals);
