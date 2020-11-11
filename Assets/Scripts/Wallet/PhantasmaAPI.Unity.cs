@@ -1190,19 +1190,19 @@ namespace Phantasma.SDK
 		
 		
 		//Writes the contents of an incomplete archive.
-		public IEnumerator WriteArchive(string hashText, int blockIndex, string blockContent, Action<Boolean> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
+		public IEnumerator WriteArchive(string hashText, int blockIndex, byte[] blockContent, Action<Boolean> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)  
 		{	   
 			yield return WebClient.RPCRequest(Host, "writeArchive", WebClient.NoTimeout, 0, errorHandlingCallback, (node) => { 
 				var result = Boolean.Parse(node.Value);
 				callback(result);
-			} , hashText, blockIndex, blockContent);		   
+			} , hashText, blockIndex, Convert.ToBase64String(blockContent));		   
 		}
 
 		// Reads the contents of an archive block.
 		public IEnumerator ReadArchive(string hashText, int blockIndex, Action<byte[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
 		{
 			yield return WebClient.RPCRequest(Host, "readArchive", WebClient.NoTimeout, 5, errorHandlingCallback, (node) => {
-				var result = Base16.Decode(node.Value);
+				var result = Convert.FromBase64String(node.Value);
 				callback(result);
 			}, hashText, blockIndex);
 		}

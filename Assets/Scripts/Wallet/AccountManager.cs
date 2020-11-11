@@ -1497,7 +1497,7 @@ namespace Poltergeist
                 case PlatformKind.Phantasma:
                     {
                         Log.Write("WriteArchive: " + hash, Log.Level.Debug1);
-                        StartCoroutine(phantasmaApi.WriteArchive(hash.ToString(), blockIndex, Base16.Encode(data), (result) =>
+                        StartCoroutine(phantasmaApi.WriteArchive(hash.ToString(), blockIndex, data, (result) =>
                         {
                             Log.Write("WriteArchive result: " + result, Log.Level.Debug1);
                             callback(result, null);
