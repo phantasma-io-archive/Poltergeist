@@ -2802,10 +2802,18 @@ namespace Poltergeist
             // Saving platform combo position to draw it later.
             int platformComboBoxY = curY;
 
-            var state = accountManager.CurrentState;
-            if (state == null)
+            string address = "";
+            switch(accountManager.CurrentPlatform)
             {
-                return curY;
+                case PlatformKind.Phantasma:
+                    address = accountManager.CurrentAccount.phaAddress;
+                    break;
+                case PlatformKind.Neo:
+                    address = accountManager.CurrentAccount.neoAddress;
+                    break;
+                case PlatformKind.Ethereum:
+                    address = accountManager.CurrentAccount.ethAddress;
+                    break;
             }
 
             var btnWidth = Units(8);
@@ -2826,7 +2834,7 @@ namespace Poltergeist
             }
 
             curY += Units(VerticalLayout ? 2 : 3);
-            DrawHorizontalCenteredText(curY - 5, Units(VerticalLayout ? 3: 2), state.address);
+            DrawHorizontalCenteredText(curY - 5, Units(VerticalLayout ? 3: 2), address);
 
             curY += Units(3);
 
@@ -2835,7 +2843,7 @@ namespace Poltergeist
                 DoButton(true, new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1)), "Copy Address", () =>
                   {
                       AudioManager.Instance.PlaySFX("click");
-                      GUIUtility.systemCopyBuffer = state.address;
+                      GUIUtility.systemCopyBuffer = address;
                       MessageBox(MessageKind.Default, "Address copied to clipboard.");
                   });
 
@@ -2845,13 +2853,13 @@ namespace Poltergeist
                     switch(accountManager.CurrentPlatform)
                     {
                         case PlatformKind.Phantasma:
-                            Application.OpenURL(accountManager.GetPhantasmaAddressURL(state.address));
+                            Application.OpenURL(accountManager.GetPhantasmaAddressURL(address));
                             break;
                         case PlatformKind.Ethereum:
-                            Application.OpenURL(accountManager.GetEtherscanAddressURL(state.address));
+                            Application.OpenURL(accountManager.GetEtherscanAddressURL(address));
                             break;
                         case PlatformKind.Neo:
-                            Application.OpenURL(accountManager.GetNeoscanAddressURL(state.address));
+                            Application.OpenURL(accountManager.GetNeoscanAddressURL(address));
                             break;
                     }
                 });
