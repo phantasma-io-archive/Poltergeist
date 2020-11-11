@@ -3186,7 +3186,7 @@ namespace Poltergeist
 
                                     if (size < DomainSettings.ArchiveMinSize)
                                     {
-                                        MessageBox(MessageKind.Error, "File is to small to upload");
+                                        MessageBox(MessageKind.Error, "File is too small to upload");
                                     }
                                     else
                                     {
@@ -3339,7 +3339,7 @@ namespace Poltergeist
                 {
                     PushState(GUIState.Upload);
 
-                    _totalUploadChunks = MerkleTree.GetChunkCountForSize((uint)content.Length); ;
+                    _totalUploadChunks = MerkleTree.GetChunkCountForSize((uint)content.Length);
                     UploadChunk(fileName, merkleTree, content, hash, 0);
                 }
             });
