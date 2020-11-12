@@ -1160,7 +1160,7 @@ namespace Poltergeist
                         break;
                 }
 
-                DrawHorizontalCenteredText(curY - 4, Units(2), tempTitle);
+                DrawHorizontalCenteredText(curY - 4, Units(2) + (VerticalLayout ? 4 : 0), tempTitle);
 
                 // Drawing build timestamp at the Settings screen
                 if (guiState == GUIState.Settings)
@@ -2803,7 +2803,7 @@ namespace Poltergeist
 
             if (mainToken != null)
             {
-                GUI.DrawTexture(new Rect(Units(2), curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
+                GUI.DrawTexture(new Rect(Units(2), curY, 24, 24), ResourceManager.Instance.GetToken(mainToken));
             }
 
             // Saving platform combo position to draw it later.
@@ -2834,7 +2834,7 @@ namespace Poltergeist
 
             if (refresh != null)
             {
-                DoButton(true, new Rect(windowRect.width - (btnWidth + Border * refreshOffset), curY, btnWidth, Units(1)), "Refresh", () =>
+                DoButton(true, new Rect(windowRect.width - (btnWidth + Border * refreshOffset), curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Refresh", () =>
                 {
                     refresh();
                 });
@@ -2847,14 +2847,14 @@ namespace Poltergeist
 
             if (showCopyToClipboardButton)
             {
-                DoButton(true, new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1)), "Copy Address", () =>
+                DoButton(true, new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Copy Address", () =>
                   {
                       AudioManager.Instance.PlaySFX("click");
                       GUIUtility.systemCopyBuffer = address;
                       MessageBox(MessageKind.Default, "Address copied to clipboard.");
                   });
 
-                DoButton(true, new Rect(windowRect.width / 2 + Border, curY, btnWidth, Units(1)), "Explorer", () =>
+                DoButton(true, new Rect(windowRect.width / 2 + Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Explorer", () =>
                 {
                     AudioManager.Instance.PlaySFX("click");
                     switch(accountManager.CurrentPlatform)
@@ -2892,7 +2892,7 @@ namespace Poltergeist
                 platformComboBox.SelectedItemIndex = currentPlatformIndex;
 
                 int dropHeight;
-                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, platformComboBoxY, Units(8), Units(1)), platformList, 0, out dropHeight);
+                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, platformComboBoxY, Units(8), Units(1) + (VerticalLayout ? 8 : 0)), platformList, 0, out dropHeight);
 
                 if (platformIndex != currentPlatformIndex)
                 {
@@ -3558,7 +3558,7 @@ namespace Poltergeist
             {
                 if (VerticalLayout)
                 {
-                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) - 8, Units(6), Units(6)), soulMasterLogo);
+                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) + 4, Units(6), Units(6)), soulMasterLogo);
                 }
                 else
                 {
