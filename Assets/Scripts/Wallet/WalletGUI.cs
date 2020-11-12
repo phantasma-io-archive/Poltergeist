@@ -1822,7 +1822,6 @@ namespace Poltergeist
                 (account, index, curY, rect) =>
                 {
                     int btnWidth = Units(7);
-                    int halfWidth = (int)(rect.width / 2);
 
                     Rect btnRect;
 
@@ -2066,7 +2065,6 @@ namespace Poltergeist
                 (account, index, curY, rect) =>
                 {
                     int btnWidth = Units(6);
-                    int halfWidth = (int)(rect.width / 2);
 
                     Rect btnRect;
                     Rect btnRect2;
@@ -3125,17 +3123,7 @@ namespace Poltergeist
 
         private void DoDappEntry(DappEntry entry, int index, int curY, Rect rect)
         {
-            int panelHeight = Units(3);
-            int panelWidth = (int)(windowRect.width - Units(2));
-            int padding = 4;
-
-            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
-            int heightPerItem = panelHeight + padding;
-            int maxEntries = availableHeight / heightPerItem;
-
             var accountManager = AccountManager.Instance;
-
-            int halfWidth = (int)(rect.width / 2);
 
             GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), entry.Title);
 
@@ -3158,8 +3146,6 @@ namespace Poltergeist
                 AudioManager.Instance.PlaySFX("click");
                 Application.OpenURL(entry.url);
             });
-
-            curY += panelHeight + padding;
         }
 
         private void DoStorageScreen()
@@ -3226,17 +3212,7 @@ namespace Poltergeist
 
         private void DoStorageEntry(Archive entry, int index, int curY, Rect rect)
         {
-            int panelHeight = Units(3);
-            int panelWidth = (int)(windowRect.width - Units(2));
-            int padding = 4;
-
-            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
-            int heightPerItem = panelHeight + padding;
-            int maxEntries = availableHeight / heightPerItem;
-
             var accountManager = AccountManager.Instance;
-
-            int halfWidth = (int)(rect.width / 2);
 
             GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), entry.name);
 
@@ -3258,8 +3234,6 @@ namespace Poltergeist
             {
                 DeleteArchive(entry.name, entry.size, Hash.Parse(entry.hash));
             });
-
-            curY += panelHeight + padding;
         }
 
         private void DeleteArchive(string fileName, uint size, Hash fileHash)
@@ -3642,7 +3616,6 @@ namespace Poltergeist
             }
 
             int btnWidth = Units(11);
-            int halfWidth = (int)(rect.width / 2);
 
             var posY = curY + Units(1) - 8;
 
@@ -4250,17 +4223,7 @@ namespace Poltergeist
         // Used for both NFT list and transfer NFT list.
         private void DoTtrsNftEntry(string entryId, int index, int curY, Rect rect)
         {
-            int panelHeight = Units(3);
-            int panelWidth = (int)(windowRect.width - Units(2));
-            int padding = 8;
-
-            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
-            int heightPerItem = panelHeight + padding;
-            int maxEntries = availableHeight / heightPerItem;
-
             var accountManager = AccountManager.Instance;
-
-            int halfWidth = (int)(rect.width / 2);
 
             var item = TtrsStore.GetNft(entryId);
 
@@ -4376,8 +4339,6 @@ namespace Poltergeist
                 AudioManager.Instance.PlaySFX("click");
                 Application.OpenURL("https://www.22series.com/part_info?id=" + item.Id);
             });
-
-            curY += panelHeight + padding;
         }
 
         private void DoTtrsNftTransferListScreen()
@@ -4453,19 +4414,9 @@ namespace Poltergeist
 
         private void DoHistoryEntry(HistoryEntry entry, int index, int curY, Rect rect)
         {
-            int panelHeight = Units(3);
-            int panelWidth = (int)(windowRect.width - Units(2));
-            int padding = 8;
-
-            int availableHeight = (int)(windowRect.height - (curY + Units(6)));
-            int heightPerItem = panelHeight + padding;
-            int maxEntries = availableHeight / heightPerItem;
-
             var accountManager = AccountManager.Instance;
 
             var date = String.Format("{0:g}", entry.date);
-
-            int halfWidth = (int)(rect.width / 2);
 
             GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), VerticalLayout ? entry.hash.Substring(0, 16)+"...": entry.hash);
 
@@ -4488,8 +4439,6 @@ namespace Poltergeist
                 AudioManager.Instance.PlaySFX("click");
                 Application.OpenURL(entry.url);
             });
-
-            curY += panelHeight + padding;
         }
 
 
