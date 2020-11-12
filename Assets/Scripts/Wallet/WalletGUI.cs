@@ -3157,10 +3157,10 @@ namespace Poltergeist
             int startY = curY;
             int endY = (int)(windowRect.yMax - Units(4));
 
-            DoScrollArea<Archive>(ref balanceScroll, startY, endY, VerticalLayout ? Units(4) : Units(3), accountManager.CurrentState.archives, DoStorageEntry);
+            DoScrollArea<Archive>(ref balanceScroll, startY, endY, VerticalLayout ? Units(6) : Units(4), accountManager.CurrentState.archives, DoStorageEntry);
 
             int posY;
-            DoButtonGrid<int>(false, storageMenu.Length, 0, -Units(2), out posY, (index) =>
+            DoButtonGrid<int>(false, storageMenu.Length, 0, 0, out posY, (index) =>
             {
                 return new MenuEntry(index, storageMenu[index], true);
             },
@@ -3204,22 +3204,29 @@ namespace Poltergeist
 
                             break;
                         }
+                    case 1:
+                        {
+                            PopState();
+                            break;
+                        }
                 }
             });
-
-            DoBackButton();
         }
 
         private void DoStorageEntry(Archive entry, int index, int curY, Rect rect)
         {
             var accountManager = AccountManager.Instance;
 
-            GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), entry.name);
+            GUI.Label(new Rect(Units(2), curY + 12, Units(20), Units(2) + 4), entry.name);
 
-            GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), BytesToString(entry.size));
+            var style = GUI.skin.label;
+            style.fontSize -= VerticalLayout ? 2 : 0;
+            GUI.Label(VerticalLayout ? new Rect(Units(2), curY + Units(3), Units(20), Units(2) + 4) : new Rect(Units(26), curY + 12, Units(20), Units(2) + 4),
+                BytesToString(entry.size));
+            style.fontSize += VerticalLayout ? 2 : 0;
 
-            var btnRect = new Rect(rect.x + rect.width - Units(11), curY + Units(1), Units(4), Units(1));
-            var btnRect2 = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
+            var btnRect = new Rect(rect.x + rect.width - Units(15), curY + (VerticalLayout ? Units(3) : Units(1)), Units(6), Units(2));
+            var btnRect2 = new Rect(rect.x + rect.width - Units(8), curY + (VerticalLayout ? Units(3) : Units(1)), Units(6), Units(2));
 
             DoButton(true, btnRect, "Download", () =>
             {
@@ -4980,7 +4987,7 @@ namespace Poltergeist
         private string[] managerMenu = new string[] { "Export Private Key", "Migrate", "Delete Account", "Back" };
         private string[] customizationMenu = new string[] { "Setup Name", "Setup Avatar", "Multi-signature", "Back" };
 
-        private string[] storageMenu = new string[] { "Upload File" };
+        private string[] storageMenu = new string[] { "Upload File", "Back" };
         
         private GUIState[] bottomMenu = new GUIState[] { GUIState.Balances, GUIState.History, GUIState.Account, GUIState.Exit };
 
