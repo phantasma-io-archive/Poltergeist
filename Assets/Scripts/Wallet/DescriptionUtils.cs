@@ -340,6 +340,20 @@ namespace Poltergeist
                             sb.AppendLine($"\u2605 Burn {total} {symbol} from {address}.");
                             break;
                         }
+                    case "Runtime.InfuseToken":
+                        {
+                            var address = GetStringArg(entry, 0);
+                            var targetSymbol = GetStringArg(entry, 1);
+                            var tokenID = GetStringArg(entry, 2);
+                            var infuseSymbol = GetStringArg(entry, 3);
+                            var amount = GetNumberArg(entry, 4);
+
+                            Token infuseToken;
+                            accountManager.GetTokenBySymbol(infuseSymbol, PlatformKind.Phantasma, out infuseToken);
+
+                            sb.AppendLine($"\u2605 Infuse {targetSymbol} NFT #{tokenID} with " + (infuseToken.flags.Contains("Fungible") ? $"{amount} {infuseSymbol}." : $"{infuseSymbol} NFT #{amount}."));
+                            break;
+                        }
                     case "Nexus.CreateToken":
                         {
                             var address = GetStringArg(entry, 0);
