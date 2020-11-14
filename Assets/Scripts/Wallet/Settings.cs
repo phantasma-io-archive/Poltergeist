@@ -372,6 +372,10 @@ namespace Poltergeist
                             _return_value = "mainnet";
                             break;
 
+                        case NexusKind.Test_Net:
+                            _return_value = "testnet";
+                            break;
+
                         default:
                             _return_value = "simnet";
                             break;
