@@ -5827,7 +5827,7 @@ namespace Poltergeist
                     if (destPlatform == PlatformKind.Neo)
                         min = 0.1m; // For Neo use 0.1 GAS constant
                     else if (destPlatform == PlatformKind.Ethereum)
-                        min *= 2; // Very rough calculation for now - we ask user to have twice the amount of ETH that's needed for transaction.
+                        min *= 1.2m; // Increase estimated fees on 20% more to be on a safe side.
                 }
 
                 RequestFee(symbol, feeSymbol, min, (gasResult) =>
@@ -6017,12 +6017,12 @@ namespace Poltergeist
             else if (feeSymbol0 == "ETH" && accountManager.CurrentPlatform == PlatformKind.Phantasma)
             {
                 // No sense in asking user for ETH fees - they are set by BP, we have to try to do our best with predicting them.
-                EthGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
+                StartCoroutine(EthRequestSwapFeesAsBP((fastest) =>
                 {
-                    var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "ETH" ? accountManager.Settings.ethereumTransferGasLimit : accountManager.Settings.ethereumTokenTransferGasLimit) * fast, 9); // 9 because we convert from Gwei, not Wei
+                    var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "ETH" ? accountManager.Settings.ethereumTransferGasLimit : accountManager.Settings.ethereumTokenTransferGasLimit) * fastest, 9); // 9 because we convert from Gwei, not Wei
 
                     proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
-                });
+                }));
             }
             else
             {
@@ -6263,6 +6263,81 @@ namespace Poltergeist
                         response.GetInt32("fastest", 0) / 10,
                         response.GetString("fastestWait"));
                 }));
+        }
+
+        // Taken from Spook to emulate Spook's Eth fee calculation.
+        public static T GetMedian<T>(T[] sourceArray) where T : IComparable<T>
+        {
+            if (sourceArray == null || sourceArray.Length == 0)
+                throw new ArgumentException("Median of empty array not defined.");
+
+            T[] sortedArray = sourceArray;
+            Array.Sort(sortedArray);
+
+            //get the median
+            int size = sortedArray.Length;
+            int mid = size / 2;
+            if (size % 2 != 0)
+            {
+                return sortedArray[mid];
+            }
+
+            dynamic value1 = sortedArray[mid];
+            dynamic value2 = sortedArray[mid - 1];
+
+            return (sortedArray[mid] + value2) * 0.5;
+        }
+
+        // This method request Eth fees same way as it's done by bp, to get closer estimation
+        // of BP's Eth fees.
+        private IEnumerator EthRequestSwapFeesAsBP(Action<BigInteger> callback)
+        {
+            var feeIncrease = 40;
+            var url1 = "https://gasprice.poa.network";
+            var feeKey1 = "instant";
+            var url2 = "https://www.etherchain.org/api/gasPriceOracle";
+            var feeKey2 = "fastest";
+            var url3 = "https://api.anyblock.tools/latest-minimum-gasprice";
+            var feeKey3 = "instant";
+
+            decimal fee1 = 0;
+            decimal fee2 = 0;
+            decimal fee3 = 0;
+
+            var urlCoroutine1 = StartCoroutine(WebClient.RESTRequest(url1, WebClient.DefaultTimeout, (error, msg) =>
+            {
+                Log.Write("URL1 error: " + error);
+            },
+            (response1) =>
+            {
+                fee1 = response1.GetInt32(feeKey1, 0);
+            }));
+
+            var urlCoroutine2 = StartCoroutine(WebClient.RESTRequest(url2, WebClient.DefaultTimeout, (error, msg) =>
+            {
+                Log.Write("URL2 error: " + error);
+            },
+            (response) =>
+            {
+                fee2 = response.GetInt32(feeKey2, 0);
+            }));
+
+            var urlCoroutine3 = StartCoroutine(WebClient.RESTRequest(url3, WebClient.DefaultTimeout, (error, msg) =>
+            {
+                Log.Write("URL3 error: " + error);
+            },
+            (response) =>
+            {
+                fee3 = response.GetInt32(feeKey3, 0);
+            }));
+
+            yield return urlCoroutine1;
+            yield return urlCoroutine2;
+            yield return urlCoroutine3;
+
+            var median = GetMedian<decimal>(new decimal[] { fee1, fee2, fee3 });
+
+            callback(new BigInteger((long)(median + feeIncrease)));
         }
         #endregion
 
