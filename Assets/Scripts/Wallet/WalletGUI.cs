@@ -5839,8 +5839,22 @@ namespace Poltergeist
                     }
 
                     var balance = state.GetAvailableAmount(symbol);
+                    
+                    // If we are swapping fogeign token that is also used for swapping fees,
+                    // we subtract required swapping fee minimum from available balance to avoid errors.
                     if (symbol == "GAS" || symbol == "ETH")
                         balance -= min;
+
+                    // To fix error if swapping whole KCAL balance to another chain.
+                    // We just leave 0.01 KCAL for Phantasma-side tx fees.
+                    if (symbol == "KCAL")
+                        balance -= 0.01m;
+
+                    if(balance <= 0)
+                    {
+                        MessageBox(MessageKind.Error, $"Not enough {symbol} to swap it to another chain.");
+                        return;
+                    }
 
                     RequireAmount(transferName, null, symbol, 0.001m, balance, (amount) =>
                     {
