@@ -3170,13 +3170,14 @@ namespace Poltergeist
                 {
                     case 0:
                         {
-                            var path = GetDocumentPath();
-                            var targetFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", path, "", false).FirstOrDefault();
+                            var targetFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), "", false).FirstOrDefault();
 
                             if (!string.IsNullOrEmpty(targetFilePath))
                             {
                                 if (File.Exists(targetFilePath))
                                 {
+                                    accountManager.Settings.SetLastVisitedFolder(Path.GetDirectoryName(targetFilePath));
+
                                     var size = (int)(new System.IO.FileInfo(targetFilePath).Length);
 
                                     if (size < DomainSettings.ArchiveMinSize)
@@ -3230,11 +3231,22 @@ namespace Poltergeist
 
             DoButton(true, btnRect, "Download", () =>
             {
-                var path = GetDocumentPath();
-                var outputFolderPath = StandaloneFileBrowser.OpenFolderPanel("Select output folder", path, false).FirstOrDefault();
+                var outputFolderPath = StandaloneFileBrowser.OpenFolderPanel("Select output folder", accountManager.Settings.GetLastVisitedFolder(), false).FirstOrDefault();
 
                 if (!string.IsNullOrEmpty(outputFolderPath))
-                    DownloadArchive(Hash.Parse(entry.hash), outputFolderPath);
+                {
+                    if (Directory.Exists(outputFolderPath))
+                    {
+                        accountManager.Settings.SetLastVisitedFolder(outputFolderPath);
+
+                        if (!string.IsNullOrEmpty(outputFolderPath))
+                            DownloadArchive(Hash.Parse(entry.hash), outputFolderPath);
+                    }
+                    else
+                    {
+                        MessageBox(MessageKind.Error, "Folder not found");
+                    }
+                }
             });
 
             DoButton(true, btnRect2, "Delete", () =>
@@ -4811,13 +4823,14 @@ namespace Poltergeist
                                 new ExtensionFilter("Image Files", "png", "jpg", "jpeg" ),
                             };
 
-                            var path = GetDocumentPath();
-                            var avatarFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", path, extensions, false).FirstOrDefault();
+                            var avatarFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), extensions, false).FirstOrDefault();
 
                             if (!string.IsNullOrEmpty(avatarFilePath))
                             {
                                 if (File.Exists(avatarFilePath))
                                 {
+                                    accountManager.Settings.SetLastVisitedFolder(Path.GetDirectoryName(avatarFilePath));
+
                                     int expectedSize = 32;
 
                                     var avatarTex = new Texture2D(expectedSize, expectedSize, TextureFormat.RGBA32, false, true);
@@ -4958,20 +4971,6 @@ namespace Poltergeist
                     });
                 }
             });
-        }
-
-        private string GetDocumentPath()
-        {
-            if (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer)
-                return System.IO.Path.Combine(Environment.ExpandEnvironmentVariables("%userprofile%"), "Documents");
-            else if (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer)
-                return System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/Documents/";
-            else if (Application.platform == RuntimePlatform.LinuxPlayer)
-                return System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            else 
-            {
-                return Application.persistentDataPath;
-            }
         }
 
         private void DrawDropshadow(Rect rect)

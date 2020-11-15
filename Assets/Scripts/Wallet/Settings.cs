@@ -79,6 +79,8 @@ namespace Poltergeist
         public const string TtrsNftSortModeTag = "ttrs.nft.sort.mode";
         public const string NftSortDirectionTag = "nft.sort.direction";
 
+        public const string LastVisitedFolderTag = "last.visited.folder";
+
         public string phantasmaRPCURL;
         public string phantasmaBPURL;
         public string phantasmaExplorer;
@@ -102,6 +104,7 @@ namespace Poltergeist
         public string uiThemeName;
         public int ttrsNftSortMode;
         public int nftSortDirection;
+        public string lastVisitedFolder;
 
         public override string ToString()
         {
@@ -233,6 +236,11 @@ namespace Poltergeist
 
             this.ttrsNftSortMode = PlayerPrefs.GetInt(TtrsNftSortModeTag, 0);
             this.nftSortDirection = PlayerPrefs.GetInt(NftSortDirectionTag, 0);
+
+            var documentFolderPath = GetDocumentPath();
+            this.lastVisitedFolder = PlayerPrefs.GetString(LastVisitedFolderTag, documentFolderPath);
+            if (!System.IO.Directory.Exists(this.lastVisitedFolder))
+                this.lastVisitedFolder = documentFolderPath;
 
             Log.Write("Settings: Load: " + ToString());
         }
@@ -427,6 +435,7 @@ namespace Poltergeist
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
+            PlayerPrefs.SetString(LastVisitedFolderTag, this.lastVisitedFolder);
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
@@ -481,6 +490,28 @@ namespace Poltergeist
             Log.Write("Settings: Restore ethereum endpoint:\n" +
                       "                             Ethereum RPC: " + this.ethereumRPCURL,
                       Log.Level.Debug1);
+        }
+
+        private string GetDocumentPath()
+        {
+            if (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer)
+                return System.IO.Path.Combine(Environment.ExpandEnvironmentVariables("%userprofile%"), "Documents");
+            else if (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer)
+                return System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/Documents/";
+            else if (Application.platform == RuntimePlatform.LinuxPlayer)
+                return System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            else
+            {
+                return Application.persistentDataPath;
+            }
+        }
+        public string GetLastVisitedFolder()
+        {
+            return this.lastVisitedFolder;
+        }
+        public void SetLastVisitedFolder(string folderPath)
+        {
+            this.lastVisitedFolder = folderPath;
         }
     }
 }
