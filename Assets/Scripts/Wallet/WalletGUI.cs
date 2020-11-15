@@ -5794,6 +5794,7 @@ namespace Poltergeist
         private void ContinueSwap(PlatformKind destPlatform, string transferName, string swappedSymbol, string destination)
         {
             var accountManager = AccountManager.Instance;
+            var account = accountManager.CurrentAccount;
             var state = accountManager.CurrentState;
 
             var sourceAddress = accountManager.GetAddress(accountManager.CurrentIndex, accountManager.CurrentPlatform);
@@ -5802,6 +5803,33 @@ namespace Poltergeist
             {
                 MessageBox(MessageKind.Error, $"Source and destination address must be different!");
                 return;
+            }
+
+            // We limit swap destination addresses to protect users from sending
+            // funds from mainnet to NEP5/ERC20 exchange address directly, and other possible errors.
+            switch (destPlatform)
+            {
+                case PlatformKind.Phantasma:
+                    if(destination != account.phaAddress)
+                    {
+                        MessageBox(MessageKind.Error, $"Only swaps within same account are allowed!\nYour Phantasma address is {account.phaAddress},\ntarget address is {destination}.");
+                        return;
+                    }
+                    break;
+                case PlatformKind.Neo:
+                    if (destination != account.neoAddress)
+                    {
+                        MessageBox(MessageKind.Error, $"Only swaps within same account are allowed!\nYour Neo address is {account.neoAddress},\ntarget address is {destination}.");
+                        return;
+                    }
+                    break;
+                case PlatformKind.Ethereum:
+                    if (destination != account.ethAddress)
+                    {
+                        MessageBox(MessageKind.Error, $"Only swaps within same account are allowed!\nYour Ethereum address is {account.ethAddress},\ntarget address is {destination}.");
+                        return;
+                    }
+                    break;
             }
 
             // We set GAS as main fee symbol for both NEO -> PHA and PHA -> NEO swaps.
