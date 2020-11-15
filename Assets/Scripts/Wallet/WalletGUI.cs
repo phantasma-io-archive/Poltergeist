@@ -3182,19 +3182,26 @@ namespace Poltergeist
 
                                     if (size < DomainSettings.ArchiveMinSize)
                                     {
-                                        MessageBox(MessageKind.Error, "File is too small to upload");
+                                        MessageBox(MessageKind.Error, $"File is too small to upload.\nMinimum allowed size is {DomainSettings.ArchiveMinSize} bytes.");
                                     }
                                     else
                                     {
-                                        RequireStorage(size, (sucess) =>
+                                        if (size > DomainSettings.ArchiveMaxSize)
                                         {
-                                            if (sucess)
+                                            MessageBox(MessageKind.Error, $"File is too big to upload.\nMaximum allowed size is {DomainSettings.ArchiveMaxSize} bytes ({(DomainSettings.ArchiveMaxSize / (double)Math.Pow(1024, 2)).ToString("0.00")} MB).");
+                                        }
+                                        else
+                                        {
+                                            RequireStorage(size, (sucess) =>
                                             {
-                                                var content = File.ReadAllBytes(targetFilePath);
-                                                UploadArchive(targetFilePath, content);
-                                            }
+                                                if (sucess)
+                                                {
+                                                    var content = File.ReadAllBytes(targetFilePath);
+                                                    UploadArchive(targetFilePath, content);
+                                                }
 
-                                        });
+                                            });
+                                        }
                                     }
                                 }
                                 else
