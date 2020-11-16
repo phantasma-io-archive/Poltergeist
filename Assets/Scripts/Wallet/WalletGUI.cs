@@ -3462,7 +3462,7 @@ namespace Poltergeist
             {
                 if (result)
                 {
-                    using (var stream = new FileStream(filePath, FileMode.Append))
+                    using (var stream = new FileStream(filePath, blockIndex == 0 ? FileMode.Create : FileMode.Append))
                     {
                         stream.Write(chunkData, 0, chunkData.Length);
                     }
