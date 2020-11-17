@@ -227,7 +227,7 @@ namespace Poltergeist
                                     // Desc line #1.
                                     sb.AppendLine("\u2605 Transfer:");
                                 }
-                                
+
                                 if (transferTokenCounter == groupSize - 1)
                                 {
                                     // Desc line for token #N.
@@ -367,6 +367,51 @@ namespace Poltergeist
                             sb.AppendLine($"\u2605 Create token {symbol} with name '{name}', {maxSupply} max supply, {decimals} decimals from {address}.");
                             break;
                         }
+
+                    case "GHOST.mintToken":
+                        {
+                            var editionId = GetNumberArg(entry, 0);
+                            var editionMax = GetNumberArg(entry, 1);
+                            var numOfNfts = GetNumberArg(entry, 2);
+                            var name = GetStringArg(entry, 3);
+                            var description = GetStringArg(entry, 4);
+                            var imageURI = GetStringArg(entry, 5);
+                            var creator = GetStringArg(entry, 6);
+                            var royalty = GetNumberArg(entry, 7);
+                            var infoURI = GetStringArg(entry, 8);
+                            var extended = GetStringArg(entry, 9);
+                            var mintTicker = GetStringArg(entry, 10);
+                            var hasLockedContent = GetNumberArg(entry, 11);
+                            var lockedContent = GetStringArg(entry, 12);
+
+                            sb.AppendLine($"\u2605 Mint x{numOfNfts} {mintTicker} with name '{name}', with a {royalty}% royalty.");
+                            break;
+                        }
+
+                      case "GHOST.createSeries":
+                            {
+                                var editionMax = GetNumberArg(entry, 0);
+                                var name = GetStringArg(entry, 1);
+                                var description = GetStringArg(entry, 2);
+                                var imageURI = GetStringArg(entry, 3);
+                                var creator = GetStringArg(entry, 4);
+                                var royalty = GetNumberArg(entry, 5);
+                                var infoURI = GetStringArg(entry, 6);
+                                var extended = GetStringArg(entry, 7);
+                                var mintTicker = GetStringArg(entry, 8);
+                                var hasLockedContent = GetNumberArg(entry, 9);
+                                var lockedContent = GetStringArg(entry, 10);
+
+                                if (editionMax == 0)
+                                {
+                                  sb.AppendLine($"\u2605 Create {mintTicker} NFT Series with unlimited of '{editionMax}'.");
+                                }
+                                else
+                                {
+                                  sb.AppendLine($"\u2605 Create {mintTicker} NFT Series with a supply of maximum '{editionMax}'.");
+                                }
+                                break;
+                            }
 
                     default:
                         sb.AppendLine(entry.ToString());
