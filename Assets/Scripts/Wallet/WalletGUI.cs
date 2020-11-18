@@ -25,6 +25,7 @@ using SFB;
 using System.IO;
 using System.Text;
 using Archive = Phantasma.SDK.Archive;
+using Phantasma.Blockchain.Storage;
 
 namespace Poltergeist
 {
@@ -3196,8 +3197,11 @@ namespace Poltergeist
                                             {
                                                 if (sucess)
                                                 {
-                                                    var content = File.ReadAllBytes(targetFilePath);
-                                                    UploadArchive(targetFilePath, content);
+                                                    PromptBox("Protect this file with encryption?\nIf you choose 'Yes' this file would be protected and you would be the only person able to open it.\nIf you choose 'No', anyone would be able to open it.", ModalYesNo, (encryptFile) =>
+                                                    {
+                                                        var content = File.ReadAllBytes(targetFilePath);
+                                                        UploadArchive(targetFilePath, content, (encryptFile == PromptResult.Success));
+                                                    });
                                                 }
 
                                             });
@@ -3314,10 +3318,8 @@ namespace Poltergeist
 
         }
 
-        private void UploadArchive(string fileName, byte[] content)
+        private void UploadArchive(string fileName, byte[] content, bool encrypt)
         {
-            var fileSize = content.Length;
-
             var accountManager = AccountManager.Instance;
 
             var state = accountManager.CurrentState;
@@ -3332,6 +3334,22 @@ namespace Poltergeist
 
             var newFileName = Path.GetFileName(fileName);
 
+            byte[] archiveEncryption;
+
+            if (encrypt)
+            {
+                var privateEncryption = new PrivateArchiveEncryption(Address.FromWIF(accountManager.CurrentWif));
+                content = privateEncryption.Encrypt(content, PhantasmaKeys.FromWIF(accountManager.CurrentWif));
+
+                archiveEncryption = privateEncryption.ToBytes();
+            }
+            else
+            {
+                archiveEncryption = ArchiveExtensions.Uncompressed;
+            }
+
+            var fileSize = content.Length;
+
             var merkleTree = new MerkleTree(content);
             var merkleBytes = merkleTree.ToByteArray();
 
@@ -3342,7 +3360,7 @@ namespace Poltergeist
 
                 var sb = new ScriptBuilder();
                 sb.AllowGas(target, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                sb.CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, new byte[0]);
+                sb.CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, archiveEncryption);
                 sb.SpendGas(target);
                 script = sb.EndScript();
             }
@@ -3435,7 +3453,7 @@ namespace Poltergeist
                     PushState(GUIState.Download);
 
                     _totalDownloadChunks = archive.blockCount;
-                    DownloadChunk(hash, Path.Combine(outputFolderPath, archive.name), 0);
+                    DownloadChunk(hash, archive, Path.Combine(outputFolderPath, archive.name), 0);
                 }
                 else
                 {
@@ -3448,7 +3466,7 @@ namespace Poltergeist
         private int _currentDownloadChunk;
         private int _totalDownloadChunks;
 
-        private void DownloadChunk(Hash archiveHash, string filePath, int blockIndex)
+        private void DownloadChunk(Hash archiveHash, Archive archive, string filePath, int blockIndex)
         {
             _currentDownloadChunk = blockIndex;
 
@@ -3467,9 +3485,22 @@ namespace Poltergeist
                         stream.Write(chunkData, 0, chunkData.Length);
                     }
 
-                    // if this was the last chunk, show completion msg
+                    // if this was the last chunk, decrypt (if encrypted) and show completion msg
                     if (isLast)
                     {
+                        if (archive.encryption != null && archive.encryption.Mode == ArchiveEncryptionMode.Private)
+                        {
+                            var privateEncryption = archive.encryption;
+
+                            var content = File.ReadAllBytes(filePath);
+                            content = privateEncryption.Decrypt(content, PhantasmaKeys.FromWIF(accountManager.CurrentWif));
+                            
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                stream.Write(content, 0, content.Length);
+                            }
+                        }
+
                         PopState();
 
                         MessageBox(MessageKind.Default, $"The archive '{filePath}' was downloaded!");
@@ -3477,7 +3508,7 @@ namespace Poltergeist
                     else
                     {
                         // otherwise download next chunk
-                        DownloadChunk(archiveHash, filePath, blockIndex + 1);
+                        DownloadChunk(archiveHash, archive, filePath, blockIndex + 1);
                     }
                 }
                 else
@@ -4882,7 +4913,7 @@ namespace Poltergeist
                                                     RequireStorage(avatarData.Length, (success) =>
                                                     {
                                                         var avatarBytes = Encoding.ASCII.GetBytes(avatarData);
-                                                        UploadArchive("avatar", avatarBytes);
+                                                        UploadArchive("avatar", avatarBytes, false);
                                                     });
                                                 }
 

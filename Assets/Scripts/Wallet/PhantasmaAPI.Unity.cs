@@ -10,6 +10,7 @@ using Phantasma.Numerics;
 using Phantasma.Cryptography;
 using System.Text;
 using Phantasma.Domain;
+using Phantasma.Blockchain.Storage;
 
 namespace Phantasma.SDK
 {
@@ -673,7 +674,7 @@ namespace Phantasma.SDK
 		public uint size; //
 		public uint time; //
 		public string flags; //
-		public string key; //
+		public IArchiveEncryption encryption; //
 		public int blockCount; //
 		public string[] metadata; //
 	   
@@ -685,8 +686,8 @@ namespace Phantasma.SDK
 			result.name = node.GetString("name");
 			result.size = node.GetUInt32("size");
 			result.time = node.GetUInt32("time");
-			result.flags = node.GetString("flags");						
-			result.key = node.GetString("key");						
+			result.flags = node.GetString("flags");
+			result.encryption = ArchiveExtensions.ReadArchiveEncryption(Base16.Decode(node.GetString("encryption")));
 			result.blockCount = node.GetInt32("blockCount");			
 			var metadata_array = node.GetNode("metadata");
 			if (metadata_array != null) {
