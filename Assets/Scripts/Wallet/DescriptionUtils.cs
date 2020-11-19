@@ -374,18 +374,43 @@ namespace Poltergeist
                             var editionMax = GetNumberArg(entry, 1);
                             var editionMode = GetNumberArg(entry, 2);
                             var creator = GetStringArg(entry, 3);
-                            var mintTicker = GetStringArg(entry, 4);
-                            var numOfNfts = GetNumberArg(entry, 5);
-                            var name = GetStringArg(entry, 6);
-                            var description = GetStringArg(entry, 7);
-                            var imageURI = GetStringArg(entry, 8);
-                            var royalty = GetNumberArg(entry, 9);
-                            var infoURI = GetStringArg(entry, 10);
-                            var extended = GetStringArg(entry, 11);
-                            var hasLockedContent = GetNumberArg(entry, 12);
-                            var lockedContent = GetStringArg(entry, 13);
+                            var royalties = GetNumberArg(entry, 4);
+                            var mintTicker = GetStringArg(entry, 5);
+                            var numOfNfts = GetNumberArg(entry, 6);
+                            var name = GetStringArg(entry, 7);
+                            var description = GetStringArg(entry, 8);
+                            var imageURL = GetStringArg(entry, 9);
+                            var infoURL = GetStringArg(entry, 10);
+                            var attributeType1 = GetStringArg(entry, 11);
+                            var attributeValue1 = GetStringArg(entry, 12);
+                            var attributeType2 = GetStringArg(entry, 13);
+                            var attributeValue2 = GetStringArg(entry, 14);
+                            var attributeType3 = GetStringArg(entry, 15);
+                            var attributeValue3 = GetStringArg(entry, 16);
+                            var lockedContent = GetStringArg(entry, 17);
+                            var listPrice = GetNumberArg(entry, 18);
+                            var listPriceCurrency = GetStringArg(entry, 19);
+                            var listLastEndDate = GetTimestampArg(entry, 20);
+                            var infusedAsset = GetStringArg(entry, 21);
+                            var infusedAmount = GetNumberArg(entry, 22);
 
-                            sb.AppendLine($"\u2605 Mint x{numOfNfts} {mintTicker} with name '{name}', with a {royalty}% royalty.");
+                            Token listPriceToken;
+                            accountManager.GetTokenBySymbol(listPriceCurrency, PlatformKind.Phantasma, out listPriceToken);
+
+                            Token infuseAmountToken;
+                            accountManager.GetTokenBySymbol(infusedAsset, PlatformKind.Phantasma, out infuseAmountToken);
+
+                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
+
+                            sb.AppendLine($"\u2605 Mint {numOfNfts}x {mintTicker}, with a {royalty}% royalty.");
+                            if (infusedAmount > 0)
+                            {
+                              sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {infuseAmountToken} {infusedAsset}.");
+                            }
+                            if (listPrice > 0)
+                            {
+                              sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPriceToken} {listPriceCurrency}, offer valid until {listLastEndDate}.");
+                            }
                             break;
                         }
 
