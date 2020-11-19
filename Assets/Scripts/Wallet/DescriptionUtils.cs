@@ -400,9 +400,9 @@ namespace Poltergeist
                             Token infuseAmountToken;
                             accountManager.GetTokenBySymbol(infusedAsset, PlatformKind.Phantasma, out infuseAmountToken);
 
-                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
+                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), listPriceToken.decimals);
 
-                            sb.AppendLine($"\u2605 Mint {numOfNfts}x {mintTicker}, with a {royalty}% royalty.");
+                            sb.AppendLine($"\u2605 Mint {numOfNfts}x {mintTicker}, with a {royalties}% royalty.");
                             if (infusedAmount > 0)
                             {
                               sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {infuseAmountToken} {infusedAsset}.");
