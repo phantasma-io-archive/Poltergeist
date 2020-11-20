@@ -273,6 +273,14 @@ namespace Poltergeist
                             sb.AppendLine($"\u2605 Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
                             break;
                         }
+                    case "market.CancelSale":
+                            {
+                                var symbol = GetStringArg(entry, 0);
+                                var nftNumber = GetStringArg(entry, 1);
+
+                                sb.AppendLine($"\u2605 Cancel sale of {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
+                                break;
+                            }
                     case "market.SellToken":
                         {
                             var dst = GetStringArg(entry, 0);
