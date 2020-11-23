@@ -3229,6 +3229,9 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
+            if (entry.encryption != null)
+                entry.name = entry.encryption.DecryptName(entry.name, PhantasmaKeys.FromWIF(accountManager.CurrentWif));
+
             GUI.Label(new Rect(Units(2), curY + 12, Units(20), Units(2) + 4), entry.name);
 
             var style = GUI.skin.label;
@@ -3339,6 +3342,9 @@ namespace Poltergeist
             if (encrypt)
             {
                 var privateEncryption = new PrivateArchiveEncryption(Address.FromWIF(accountManager.CurrentWif));
+                
+                newFileName = privateEncryption.EncryptName(newFileName, PhantasmaKeys.FromWIF(accountManager.CurrentWif));
+                
                 content = privateEncryption.Encrypt(content, PhantasmaKeys.FromWIF(accountManager.CurrentWif));
 
                 archiveEncryption = privateEncryption.ToBytes();
@@ -3453,7 +3459,12 @@ namespace Poltergeist
                     PushState(GUIState.Download);
 
                     _totalDownloadChunks = archive.blockCount;
-                    DownloadChunk(hash, archive, Path.Combine(outputFolderPath, archive.name), 0);
+
+                    var name = archive.name;
+                    if (archive.encryption != null)
+                        name = archive.encryption.DecryptName(archive.name, PhantasmaKeys.FromWIF(accountManager.CurrentWif));
+
+                    DownloadChunk(hash, archive, Path.Combine(outputFolderPath, name), 0);
                 }
                 else
                 {
