@@ -11,6 +11,8 @@ using Phantasma.Cryptography;
 using System.Text;
 using Phantasma.Domain;
 using Phantasma.Blockchain.Storage;
+using System.Collections.Generic;
+using Phantasma.Storage.Utils;
 
 namespace Phantasma.SDK
 {
@@ -229,7 +231,7 @@ namespace Phantasma.SDK
 		}
 	}
 
-	public struct Account 
+	public struct Account
 	{
         public string address; //
         public string name; //
@@ -536,31 +538,222 @@ namespace Phantasma.SDK
 			return result;			
 		}
 	}
-	
+
+	public struct TokenProperty
+	{
+		public string Key;
+		public string Value;
+	}
+
 	public struct TokenData 
 	{
-		public string ID; //
-		public string chainName; //
-		public string ownerAddress; //
-		public string ram; //
-		public string rom; //
-		public Boolean forSale; //
-	   
-		public static TokenData FromNode(DataNode node) 
+		public string ID;
+		public uint series;
+		public uint mint;
+		public string chainName;
+		public string ownerAddress;
+		public string creatorAddress;
+		public byte[] ram;
+		public byte[] rom;
+		public IRom parsedRom;
+		public TokenProperty[] infusion;
+		public TokenProperty[] properties;
+
+		public static TokenData FromNode(DataNode node, string symbol)
 		{
 			TokenData result;
-						
-			result.ID = node.GetString("iD");						
-			result.chainName = node.GetString("chainName");						
-			result.ownerAddress = node.GetString("ownerAddress");						
-			result.ram = node.GetString("ram");						
-			result.rom = node.GetString("rom");						
-			result.forSale = node.GetBoolean("forSale");
+
+			result.ID = node.GetString("ID");
+			result.series = node.GetUInt32("series");
+			result.mint = node.GetUInt32("mint");
+			result.chainName = node.GetString("chainName");
+			result.ownerAddress = node.GetString("ownerAddress");
+			result.creatorAddress = node.GetString("creatorAddress");
+			result.ram = Base16.Decode(node.GetString("ram"));
+			result.rom = Base16.Decode(node.GetString("rom"));
+
+			// Pasring ROM
+			switch (symbol)
+			{
+				case "CROWN":
+					result.parsedRom = new CrownRom(result.rom);
+					break;
+				case "GHOST":
+					result.parsedRom = new GhostRom(result.rom);
+					break;
+				default:
+					result.parsedRom = new UnknownRom(result.rom);
+					break;
+			}
+
+			// Reading infused assets
+			var infusionNode = node.GetNode("infusion");
+
+			if (infusionNode != null)
+			{
+				var infusion = new List<TokenProperty>();
+				foreach (DataNode entry in infusionNode.Children)
+				{
+					var property = new TokenProperty();
+					property.Key = entry.GetString("Key");
+					property.Value = entry.GetString("Value");
+					infusion.Add(property);
+				}
+
+				result.infusion = infusion.ToArray();
+			}
+			else
+            {
+				result.infusion = null;
+			}
+
+			// Reading properties
+			var propertiesNode = node.GetNode("properties");
+			if (propertiesNode != null)
+			{
+				var properties = new List<TokenProperty>();
+				foreach (DataNode entry in propertiesNode.Children)
+				{
+					var property = new TokenProperty();
+					property.Key = entry.GetString("Key");
+					property.Value = entry.GetString("Value");
+					properties.Add(property);
+				}
+
+				result.properties = properties.ToArray();
+			}
+			else
+            {
+				result.properties = null;
+			}
 
 			return result;			
 		}
 	}
-	
+
+	public interface IRom : Phantasma.Storage.ISerializable
+    {
+		string GetName();
+		string GetDescription();
+		DateTime GetDate();
+	}
+	public class UnknownRom : IRom
+	{
+		public UnknownRom(byte[] rom)
+		{
+		}
+
+		public string GetName() => "";
+		public string GetDescription() => "";
+		public DateTime GetDate() => new DateTime();
+
+		public void SerializeData(System.IO.BinaryWriter writer)
+		{
+			throw new NotImplementedException();
+		}
+		public void UnserializeData(System.IO.BinaryReader reader)
+		{
+		}
+	}
+	public class CrownRom : IRom
+	{
+		public Address staker;
+		public Core.Types.Timestamp date;
+
+		public CrownRom(byte[] rom)
+		{
+			using (var stream = new System.IO.MemoryStream(rom))
+			{
+				using (var reader = new System.IO.BinaryReader(stream))
+				{
+					UnserializeData(reader);
+				}
+			}
+		}
+
+		public string GetName() => "Crown NFT";
+		public string GetDescription() => "";
+		public DateTime GetDate() => date;
+
+		public void SerializeData(System.IO.BinaryWriter writer)
+		{
+			throw new NotImplementedException();
+		}
+		public void UnserializeData(System.IO.BinaryReader reader)
+		{
+			this.staker = reader.ReadAddress();
+			this.date = new Core.Types.Timestamp(reader.ReadUInt32());
+		}
+	}
+	public class GhostRom : IRom
+	{
+		// Date the NFT was created - used to have a unique ID - timestamp
+		public Core.Types.Timestamp created;
+		// Original owner of the NFT - address
+		public Address creator;
+		// Commission (in %) for the royalties - number
+		public BigInteger royalties;
+		// Name of the NFT - string
+		public string name;
+		// Description of the NFT - string
+		public string description;
+		// Type of the NFT - number
+		public BigInteger type;
+		// Image of the NFT - IPFS hash - string
+		public string imageURL;
+		// Info URL of the NFT for extended properties - string
+		public string infoURL;
+		// Extended attribute1 type - string
+		public string attributeType1;
+		// Extended attribute1 value - string
+		public string attributeValue1;
+		// Extended attribute2 type - string
+		public string attributeType2;
+		// Extended attribute2 value - string
+		public string attributeValue2;
+		// Extended attribute3 type - string
+		public string attributeType3;
+		// Extended attribute3 value - string
+		public string attributeValue3;
+
+		public GhostRom(byte[] rom)
+		{
+			using (var stream = new System.IO.MemoryStream(rom))
+			{
+				using (var reader = new System.IO.BinaryReader(stream))
+				{
+					UnserializeData(reader);
+				}
+			}
+		}
+
+		public string GetName() => name;
+		public string GetDescription() => description;
+		public DateTime GetDate() => created;
+
+		public void SerializeData(System.IO.BinaryWriter writer)
+		{
+			throw new NotImplementedException();
+		}
+		public void UnserializeData(System.IO.BinaryReader reader)
+		{
+			this.created = new Core.Types.Timestamp(reader.ReadUInt32());
+			this.creator = reader.ReadAddress();
+			this.royalties = reader.ReadBigInteger();
+			this.name = reader.ReadString();
+			this.description = reader.ReadString();
+			this.type = reader.ReadBigInteger();
+			this.imageURL = reader.ReadString();
+			this.infoURL = reader.ReadString();
+			this.attributeType1 = reader.ReadString();
+			this.attributeValue1 = reader.ReadString();
+			this.attributeType2 = reader.ReadString();
+			this.attributeValue2 = reader.ReadString();
+			this.attributeType3 = reader.ReadString();
+			this.attributeValue3 = reader.ReadString();
+		}
+	}
+
 	public struct SendRawTx 
 	{
 		public string hash; //
@@ -873,9 +1066,8 @@ namespace Phantasma.SDK
 			return result;			
 		}
 	}
-	
-   
-   public class PhantasmaAPI {	   
+
+	public class PhantasmaAPI {	   
 		public readonly	string Host;
 	   
 		public PhantasmaAPI(string host) 
@@ -1087,7 +1279,7 @@ namespace Phantasma.SDK
 		private int tokensLoadedSimultaneously = 0;
 
 		//Returns data of a non-fungible token, in hexadecimal format.
-		public IEnumerator GetTokenData(string symbol, string IDtext, Action<TokenData> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+		public IEnumerator GetNFT(string symbol, string IDtext, Action<DataNode> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
 		{
 			while (tokensLoadedSimultaneously > 5)
 			{
@@ -1095,10 +1287,10 @@ namespace Phantasma.SDK
 			}
 			tokensLoadedSimultaneously++;
 
+			// TODO: Change to "getNFT" in next version, after chain update
 			yield return WebClient.RPCRequest(Host, "getTokenData", WebClient.NoTimeout, 0, errorHandlingCallback, (node) => {
-				var result = TokenData.FromNode(node);
-				callback(result);
-			} , symbol, IDtext);
+				callback(node);
+			} , symbol, IDtext, true);
 
 			tokensLoadedSimultaneously--;
 		}

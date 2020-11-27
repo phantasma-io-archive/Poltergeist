@@ -243,17 +243,18 @@ namespace Poltergeist
         public bool HasSelection => _selectedAccountIndex >= 0 && _selectedAccountIndex < Accounts.Count();
 
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
-        private Dictionary<PlatformKind, List<string>> _nfts = new Dictionary<PlatformKind, List<string>>();
+        private Dictionary<PlatformKind, List<TokenData>> _nfts = new Dictionary<PlatformKind, List<TokenData>>();
         private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
-        public List<string> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
+        public List<TokenData> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
-        private bool ttrsNftDescriptionsAreFullyLoaded;
+        private bool nftDescriptionsAreFullyLoaded;
         private TtrsNftSortMode currentTtrsNftsSortMode = TtrsNftSortMode.None;
-        private SortDirection currentTtrsNftsSortDirection = SortDirection.None;
+        private NftSortMode currentNftsSortMode = NftSortMode.None;
+        private SortDirection currentNftsSortDirection = SortDirection.None;
 
         public static AccountManager Instance { get; private set; }
 
@@ -1015,6 +1016,8 @@ namespace Poltergeist
                 new Token() { symbol = "MKNI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags },
                 new Token() { symbol = "NACHO", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags },
                 new Token() { symbol = "TTRS", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "0", name = "22series", flags = nftFlags },
+                new Token() { symbol = "GHOST", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GHOST").ToString(), decimals = 0, maxSupply = "0", name = "Ghost", flags = nftFlags },
+                new Token() { symbol = "CROWN", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("CROWN").ToString(), decimals = 0, maxSupply = "0", name = "Crown", flags = nftFlags },
                 new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "0", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
                 new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Ethereum", flags = extFlags },
                 new Token() { symbol = "DAI", apiSymbol = "dai", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
@@ -2228,47 +2231,151 @@ namespace Poltergeist
                 if (_nfts.ContainsKey(platform))
                     _nfts[platform].Clear();
 
-                switch (platform)
+                if (GetTokenBySymbol(symbol, platform, out var tokenInfo))
                 {
-                    case PlatformKind.Phantasma:
-                        {
-                            var keys = PhantasmaKeys.FromWIF(wif);
-
-                            Log.Write("Getting NFTs...");
-                            foreach (var balanceEntry in CurrentState.balances)
+                    switch (platform)
+                    {
+                        case PlatformKind.Phantasma:
                             {
-                                if (balanceEntry.Symbol == "TTRS" && symbol == "TTRS" )
+                                var keys = PhantasmaKeys.FromWIF(wif);
+
+                                Log.Write("Getting NFTs...");
+                                foreach (var balanceEntry in CurrentState.balances)
                                 {
-                                    // Initializing NFT dictionary if needed.
-                                    if (!_nfts.ContainsKey(platform))
-                                        _nfts.Add(platform, new List<string>());
-
-                                    _nfts[platform] = new List<string>(balanceEntry.Ids);
-
-                                    ttrsNftDescriptionsAreFullyLoaded = false;
-
-                                    ReportWalletNft(platform, symbol);
-
-                                    if (balanceEntry.Ids.Length > 0)
+                                    if (balanceEntry.Symbol == symbol && !tokenInfo.flags.Contains(TokenFlags.Fungible.ToString()))
                                     {
-                                        // Getting NFT descriptions.
-                                        StartCoroutine(TtrsStore.LoadStoreNft(balanceEntry.Ids, (item) =>
+                                        nftDescriptionsAreFullyLoaded = false;
+
+                                        // Initializing NFT dictionary if needed.
+                                        if (!_nfts.ContainsKey(platform))
+                                            _nfts.Add(platform, new List<TokenData>());
+
+                                        var cache = Cache.GetDataNode("tokens", Cache.FileType.JSON, 0, CurrentState.address);
+
+                                        if (cache == null)
                                         {
-                                            // Downloading NFT images.
-                                            StartCoroutine(TtrsStore.DownloadImage(item));
-                                        }, () =>
+                                            cache = DataNode.CreateObject();
+                                        }
+                                        DataNode cachedTokens;
+                                        if (cache.HasNode("tokens"))
+                                            cachedTokens = cache.GetNode("tokens");
+                                        else
+                                            cachedTokens = cache.AddNode(DataNode.CreateObject("tokens"));
+
+                                        int loadedTokenCounter = 0;
+                                        foreach (var id in balanceEntry.Ids)
                                         {
-                                            ttrsNftDescriptionsAreFullyLoaded = true;
-                                        }));
+                                            // Checking if token is cached.
+                                            DataNode token = null;
+                                            foreach (var cachedToken in cachedTokens.Children)
+                                            {
+                                                if (cachedToken.GetString("id") == id)
+                                                {
+                                                    token = cachedToken;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (token != null)
+                                            {
+                                                // Loading token from cache.
+                                                var tokenId = token.GetString("id");
+
+                                                loadedTokenCounter++;
+
+                                                // Checking if token already loaded to dictionary.
+                                                if (!_nfts[platform].Exists(x => x.ID == tokenId))
+                                                {
+                                                    _nfts[platform].Add(TokenData.FromNode(token, symbol));
+                                                }
+
+                                                if (loadedTokenCounter == balanceEntry.Ids.Length)
+                                                {
+                                                    // We finished loading tokens.
+                                                    // Saving them in cache.
+                                                    Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
+
+                                                    if (symbol != "TTRS")
+                                                    {
+                                                        // For all NFTs except TTRS all needed information
+                                                        // is loaded by this moment.
+                                                        nftDescriptionsAreFullyLoaded = true;
+                                                    }
+
+                                                    ReportWalletNft(platform, symbol);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (symbol == "TTRS")
+                                                {
+                                                    // TODO: Load TokenData for TTRS too (add batch load method for TokenDatas).
+                                                    // For now we skip TokenData loading to speed up TTRS NFTs loading,
+                                                    // since it's not used for TTRS anyway.
+                                                    var tokenData = new TokenData();
+                                                    tokenData.ID = id;
+                                                    _nfts[platform].Add(tokenData);
+
+                                                    loadedTokenCounter++;
+                                                }
+                                                else
+                                                {
+                                                    StartCoroutine(phantasmaApi.GetNFT(symbol, id, (result) =>
+                                                    {
+                                                        var tokenData = TokenData.FromNode(result, symbol);
+
+                                                        loadedTokenCounter++;
+
+                                                        token = cachedTokens.AddNode(result);
+
+                                                        _nfts[platform].Add(tokenData);
+
+                                                        if (loadedTokenCounter == balanceEntry.Ids.Length)
+                                                        {
+                                                            // We finished loading tokens.
+                                                            // Saving them in cache.
+                                                            Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
+
+                                                            ReportWalletNft(platform, symbol);
+                                                        }
+                                                    }, (error, msg) =>
+                                                    {
+                                                        Log.Write(msg);
+                                                    }));
+                                                }
+                                            }
+                                        }
+
+                                        ReportWalletNft(platform, symbol);
+
+                                        if (balanceEntry.Ids.Length > 0)
+                                        {
+                                            // Getting NFT descriptions.
+                                            if (symbol == "TTRS")
+                                            {
+                                                StartCoroutine(TtrsStore.LoadStoreNft(balanceEntry.Ids, (item) =>
+                                                {
+                                                    // Downloading NFT images.
+                                                    StartCoroutine(TtrsStore.DownloadImage(item));
+                                                }, () =>
+                                                {
+                                                    nftDescriptionsAreFullyLoaded = true;
+                                                }));
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        }
-                        break;
+                            break;
 
-                    default:
-                        ReportWalletNft(platform, symbol);
-                        break;
+                        default:
+                            ReportWalletNft(platform, symbol);
+                            break;
+                    }
+                }
+                else
+                {
+                    ReportWalletNft(platform, symbol);
                 }
             }
         }
@@ -2461,6 +2568,17 @@ namespace Poltergeist
             }
 
             return $"{url}address/{address}";
+        }
+
+        public string GetPhantasmaContractURL(string symbol)
+        {
+            var url = Settings.phantasmaExplorer;
+            if (!url.EndsWith("/"))
+            {
+                url += "/";
+            }
+
+            return $"{url}contract/{symbol}";
         }
 
         private void RequestPendings(string address, Action<Swap[], string> callback)
@@ -2866,59 +2984,93 @@ namespace Poltergeist
             return null;
         }
 
-        public void ResetTtrsNftsSorting()
+        public void ResetNftsSorting()
         {
             currentTtrsNftsSortMode = TtrsNftSortMode.None;
-            currentTtrsNftsSortDirection = SortDirection.None;
+            currentNftsSortMode = NftSortMode.None;
+            currentNftsSortDirection = SortDirection.None;
         }
 
-        public void SortTtrsNfts()
+        public void SortTtrsNfts(string symbol)
         {
             if (_nfts[CurrentPlatform] == null)
                 return;
 
-            if (!ttrsNftDescriptionsAreFullyLoaded) // We should not sort NFTs if there are no attributes available.
+            if (!nftDescriptionsAreFullyLoaded) // We should not sort NFTs if there are no attributes available.
                 return;
 
-            if (currentTtrsNftsSortMode == (TtrsNftSortMode)Settings.ttrsNftSortMode && (int)currentTtrsNftsSortDirection == Settings.nftSortDirection)
-                return; // Nothing changed, no need to sort again.
-
-            switch ((TtrsNftSortMode)Settings.ttrsNftSortMode)
+            if (symbol == "TTRS")
             {
-                case TtrsNftSortMode.Number_Date:
-                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    else
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    break;
-                case TtrsNftSortMode.Date_Number:
-                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
-                    else
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
-                    break;
-                case TtrsNftSortMode.Type_Number_Date:
-                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    else
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    break;
-                case TtrsNftSortMode.Type_Date_Number:
-                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ThenBy(x => TtrsStore.GetNft(x).Mint).ToList();
-                    else
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ToList();
-                    break;
-                case TtrsNftSortMode.Type_Rarity: // And also Number and Date as last sorting parameters.
-                    if (Settings.nftSortDirection == (int)SortDirection.Ascending)
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x).Type).ThenByDescending(x => TtrsStore.GetNft(x).Rarity).ThenBy(x => TtrsStore.GetNft(x).Mint).ThenBy(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    else
-                        _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x).Type).ThenBy(x => TtrsStore.GetNft(x).Rarity).ThenByDescending(x => TtrsStore.GetNft(x).Mint).ThenByDescending(x => TtrsStore.GetNft(x).Timestamp).ToList();
-                    break;
-            }
+                if (currentTtrsNftsSortMode == (TtrsNftSortMode)Settings.ttrsNftSortMode && (int)currentNftsSortDirection == Settings.nftSortDirection)
+                    return; // Nothing changed, no need to sort again.
 
-            currentTtrsNftsSortMode = (TtrsNftSortMode)Settings.ttrsNftSortMode;
-            currentTtrsNftsSortDirection = (SortDirection)Settings.nftSortDirection;
+                switch ((TtrsNftSortMode)Settings.ttrsNftSortMode)
+                {
+                    case TtrsNftSortMode.Number_Date:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        break;
+                    case TtrsNftSortMode.Date_Number:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        break;
+                    case TtrsNftSortMode.Type_Number_Date:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        break;
+                    case TtrsNftSortMode.Type_Date_Number:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ToList();
+                        break;
+                    case TtrsNftSortMode.Type_Rarity: // And also Number and Date as last sorting parameters.
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => TtrsStore.GetNft(x.ID).Type).ThenByDescending(x => TtrsStore.GetNft(x.ID).Rarity).ThenBy(x => TtrsStore.GetNft(x.ID).Mint).ThenBy(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => TtrsStore.GetNft(x.ID).Type).ThenBy(x => TtrsStore.GetNft(x.ID).Rarity).ThenByDescending(x => TtrsStore.GetNft(x.ID).Mint).ThenByDescending(x => TtrsStore.GetNft(x.ID).Timestamp).ToList();
+                        break;
+                }
+
+                currentTtrsNftsSortMode = (TtrsNftSortMode)Settings.ttrsNftSortMode;
+            }
+            else
+            {
+                if (currentNftsSortMode == (NftSortMode)Settings.nftSortMode && (int)currentNftsSortDirection == Settings.nftSortDirection)
+                    return; // Nothing changed, no need to sort again.
+
+                switch ((NftSortMode)Settings.ttrsNftSortMode)
+                {
+                    case NftSortMode.Name:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => GetNft(x.ID).parsedRom.GetName()).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => GetNft(x.ID).parsedRom.GetName()).ToList();
+                        break;
+                    case NftSortMode.Number_Date:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => GetNft(x.ID).mint).ThenBy(x => GetNft(x.ID).parsedRom.GetDate()).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => GetNft(x.ID).mint).ThenByDescending(x => GetNft(x.ID).parsedRom.GetDate()).ToList();
+                        break;
+                    case NftSortMode.Date_Number:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => GetNft(x.ID).parsedRom.GetDate()).ThenBy(x => GetNft(x.ID).mint).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => GetNft(x.ID).parsedRom.GetDate()).ThenByDescending(x => GetNft(x.ID).mint).ToList();
+                        break;
+                }
+
+                currentNftsSortMode = (NftSortMode)Settings.nftSortMode;
+            }
+            
+            currentNftsSortDirection = (SortDirection)Settings.nftSortDirection;
         }
 
         public decimal CalculateRequireStakeForStorage(int totalSize)
@@ -2926,6 +3078,11 @@ namespace Poltergeist
             var kilobytesPerStake = 39; // TODO this should be governance value obtained from chain
             var stakeAmount = (totalSize * UnitConversion.GetUnitValue(DomainSettings.StakingTokenDecimals))  / (kilobytesPerStake * 1024);
             return UnitConversion.ToDecimal(stakeAmount, DomainSettings.StakingTokenDecimals);
+        }
+
+        public TokenData GetNft(string id)
+        {
+            return _nfts[CurrentPlatform].Where(x => x.ID == id).FirstOrDefault();
         }
     }
 }

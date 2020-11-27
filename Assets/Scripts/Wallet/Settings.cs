@@ -77,6 +77,7 @@ namespace Poltergeist
         public const string UiThemeNameTag = "ui.theme.name";
 
         public const string TtrsNftSortModeTag = "ttrs.nft.sort.mode";
+        public const string NftSortModeTag = "nft.sort.mode";
         public const string NftSortDirectionTag = "nft.sort.direction";
 
         public const string LastVisitedFolderTag = "last.visited.folder";
@@ -103,6 +104,7 @@ namespace Poltergeist
         public bool logOverwriteMode;
         public string uiThemeName;
         public int ttrsNftSortMode;
+        public int nftSortMode;
         public int nftSortDirection;
         public string lastVisitedFolder;
 
@@ -129,6 +131,7 @@ namespace Poltergeist
                 "Log level: " + this.logLevel + "\n" +
                 "Log overwrite: " + this.logOverwriteMode + "\n" +
                 "TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
+                "NFT sort mode: " + this.nftSortMode + "\n" +
                 "NFT sort direction: " + this.nftSortDirection;
         }
 
@@ -235,6 +238,7 @@ namespace Poltergeist
             LoadLogSettings();
 
             this.ttrsNftSortMode = PlayerPrefs.GetInt(TtrsNftSortModeTag, 0);
+            this.nftSortMode = PlayerPrefs.GetInt(NftSortModeTag, 0);
             this.nftSortDirection = PlayerPrefs.GetInt(NftSortDirectionTag, 0);
 
             var documentFolderPath = GetDocumentPath();
@@ -432,6 +436,7 @@ namespace Poltergeist
         public void SaveOnExit()
         {
             PlayerPrefs.SetInt(TtrsNftSortModeTag, this.ttrsNftSortMode);
+            PlayerPrefs.SetInt(NftSortModeTag, this.nftSortMode);
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
             PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
@@ -439,6 +444,7 @@ namespace Poltergeist
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
+                      "                        NFT sort mode: " + nftSortMode + "\n" +
                       "                        NFT sort direction: " + nftSortDirection + "\n" +
                       "                        Phantasma BP: " + phantasmaBPURL + "\n" +
                       "                        Ethereum gas price (Gwei): " + ethereumGasPriceGwei,
