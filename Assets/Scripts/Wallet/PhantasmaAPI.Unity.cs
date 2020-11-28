@@ -13,6 +13,7 @@ using Phantasma.Domain;
 using Phantasma.Blockchain.Storage;
 using System.Collections.Generic;
 using Phantasma.Storage.Utils;
+using Phantasma.VM;
 
 namespace Phantasma.SDK
 {
@@ -578,11 +579,8 @@ namespace Phantasma.SDK
 				case "CROWN":
 					result.parsedRom = new CrownRom(result.rom);
 					break;
-				case "GHOST":
-					result.parsedRom = new GhostRom(result.rom);
-					break;
 				default:
-					result.parsedRom = new UnknownRom(result.rom);
+					result.parsedRom = new CustomRom(result.rom);
 					break;
 			}
 
@@ -631,29 +629,11 @@ namespace Phantasma.SDK
 		}
 	}
 
-	public interface IRom : Phantasma.Storage.ISerializable
+	public interface IRom
     {
 		string GetName();
 		string GetDescription();
 		DateTime GetDate();
-	}
-	public class UnknownRom : IRom
-	{
-		public UnknownRom(byte[] rom)
-		{
-		}
-
-		public string GetName() => "";
-		public string GetDescription() => "";
-		public DateTime GetDate() => new DateTime();
-
-		public void SerializeData(System.IO.BinaryWriter writer)
-		{
-			throw new NotImplementedException();
-		}
-		public void UnserializeData(System.IO.BinaryReader reader)
-		{
-		}
 	}
 	public class CrownRom : IRom
 	{
@@ -675,82 +655,60 @@ namespace Phantasma.SDK
 		public string GetDescription() => "";
 		public DateTime GetDate() => date;
 
-		public void SerializeData(System.IO.BinaryWriter writer)
-		{
-			throw new NotImplementedException();
-		}
-		public void UnserializeData(System.IO.BinaryReader reader)
+		private void UnserializeData(System.IO.BinaryReader reader)
 		{
 			this.staker = reader.ReadAddress();
 			this.date = new Core.Types.Timestamp(reader.ReadUInt32());
 		}
 	}
-	public class GhostRom : IRom
+	public class CustomRom : IRom
 	{
-		// Date the NFT was created - used to have a unique ID - timestamp
-		public Core.Types.Timestamp created;
-		// Original owner of the NFT - address
-		public Address creator;
-		// Commission (in %) for the royalties - number
-		public BigInteger royalties;
-		// Name of the NFT - string
-		public string name;
-		// Description of the NFT - string
-		public string description;
-		// Type of the NFT - number
-		public BigInteger type;
-		// Image of the NFT - IPFS hash - string
-		public string imageURL;
-		// Info URL of the NFT for extended properties - string
-		public string infoURL;
-		// Extended attribute1 type - string
-		public string attributeType1;
-		// Extended attribute1 value - string
-		public string attributeValue1;
-		// Extended attribute2 type - string
-		public string attributeType2;
-		// Extended attribute2 value - string
-		public string attributeValue2;
-		// Extended attribute3 type - string
-		public string attributeType3;
-		// Extended attribute3 value - string
-		public string attributeValue3;
+		//VMObject rom;
+		Dictionary<VMObject, VMObject> fields = new Dictionary<VMObject, VMObject>();
 
-		public GhostRom(byte[] rom)
+		public CustomRom(byte[] romBytes)
 		{
-			using (var stream = new System.IO.MemoryStream(rom))
+			try
 			{
-				using (var reader = new System.IO.BinaryReader(stream))
-				{
-					UnserializeData(reader);
+				var rom = VMObject.FromBytes(romBytes);
+				if(rom.Type == VMType.Struct)
+                {
+					fields = (Dictionary<VMObject, VMObject>)rom.Data;
+				}
+				else
+                {
+					Log.Write($"Cannot parse ROM.");
 				}
 			}
+			catch(Exception e)
+            {
+				Log.Write($"ROM parsing error: {e.ToString()}");
+            }
 		}
 
-		public string GetName() => name;
-		public string GetDescription() => description;
-		public DateTime GetDate() => created;
-
-		public void SerializeData(System.IO.BinaryWriter writer)
+		public string GetName()
 		{
-			throw new NotImplementedException();
+			if(fields.TryGetValue(VMObject.FromObject("name"), out var value))
+            {
+				return value.AsString();
+            }
+			return "";
 		}
-		public void UnserializeData(System.IO.BinaryReader reader)
+		public string GetDescription()
 		{
-			this.created = new Core.Types.Timestamp(reader.ReadUInt32());
-			this.creator = reader.ReadAddress();
-			this.royalties = reader.ReadBigInteger();
-			this.name = reader.ReadString();
-			this.description = reader.ReadString();
-			this.type = reader.ReadBigInteger();
-			this.imageURL = reader.ReadString();
-			this.infoURL = reader.ReadString();
-			this.attributeType1 = reader.ReadString();
-			this.attributeValue1 = reader.ReadString();
-			this.attributeType2 = reader.ReadString();
-			this.attributeValue2 = reader.ReadString();
-			this.attributeType3 = reader.ReadString();
-			this.attributeValue3 = reader.ReadString();
+			if (fields.TryGetValue(VMObject.FromObject("description"), out var value))
+			{
+				return value.AsString();
+			}
+			return "";
+		}
+		public DateTime GetDate()
+		{
+			if (fields.TryGetValue(VMObject.FromObject("created"), out var value))
+			{
+				return value.AsTimestamp();
+			}
+			return new DateTime();
 		}
 	}
 
