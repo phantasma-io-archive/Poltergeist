@@ -376,6 +376,15 @@ namespace Poltergeist
                             break;
                         }
 
+                    case "GHOST.getLockedContent":
+                            {
+                                var nftSymbol = GetStringArg(entry, 0);
+                                var nftID = GetStringArg(entry, 1);
+
+                                sb.AppendLine($"\u2605 Get locked content for {nftSymbol} #{nftID.Substring(0, 5) + "..." + nftNumber.Substring(nftID.Length - 5)}.");
+                                break;
+                            }
+
                     case "GHOST.mintToken":
                         {
                             var editionId = GetNumberArg(entry, 0);
