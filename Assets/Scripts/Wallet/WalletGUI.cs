@@ -4398,15 +4398,14 @@ namespace Poltergeist
             {
                 var item = accountManager.GetNft(entryId);
 
-                nftName = item.ID; // Setting ID as a default name for unknown NFTs.
-                nftDescription = "";
                 DateTime nftDate = new DateTime();
                 if (item.parsedRom != null)
                 {
-                    nftName = item.parsedRom.GetName();
-                    nftDescription = item.parsedRom.GetDescription();
                     nftDate = item.parsedRom.GetDate();
                 }
+
+                nftName = item.GetPropertyValue("name");
+                nftDescription = item.GetPropertyValue("description");
 
                 nftDescription = item.mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.mint + " " +
                     (nftDate == DateTime.MinValue ? "" : (VerticalLayout ? nftDate.ToString("dd.MM.yy") : nftDate.ToString("dd.MM.yyyy HH:mm:ss"))) +

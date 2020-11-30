@@ -14,6 +14,7 @@ using Phantasma.Blockchain.Storage;
 using System.Collections.Generic;
 using Phantasma.Storage.Utils;
 using Phantasma.VM;
+using System.Linq;
 
 namespace Phantasma.SDK
 {
@@ -558,7 +559,7 @@ namespace Phantasma.SDK
 		public byte[] rom;
 		public IRom parsedRom;
 		public TokenProperty[] infusion;
-		public TokenProperty[] properties;
+		public List<TokenProperty> properties;
 
 		public static TokenData FromNode(DataNode node, string symbol)
 		{
@@ -618,7 +619,7 @@ namespace Phantasma.SDK
 					properties.Add(property);
 				}
 
-				result.properties = properties.ToArray();
+				result.properties = properties;
 			}
 			else
             {
@@ -627,6 +628,16 @@ namespace Phantasma.SDK
 
 			return result;			
 		}
+
+		public string GetPropertyValue(string key)
+        {
+			if(properties != null)
+            {
+				return properties.Where(x => x.Key.ToUpper() == key.ToUpper()).Select(x => x.Value).FirstOrDefault();
+            }
+
+			return null;
+        }
 	}
 
 	public interface IRom
@@ -1245,8 +1256,7 @@ namespace Phantasma.SDK
 			}
 			tokensLoadedSimultaneously++;
 
-			// TODO: Change to "getNFT" in next version, after chain update
-			yield return WebClient.RPCRequest(Host, "getTokenData", WebClient.NoTimeout, 0, errorHandlingCallback, (node) => {
+			yield return WebClient.RPCRequest(Host, "getNFT", WebClient.NoTimeout, 0, errorHandlingCallback, (node) => {
 				callback(node);
 			} , symbol, IDtext, true);
 
