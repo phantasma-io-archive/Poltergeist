@@ -4409,7 +4409,7 @@ namespace Poltergeist
 
                 nftDescription = item.mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.mint + " " +
                     (nftDate == DateTime.MinValue ? "" : (VerticalLayout ? nftDate.ToString("dd.MM.yy") : nftDate.ToString("dd.MM.yyyy HH:mm:ss"))) +
-                    (String.IsNullOrEmpty(nftDescription) ? "" : (VerticalLayout ? " " : " / ") + nftDescription);
+                    (String.IsNullOrEmpty(nftDescription) ? "" : ((VerticalLayout ? " " : " / ") + (VerticalLayout ? nftDescription.Substring(0, 20) + "..." : nftDescription)));
 
                 if(item.infusion != null)
                 {
