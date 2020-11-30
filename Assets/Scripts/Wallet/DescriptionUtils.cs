@@ -411,6 +411,7 @@ namespace Poltergeist
                             var listLastEndDate = GetTimestampArg(entry, 21);
                             var infusedAsset = GetStringArg(entry, 22);
                             var infusedAmount = GetNumberArg(entry, 23);
+                            var hasLocked = GetStringArg(entry, 24);
 
                             Token listPriceToken;
                             accountManager.GetTokenBySymbol(listPriceCurrency, PlatformKind.Phantasma, out listPriceToken);
@@ -420,7 +421,14 @@ namespace Poltergeist
 
                             var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), listPriceToken.decimals);
 
-                            sb.AppendLine($"\u2605 Mint {numOfNfts}x {mintTicker}, with a {royalties}% royalty.");
+                            if (editionId > 0)
+                            {
+                              sb.AppendLine($"\u2605 Mint on existing series {editionId}, a total of {numOfNfts}x {mintTicker}.");
+                            }
+                            else
+                            {
+                              sb.AppendLine($"\u2605 Mint on a new series {numOfNfts}x {mintTicker}, with a {royalties}% royalty.");
+                            }
                             if (infusedAmount > 0)
                             {
                               sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {infuseAmountToken} {infusedAsset}.");
