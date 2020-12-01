@@ -4414,10 +4414,20 @@ namespace Poltergeist
 
                 nftName = item.GetPropertyValue("name");
                 nftDescription = item.GetPropertyValue("description");
+                if(VerticalLayout)
+                {
+                    if (nftDescription.Length > 20)
+                        nftDescription = nftDescription.Substring(0, 17) + "...";
+                }
+                else
+                {
+                    if (nftDescription.Length > 40)
+                        nftDescription = nftDescription.Substring(0, 37) + "...";
+                }
 
                 nftDescription = item.mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.mint + " " +
                     (nftDate == DateTime.MinValue ? "" : (VerticalLayout ? nftDate.ToString("dd.MM.yy") : nftDate.ToString("dd.MM.yyyy HH:mm:ss"))) +
-                    (String.IsNullOrEmpty(nftDescription) ? "" : ((VerticalLayout ? " " : " / ") + (VerticalLayout ? nftDescription.Substring(0, 20) + "..." : nftDescription)));
+                    (String.IsNullOrEmpty(nftDescription) ? "" : ((VerticalLayout ? " " : " / ") + nftDescription));
 
                 if(item.infusion != null)
                 {
