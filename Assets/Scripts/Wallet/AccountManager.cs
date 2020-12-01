@@ -1587,6 +1587,7 @@ namespace Poltergeist
             _states.Clear();
             _nfts.Clear();
             TtrsStore.Clear();
+            NftImages.Clear();
         }
 
         private void ReportWalletBalance(PlatformKind platform, AccountState state)
@@ -2286,7 +2287,11 @@ namespace Poltergeist
                                                 // Checking if token already loaded to dictionary.
                                                 if (!_nfts[platform].Exists(x => x.ID == tokenId))
                                                 {
-                                                    _nfts[platform].Add(TokenData.FromNode(token, symbol));
+                                                    var tokenData = TokenData.FromNode(token, symbol);
+                                                    _nfts[platform].Add(tokenData);
+
+                                                    // Downloading NFT images.
+                                                    StartCoroutine(NftImages.DownloadImage(symbol, tokenData.GetPropertyValue("imageUrl"), id));
                                                 }
 
                                                 if (loadedTokenCounter == balanceEntry.Ids.Length)
@@ -2323,6 +2328,9 @@ namespace Poltergeist
                                                     StartCoroutine(phantasmaApi.GetNFT(symbol, id, (result) =>
                                                     {
                                                         var tokenData = TokenData.FromNode(result, symbol);
+                                                        
+                                                        // Downloading NFT images.
+                                                        StartCoroutine(NftImages.DownloadImage(symbol, tokenData.GetPropertyValue("imageUrl"), id));
 
                                                         loadedTokenCounter++;
 
@@ -2356,7 +2364,7 @@ namespace Poltergeist
                                                 StartCoroutine(TtrsStore.LoadStoreNft(balanceEntry.Ids, (item) =>
                                                 {
                                                     // Downloading NFT images.
-                                                    StartCoroutine(TtrsStore.DownloadImage(item));
+                                                    StartCoroutine(NftImages.DownloadImage(symbol, item.ImageUrl, item.Id));
                                                 }, () =>
                                                 {
                                                     nftDescriptionsAreFullyLoaded = true;

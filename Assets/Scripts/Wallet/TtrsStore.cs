@@ -15,7 +15,6 @@ public static class TtrsStore
     {
         ItemSupplyData?.Clear();
         StoreNft.Clear();
-        Images.Clear();
     }
 
     private struct ItemSupply
@@ -122,8 +121,6 @@ public static class TtrsStore
         public string Color; // "color": "Clear"
         public string Finish; // "finish": "High Gloss"
         public UInt64 MintLimit; // "mint_limit": 0
-
-        public Texture2D Image;
     }
 
     private static Hashtable StoreNft = new Hashtable();
@@ -137,24 +134,6 @@ public static class TtrsStore
     public static Nft GetNft(string id)
     {
         return StoreNft.Contains(id) ? (Nft)StoreNft[id] : new Nft();
-    }
-
-    public struct Image
-    {
-        public string Url;
-        public Texture2D Texture;
-    }
-
-    private static Hashtable Images = new Hashtable();
-
-    public static bool CheckIfImageLoaded(string Url)
-    {
-        return Images.Contains(Url);
-    }
-
-    public static Image GetImage(string Url)
-    {
-        return Images.Contains(Url) ? (Image)Images[Url] : new Image();
     }
 
     private static void LoadStoreNftFromDataNode(DataNode storeNft, Action<Nft> callback)
@@ -275,65 +254,6 @@ public static class TtrsStore
             }
             onAllItemsLoadedCallback();
         });
-    }
-
-    private static int imagesLoadedSimultaneously = 0;
-
-    public static IEnumerator DownloadImage(Nft nft)
-    {
-        // Trying to avoid downloading same image multiple times.
-        if (CheckIfImageLoaded(nft.Img))
-        {
-            yield break;
-        }
-
-        var texture = Cache.GetTexture("ttrs-image-" + nft.Item, 0);
-        if (texture != null)
-        {
-            var image = new Image();
-            image.Url = nft.Img;
-            image.Texture = texture;
-
-            lock (Images)
-            {
-                if (!CheckIfImageLoaded(image.Url))
-                    Images.Add(image.Url, image);
-            }
-            yield break;
-        }
-
-        while (imagesLoadedSimultaneously > 5)
-        {
-            yield return null;
-
-            // Trying to avoid downloading same image multiple times.
-            if (CheckIfImageLoaded(nft.Img))
-            {
-                yield break;
-            }
-        }
-
-        imagesLoadedSimultaneously++;
-
-        UnityWebRequest request = UnityWebRequestTexture.GetTexture(nft.Img);
-        yield return request.SendWebRequest();
-        if (request.isNetworkError || request.isHttpError)
-            Log.Write(request.error);
-        else
-        {
-            var image = new Image();
-            image.Url = nft.Img;
-            image.Texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
-
-            lock (Images)
-            {
-                if (!CheckIfImageLoaded(image.Url))
-                    Images.Add(image.Url, image);
-            }
-
-            Cache.AddTexture("ttrs-image-" + nft.Item, image.Texture);
-        }
-        imagesLoadedSimultaneously--;
     }
 
     private static string NftToString(Nft nft)

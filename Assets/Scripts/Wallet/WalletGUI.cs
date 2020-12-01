@@ -4342,7 +4342,7 @@ namespace Poltergeist
 
                 if (!String.IsNullOrEmpty(item.NameEnglish))
                 {
-                    var image = TtrsStore.GetImage(item.Img);
+                    var image = NftImages.GetImage(item.Img);
 
                     if (!String.IsNullOrEmpty(image.Url))
                     {
@@ -4397,6 +4397,14 @@ namespace Poltergeist
             else
             {
                 var item = accountManager.GetNft(entryId);
+
+                var image = NftImages.GetImage(item.GetPropertyValue("imageURL"));
+
+                if (!String.IsNullOrEmpty(image.Url))
+                {
+                    var textureDisplayedHeight = VerticalLayout ? Units(3) : Units(3) - 8;
+                    GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, (float)textureDisplayedHeight * ((float)image.Texture.width / (float)image.Texture.height), textureDisplayedHeight), image.Texture);
+                }
 
                 DateTime nftDate = new DateTime();
                 if (item.parsedRom != null)
