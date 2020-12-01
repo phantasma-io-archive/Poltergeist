@@ -70,8 +70,12 @@ public static class NftImages
         var fullUrl = url;
         if(!fullUrl.Contains("/"))
         {
-            // This is an IPFS hash.
+            // This is a pure IPFS hash.
             fullUrl = "https://gateway.ipfs.io/ipfs/" + fullUrl;
+        }
+        else if (fullUrl.StartsWith("ipfs://"))
+        {
+            fullUrl = "https://gateway.ipfs.io/ipfs/" + fullUrl.Substring("ipfs://".Length);
         }
 
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(fullUrl);
