@@ -4499,8 +4499,10 @@ namespace Poltergeist
                 AudioManager.Instance.PlaySFX("click");
                 if (transferSymbol == "TTRS")
                     Application.OpenURL("https://www.22series.com/part_info?id=" + entryId);
+                if (transferSymbol == "CROWN")
+                    Application.OpenURL("https://ghostmarket.io/asset/pha/0/" + entryId);
                 else
-                    Application.OpenURL("https://ghostmarket.io/asset/pha/" + Hash.FromString(transferSymbol.ToUpper()) + "/" + entryId);
+                    Application.OpenURL("https://ghostmarket.io/asset/pha/S3d8xzyuUC3QChNDdj3KUxT2oqxkVTKFDbbgJ9yLUY7HLas/" + entryId);
             });
         }
 
