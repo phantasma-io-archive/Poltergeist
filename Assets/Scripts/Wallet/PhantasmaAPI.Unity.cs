@@ -689,7 +689,6 @@ namespace Phantasma.SDK
     }
     public class CustomRom : IRom
     {
-        //VMObject rom;
         Dictionary<VMObject, VMObject> fields = new Dictionary<VMObject, VMObject>();
 
         public CustomRom(byte[] romBytes)
