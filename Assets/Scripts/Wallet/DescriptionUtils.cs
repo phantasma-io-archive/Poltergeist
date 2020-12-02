@@ -415,19 +415,25 @@ namespace Poltergeist
 
                             if (editionId > 0)
                             {
-                              sb.AppendLine($"\u2605 Mint on existing series {editionId}, a total of {numOfNfts}x {mintTicker}.");
+                                sb.AppendLine($"\u2605 Mint on existing series {editionId}, a total of {numOfNfts}x {mintTicker}.");
                             }
                             else
                             {
-                              sb.AppendLine($"\u2605 Mint on a new series {numOfNfts}x {mintTicker}, with a {royalties}% royalty.");
+                                sb.AppendLine($"\u2605 Mint on a new series {numOfNfts}x {mintTicker}, with a {royalties}% royalty.");
                             }
                             if (infusedAmount > 0)
                             {
-                              sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {infusedAmount} {infusedAsset}.");
+                                accountManager.GetTokenBySymbol(infusedAsset, PlatformKind.Phantasma, out var infusedToken);
+                                var infusedAmountWithDecimals = infusedToken.flags.Contains("Fungible") ? UnitConversion.ToDecimal(infusedAmount, infusedToken.decimals) : 0;
+
+                                sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {(infusedAmountWithDecimals > 0 ? infusedAmountWithDecimals.ToString() : infusedAmount.ToString())} {infusedAsset}.");
                             }
                             if (listPrice > 0)
                             {
-                              sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPrice} {listPriceCurrency}, offer valid until {listLastEndDate}.");
+                                accountManager.GetTokenBySymbol(listPriceCurrency, PlatformKind.Phantasma, out var listPriceToken);
+                                var listPriceWithDecimals = (listPrice > 0) ? UnitConversion.ToDecimal(listPrice, listPriceToken.decimals) : 0;
+
+                                sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPriceWithDecimals} {listPriceCurrency}, offer valid until {listLastEndDate}.");
                             }
                             break;
                         }
