@@ -413,14 +413,6 @@ namespace Poltergeist
                             var infusedAmount = GetNumberArg(entry, 23);
                             var hasLocked = GetStringArg(entry, 24);
 
-                            Token listPriceToken;
-                            accountManager.GetTokenBySymbol(listPriceCurrency, PlatformKind.Phantasma, out listPriceToken);
-
-                            Token infuseAmountToken;
-                            accountManager.GetTokenBySymbol(infusedAsset, PlatformKind.Phantasma, out infuseAmountToken);
-
-                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), listPriceToken.decimals);
-
                             if (editionId > 0)
                             {
                               sb.AppendLine($"\u2605 Mint on existing series {editionId}, a total of {numOfNfts}x {mintTicker}.");
@@ -431,11 +423,11 @@ namespace Poltergeist
                             }
                             if (infusedAmount > 0)
                             {
-                              sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {infuseAmountToken} {infusedAsset}.");
+                              sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {infusedAmount} {infusedAsset}.");
                             }
                             if (listPrice > 0)
                             {
-                              sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPriceToken} {listPriceCurrency}, offer valid until {listLastEndDate}.");
+                              sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPriceCurrency} {listPriceCurrency}, offer valid until {listLastEndDate}.");
                             }
                             break;
                         }
