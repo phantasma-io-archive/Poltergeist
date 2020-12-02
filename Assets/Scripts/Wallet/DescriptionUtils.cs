@@ -427,7 +427,7 @@ namespace Poltergeist
                             }
                             if (listPrice > 0)
                             {
-                              sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPriceCurrency} {listPriceCurrency}, offer valid until {listLastEndDate}.");
+                              sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPrice} {listPriceCurrency}, offer valid until {listLastEndDate}.");
                             }
                             break;
                         }
