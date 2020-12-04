@@ -350,8 +350,8 @@ namespace Poltergeist
                         }
                     case "Runtime.BurnToken":
                             {
-                                var symbol = GetStringArg(entry, 0);
-                                var address = GetStringArg(entry, 1);
+                                var address = GetStringArg(entry, 0);
+                                var symbol = GetStringArg(entry, 1);
                                 var nftNumber = GetStringArg(entry, 2);
 
                                 sb.AppendLine($"\u2605 Burn {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} from {address}.");
