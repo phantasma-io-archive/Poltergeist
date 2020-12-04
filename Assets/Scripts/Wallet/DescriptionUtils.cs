@@ -426,7 +426,7 @@ namespace Poltergeist
                                 accountManager.GetTokenBySymbol(infusedAsset, PlatformKind.Phantasma, out var infusedToken);
                                 var infusedAmountWithDecimals = infusedToken.flags.Contains("Fungible") ? UnitConversion.ToDecimal(infusedAmount, infusedToken.decimals) : 0;
 
-                                sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {(infusedAmountWithDecimals > 0 ? infusedAmountWithDecimals.ToString() : infusedAmount.ToString())} {infusedAsset}.");
+                                sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {(infusedAmountWithDecimals > 0 ? infusedAmountWithDecimals.ToString() : infusedAmount.ToString())} {infusedAsset} each.");
                             }
                             if (listPrice > 0)
                             {
