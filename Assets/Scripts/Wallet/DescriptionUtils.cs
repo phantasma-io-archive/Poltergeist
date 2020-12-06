@@ -428,7 +428,7 @@ namespace Poltergeist
                             }
                             else
                             {
-                                sb.AppendLine($"\u2605 Mint on a new series {numOfNfts}x {mintTicker}, with a {royalties}% royalty.");
+                                sb.AppendLine($"\u2605 Mint on a new series {numOfNfts}x {mintTicker}, with a {royalties}% royalty and named: {name}.");
                             }
                             if (infusedAmount > 0)
                             {
