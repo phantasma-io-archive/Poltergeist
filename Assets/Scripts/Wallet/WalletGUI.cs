@@ -4518,7 +4518,7 @@ namespace Poltergeist
                 if (transferSymbol == "TTRS")
                     Application.OpenURL("https://www.22series.com/part_info?id=" + entryId);
                 else
-                    Application.OpenURL("https://ghostmarket.io/asset/pha/" + Hash.FromString(transferSymbol.ToUpper()) + "/" + entryId);
+                    Application.OpenURL("https://ghostmarket.io/asset/pha/" + transferSymbol.toLower() + "/" + entryId);
             });
         }
 
