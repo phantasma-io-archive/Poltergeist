@@ -230,7 +230,7 @@ namespace Poltergeist
             {
                 WalletGUI.Instance.CallOnUIThread(() =>
                 {
-                    var description = Base16.Encode(data);
+                    var description = System.Text.Encoding.UTF8.GetString(data);
 
                     WalletGUI.Instance.Prompt("The dapp wants to sign the following data. Accept?\n" + description, (success) =>
                     {
