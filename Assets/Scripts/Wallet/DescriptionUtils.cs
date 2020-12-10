@@ -368,7 +368,7 @@ namespace Poltergeist
                             Token infuseToken;
                             accountManager.GetTokenBySymbol(infuseSymbol, PlatformKind.Phantasma, out infuseToken);
 
-                            sb.AppendLine($"\u2605 Infuse {targetSymbol} NFT #{tokenID} with " + (infuseToken.flags.Contains("Fungible") ? $"{UnitConversion.ToDecimal(amount, infuseToken.decimals)} {infuseSymbol}." : $"{infuseSymbol} NFT #{amount}."));
+                            sb.AppendLine($"\u2605 Infuse {targetSymbol} NFT #{tokenID.Substring(0, 5) + "..." + tokenID.Substring(tokenID.Length - 5)} with " + (infuseToken.flags.Contains("Fungible") ? $"{UnitConversion.ToDecimal(amount, infuseToken.decimals)} {infuseSymbol}." : $"{infuseSymbol} NFT #{amount.Substring(0, 5) + "..." + amount.Substring(amount.Length - 5)}."));
                             break;
                         }
                     case "Nexus.CreateToken":
