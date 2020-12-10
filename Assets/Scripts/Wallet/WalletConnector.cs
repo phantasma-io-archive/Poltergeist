@@ -246,7 +246,17 @@ namespace Poltergeist
                             var msg = ByteArrayUtils.ConcatBytes(randomBytes, data);
                             var signature = phantasmaKeys.Sign(msg);
 
-                            var sigBytes = signature.ToByteArray();
+                            byte[] sigBytes = null;
+
+                            using (var stream = new MemoryStream())
+                            {
+                                using (var writer = new BinaryWriter(stream))
+                                {
+                                    writer.WriteSignature(signature);
+                                }
+
+                                sigBytes = stream.ToArray();
+                            }
 
                             var hexSig = Base16.Encode(sigBytes);
                             var hexRand = Base16.Encode(randomBytes);
