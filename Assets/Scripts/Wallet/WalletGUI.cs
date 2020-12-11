@@ -2379,6 +2379,12 @@ namespace Poltergeist
                 return false;
             }
 
+            if (!settings.phantasmaNftExplorer.IsValidURL())
+            {
+                MessageBox(MessageKind.Error, "Invalid URL for Phantasma NFT Explorer URL.\n" + settings.phantasmaNftExplorer);
+                return false;
+            }
+
             if (!settings.neoRPCURL.IsValidURL())
             {
                 MessageBox(MessageKind.Error, "Invalid URL for NEO RPC URL.\n" + settings.neoRPCURL);
@@ -2523,6 +2529,10 @@ namespace Poltergeist
 
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma Explorer URL");
                 settings.phantasmaExplorer = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaExplorer);
+                curY += Units(3);
+
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma NFT URL");
+                settings.phantasmaNftExplorer = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaNftExplorer);
                 curY += Units(3);
 
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Neo RPC URL");
@@ -4518,7 +4528,7 @@ namespace Poltergeist
                 if (transferSymbol == "TTRS")
                     Application.OpenURL("https://www.22series.com/part_info?id=" + entryId);
                 else
-                    Application.OpenURL("https://ghostmarket.io/asset/pha/" + transferSymbol.ToLower() + "/" + entryId);
+                    Application.OpenURL(accountManager.GetPhantasmaNftURL(transferSymbol, entryId));
             });
         }
 

@@ -2589,6 +2589,17 @@ namespace Poltergeist
             return $"{url}contract/{symbol}";
         }
 
+        public string GetPhantasmaNftURL(string symbol, string tokenId)
+        {
+            var url = Settings.phantasmaNftExplorer;
+            if (!url.EndsWith("/"))
+            {
+                url += "/";
+            }
+
+            return $"{url}{symbol.ToLower()}/{tokenId}";
+        }
+
         private void RequestPendings(string address, Action<Swap[], string> callback)
         {
             StartCoroutine(phantasmaApi.GetSwapsForAddress(address, (swaps) =>
