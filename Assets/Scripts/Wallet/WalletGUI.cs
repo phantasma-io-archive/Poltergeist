@@ -744,12 +744,12 @@ namespace Poltergeist
 
                 if (auth == PromptResult.Success)
                 {
-                    AccountManager.GetPasswordHashBySalt(input, accountManager.CurrentAccount.passwordIterations, accountManager.CurrentAccount.salt, out string passwordHash);
-
                     // Checking if we can get correct public key by decrypting WIF with given password.
                     string wif;
                     try
                     {
+                        AccountManager.GetPasswordHashBySalt(input, accountManager.CurrentAccount.passwordIterations, accountManager.CurrentAccount.salt, out string passwordHash);
+
                         wif = AccountManager.DecryptString(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
 
                         if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
@@ -1991,11 +1991,11 @@ namespace Poltergeist
                                                 {
                                                     if (passResult == PromptResult.Success && !String.IsNullOrEmpty(password))
                                                     {
-                                                        // Getting password hash.
-                                                        AccountManager.GetPasswordHashBySalt(password, accountsExport.passwordIterations, accountsExport.salt, out string passwordHash);
-
                                                         try
                                                         {
+                                                            // Getting password hash.
+                                                            AccountManager.GetPasswordHashBySalt(password, accountsExport.passwordIterations, accountsExport.salt, out string passwordHash);
+
                                                             // Decrypting accounts.
                                                             accountsExport.accounts = AccountManager.DecryptString(accountsExport.accounts, passwordHash, accountsExport.iv);
 
