@@ -4413,6 +4413,7 @@ namespace Poltergeist
 
                 if (!String.IsNullOrEmpty(image.Url))
                 {
+                    var textureDisplayedWidth = VerticalLayout ? Units(7) - Units(3) : Units(6) - Units(3) + 8;
                     var textureDisplayedHeight = VerticalLayout ? Units(3) : Units(3) - 8;
 
                     if (image.Url.StartsWith("ipfs-audio://"))
@@ -4422,7 +4423,17 @@ namespace Poltergeist
                     else if (image.Texture == null)
                         GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, (float)textureDisplayedHeight * ((float)ResourceManager.Instance.NftPhotoPlaceholder.width / (float)ResourceManager.Instance.NftPhotoPlaceholder.height), textureDisplayedHeight), ResourceManager.Instance.NftPhotoPlaceholder);
                     else
-                        GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, (float)textureDisplayedHeight * ((float)image.Texture.width / (float)image.Texture.height), textureDisplayedHeight), image.Texture);
+                    {
+                        var width = (float)textureDisplayedHeight * ((float)image.Texture.width / (float)image.Texture.height);
+                        var height = (float)textureDisplayedHeight;
+                        if(width > textureDisplayedWidth)
+                        {
+                            var correction = textureDisplayedWidth / width;
+                            width = textureDisplayedWidth;
+                            height = height * correction;
+                        }
+                        GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, width, height), image.Texture);
+                    }
                 }
 
                 DateTime nftDate = new DateTime();
