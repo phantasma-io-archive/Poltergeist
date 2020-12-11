@@ -561,7 +561,11 @@ namespace Phantasma.SDK
         public string Key;
         public string Value;
     }
-
+    public enum TokenStatus
+    {
+        Active,
+        Infused
+    }
     public struct TokenData
     {
         public string ID;
@@ -572,6 +576,7 @@ namespace Phantasma.SDK
         public string creatorAddress;
         public byte[] ram;
         public byte[] rom;
+        public TokenStatus status;
         public IRom parsedRom;
         public TokenProperty[] infusion;
         public List<TokenProperty> properties;
@@ -588,6 +593,8 @@ namespace Phantasma.SDK
             result.creatorAddress = node.GetString("creatorAddress");
             result.ram = Base16.Decode(node.GetString("ram"));
             result.rom = Base16.Decode(node.GetString("rom"));
+            if (!Enum.TryParse(node.GetString("status"), true, out result.status))
+                result.status = TokenStatus.Infused;
 
             // Pasring ROM
             switch (symbol)
