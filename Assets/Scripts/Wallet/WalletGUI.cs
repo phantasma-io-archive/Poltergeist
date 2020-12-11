@@ -4911,6 +4911,10 @@ namespace Poltergeist
                             });
                         }
                         break;
+
+                    case 3:
+                        _accountSubMenu = 0;
+                        break;
                 }
             });
         }
