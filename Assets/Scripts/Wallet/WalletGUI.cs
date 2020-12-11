@@ -4467,9 +4467,18 @@ namespace Poltergeist
                     {
                         infusionDescription += (i > 0 ? ", " : "") + fungibleInfusions.ElementAt(i).Value + " " + fungibleInfusions.ElementAt(i).Key;
                     }
-                    for (var i = 0; i < nftInfusions.Count(); i++)
+                    if (VerticalLayout)
                     {
-                        infusionDescription += (fungibleInfusions.Count() > 0 || i > 0 ? ", " : "") + (nftInfusions.ElementAt(i).Value > 0 ? nftInfusions.ElementAt(i).Value + " " : "") + nftInfusions.ElementAt(i).Key + " NFT";
+                        var nftInfusedCount = nftInfusions.Sum(x => x.Value);
+                        if(nftInfusedCount > 0)
+                            infusionDescription += (fungibleInfusions.Count() > 0 ? ", " : "") + nftInfusedCount + " NFT" + (nftInfusedCount > 1 ? "s" : "");
+                    }
+                    else
+                    {
+                        for (var i = 0; i < nftInfusions.Count(); i++)
+                        {
+                            infusionDescription += (fungibleInfusions.Count() > 0 || i > 0 ? ", " : "") + (nftInfusions.ElementAt(i).Value > 1 ? nftInfusions.ElementAt(i).Value + " " : "") + nftInfusions.ElementAt(i).Key + " NFT" + (nftInfusions.ElementAt(i).Value > 1 ? "s" : "");
+                        }
                     }
                 }
                 else
