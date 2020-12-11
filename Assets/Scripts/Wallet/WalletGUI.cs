@@ -4345,6 +4345,7 @@ namespace Poltergeist
 
             string nftName;
             string nftDescription;
+            string infusionDescription = "";
 
             if (transferSymbol == "TTRS")
             {
@@ -4426,57 +4427,54 @@ namespace Poltergeist
                 nftDescription = item.GetPropertyValue("description");
                 if(VerticalLayout)
                 {
-                    if (nftDescription.Length > 20)
-                        nftDescription = nftDescription.Substring(0, 17) + "...";
+                    if (nftDescription.Length > 15)
+                        nftDescription = nftDescription.Substring(0, 12) + "...";
                 }
                 else
                 {
-                    if (nftDescription.Length > 40)
-                        nftDescription = nftDescription.Substring(0, 37) + "...";
+                    if (nftDescription.Length > 60)
+                        nftDescription = nftDescription.Substring(0, 57) + "...";
                 }
 
                 nftDescription = item.mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.mint + " " +
                     (nftDate == DateTime.MinValue ? "" : (VerticalLayout ? nftDate.ToString("dd.MM.yy") : nftDate.ToString("dd.MM.yyyy HH:mm:ss"))) +
                     (String.IsNullOrEmpty(nftDescription) ? "" : ((VerticalLayout ? " " : " / ") + nftDescription));
 
-                if(item.infusion != null)
+                infusionDescription = VerticalLayout ? "" : "Infusions: ";
+                if (item.infusion != null)
                 {
-                    if (VerticalLayout)
+                    var fungibleInfusions = new Dictionary<string, decimal>();
+                    var nftInfusions = new Dictionary<string, int>();
+                    for (var i = 0; i < item.infusion.Length; i++)
                     {
-                        nftDescription += ", infused";
-                    }
-                    else
-                    {
-                        nftDescription += ", infused with";
-                        var fungibleInfusions = new Dictionary<string, decimal>();
-                        var nftInfusions = new Dictionary<string, int>();
-                        for (var i = 0; i < item.infusion.Length; i++)
-                        {
-                            var symbol = item.infusion[i].Key;
-                            var amountOrId = item.infusion[i].Value;
+                        var symbol = item.infusion[i].Key;
+                        var amountOrId = item.infusion[i].Value;
 
-                            if (accountManager.GetTokenBySymbol(symbol, accountManager.CurrentPlatform, out var token))
+                        if (accountManager.GetTokenBySymbol(symbol, accountManager.CurrentPlatform, out var token))
+                        {
+                            if (token.flags.Contains(TokenFlags.Fungible.ToString()))
+                                fungibleInfusions.Add(symbol, UnitConversion.ToDecimal(amountOrId, token.decimals));
+                            else
                             {
-                                if (token.flags.Contains(TokenFlags.Fungible.ToString()))
-                                    fungibleInfusions.Add(symbol, UnitConversion.ToDecimal(amountOrId, token.decimals));
+                                if (nftInfusions.ContainsKey(symbol))
+                                    nftInfusions[symbol] += 1;
                                 else
-                                {
-                                    if (nftInfusions.ContainsKey(symbol))
-                                        nftInfusions[symbol] += 1;
-                                    else
-                                        nftInfusions.Add(symbol, 1);
-                                }
+                                    nftInfusions.Add(symbol, 1);
                             }
                         }
-                        for (var i = 0; i < fungibleInfusions.Count(); i++)
-                        {
-                            nftDescription += (i > 0 ? "," : "") + " " + fungibleInfusions.ElementAt(i).Value + " " + fungibleInfusions.ElementAt(i).Key;
-                        }
-                        for (var i = 0; i < nftInfusions.Count(); i++)
-                        {
-                            nftDescription += (fungibleInfusions.Count() > 0 || i > 0 ? "," : "") + " " + (nftInfusions.ElementAt(i).Value > 0 ? nftInfusions.ElementAt(i).Value + " " : "") + nftInfusions.ElementAt(i).Key + " NFT";
-                        }
                     }
+                    for (var i = 0; i < fungibleInfusions.Count(); i++)
+                    {
+                        infusionDescription += (i > 0 ? ", " : "") + fungibleInfusions.ElementAt(i).Value + " " + fungibleInfusions.ElementAt(i).Key;
+                    }
+                    for (var i = 0; i < nftInfusions.Count(); i++)
+                    {
+                        infusionDescription += (fungibleInfusions.Count() > 0 || i > 0 ? ", " : "") + (nftInfusions.ElementAt(i).Value > 0 ? nftInfusions.ElementAt(i).Value + " " : "") + nftInfusions.ElementAt(i).Key + " NFT";
+                    }
+                }
+                else
+                {
+                    infusionDescription += "None";
                 }
             }
 
@@ -4488,14 +4486,39 @@ namespace Poltergeist
             else if (nftName.Length > 50)
                 nftName = nftName.Substring(0, 47) + "...";
 
-            GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + 4 : curY, rect.width - Units(6), Units(2) + 4), nftName);
-
-            if (!String.IsNullOrEmpty(nftDescription))
+            if (transferSymbol == "TTRS")
             {
-                var style = GUI.skin.label;
-                style.fontSize -= VerticalLayout ? 2 : 4;
-                GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(2) + 4 : curY + Units(1) + 8, rect.width - Units(6), Units(2)), nftDescription);
-                style.fontSize += VerticalLayout ? 2 : 4;
+                // Old drawing mode for TTRS
+
+                GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + 4 : curY, rect.width - Units(6), Units(2) + 4), nftName);
+
+                if (!String.IsNullOrEmpty(nftDescription))
+                {
+                    var style = GUI.skin.label;
+                    style.fontSize -= VerticalLayout ? 2 : 4;
+                    GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(2) + 4 : curY + Units(1) + 8, rect.width - Units(6), Units(2)), nftDescription);
+                    style.fontSize += VerticalLayout ? 2 : 4;
+                }
+            }
+            else
+            {
+                GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY - 2 : curY - 8, rect.width - Units(6), Units(2) + 4), nftName);
+
+                if (!String.IsNullOrEmpty(nftDescription))
+                {
+                    var style = GUI.skin.label;
+                    style.fontSize -= VerticalLayout ? 2 : 4;
+                    GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(1) + 6 : curY + Units(1) - 2, rect.width - Units(6), Units(2)), nftDescription);
+                    style.fontSize += VerticalLayout ? 2 : 4;
+                }
+
+                if (!String.IsNullOrEmpty(infusionDescription))
+                {
+                    var style = GUI.skin.label;
+                    style.fontSize -= VerticalLayout ? 2 : 4;
+                    GUI.Label(new Rect(VerticalLayout ? Units(7) : Units(6) + 8, VerticalLayout ? curY + Units(2) + 10 : curY + Units(2), rect.width - Units(6), Units(2)), infusionDescription);
+                    style.fontSize += VerticalLayout ? 2 : 4;
+                }
             }
 
             Rect btnRectToggle;
