@@ -2,19 +2,34 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Phantasma.SDK;
 using System.Collections;
+using System.Linq;
 
 // Storing NFT images.
 public static class NftImages
 {
-    public static void Clear()
+    public static void Clear(string symbol = "")
     {
-        Images.Clear();
+        if (string.IsNullOrEmpty(symbol))
+        {
+            Images.Clear();
+        }
+        else
+        {
+            var imagesToRemove = Images.Values.Cast<Image>().Where(x => x.Symbol.ToLower() == symbol.ToLower()).ToArray();
+            foreach (var imageToRemove in imagesToRemove)
+            {
+                Images.Remove(imageToRemove.Url);
+                Cache.ClearTexture($"{symbol.ToLower()}-image-{imageToRemove.NftId}");
+            }
+        }
     }
 
     public struct Image
     {
         public string Url;
         public Texture2D Texture;
+        public string Symbol;
+        public string NftId;
     }
 
     private static Hashtable Images = new Hashtable();
@@ -109,6 +124,8 @@ public static class NftImages
             var image = new Image();
             image.Url = url;
             image.Texture = texture;
+            image.Symbol = symbol.ToLower();
+            image.NftId = nftId;
 
             lock (Images)
             {
@@ -151,6 +168,8 @@ public static class NftImages
             var image = new Image();
             image.Url = url;
             image.Texture = null;
+            image.Symbol = symbol.ToLower();
+            image.NftId = nftId;
 
             lock (Images)
             {
@@ -163,8 +182,10 @@ public static class NftImages
             var image = new Image();
             image.Url = url;
             image.Texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
+            image.Symbol = symbol.ToLower();
+            image.NftId = nftId;
 
-            if(!ValidateLoadedTexture(ref image.Texture, true))
+            if (!ValidateLoadedTexture(ref image.Texture, true))
             {
                 image.Texture = null;
             }

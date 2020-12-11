@@ -2217,6 +2217,17 @@ namespace Poltergeist
                 return;
             }
 
+            if (force)
+            {
+                // On force refresh we clear NFT symbol's cache.
+                if (symbol.ToUpper() == "TTRS")
+                    TtrsStore.Clear();
+                else
+                    Cache.ClearDataNode("tokens-" + symbol.ToLower(), Cache.FileType.JSON, CurrentState.address);
+
+                NftImages.Clear(symbol);
+            }
+
             _lastNftRefresh = now;
             _lastNftRefreshSymbol = symbol;
             _refreshCallback = callback;
@@ -2251,17 +2262,17 @@ namespace Poltergeist
                                         if (!_nfts.ContainsKey(platform))
                                             _nfts.Add(platform, new List<TokenData>());
 
-                                        var cache = Cache.GetDataNode("tokens", Cache.FileType.JSON, 0, CurrentState.address);
+                                        var cache = Cache.GetDataNode("tokens-" + symbol.ToLower(), Cache.FileType.JSON, 0, CurrentState.address);
 
                                         if (cache == null)
                                         {
                                             cache = DataNode.CreateObject();
                                         }
                                         DataNode cachedTokens;
-                                        if (cache.HasNode("tokens"))
-                                            cachedTokens = cache.GetNode("tokens");
+                                        if (cache.HasNode("tokens-" + symbol.ToLower()))
+                                            cachedTokens = cache.GetNode("tokens-" + symbol.ToLower());
                                         else
-                                            cachedTokens = cache.AddNode(DataNode.CreateObject("tokens"));
+                                            cachedTokens = cache.AddNode(DataNode.CreateObject("tokens-" + symbol.ToLower()));
 
                                         int loadedTokenCounter = 0;
                                         foreach (var id in balanceEntry.Ids)
@@ -2298,8 +2309,8 @@ namespace Poltergeist
                                                 {
                                                     // We finished loading tokens.
                                                     // Saving them in cache.
-                                                    Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
-
+                                                    Cache.AddDataNode("tokens-" + symbol.ToLower(), Cache.FileType.JSON, cache, CurrentState.address);
+                                                    
                                                     if (symbol != "TTRS")
                                                     {
                                                         // For all NFTs except TTRS all needed information
@@ -2342,7 +2353,7 @@ namespace Poltergeist
                                                         {
                                                             // We finished loading tokens.
                                                             // Saving them in cache.
-                                                            Cache.AddDataNode("tokens", Cache.FileType.JSON, cache, CurrentState.address);
+                                                            Cache.AddDataNode("tokens-" + symbol.ToLower(), Cache.FileType.JSON, cache, CurrentState.address);
 
                                                             ReportWalletNft(platform, symbol);
                                                         }

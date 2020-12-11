@@ -193,6 +193,17 @@ public static class Cache
 
         UpdateRegistry(CacheId, DateTime.Now, bytes.Length, WalletName);
     }
+    public static void ClearTexture(string CacheId, string WalletAddress = "", string WalletName = "")
+    {
+        if (!String.IsNullOrEmpty(WalletAddress))
+            CacheId = CacheId + "." + WalletAddress;
+
+        string filePath = GetFilePath(CacheId, FileType.PNG);
+
+        File.Delete(filePath);
+
+        UpdateRegistry(CacheId, DateTime.Now, 0, WalletName);
+    }
 
     public static void AddDataNode(string CacheId, FileType FileType, DataNode CacheContents, string WalletAddress = "", string WalletName = "")
     {
@@ -205,6 +216,17 @@ public static class Cache
         File.WriteAllText(filePath, serializedCacheContents);
 
         UpdateRegistry(CacheId, DateTime.Now, System.Text.ASCIIEncoding.ASCII.GetByteCount(serializedCacheContents), WalletName);
+    }
+    public static void ClearDataNode(string CacheId, FileType FileType, string WalletAddress = "", string WalletName = "")
+    {
+        if (!String.IsNullOrEmpty(WalletAddress))
+            CacheId = CacheId + "." + WalletAddress;
+
+        string filePath = GetFilePath(CacheId, FileType);
+
+        File.Delete(filePath);
+
+        UpdateRegistry(CacheId, DateTime.Now, 0, WalletName);
     }
 
     public static string GetAsString(string CacheId, FileType FileType, int CacheLifetimeInMinutes, string WalletAddress = "")
