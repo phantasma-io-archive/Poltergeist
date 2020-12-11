@@ -4448,6 +4448,8 @@ namespace Poltergeist
                     else
                     {
                         nftDescription += ", infused with";
+                        var fungibleInfusions = new Dictionary<string, decimal>();
+                        var nftInfusions = new Dictionary<string, int>();
                         for (var i = 0; i < item.infusion.Length; i++)
                         {
                             var symbol = item.infusion[i].Key;
@@ -4456,10 +4458,23 @@ namespace Poltergeist
                             if (accountManager.GetTokenBySymbol(symbol, accountManager.CurrentPlatform, out var token))
                             {
                                 if (token.flags.Contains(TokenFlags.Fungible.ToString()))
-                                    nftDescription += (i > 0 ? "," : "") + " " + UnitConversion.ToDecimal(amountOrId, token.decimals) + " " + symbol;
+                                    fungibleInfusions.Add(symbol, UnitConversion.ToDecimal(amountOrId, token.decimals));
                                 else
-                                    nftDescription += (i > 0 ? "," : "") + " " + symbol + " NFT";
+                                {
+                                    if (nftInfusions.ContainsKey(symbol))
+                                        nftInfusions[symbol] += 1;
+                                    else
+                                        nftInfusions.Add(symbol, 1);
+                                }
                             }
+                        }
+                        for (var i = 0; i < fungibleInfusions.Count(); i++)
+                        {
+                            nftDescription += (i > 0 ? "," : "") + " " + fungibleInfusions.ElementAt(i).Value + " " + fungibleInfusions.ElementAt(i).Key;
+                        }
+                        for (var i = 0; i < nftInfusions.Count(); i++)
+                        {
+                            nftDescription += (fungibleInfusions.Count() > 0 || i > 0 ? "," : "") + " " + (nftInfusions.ElementAt(i).Value > 0 ? nftInfusions.ElementAt(i).Value + " " : "") + nftInfusions.ElementAt(i).Key + " NFT";
                         }
                     }
                 }
