@@ -5385,8 +5385,73 @@ namespace Poltergeist
                 PushState(GUIState.Nft);
             });
 
+            // Burn
+            DoButton(true, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth - btnWidth / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Burn", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                PromptBox("Are you sure you want to burn (destroy) selected NFTs?", ModalConfirmCancel, (result) =>
+                {
+                    if (result == PromptResult.Success)
+                    {
+                        var accountManager = AccountManager.Instance;
+                        var state = accountManager.CurrentState;
+
+                        byte[] script;
+                        try
+                        {
+                            var target = Address.FromText(state.address);
+                            var gasPrice = accountManager.Settings.feePrice;
+
+                            var sb = new ScriptBuilder();
+                            sb.AllowGas(target, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                            foreach (var nftToBurn in nftTransferList)
+                            {
+                                sb.CallInterop("Runtime.BurnToken", target, transferSymbol, Phantasma.Numerics.BigInteger.Parse(nftToBurn));
+                            }
+                            sb.SpendGas(target);
+                            script = sb.EndScript();
+                        }
+                        catch (Exception e)
+                        {
+                            MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
+                            return;
+                        }
+
+                        SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, null, "main", (hash) =>
+                        {
+                            if (hash != Hash.Null)
+                            {
+                                ShowModal("Success",
+                                    $"You burned {nftTransferList.Count} NFTs!\nTransaction hash: " + hash,
+                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                    {
+                                        AudioManager.Instance.PlaySFX("click");
+
+                                        if (viewTxChoice == PromptResult.Failure)
+                                        {
+                                            Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                        }
+                                    });
+
+                                // Removing burnt NFTs from current NFT list.
+                                var nfts = accountManager.CurrentNfts;
+                                foreach (var nft in nftTransferList)
+                                {
+                                    nfts.Remove(nfts.Find(x => x.ID == nft));
+                                }
+
+                                // Returning to NFT's first screen.
+                                nftScroll = Vector2.zero;
+                                nftTransferList.Clear();
+                                PushState(GUIState.Nft);
+                            }
+                        });
+                    }
+                }, 10);
+            });
+
             // Send
-            DoButton(nftTransferList.Count > 0, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
+            DoButton(nftTransferList.Count > 0, new Rect(VerticalLayout ? rect.x + border * 2 : halfWidth + (halfWidth - btnWidth) / 2, VerticalLayout ? (int)rect.y + border - (Units(2) + 4) : (int)rect.y + border, VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "Send", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
 
