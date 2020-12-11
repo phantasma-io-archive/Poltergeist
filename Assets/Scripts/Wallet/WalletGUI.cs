@@ -4075,9 +4075,9 @@ namespace Poltergeist
 
                                         transferSymbol = balance.Symbol;
 
-                                    // We should do this initialization here and not in PushState,
-                                    // to allow "Back" button to work properly.
-                                    nftScroll = Vector2.zero;
+                                        // We should do this initialization here and not in PushState,
+                                        // to allow "Back" button to work properly.
+                                        nftScroll = Vector2.zero;
                                         nftTransferList.Clear();
                                         nftFilterName = "";
                                         nftFilterTypeIndex = 0;
@@ -4116,7 +4116,7 @@ namespace Poltergeist
             }
 
             DoButton(balance.Available > 0, new Rect(rect.x + rect.width - (Units(6) + 8), curY + btnY, Units(4) + 8, Units(2)), "Send", () =>
-             {
+            {
                  AudioManager.Instance.PlaySFX("click");
 
                  transferSymbol = balance.Symbol;
