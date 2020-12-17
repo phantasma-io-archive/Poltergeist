@@ -3205,34 +3205,58 @@ namespace Poltergeist
                                 {
                                     accountManager.Settings.SetLastVisitedFolder(Path.GetDirectoryName(targetFilePath));
 
-                                    var size = (int)(new System.IO.FileInfo(targetFilePath).Length);
+                                    var extension = Path.GetExtension(targetFilePath);
 
-                                    if (size < DomainSettings.ArchiveMinSize)
+                                    switch (extension)
                                     {
-                                        MessageBox(MessageKind.Error, $"File is too small to upload.\nMinimum allowed size is {DomainSettings.ArchiveMinSize} bytes.");
-                                    }
-                                    else
-                                    {
-                                        if (size > DomainSettings.ArchiveMaxSize)
-                                        {
-                                            MessageBox(MessageKind.Error, $"File is too big to upload.\nMaximum allowed size is {DomainSettings.ArchiveMaxSize} bytes ({(DomainSettings.ArchiveMaxSize / (double)Math.Pow(1024, 2)).ToString("0.00")} MB).");
-                                        }
-                                        else
-                                        {
-                                            RequireStorage(size, (sucess) =>
+                                        case ".pvm":
+                                            PromptBox("This file is a contract. Deploy it?", ModalYesNo, (encryptFile) =>
                                             {
-                                                if (sucess)
+                                                var abiFile = targetFilePath.Replace(".pvm", ".abi");
+                                                if (File.Exists(abiFile))
                                                 {
-                                                    PromptBox("Protect this file with encryption?\nIf you choose 'Yes' this file would be protected and you would be the only person able to open it.\nIf you choose 'No', anyone would be able to open it.", ModalYesNo, (encryptFile) =>
+                                                    DeployContract(targetFilePath, abiFile);
+                                                }
+                                                else
+                                                {
+                                                    MessageBox(MessageKind.Error, $"The ABI file for this contract was not found.");
+                                                }
+                                            });
+                                            break;
+
+                                        default:
+                                            var size = (int)(new System.IO.FileInfo(targetFilePath).Length);
+
+                                            if (size < DomainSettings.ArchiveMinSize)
+                                            {
+                                                MessageBox(MessageKind.Error, $"File is too small to upload.\nMinimum allowed size is {DomainSettings.ArchiveMinSize} bytes.");
+                                            }
+                                            else
+                                            {
+                                                if (size > DomainSettings.ArchiveMaxSize)
+                                                {
+                                                    MessageBox(MessageKind.Error, $"File is too big to upload.\nMaximum allowed size is {DomainSettings.ArchiveMaxSize} bytes ({(DomainSettings.ArchiveMaxSize / (double)Math.Pow(1024, 2)).ToString("0.00")} MB).");
+                                                }
+                                                else
+                                                {
+                                                    RequireStorage(size, (sucess) =>
                                                     {
-                                                        var content = File.ReadAllBytes(targetFilePath);
-                                                        UploadArchive(targetFilePath, content, (encryptFile == PromptResult.Success));
+                                                        if (sucess)
+                                                        {
+                                                            PromptBox("Protect this file with encryption?\nIf you choose 'Yes' this file would be protected and you would be the only person able to open it.\nIf you choose 'No', anyone would be able to open it.", ModalYesNo, (encryptFile) =>
+                                                            {
+                                                                var content = File.ReadAllBytes(targetFilePath);
+                                                                UploadArchive(targetFilePath, content, (encryptFile == PromptResult.Success));
+                                                            });
+                                                        }
+
                                                     });
                                                 }
+                                            }
+                                            break;
 
-                                            });
-                                        }
                                     }
+
                                 }
                                 else
                                 {
@@ -3327,7 +3351,7 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, null, "main", (hash) =>
+            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
             {
                 if (hash != Hash.Null)
                 {
@@ -3342,6 +3366,51 @@ namespace Poltergeist
                                 Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
                             }
                         });
+                }
+            });
+
+        }
+
+        private void DeployContract(string scriptPath, string abiPath)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.Phantasma);
+                return;
+            }
+
+            var contractBytes = File.ReadAllBytes(scriptPath);
+            var abiBytes = File.ReadAllBytes(abiPath);
+
+            var target = Address.FromText(state.address);
+            var contractName = Path.GetFileNameWithoutExtension(scriptPath);
+
+            byte[] script;
+            try
+            {
+                var gasPrice = accountManager.Settings.feePrice;
+
+                var sb = new ScriptBuilder();
+                sb.AllowGas(target, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                sb.CallInterop("Runtime.DeployContract", target, contractName, contractBytes, abiBytes);
+                sb.SpendGas(target);
+                script = sb.EndScript();
+            }
+            catch (Exception e)
+            {
+                MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
+                return;
+            }
+
+            SendTransaction($"Uploading contract '{contractName}'.", script, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash) =>
+            {
+                if (hash != Hash.Null)
+                {
+                    MessageBox(MessageKind.Success, $"{contractName} was deployed succesfully!");
                 }
             });
 
@@ -3402,7 +3471,7 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, null, "main", (hash) =>
+            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
             {
                 if (hash != Hash.Null)
                 {
@@ -3853,7 +3922,7 @@ namespace Poltergeist
                                                         sb.SpendGas(address);
                                                         var script = sb.EndScript();
 
-                                                        SendTransaction($"Unstake {amount} SOUL", script, null, "main", (hash) =>
+                                                        SendTransaction($"Unstake {amount} SOUL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                                         {
                                                             if (hash != Hash.Null)
                                                             {
@@ -3900,7 +3969,7 @@ namespace Poltergeist
                                         sb.SpendGas(address);
                                         var script = sb.EndScript();
 
-                                        SendTransaction($"Claim {balance.Claimable} KCAL", script, null, "main", (hash) =>
+                                        SendTransaction($"Claim {balance.Claimable} KCAL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                         {
                                             if (hash != Hash.Null)
                                             {
@@ -3944,7 +4013,7 @@ namespace Poltergeist
                                             sb.SpendGas(address);
                                             var script = sb.EndScript();
 
-                                            SendTransaction($"Burn {amountText} KCAL", script, "main", (hash) =>
+                                            SendTransaction($"Burn {amountText} KCAL", script, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                             {
                                                 if (hash != Hash.Null)
                                                 {
@@ -4879,7 +4948,7 @@ namespace Poltergeist
                                             sb.SpendGas(address);
                                             var script = sb.EndScript();
 
-                                            SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, (hash) =>
+                                            SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                             {
                                                 if (hash != Hash.Null)
                                                 {
@@ -5011,7 +5080,7 @@ namespace Poltergeist
                                                         return;
                                                     }
 
-                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, null, "main", (hash) =>
+                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                                     {
                                                         if (hash != Hash.Null)
                                                         {
@@ -5205,7 +5274,7 @@ namespace Poltergeist
 
                             var script = sb.EndScript();
 
-                            SendTransaction($"Stake {selectedAmount} SOUL", script, null, "main", (hash) =>
+                            SendTransaction($"Stake {selectedAmount} SOUL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                             {
                                 callback(hash);
                             });
@@ -5436,7 +5505,7 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, null, "main", (hash) =>
+                        SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                         {
                             if (hash != Hash.Null)
                             {
@@ -5555,7 +5624,7 @@ namespace Poltergeist
             temp?.Invoke(hash);
         }
 
-        public void SendTransaction(string description, byte[] script, byte[] payload, string chain, Action<Hash> callback)
+        public void SendTransaction(string description, byte[] script, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
         {
             if (script == null)
             {
@@ -5626,7 +5695,7 @@ namespace Poltergeist
                                 {
                                     PushState(GUIState.Sending);
 
-                                    accountManager.SignAndSendTransaction(chain, script, payload, null, (hash, error) =>
+                                    accountManager.SignAndSendTransaction(chain, script, payload, PoW, null, (hash, error) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
@@ -5744,7 +5813,7 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, "main", (hash) =>
+                        SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                         {
                             if (hash != Hash.Null)
                             {
@@ -5840,7 +5909,7 @@ namespace Poltergeist
                         return;
                     }
 
-                    SendTransaction(description, script, null, "main", (hash) =>
+                    SendTransaction(description, script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                     {
                         if (hash != Hash.Null)
                         {
@@ -5995,7 +6064,7 @@ namespace Poltergeist
 
                     byte[] script = Serialization.Serialize(transfer);
 
-                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
                     {
                         if (hash != Hash.Null)
                         {
@@ -6089,7 +6158,7 @@ namespace Poltergeist
 
                                 byte[] script = Serialization.Serialize(transfer);
 
-                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), (hash) =>
+                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
@@ -6258,7 +6327,7 @@ namespace Poltergeist
                                         return;
                                     }
 
-                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}\nEstimated swap fee: {min} {feeSymbol}", script, null, "main", (hash) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}\nEstimated swap fee: {min} {feeSymbol}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
@@ -6305,7 +6374,7 @@ namespace Poltergeist
 
                                     byte[] script = Serialization.Serialize(transfer);
 
-                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), (hash) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
@@ -6477,7 +6546,7 @@ namespace Poltergeist
                              var swapSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
                              var feeSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
                              Log.Write($"Balance before swap: {swapSymbol}: {swapSymbolBalance}, {feeSymbol}: {feeSymbolBalance}.");
-                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, null, "main", (hash) =>
+                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                              {
                                  if (hash == Hash.Null)
                                  {
@@ -6855,9 +6924,9 @@ namespace Poltergeist
             throw new NotImplementedException();
         }
 
-        public void ExecuteTransaction(string description, byte[] script, string chain, Action<Hash> callback)
+        public void ExecuteTransaction(string description, byte[] script, string chain, ProofOfWork PoW, Action<Hash> callback)
         {
-            this.SendTransaction(description, script, null, chain, callback);
+            this.SendTransaction(description, script, null, chain, PoW, callback);
         }
 
         public void InvokeScript(string chain, byte[] script, Action<byte[], string> callback)

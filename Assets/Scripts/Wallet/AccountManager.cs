@@ -1176,7 +1176,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             if (payload == null)
             {
@@ -1189,7 +1189,7 @@ namespace Poltergeist
                     {
                         var keys = (customKeys != null) ? customKeys : PhantasmaKeys.FromWIF(CurrentWif);
 
-                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload,  (hashText) =>
+                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload, PoW, (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
                             callback(hash, null);
@@ -2900,7 +2900,7 @@ namespace Poltergeist
                     .SpendGas(transcodedAddress)
                     .EndScript();
 
-                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ethKeys, (hash, error) =>
+                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                 {
                     callback(hash, error);
                 }, (message, prikey, pubkey) =>
