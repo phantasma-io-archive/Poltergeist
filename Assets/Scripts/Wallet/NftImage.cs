@@ -158,6 +158,7 @@ public static class NftImages
         {
             fullUrl = "https://gateway.ipfs.io/ipfs/" + fullUrl.Substring("ipfs://".Length);
         }
+        Log.Write("NFT image loading: Full URL: " + fullUrl);
 
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(fullUrl);
         yield return request.SendWebRequest();
@@ -187,6 +188,7 @@ public static class NftImages
 
             if (!ValidateLoadedTexture(ref image.Texture, true))
             {
+                Log.Write("NFT image loading: Invalid image.");
                 image.Texture = null;
             }
 
