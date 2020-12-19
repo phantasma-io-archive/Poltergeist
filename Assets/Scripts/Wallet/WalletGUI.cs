@@ -1930,7 +1930,7 @@ namespace Poltergeist
 
                     case 1:
                         {
-                            ShowModal("Wallets Import", "Please enter wallets data:", ModalState.Input, 1, -1, ModalConfirmCancel, 4, (result, walletsData) =>
+                            ShowModal("Wallets Import", "Please enter wallets data that you received from Wallets Export dialog (on Wallets Management screen):", ModalState.Input, 1, -1, ModalConfirmCancel, 4, (result, walletsData) =>
                             {
                                 if (result == PromptResult.Success)
                                 {
