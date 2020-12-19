@@ -2732,7 +2732,11 @@ namespace Poltergeist
                 confirmBtnRect = new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, btnHeight);
             }
 
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
             string[] settingsMenu = new string[] { "Display settings", "Open log location", "Cancel", "Confirm" };
+#else
+            string[] settingsMenu = new string[] { "Display settings", "Show log location", "Cancel", "Confirm" };
+#endif
             int posY;
             DoButtonGrid<int>(false, settingsMenu.Length, (VerticalLayout) ? 0 : Units(2), 0, out posY, (index) =>
             {
@@ -2761,8 +2765,21 @@ namespace Poltergeist
                     case 1:
                         {
                             AudioManager.Instance.PlaySFX("click");
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
                             string path = System.IO.Path.GetDirectoryName(Log.FilePath).TrimEnd(new[] { '\\', '/' }); // Mac doesn't like trailing slash
                             System.Diagnostics.Process.Start(path);
+#else
+                            ShowModal("Log file path",
+                                Log.FilePath,
+                                ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) =>
+                                {
+                                    if (result == PromptResult.Failure)
+                                    {
+                                        AudioManager.Instance.PlaySFX("click");
+                                        GUIUtility.systemCopyBuffer = Log.FilePath;
+                                    }
+                                });
+#endif
                             break;
                         }
 
