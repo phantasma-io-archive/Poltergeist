@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Phantasma.SDK;
+using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -95,15 +96,14 @@ public class AppFocus : MonoBehaviour
         }
     }
 #else
-    public static void StartFocus()
+    public void StartFocus()
     {
-        Debug.Warning("StartFocus() not implemented on this platform");
+        Log.WriteWarning("StartFocus() not implemented on this platform");
     }
 
-    public static void EndFocus()
+    public void EndFocus()
     {
-        Debug.Warning("EndFocus() not implemented on this platform");
+        Log.WriteWarning("EndFocus() not implemented on this platform");
     }
 #endif
-
 }

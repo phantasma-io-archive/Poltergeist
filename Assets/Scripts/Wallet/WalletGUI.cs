@@ -6704,12 +6704,12 @@ namespace Poltergeist
         }
 
         // Taken from Spook to emulate Spook's Eth fee calculation.
-        public static T GetMedian<T>(T[] sourceArray) where T : IComparable<T>
+        public static decimal GetMedian(decimal[] sourceArray)
         {
             if (sourceArray == null || sourceArray.Length == 0)
                 throw new ArgumentException("Median of empty array not defined.");
 
-            T[] sortedArray = sourceArray;
+            decimal[] sortedArray = sourceArray;
             Array.Sort(sortedArray);
 
             //get the median
@@ -6720,10 +6720,10 @@ namespace Poltergeist
                 return sortedArray[mid];
             }
 
-            dynamic value1 = sortedArray[mid];
-            dynamic value2 = sortedArray[mid - 1];
+            decimal value1 = sortedArray[mid];
+            decimal value2 = sortedArray[mid - 1];
 
-            return (sortedArray[mid] + value2) * 0.5;
+            return (sortedArray[mid] + value2) * 0.5m;
         }
 
         // This method request Eth fees same way as it's done by bp, to get closer estimation
@@ -6773,7 +6773,7 @@ namespace Poltergeist
             yield return urlCoroutine2;
             yield return urlCoroutine3;
 
-            var median = GetMedian<decimal>(new decimal[] { fee1, fee2, fee3 });
+            var median = GetMedian(new decimal[] { fee1, fee2, fee3 });
 
             callback(new BigInteger((long)(median + feeIncrease)));
         }
