@@ -4501,7 +4501,16 @@ namespace Poltergeist
                             width = textureDisplayedWidth;
                             height = height * correction;
                         }
-                        GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, width, height), image.Texture);
+
+                        // Following code helps to center images in the image area.
+                        var x = Units(2);
+                        if (width < textureDisplayedWidth)
+                            x += (int)((textureDisplayedWidth - width) / 2);
+                        var y = VerticalLayout ? curY + Units(1) : curY + 12;
+                        if (height < textureDisplayedHeight)
+                            y += (int)((textureDisplayedHeight - height) / 2);
+
+                        GUI.DrawTexture(new Rect(x, y, width, height), image.Texture);
                     }
                 }
 
