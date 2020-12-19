@@ -101,6 +101,14 @@ namespace Poltergeist
             methodTable[contractMethod] = paramCount;
         }
 
+        private static string ShortenTokenId(string tokenId)
+        {
+            if (String.IsNullOrEmpty(tokenId) || tokenId.Length <= 13)
+                return tokenId;
+
+            return tokenId.Substring(0, 5) + "..." + tokenId.Substring(tokenId.Length - 5);
+        }
+
         public static IEnumerator GetDescription(byte[] script, Action<string, string> callback)
         {
             foreach (var entry in methodTable.Keys)
@@ -231,18 +239,18 @@ namespace Poltergeist
                                 if (transferTokenCounter == groupSize - 1)
                                 {
                                     // Desc line for token #N.
-                                    sb.AppendLine($"{symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}");
+                                    sb.AppendLine($"{symbol} NFT #{ShortenTokenId(nftNumber)}");
                                     sb.AppendLine($"to {dst}.");
                                 }
                                 else
                                 {
                                     // Desc line for tokens #1 ... N-1.
-                                    sb.AppendLine($"{symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                    sb.AppendLine($"{symbol} NFT #{ShortenTokenId(nftNumber)},");
                                 }
                             }
                             else
                             {
-                                sb.AppendLine($"\u2605 Transfer {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} to {dst}.");
+                                sb.AppendLine($"\u2605 Transfer {symbol} NFT #{ShortenTokenId(nftNumber)} to {dst}.");
                             }
 
                             transferTokenCounter++;
@@ -270,7 +278,7 @@ namespace Poltergeist
                             var symbol = GetStringArg(entry, 1);
                             var nftNumber = GetStringArg(entry, 2);
 
-                            sb.AppendLine($"\u2605 Buy {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
+                            sb.AppendLine($"\u2605 Buy {symbol} NFT #{ShortenTokenId(nftNumber)}.");
                             break;
                         }
                     case "market.CancelSale":
@@ -278,7 +286,7 @@ namespace Poltergeist
                                 var symbol = GetStringArg(entry, 0);
                                 var nftNumber = GetStringArg(entry, 1);
 
-                                sb.AppendLine($"\u2605 Cancel sale of {symbol} NFT #{nftNumber.Substring(0 ,5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}.");
+                                sb.AppendLine($"\u2605 Cancel sale of {symbol} NFT #{ShortenTokenId(nftNumber)}.");
                                 break;
                             }
                     case "market.SellToken":
@@ -301,23 +309,23 @@ namespace Poltergeist
                                 {
                                     // Desc line #1.
                                     sb.AppendLine("\u2605 Sell:");
-                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                    sb.AppendLine($"{tokenSymbol} NFT #{ShortenTokenId(nftNumber)},");
                                 }
                                 else if (sellTokenCounter == groupSize - 1)
                                 {
                                     // Desc line #N.
-                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)}");
+                                    sb.AppendLine($"{tokenSymbol} NFT #{ShortenTokenId(nftNumber)}");
                                     sb.AppendLine($"for {price} {priceSymbol} each, offer valid until {untilDate}.");
                                 }
                                 else
                                 {
                                     // Desc lines #2 ... N-1.
-                                    sb.AppendLine($"{tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)},");
+                                    sb.AppendLine($"{tokenSymbol} NFT #{ShortenTokenId(nftNumber)},");
                                 }
                             }
                             else
                             {
-                                sb.AppendLine($"\u2605 Sell {tokenSymbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} for {price} {priceSymbol}, offer valid until {untilDate}.");
+                                sb.AppendLine($"\u2605 Sell {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for {price} {priceSymbol}, offer valid until {untilDate}.");
                             }
 
                             sellTokenCounter++;
@@ -354,7 +362,7 @@ namespace Poltergeist
                                 var symbol = GetStringArg(entry, 1);
                                 var nftNumber = GetStringArg(entry, 2);
 
-                                sb.AppendLine($"\u2605 Burn {symbol} NFT #{nftNumber.Substring(0, 5) + "..." + nftNumber.Substring(nftNumber.Length - 5)} from {address}.");
+                                sb.AppendLine($"\u2605 Burn {symbol} NFT #{ShortenTokenId(nftNumber)} from {address}.");
                                 break;
                             }
                     case "Runtime.InfuseToken":
@@ -369,7 +377,7 @@ namespace Poltergeist
                             Token infuseToken;
                             accountManager.GetTokenBySymbol(infuseSymbol, PlatformKind.Phantasma, out infuseToken);
 
-                            sb.AppendLine($"\u2605 Infuse {targetSymbol} NFT #{tokenID.Substring(0, 5) + "..." + tokenID.Substring(tokenID.Length - 5)} with " + (infuseToken.flags.Contains("Fungible") ? $"{UnitConversion.ToDecimal(amount, infuseToken.decimals)} {infuseSymbol}." : $"{infuseSymbol} NFT #{amountString.Substring(0, 5) + "..." + amountString.Substring(amountString.Length - 5)}."));
+                            sb.AppendLine($"\u2605 Infuse {targetSymbol} NFT #{ShortenTokenId(tokenID)} with " + (infuseToken.flags.Contains("Fungible") ? $"{UnitConversion.ToDecimal(amount, infuseToken.decimals)} {infuseSymbol}." : $"{infuseSymbol} NFT #{ShortenTokenId(amountString)}."));
                             break;
                         }
                     case "Nexus.CreateToken":
@@ -391,7 +399,7 @@ namespace Poltergeist
                                 var nftSymbol = GetStringArg(entry, 0);
                                 var nftID = GetStringArg(entry, 1);
 
-                                sb.AppendLine($"\u2605 Get locked content for {nftSymbol} #{nftID.Substring(0, 5) + "..." + nftID.Substring(nftID.Length - 5)}.");
+                                sb.AppendLine($"\u2605 Get locked content for {nftSymbol} #{ShortenTokenId(nftID)}.");
                                 break;
                             }
 
