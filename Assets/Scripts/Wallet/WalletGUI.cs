@@ -21,7 +21,11 @@ using System.Collections;
 using Phantasma.Ethereum;
 using System.Threading;
 using Phantasma.Neo.Core;
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
 using SFB;
+#else
+using static NativeFilePicker;
+#endif
 using System.IO;
 using System.Text;
 using Archive = Phantasma.SDK.Archive;
@@ -3175,6 +3179,75 @@ namespace Poltergeist
             });
         }
 
+        private void UploadSelectedFile(string targetFilePath)
+        {
+            var accountManager = AccountManager.Instance;
+
+            if (!string.IsNullOrEmpty(targetFilePath))
+            {
+                if (File.Exists(targetFilePath))
+                {
+                    accountManager.Settings.SetLastVisitedFolder(Path.GetDirectoryName(targetFilePath));
+
+                    var extension = Path.GetExtension(targetFilePath);
+
+                    switch (extension)
+                    {
+                        case ".pvm":
+                            PromptBox("This file is a contract. Deploy it?", ModalYesNo, (encryptFile) =>
+                            {
+                                var abiFile = targetFilePath.Replace(".pvm", ".abi");
+                                if (File.Exists(abiFile))
+                                {
+                                    DeployContract(targetFilePath, abiFile);
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, $"The ABI file for this contract was not found.");
+                                }
+                            });
+                            break;
+
+                        default:
+                            var size = (int)(new System.IO.FileInfo(targetFilePath).Length);
+
+                            if (size < DomainSettings.ArchiveMinSize)
+                            {
+                                MessageBox(MessageKind.Error, $"File is too small to upload.\nMinimum allowed size is {DomainSettings.ArchiveMinSize} bytes.");
+                            }
+                            else
+                            {
+                                if (size > DomainSettings.ArchiveMaxSize)
+                                {
+                                    MessageBox(MessageKind.Error, $"File is too big to upload.\nMaximum allowed size is {DomainSettings.ArchiveMaxSize} bytes ({(DomainSettings.ArchiveMaxSize / (double)Math.Pow(1024, 2)).ToString("0.00")} MB).");
+                                }
+                                else
+                                {
+                                    RequireStorage(size, (sucess) =>
+                                    {
+                                        if (sucess)
+                                        {
+                                            PromptBox("Protect this file with encryption?\nIf you choose 'Yes' this file would be protected and you would be the only person able to open it.\nIf you choose 'No', anyone would be able to open it.", ModalYesNo, (encryptFile) =>
+                                            {
+                                                var content = File.ReadAllBytes(targetFilePath);
+                                                UploadArchive(targetFilePath, content, (encryptFile == PromptResult.Success));
+                                            });
+                                        }
+
+                                    });
+                                }
+                            }
+                            break;
+
+                    }
+
+                }
+                else
+                {
+                    MessageBox(MessageKind.Error, "File not found");
+                }
+            }
+        }
         private void DoStorageScreen()
         {
             var accountManager = AccountManager.Instance;
@@ -3197,72 +3270,16 @@ namespace Poltergeist
                 {
                     case 0:
                         {
-                            var targetFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), "", false).FirstOrDefault();
-
-                            if (!string.IsNullOrEmpty(targetFilePath))
-                            {
-                                if (File.Exists(targetFilePath))
-                                {
-                                    accountManager.Settings.SetLastVisitedFolder(Path.GetDirectoryName(targetFilePath));
-
-                                    var extension = Path.GetExtension(targetFilePath);
-
-                                    switch (extension)
-                                    {
-                                        case ".pvm":
-                                            PromptBox("This file is a contract. Deploy it?", ModalYesNo, (encryptFile) =>
-                                            {
-                                                var abiFile = targetFilePath.Replace(".pvm", ".abi");
-                                                if (File.Exists(abiFile))
-                                                {
-                                                    DeployContract(targetFilePath, abiFile);
-                                                }
-                                                else
-                                                {
-                                                    MessageBox(MessageKind.Error, $"The ABI file for this contract was not found.");
-                                                }
-                                            });
-                                            break;
-
-                                        default:
-                                            var size = (int)(new System.IO.FileInfo(targetFilePath).Length);
-
-                                            if (size < DomainSettings.ArchiveMinSize)
-                                            {
-                                                MessageBox(MessageKind.Error, $"File is too small to upload.\nMinimum allowed size is {DomainSettings.ArchiveMinSize} bytes.");
-                                            }
-                                            else
-                                            {
-                                                if (size > DomainSettings.ArchiveMaxSize)
-                                                {
-                                                    MessageBox(MessageKind.Error, $"File is too big to upload.\nMaximum allowed size is {DomainSettings.ArchiveMaxSize} bytes ({(DomainSettings.ArchiveMaxSize / (double)Math.Pow(1024, 2)).ToString("0.00")} MB).");
-                                                }
-                                                else
-                                                {
-                                                    RequireStorage(size, (sucess) =>
-                                                    {
-                                                        if (sucess)
-                                                        {
-                                                            PromptBox("Protect this file with encryption?\nIf you choose 'Yes' this file would be protected and you would be the only person able to open it.\nIf you choose 'No', anyone would be able to open it.", ModalYesNo, (encryptFile) =>
-                                                            {
-                                                                var content = File.ReadAllBytes(targetFilePath);
-                                                                UploadArchive(targetFilePath, content, (encryptFile == PromptResult.Success));
-                                                            });
-                                                        }
-
-                                                    });
-                                                }
-                                            }
-                                            break;
-
-                                    }
-
-                                }
-                                else
-                                {
-                                    MessageBox(MessageKind.Error, "File not found");
-                                }
-                            }
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+                            UploadSelectedFile(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), "", false).FirstOrDefault());
+#else
+#if UNITY_ANDROID
+                            var extensionFilter = new string[] {"audio/*", "video/*", "image/*", "text/*", "application/*"};
+#else // iOS
+                            var extensionFilter = new string[] {"public.audiovisual-content", "public.image", "public.text", "public.archive"};
+#endif
+                            NativeFilePicker.PickFile((path) => { UploadSelectedFile(path); }, extensionFilter);
+#endif
 
                             break;
                         }
@@ -3295,6 +3312,7 @@ namespace Poltergeist
 
             DoButton(true, btnRect, "Download", () =>
             {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
                 var outputFolderPath = StandaloneFileBrowser.OpenFolderPanel("Select output folder", accountManager.Settings.GetLastVisitedFolder(), false).FirstOrDefault();
 
                 if (!string.IsNullOrEmpty(outputFolderPath))
@@ -3311,6 +3329,11 @@ namespace Poltergeist
                         MessageBox(MessageKind.Error, "Folder not found");
                     }
                 }
+#else
+                var outputFolderPath = Path.Combine(Application.persistentDataPath, "Downloads");
+                System.IO.Directory.CreateDirectory(outputFolderPath);
+                DownloadArchive(Hash.Parse(entry.hash), outputFolderPath);                
+#endif
             });
 
             DoButton(true, btnRect2, "Delete", () =>
@@ -3600,7 +3623,7 @@ namespace Poltergeist
 
                             var content = File.ReadAllBytes(filePath);
                             content = privateEncryption.Decrypt(content, PhantasmaKeys.FromWIF(accountManager.CurrentWif));
-                            
+
                             using (var stream = new FileStream(filePath, FileMode.Create))
                             {
                                 stream.Write(content, 0, content.Length);
@@ -3609,7 +3632,17 @@ namespace Poltergeist
 
                         PopState();
 
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
                         MessageBox(MessageKind.Default, $"The archive '{filePath}' was downloaded!");
+#else
+                        NativeFilePicker.ExportFile(filePath, (success) => 
+                            { 
+                                if(success)
+                                    MessageBox(MessageKind.Default, $"The archive was downloaded!");
+                                else
+                                    MessageBox(MessageKind.Default, $"Could not download the archive!");
+                            });
+#endif
                     }
                     else
                     {
@@ -5016,6 +5049,76 @@ namespace Poltergeist
             });
         }
 
+        private void UploadSelectedAvatar(string avatarFilePath)
+        {
+            var accountManager = AccountManager.Instance;
+
+            if (!string.IsNullOrEmpty(avatarFilePath))
+            {
+                if (File.Exists(avatarFilePath))
+                {
+                    accountManager.Settings.SetLastVisitedFolder(Path.GetDirectoryName(avatarFilePath));
+
+                    int expectedSize = 32;
+
+                    var avatarTex = new Texture2D(expectedSize, expectedSize, TextureFormat.RGBA32, false, true);
+                    var bytes = File.ReadAllBytes(avatarFilePath);
+                    avatarTex.LoadImage(bytes);
+
+                    //avatarTex.Resize(expectedSize, expectedSize); this could be used maybe..
+
+                    if (avatarTex.width != expectedSize || avatarTex.height != expectedSize)
+                    {
+                        Texture2D.Destroy(avatarTex);
+                        MessageBox(MessageKind.Error, $"Avatar picture must have dimensions {expectedSize} x {expectedSize}");
+                    }
+                    else
+                    {
+                        var rgbs = avatarTex.GetPixels();
+                        bool hasTransparency = false;
+                        foreach (var color in rgbs)
+                        {
+                            if (color.a < 1)
+                            {
+                                hasTransparency = true;
+                                break;
+                            }
+                        }
+
+                        if (hasTransparency)
+                        {
+                            MessageBox(MessageKind.Error, "Avatar picture can't have transparent pixels");
+                        }
+                        else
+                        {
+                            _promptPicture = avatarTex;
+                            PromptBox("Do you want to upload this picture as your account avatar?", ModalYesNo, (wantsUpload) =>
+                            {
+                                if (wantsUpload == PromptResult.Success)
+                                {
+                                    var exportedAvatarBytes = avatarTex.EncodeToPNG();
+
+                                    var avatarData = "data:image/png;base64," + System.Convert.ToBase64String(exportedAvatarBytes);
+
+                                    RequireStorage(avatarData.Length, (success) =>
+                                    {
+                                        var avatarBytes = Encoding.ASCII.GetBytes(avatarData);
+                                        UploadArchive("avatar", avatarBytes, false);
+                                    });
+                                }
+
+                                Texture2D.Destroy(avatarTex);
+                            });
+                        }
+
+                    }
+                }
+                else
+                {
+                    MessageBox(MessageKind.Error, "File not found");
+                }
+            }
+        }
         private void DoAccountCustomizationMenu(int btnOffset)
         {
             var accountManager = AccountManager.Instance;
@@ -5139,77 +5242,20 @@ namespace Poltergeist
                     case 1:
                         {
                             // Open file with filter
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
                             var extensions = new[] {
                                 new ExtensionFilter("Image Files", "png", "jpg", "jpeg" ),
                             };
 
-                            var avatarFilePath = StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), extensions, false).FirstOrDefault();
-
-                            if (!string.IsNullOrEmpty(avatarFilePath))
-                            {
-                                if (File.Exists(avatarFilePath))
-                                {
-                                    accountManager.Settings.SetLastVisitedFolder(Path.GetDirectoryName(avatarFilePath));
-
-                                    int expectedSize = 32;
-
-                                    var avatarTex = new Texture2D(expectedSize, expectedSize, TextureFormat.RGBA32, false, true);
-                                    var bytes = File.ReadAllBytes(avatarFilePath);
-                                    avatarTex.LoadImage(bytes);
-
-                                    //avatarTex.Resize(expectedSize, expectedSize); this could be used maybe..
-
-                                    if (avatarTex.width != expectedSize || avatarTex.height != expectedSize)
-                                    {
-                                        Texture2D.Destroy(avatarTex);
-                                        MessageBox(MessageKind.Error, $"Avatar picture must have dimensions {expectedSize} x {expectedSize}");
-                                    }
-                                    else
-                                    {
-                                        var rgbs = avatarTex.GetPixels();
-                                        bool hasTransparency = false;
-                                        foreach (var color in rgbs)
-                                        {
-                                            if (color.a < 1)
-                                            {
-                                                hasTransparency = true;
-                                                break;
-                                            }
-                                        }
-
-                                        if (hasTransparency)
-                                        {
-                                            MessageBox(MessageKind.Error, "Avatar picture can't have transparent pixels");
-                                        }
-                                        else
-                                        {
-                                            _promptPicture = avatarTex;
-                                            PromptBox("Do you want to upload this picture as your account avatar?", ModalYesNo, (wantsUpload) =>
-                                            {
-                                                if (wantsUpload == PromptResult.Success)
-                                                {
-                                                    var exportedAvatarBytes = avatarTex.EncodeToPNG();
-
-                                                    var avatarData = "data:image/png;base64," + System.Convert.ToBase64String(exportedAvatarBytes);
-
-                                                    RequireStorage(avatarData.Length, (success) =>
-                                                    {
-                                                        var avatarBytes = Encoding.ASCII.GetBytes(avatarData);
-                                                        UploadArchive("avatar", avatarBytes, false);
-                                                    });
-                                                }
-
-                                                Texture2D.Destroy(avatarTex);
-                                            });
-                                        }
-
-                                    }
-                                }
-                                else
-                                {
-                                    MessageBox(MessageKind.Error, "File not found");
-                                }
-                            }
+                            UploadSelectedAvatar(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), extensions, false).FirstOrDefault());
+#else
+#if UNITY_ANDROID
+                            var extensionFilter = new string[] {"image/*"};
+#else
+                            var extensionFilter = new string[] {"public.image"};
+#endif // iOS
+                            NativeFilePicker.PickFile((path) => { UploadSelectedAvatar(path); }, extensionFilter);
+#endif
 
                             break;
                         }
@@ -5758,7 +5804,7 @@ namespace Poltergeist
             }
         }
 
-        #region transfers
+#region transfers
         private void ContinuePhantasmaTransfer(string transferName, string symbol, string destAddress)
         {
             var accountManager = AccountManager.Instance;
@@ -6777,7 +6823,7 @@ namespace Poltergeist
 
             callback(new BigInteger((long)(median + feeIncrease)));
         }
-        #endregion
+#endregion
 
         private Dictionary<string, string> GenerateAccountHints(PlatformKind targets)
         {
@@ -6861,7 +6907,7 @@ namespace Poltergeist
             return hints;
         }
 
-        #region QR CODES
+#region QR CODES
         public Texture2D GenerateQR(string text)
         {
             var encoded = new Texture2D(256, 256);
@@ -6884,7 +6930,7 @@ namespace Poltergeist
             };
             return writer.Write(textForEncoding);
         }
-        #endregion
+#endregion
 
         private decimal ParseNumber(string s)
         {
@@ -6910,7 +6956,7 @@ namespace Poltergeist
             return (Math.Sign(byteCount) * num).ToString() + suf[place];
         }
 
-        #region UI THREAD UTILS
+#region UI THREAD UTILS
         private List<Action> _uiCallbacks = new List<Action>();
 
         public void CallOnUIThread(Action callback)
@@ -6920,9 +6966,9 @@ namespace Poltergeist
                 _uiCallbacks.Add(callback);
             }
         }
-        #endregion
+#endregion
 
-        #region DAPP Interface
+#region DAPP Interface
         public Address GetAddress()
         {
             return Address.FromText(AccountManager.Instance.CurrentState.address);
@@ -6974,7 +7020,7 @@ namespace Poltergeist
                 callback(result, error);
             });
         }
-        #endregion
+#endregion
     }
 
 }
