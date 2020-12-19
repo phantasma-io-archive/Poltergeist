@@ -10,6 +10,7 @@ namespace Poltergeist
         Unknown,
         Main_Net,
         Test_Net,
+        Mankini_Test_Net,
         Local_Net,
         Custom
     }
@@ -160,7 +161,7 @@ namespace Poltergeist
                 this.nexusKind = NexusKind.Unknown;
             }
 
-            if (this.nexusKind == NexusKind.Main_Net || this.nexusKind == NexusKind.Test_Net)
+            if (this.nexusKind == NexusKind.Main_Net || this.nexusKind == NexusKind.Test_Net || this.nexusKind == NexusKind.Mankini_Test_Net)
             {
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
@@ -287,6 +288,10 @@ namespace Poltergeist
                             _return_value = "http://testnet.phantasma.io:7077/rpc";
                             break;
 
+                        case NexusKind.Mankini_Test_Net:
+                            _return_value = "http://mankinitest.phantasma.io:7077/rpc";
+                            break;
+
                         case NexusKind.Local_Net:
                             _return_value = "http://localhost:7077/rpc";
                             break;
@@ -308,6 +313,10 @@ namespace Poltergeist
                             _return_value = "http://testnet.phantasma.io/";
                             break;
 
+                        case NexusKind.Mankini_Test_Net:
+                            _return_value = "http://mankinighost.phantasma.io:7083/";
+                            break;
+
                         case NexusKind.Local_Net:
                             _return_value = "http://localhost:7074/";
                             break;
@@ -326,7 +335,11 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "https://dev.ghostmarket.io/asset/pha";
+                            _return_value = "https://testnet.ghostmarket.io/asset/pha";
+                            break;
+
+                        case NexusKind.Mankini_Test_Net:
+                            _return_value = "https://mankini.ghostmarket.io/asset/pha";
                             break;
 
                         case NexusKind.Local_Net:
@@ -349,6 +362,10 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
+                            _return_value = "http://mankinighost.phantasma.io:30333";
+                            break;
+
+                        case NexusKind.Mankini_Test_Net:
                             _return_value = "http://mankinighost.phantasma.io:30333";
                             break;
 
@@ -398,6 +415,10 @@ namespace Poltergeist
                             _return_value = "http://mankinighost.phantasma.io:4000";
                             break;
 
+                        case NexusKind.Mankini_Test_Net:
+                            _return_value = "http://mankinighost.phantasma.io:4000";
+                            break;
+
                         default:
                             _return_value = "http://mankinighost.phantasma.io:4000";
                             break;
@@ -413,6 +434,10 @@ namespace Poltergeist
 
                         case NexusKind.Test_Net:
                             _return_value = "testnet";
+                            break;
+
+                        case NexusKind.Mankini_Test_Net:
+                            _return_value = "mainnet"; // TODO Currently this testnet works with mainnet nexus, should be changed later
                             break;
 
                         default:
@@ -500,6 +525,9 @@ namespace Poltergeist
                         this.ethereumNetwork = EthereumNetwork.Main_Net;
                         break;
                     case NexusKind.Test_Net:
+                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        break;
+                    case NexusKind.Mankini_Test_Net:
                         this.ethereumNetwork = EthereumNetwork.Ropsten;
                         break;
                     case NexusKind.Local_Net:
