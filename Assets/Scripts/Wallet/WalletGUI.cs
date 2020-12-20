@@ -345,7 +345,7 @@ namespace Poltergeist
             Log.Write("********************************************************\n" +
                        "************** Poltergeist Wallet started **************\n" +
                        "********************************************************\n" +
-                       "Wallet version: " + UnityEngine.Application.version + "\n" +
+                       "Wallet version: " + UnityEngine.Application.version + $" built on: { Poltergeist.Build.Info.Instance.BuildTime} UTC\n" +
                        "Log level: " + _logLevel.ToString());
 
             Cache.Init("cache");
