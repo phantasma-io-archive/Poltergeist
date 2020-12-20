@@ -458,12 +458,16 @@ namespace Poltergeist
 
                         if (String.IsNullOrEmpty(Settings.phantasmaRPCURL))
                         {
-                            // If we have no previously used RPC, we select random one at first.
-                            var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
-                            var node = response.GetNodeByIndex(index);
-                            var result = node.GetString("url") + "/rpc";
-                            Settings.phantasmaRPCURL = result;
-                            Log.Write($"Changed Phantasma RPC url {index} => {result}");
+                            // Checking if we are still on mainnet
+                            if (Settings.nexusKind == NexusKind.Main_Net)
+                            {
+                                // If we have no previously used RPC, we select random one at first.
+                                var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
+                                var node = response.GetNodeByIndex(index);
+                                var result = node.GetString("url") + "/rpc";
+                                Settings.phantasmaRPCURL = result;
+                                Log.Write($"Changed Phantasma RPC url {index} => {result}");
+                            }
                         }
 
                         UpdateAPIs();
@@ -498,9 +502,14 @@ namespace Poltergeist
                                         else
                                         {
                                             Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                            Settings.phantasmaRPCURL = bestRpcUrl;
-                                            UpdateAPIs();
-                                            Settings.SaveOnExit();
+                                            
+                                            // Checking if we are still on mainnet
+                                            if (Settings.nexusKind == NexusKind.Main_Net)
+                                            {
+                                                Settings.phantasmaRPCURL = bestRpcUrl;
+                                                UpdateAPIs();
+                                                Settings.SaveOnExit();
+                                            }
                                         }
                                     }
                                 },
@@ -527,10 +536,14 @@ namespace Poltergeist
                                         }
                                         else
                                         {
-                                            Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                            Settings.phantasmaRPCURL = bestRpcUrl;
-                                            UpdateAPIs();
-                                            Settings.SaveOnExit();
+                                            // Checking if we are still on mainnet
+                                            if (Settings.nexusKind == NexusKind.Main_Net)
+                                            {
+                                                Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                                Settings.phantasmaRPCURL = bestRpcUrl;
+                                                UpdateAPIs();
+                                                Settings.SaveOnExit();
+                                            }
                                         }
                                     }
                                 })
@@ -549,11 +562,15 @@ namespace Poltergeist
 
                 if (String.IsNullOrEmpty(Settings.neoRPCURL))
                 {
-                    // If we have no previously used RPC, we select random one at first.
-                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberNeo;
-                    var result = neoRpcList[index];
-                    Settings.neoRPCURL = result;
-                    Log.Write($"Changed Neo RPC url {index} => {result}");
+                    // Checking if we are still on mainnet
+                    if (Settings.nexusKind == NexusKind.Main_Net)
+                    {
+                        // If we have no previously used RPC, we select random one at first.
+                        var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberNeo;
+                        var result = neoRpcList[index];
+                        Settings.neoRPCURL = result;
+                        Log.Write($"Changed Neo RPC url {index} => {result}");
+                    }
                 }
 
                 UpdateAPIs();
@@ -585,10 +602,14 @@ namespace Poltergeist
                                 }
                                 else
                                 {
-                                    Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                    Settings.neoRPCURL = bestRpcUrl;
-                                    UpdateAPIs();
-                                    Settings.SaveOnExit();
+                                    // Checking if we are still on mainnet
+                                    if (Settings.nexusKind == NexusKind.Main_Net)
+                                    {
+                                        Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                        Settings.neoRPCURL = bestRpcUrl;
+                                        UpdateAPIs();
+                                        Settings.SaveOnExit();
+                                    }
                                 }
                             }
                         },
@@ -615,10 +636,14 @@ namespace Poltergeist
                                 }
                                 else
                                 {
-                                    Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                    Settings.neoRPCURL = bestRpcUrl;
-                                    UpdateAPIs();
-                                    Settings.SaveOnExit();
+                                    // Checking if we are still on mainnet
+                                    if (Settings.nexusKind == NexusKind.Main_Net)
+                                    {
+                                        Log.Write($"Fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                        Settings.neoRPCURL = bestRpcUrl;
+                                        UpdateAPIs();
+                                        Settings.SaveOnExit();
+                                    }
                                 }
                             }
                         })
