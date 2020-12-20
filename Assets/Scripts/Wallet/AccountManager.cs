@@ -436,18 +436,11 @@ namespace Poltergeist
             if (platformKind == PlatformKind.Phantasma)
                 Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
 
-            if (Settings.nexusKind == NexusKind.Custom)
+            if (Settings.nexusKind != NexusKind.Main_Net)
             {
                 rpcAvailablePhantasma = 1;
                 rpcAvailableNeo = 1;
                 return; // No need to change RPC, it is set by custom settings.
-            }
-
-            if (Settings.nexusName != "mainnet")
-            {
-                rpcAvailablePhantasma = 1;
-                rpcAvailableNeo = 1;
-                return; // HACK getpeers only for mainnet
             }
 
             if (platformKind == PlatformKind.Phantasma)
@@ -642,13 +635,8 @@ namespace Poltergeist
 
         public void ChangeFaultyRPCURL(PlatformKind platformKind = PlatformKind.Phantasma)
         {
-            if (Settings.nexusKind == NexusKind.Custom)
-                return; // Fallback disabled for custom settings.
-
-            if (Settings.nexusName != "mainnet")
-            {
-                return; // Fallback works only for mainnet
-            }
+            if (Settings.nexusKind != NexusKind.Main_Net)
+                return; // Fallback works only for mainnet.
 
             if (platformKind == PlatformKind.Phantasma)
             {
