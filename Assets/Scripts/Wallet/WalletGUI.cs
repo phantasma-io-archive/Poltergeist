@@ -1363,7 +1363,7 @@ namespace Poltergeist
             {
                 int halfWidth = (int)(modalRect.width / 2);
 
-                DoButton(true, new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
+                DoButton((!hasHints || !hintComboBox.DropDownIsOpened()), new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
                 {
                     if (modalOptions == ModalOkCopy)
                     {
@@ -1383,7 +1383,7 @@ namespace Poltergeist
                     }
                 });
 
-                DoButton(Time.time - modalTime >= modalConfirmDelay && (modalState != ModalState.Input || modalInput.Length >= modalMinInputLength),
+                DoButton((!hasHints || !hintComboBox.DropDownIsOpened()) && Time.time - modalTime >= modalConfirmDelay && (modalState != ModalState.Input || modalInput.Length >= modalMinInputLength),
                     new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), (modalConfirmDelay > 0 && (Time.time - modalTime < modalConfirmDelay)) ? modalOptions[0] + " (" + (modalConfirmDelay - Math.Floor(Time.time - modalTime)) + ")" : modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("confirm");
