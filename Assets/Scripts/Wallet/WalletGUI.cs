@@ -3151,7 +3151,7 @@ namespace Poltergeist
         private DappEntry[] availableDapps = new DappEntry[]
         {
             new DappEntry("GhostMarket", "marketplace", "https://ghostmarket.io/"),
-            new DappEntry("Katacomb", "game", "http://katacomb.io/"),
+            /*new DappEntry("Katacomb", "game", "http://katacomb.io/"),*/
             /*new DappEntry("Nachomen", "game", "https://nacho.men/"),*/
         };
 
@@ -3164,7 +3164,7 @@ namespace Poltergeist
             int startY = curY;
             int endY = (int)(windowRect.yMax - Units(4));
 
-            DoScrollArea<DappEntry>(ref balanceScroll, startY, endY, VerticalLayout ? Units(4) : Units(3), availableDapps, DoDappEntry);
+            DoScrollArea<DappEntry>(ref balanceScroll, startY, endY, VerticalLayout ? Units(4) + 12 : Units(3), availableDapps, DoDappEntry);
 
             DoBackButton();
         }
@@ -3173,19 +3173,19 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
-            GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2)), entry.Title);
+            GUI.Label(new Rect(Units(2), curY + 4, Units(20), Units(2) + 4), entry.Title);
 
             Rect btnRect;
 
             if (VerticalLayout)
             {
                 curY += Units(2);
-                GUI.Label(new Rect(Units(2), curY, Units(20), Units(2)), entry.Category);
-                btnRect = new Rect(rect.x + rect.width - Units(6), curY - 8, Units(4), Units(1));
+                GUI.Label(new Rect(Units(2), curY, Units(20), Units(2) + 4), entry.Category);
+                btnRect = new Rect(rect.x + rect.width - Units(6), curY, Units(4), Units(1));
             }
             else
             {
-                GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2)), entry.Category);
+                GUI.Label(new Rect(Units(26), curY + 4, Units(20), Units(2) + 4), entry.Category);
                 btnRect = new Rect(rect.x + rect.width - Units(6), curY + Units(1), Units(4), Units(1));
             }
 
