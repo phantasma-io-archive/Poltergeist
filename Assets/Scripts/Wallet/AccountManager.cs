@@ -433,9 +433,6 @@ namespace Poltergeist
 
         public void UpdateRPCURL(PlatformKind platformKind)
         {
-            if (platformKind == PlatformKind.Phantasma)
-                Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
-
             if (Settings.nexusKind != NexusKind.Main_Net)
             {
                 rpcAvailablePhantasma = 1;
@@ -459,14 +456,13 @@ namespace Poltergeist
                     {
                         rpcNumberPhantasma = response.ChildCount;
 
-                        if (String.IsNullOrEmpty(Settings.phantasmaBPURL))
+                        if (String.IsNullOrEmpty(Settings.phantasmaRPCURL))
                         {
                             // If we have no previously used RPC, we select random one at first.
                             var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
                             var node = response.GetNodeByIndex(index);
                             var result = node.GetString("url") + "/rpc";
-                            Settings.phantasmaBPURL = result;
-                            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                            Settings.phantasmaRPCURL = result;
                             Log.Write($"Changed Phantasma RPC url {index} => {result}");
                         }
 
@@ -502,8 +498,7 @@ namespace Poltergeist
                                         else
                                         {
                                             Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                            Settings.phantasmaBPURL = bestRpcUrl;
-                                            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                                            Settings.phantasmaRPCURL = bestRpcUrl;
                                             UpdateAPIs();
                                             Settings.SaveOnExit();
                                         }
@@ -533,8 +528,7 @@ namespace Poltergeist
                                         else
                                         {
                                             Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                            Settings.phantasmaBPURL = bestRpcUrl;
-                                            Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                                            Settings.phantasmaRPCURL = bestRpcUrl;
                                             UpdateAPIs();
                                             Settings.SaveOnExit();
                                         }
@@ -662,8 +656,7 @@ namespace Poltergeist
                 else
                 {
                     Log.Write($"Next fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                    Settings.phantasmaBPURL = bestRpcUrl;
-                    Settings.phantasmaRPCURL = Settings.phantasmaBPURL;
+                    Settings.phantasmaRPCURL = bestRpcUrl;
                     UpdateAPIs();
                 }
             }

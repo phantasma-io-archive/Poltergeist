@@ -2371,9 +2371,9 @@ namespace Poltergeist
                 return false;
             }
 
-            if (!settings.phantasmaBPURL.IsValidURL())
+            if (!settings.phantasmaRPCURL.IsValidURL())
             {
-                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL.\n" + settings.phantasmaBPURL);
+                MessageBox(MessageKind.Error, "Invalid URL for Phantasma RPC URL.\n" + settings.phantasmaRPCURL);
                 return false;
             }
 
@@ -2528,7 +2528,7 @@ namespace Poltergeist
             if (hasCustomEndPoints)
             {
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma RPC URL");
-                settings.phantasmaBPURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaBPURL);
+                settings.phantasmaRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.phantasmaRPCURL);
                 curY += Units(3);
 
                 GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Phantasma Explorer URL");

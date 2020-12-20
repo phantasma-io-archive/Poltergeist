@@ -49,8 +49,7 @@ namespace Poltergeist
 
     public class Settings
     {
-        //public const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
-        public const string PhantasmaBPTag = "settings.phantasma.bp.url";
+        public const string PhantasmaRPCTag = "settings.phantasma.rpc.url";
         public const string PhantasmaExplorerTag = "settings.phantasma.explorer.url";
         public const string PhantasmaNftExplorerTag = "settings.phantasma.nft.explorer.url";
         public const string NeoRPCTag = "settings.neo.rpc.url";
@@ -85,7 +84,6 @@ namespace Poltergeist
         public const string LastVisitedFolderTag = "last.visited.folder";
 
         public string phantasmaRPCURL;
-        public string phantasmaBPURL;
         public string phantasmaExplorer;
         public string phantasmaNftExplorer;
         public string neoRPCURL;
@@ -114,7 +112,6 @@ namespace Poltergeist
         public override string ToString()
         {
             return "Nexus kind: " + this.nexusKind.ToString() + "\n" +
-                "Phantasma BP: " + this.phantasmaBPURL + "\n" +
                 "Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
                 "Phantasma Explorer: " + this.phantasmaExplorer + "\n" +
                 "Phantasma NFT Explorer: " + this.phantasmaNftExplorer + "\n" +
@@ -165,7 +162,7 @@ namespace Poltergeist
             {
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
-                this.phantasmaBPURL = GetDefaultValue(PhantasmaBPTag);
+                this.phantasmaRPCURL = GetDefaultValue(PhantasmaRPCTag);
                 this.phantasmaExplorer = GetDefaultValue(PhantasmaExplorerTag);
                 this.phantasmaNftExplorer = GetDefaultValue(PhantasmaNftExplorerTag);
                 this.neoRPCURL = GetDefaultValue(NeoRPCTag);
@@ -174,8 +171,7 @@ namespace Poltergeist
             }
             else
             {
-                //this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
-                this.phantasmaBPURL = PlayerPrefs.GetString(PhantasmaBPTag, GetDefaultValue(PhantasmaBPTag));
+                this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
                 this.phantasmaExplorer = PlayerPrefs.GetString(PhantasmaExplorerTag, GetDefaultValue(PhantasmaExplorerTag));
                 this.phantasmaNftExplorer = PlayerPrefs.GetString(PhantasmaNftExplorerTag, GetDefaultValue(PhantasmaNftExplorerTag));
                 this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));
@@ -185,8 +181,6 @@ namespace Poltergeist
 
             this.currency = PlayerPrefs.GetString(CurrencyTag, "USD");
             this.sfx = PlayerPrefs.GetInt(SFXTag, 0)!=0;
-
-            this.phantasmaRPCURL = this.phantasmaBPURL;
 
             var defaultGasPrice = 100000;
             if (!BigInteger.TryParse(PlayerPrefs.GetString(GasPriceTag, defaultGasPrice.ToString()), out feePrice))
@@ -277,7 +271,7 @@ namespace Poltergeist
                     break;
                     */
 
-                case PhantasmaBPTag:
+                case PhantasmaRPCTag:
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
@@ -457,8 +451,7 @@ namespace Poltergeist
         public void Save()
         {
             PlayerPrefs.SetString(NexusKindTag, nexusKind.ToString());
-            //PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
-            PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
+            PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
             PlayerPrefs.SetString(PhantasmaExplorerTag, this.phantasmaExplorer);
             PlayerPrefs.SetString(PhantasmaNftExplorerTag, this.phantasmaNftExplorer);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
@@ -491,7 +484,7 @@ namespace Poltergeist
             PlayerPrefs.SetInt(TtrsNftSortModeTag, this.ttrsNftSortMode);
             PlayerPrefs.SetInt(NftSortModeTag, this.nftSortMode);
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
-            PlayerPrefs.SetString(PhantasmaBPTag, this.phantasmaBPURL);
+            PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.SetString(LastVisitedFolderTag, this.lastVisitedFolder);
             PlayerPrefs.Save();
@@ -499,7 +492,7 @@ namespace Poltergeist
             Log.Write("Settings: Save on exit: TTRS NFT sort mode: " + ttrsNftSortMode + "\n" +
                       "                        NFT sort mode: " + nftSortMode + "\n" +
                       "                        NFT sort direction: " + nftSortDirection + "\n" +
-                      "                        Phantasma BP: " + phantasmaBPURL + "\n" +
+                      "                        Phantasma RPC: " + phantasmaRPCURL + "\n" +
                       "                        Ethereum gas price (Gwei): " + ethereumGasPriceGwei,
                       Log.Level.Debug1);
         }
@@ -507,7 +500,7 @@ namespace Poltergeist
         public void RestoreEndpoints(bool restoreName)
         {
             //this.phantasmaRPCURL = this.GetDefaultValue(PhantasmaRPCTag);
-            this.phantasmaBPURL = this.GetDefaultValue(PhantasmaBPTag);
+            this.phantasmaRPCURL = this.GetDefaultValue(PhantasmaRPCTag);
             this.phantasmaExplorer = this.GetDefaultValue(PhantasmaExplorerTag);
             this.phantasmaNftExplorer = this.GetDefaultValue(PhantasmaNftExplorerTag);
             this.neoRPCURL = this.GetDefaultValue(NeoRPCTag);
@@ -537,7 +530,7 @@ namespace Poltergeist
             }
 
             Log.Write("Settings: Restore endpoints: restoreName mode: " + restoreName + "\n" +
-                      "                             Phantasma BP: " + this.phantasmaBPURL + "\n" +
+                      "                             Phantasma RPC: " + this.phantasmaRPCURL + "\n" +
                       "                             Phantasma Explorer: " + this.phantasmaExplorer + "\n" +
                       "                             Phantasma NFT Explorer: " + this.phantasmaNftExplorer + "\n" +
                       "                             Neo RPC: " + this.neoRPCURL + "\n" +
