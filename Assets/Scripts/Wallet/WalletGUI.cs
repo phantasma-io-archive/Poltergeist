@@ -837,7 +837,7 @@ namespace Poltergeist
                         hintComboBox.ListScroll.y += touch.deltaPosition.y;
                     else if((guiState == GUIState.Wallets || guiState == GUIState.WalletsManagement) && !(modalState != ModalState.None && !modalRedirected))
                         accountScroll.y += touch.deltaPosition.y;
-                    else if (guiState == GUIState.Balances && !(modalState != ModalState.None && !modalRedirected))
+                    else if ((guiState == GUIState.Balances || guiState == GUIState.History || guiState == GUIState.Storage || guiState == GUIState.Dapps) && !(modalState != ModalState.None && !modalRedirected))
                         balanceScroll.y += touch.deltaPosition.y;
                     else if (guiState == GUIState.NftView && !(modalState != ModalState.None && !modalRedirected))
                         nftScroll.y += touch.deltaPosition.y;
