@@ -2885,14 +2885,14 @@ namespace Poltergeist
 
             if (showCopyToClipboardButton)
             {
-                DoButton(true, new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Copy Address", () =>
+                DoButton(!platformComboBox.DropDownIsOpened(), new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Copy Address", () =>
                   {
                       AudioManager.Instance.PlaySFX("click");
                       GUIUtility.systemCopyBuffer = address;
                       MessageBox(MessageKind.Default, "Address copied to clipboard.");
                   });
 
-                DoButton(true, new Rect(windowRect.width / 2 + Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Explorer", () =>
+                DoButton(!platformComboBox.DropDownIsOpened(), new Rect(windowRect.width / 2 + Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Explorer", () =>
                 {
                     AudioManager.Instance.PlaySFX("click");
                     switch(accountManager.CurrentPlatform)
