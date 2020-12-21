@@ -3863,49 +3863,62 @@ namespace Poltergeist
                     {
                         if (result == PromptResult.Success)
                         {
-                            BeginWaitingModal("Preparing swap transaction...");
-                            accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.Symbol, balance.PendingHash, (settleHash, error) =>
+                            // TODO - we should let the user choose what asset to swap instead of hardcoding it to SOUL...
+                            RequestKCAL("SOUL", (feeResult) =>
                             {
-                                EndWaitingModal();
-                                if (settleHash != Hash.Null)
+                                if (feeResult == PromptResult.Success)
                                 {
-                                    ShowConfirmationScreen(settleHash, (hash) =>
+                                    BeginWaitingModal("Preparing swap transaction...");
+                                    accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.Symbol, balance.PendingHash, (settleHash, error) =>
                                     {
-                                        if (hash != Hash.Null)
+                                        EndWaitingModal();
+                                        if (settleHash != Hash.Null)
                                         {
-                                            ShowModal("Success",
-                                                $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.\nTransaction hash:\n" + hash,
-                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                            ShowConfirmationScreen(settleHash, (hash) =>
+                                            {
+                                                if (hash != Hash.Null)
                                                 {
-                                                    AudioManager.Instance.PlaySFX("click");
-
-                                                    if (viewTxChoice == PromptResult.Failure)
-                                                    {
-                                                        switch (accountManager.CurrentPlatform)
+                                                    ShowModal("Success",
+                                                        $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.\nTransaction hash:\n" + hash,
+                                                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                                         {
-                                                            case PlatformKind.Phantasma:
-                                                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                                                break;
-                                                            case PlatformKind.Neo:
-                                                                Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                                                break;
-                                                            case PlatformKind.Ethereum:
-                                                                Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                                break;
-                                                        }
-                                                    }
-                                                });
+                                                            AudioManager.Instance.PlaySFX("click");
+
+                                                            if (viewTxChoice == PromptResult.Failure)
+                                                            {
+                                                                switch (accountManager.CurrentPlatform)
+                                                                {
+                                                                    case PlatformKind.Phantasma:
+                                                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                                                        break;
+                                                                    case PlatformKind.Neo:
+                                                                        Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                                                        break;
+                                                                    case PlatformKind.Ethereum:
+                                                                        Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                                                        break;
+                                                                }
+                                                            }
+                                                        });
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            if (accountManager.CurrentPlatform == PlatformKind.Ethereum && error.Contains("destination hash is not yet available"))
+                                                MessageBox(MessageKind.Default, $"Claim was processed but it will take some time for Ethereum transaction to be mined.\nPlease press claim again later to finalize claim procedure.");
+                                            else
+                                                MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
                                         }
                                     });
                                 }
                                 else
+                                if (feeResult == PromptResult.Failure)
                                 {
-                                    if(accountManager.CurrentPlatform == PlatformKind.Ethereum && error.Contains("destination hash is not yet available"))
-                                        MessageBox(MessageKind.Default, $"Claim was processed but it will take some time for Ethereum transaction to be mined.\nPlease press claim again later to finalize claim procedure.");
-                                    else
-                                        MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
+                                    MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
                                 }
                             });
+
                         }
                     });
                 };
@@ -4000,30 +4013,43 @@ namespace Poltergeist
                                 {
                                     if (result == PromptResult.Success)
                                     {
-                                        var address = Address.FromText(state.address);
-                                        var gasPrice = accountManager.Settings.feePrice;
-
-                                        var sb = new ScriptBuilder();
-
-                                        if (balance.Available > 0)
+                                        RequestKCAL("SOUL", (feeResult) =>
                                         {
-                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                            sb.CallContract("stake", "Claim", address, address);
-                                        }
-                                        else
-                                        {
-                                            sb.CallContract("stake", "Claim", address, address);
-                                            sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
-                                        }
-
-                                        sb.SpendGas(address);
-                                        var script = sb.EndScript();
-
-                                        SendTransaction($"Claim {balance.Claimable} KCAL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
-                                        {
-                                            if (hash != Hash.Null)
+                                            if (feeResult == PromptResult.Success)
                                             {
-                                                MessageBox(MessageKind.Success, "You claimed some KCAL!\nTransaction hash: " + hash);
+                                                var address = Address.FromText(state.address);
+                                                var gasPrice = accountManager.Settings.feePrice;
+
+                                                var sb = new ScriptBuilder();
+
+                                                if (balance.Available > 0)
+                                                {
+                                                    sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                                    sb.CallContract("stake", "Claim", address, address);
+                                                }
+                                                else
+                                                {
+                                                    sb.CallContract("stake", "Claim", address, address);
+                                                    sb.AllowGas(address, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                                                }
+
+                                                sb.SpendGas(address);
+                                                var script = sb.EndScript();
+
+                                                SendTransaction($"Claim {balance.Claimable} KCAL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                                {
+                                                    if (hash != Hash.Null)
+                                                    {
+                                                        MessageBox(MessageKind.Success, "You claimed some KCAL!\nTransaction hash: " + hash);
+                                                    }
+                                                });
+
+
+                                            }
+                                            else
+                                            if (feeResult == PromptResult.Failure)
+                                            {
+                                                MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
                                             }
                                         });
                                     }
