@@ -124,8 +124,11 @@ public static class Cache
         {
             return null;
         }
-            
-        return DateTime.Parse(timestamp);
+
+        if (DateTime.TryParse(timestamp, out var ts))
+            return ts;
+        else
+            return null;
     }
 
     private static string GetFilePath(string CacheId, FileType FileType)
