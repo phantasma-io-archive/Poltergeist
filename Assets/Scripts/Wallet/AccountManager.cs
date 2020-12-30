@@ -3081,7 +3081,7 @@ namespace Poltergeist
                 if (currentNftsSortMode == (NftSortMode)Settings.nftSortMode && (int)currentNftsSortDirection == Settings.nftSortDirection)
                     return; // Nothing changed, no need to sort again.
 
-                switch ((NftSortMode)Settings.ttrsNftSortMode)
+                switch ((NftSortMode)Settings.nftSortMode)
                 {
                     case NftSortMode.Name:
                         if (Settings.nftSortDirection == (int)SortDirection.Ascending)
