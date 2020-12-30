@@ -3863,62 +3863,76 @@ namespace Poltergeist
                     {
                         if (result == PromptResult.Success)
                         {
-                            // TODO - we should let the user choose what asset to swap instead of hardcoding it to SOUL...
-                            RequestKCAL("SOUL", (feeResult) =>
+                            Action claim = () =>
                             {
-                                if (feeResult == PromptResult.Success)
+                                BeginWaitingModal("Preparing swap transaction...");
+                                accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.Symbol, balance.PendingHash, (settleHash, error) =>
                                 {
-                                    BeginWaitingModal("Preparing swap transaction...");
-                                    accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.Symbol, balance.PendingHash, (settleHash, error) =>
+                                    EndWaitingModal();
+                                    if (settleHash != Hash.Null)
                                     {
-                                        EndWaitingModal();
-                                        if (settleHash != Hash.Null)
+                                        ShowConfirmationScreen(settleHash, (hash) =>
                                         {
-                                            ShowConfirmationScreen(settleHash, (hash) =>
+                                            if (hash != Hash.Null)
                                             {
-                                                if (hash != Hash.Null)
-                                                {
-                                                    ShowModal("Success",
-                                                        $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.\nTransaction hash:\n" + hash,
-                                                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                                ShowModal("Success",
+                                                    $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.\nTransaction hash:\n" + hash,
+                                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                                    {
+                                                        AudioManager.Instance.PlaySFX("click");
+
+                                                        if (viewTxChoice == PromptResult.Failure)
                                                         {
-                                                            AudioManager.Instance.PlaySFX("click");
-
-                                                            if (viewTxChoice == PromptResult.Failure)
+                                                            switch (accountManager.CurrentPlatform)
                                                             {
-                                                                switch (accountManager.CurrentPlatform)
-                                                                {
-                                                                    case PlatformKind.Phantasma:
-                                                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                                                        break;
-                                                                    case PlatformKind.Neo:
-                                                                        Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                                                        break;
-                                                                    case PlatformKind.Ethereum:
-                                                                        Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                                        break;
-                                                                }
+                                                                case PlatformKind.Phantasma:
+                                                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                                                    break;
+                                                                case PlatformKind.Neo:
+                                                                    Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                                                    break;
+                                                                case PlatformKind.Ethereum:
+                                                                    Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                                                    break;
                                                             }
-                                                        });
-                                                }
-                                            });
-                                        }
+                                                        }
+                                                    });
+                                            }
+                                        });
+                                    }
+                                    else
+                                    {
+                                        if (accountManager.CurrentPlatform == PlatformKind.Ethereum && error.Contains("destination hash is not yet available"))
+                                            MessageBox(MessageKind.Default, $"Claim was processed but it will take some time for Ethereum transaction to be mined.\nPlease press claim again later to finalize claim procedure.");
                                         else
-                                        {
-                                            if (accountManager.CurrentPlatform == PlatformKind.Ethereum && error.Contains("destination hash is not yet available"))
-                                                MessageBox(MessageKind.Default, $"Claim was processed but it will take some time for Ethereum transaction to be mined.\nPlease press claim again later to finalize claim procedure.");
-                                            else
-                                                MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
-                                        }
-                                    });
-                                }
-                                else
-                                if (feeResult == PromptResult.Failure)
-                                {
-                                    MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
-                                }
-                            });
+                                            MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
+                                    }
+                                });
+                            };
 
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma && balance.Symbol.ToUpper() == "KCAL")
+                            {
+                                // If we claim KCAL on PHA side and there's no KCAL to perform this claim,
+                                // we try to do cosmic swap from SOUL.
+
+                                // TODO - we should let the user choose what asset to swap instead of hardcoding it to SOUL...
+                                RequestKCAL("SOUL", (feeResult) =>
+                                {
+                                    if (feeResult == PromptResult.Success)
+                                    {
+                                        claim();
+                                    }
+                                    else
+                                    if (feeResult == PromptResult.Failure)
+                                    {
+                                        MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                claim();
+                            }
                         }
                     });
                 };
