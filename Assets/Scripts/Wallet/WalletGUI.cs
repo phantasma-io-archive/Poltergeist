@@ -3576,7 +3576,7 @@ namespace Poltergeist
                 else
                 {
                     PopState();
-                    MessageBox(MessageKind.Error, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!");
+                    MessageBox(MessageKind.Error, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!\nError: " + error);
                     // TODO allow user to retry ?
                 }
                     
@@ -3604,7 +3604,7 @@ namespace Poltergeist
                 else
                 {
                     PopState();
-                    MessageBox(MessageKind.Error, $"Something went wrong while downloading archive {archive.name}!");
+                    MessageBox(MessageKind.Error, $"Something went wrong while downloading archive {archive.name}!\nError: " + error);
                 }
             });
         }
@@ -3670,7 +3670,7 @@ namespace Poltergeist
                 else
                 {
                     PopState();
-                    MessageBox(MessageKind.Error, $"Something went wrong while downloading chunk {blockIndex} for {filePath}!");
+                    MessageBox(MessageKind.Error, $"Something went wrong while downloading chunk {blockIndex} for {filePath}!\nError: " + error);
                 }
             });
         }
