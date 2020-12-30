@@ -36,11 +36,17 @@ public static class NftImages
 
     public static bool CheckIfImageLoaded(string Url)
     {
+        if (string.IsNullOrEmpty(Url))
+            return false;
+
         return Images.Contains(Url);
     }
 
     public static Image GetImage(string Url)
     {
+        if (string.IsNullOrEmpty(Url))
+            return new Image();
+
         return Images.Contains(Url) ? (Image)Images[Url] : new Image();
     }
 
@@ -112,6 +118,11 @@ public static class NftImages
 
     public static IEnumerator DownloadImage(string symbol, string url, string nftId)
     {
+        if (string.IsNullOrEmpty(url))
+        {
+            yield break;
+        }
+
         // Trying to avoid downloading same image multiple times.
         if (CheckIfImageLoaded(url))
         {

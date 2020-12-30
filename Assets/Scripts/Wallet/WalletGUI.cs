@@ -4568,7 +4568,7 @@ namespace Poltergeist
             {
                 var item = accountManager.GetNft(entryId);
 
-                var image = NftImages.GetImage(item.GetPropertyValue("imageURL"));
+                var image = NftImages.GetImage(item.GetPropertyValue("ImageURL"));
 
                 if (!String.IsNullOrEmpty(image.Url))
                 {
@@ -4610,8 +4610,8 @@ namespace Poltergeist
                     nftDate = item.parsedRom.GetDate();
                 }
 
-                nftName = item.GetPropertyValue("name");
-                nftDescription = item.GetPropertyValue("description");
+                nftName = item.GetPropertyValue("Name");
+                nftDescription = item.GetPropertyValue("Description");
                 if(VerticalLayout)
                 {
                     if (nftDescription.Length > 15)

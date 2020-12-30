@@ -2308,7 +2308,7 @@ namespace Poltergeist
                                                     _nfts[platform].Add(tokenData);
 
                                                     // Downloading NFT images.
-                                                    StartCoroutine(NftImages.DownloadImage(symbol, tokenData.GetPropertyValue("imageUrl"), id));
+                                                    StartCoroutine(NftImages.DownloadImage(symbol, tokenData.GetPropertyValue("ImageURL"), id));
                                                 }
 
                                                 if (loadedTokenCounter == balanceEntry.Ids.Length)
@@ -2347,7 +2347,7 @@ namespace Poltergeist
                                                         var tokenData = TokenData.FromNode(result, symbol);
                                                         
                                                         // Downloading NFT images.
-                                                        StartCoroutine(NftImages.DownloadImage(symbol, tokenData.GetPropertyValue("imageUrl"), id));
+                                                        StartCoroutine(NftImages.DownloadImage(symbol, tokenData.GetPropertyValue("ImageURL"), id));
 
                                                         loadedTokenCounter++;
 

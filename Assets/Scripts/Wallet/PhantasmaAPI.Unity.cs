@@ -655,7 +655,7 @@ namespace Phantasma.SDK
         {
             if (properties != null)
             {
-                return properties.Where(x => x.Key.ToUpper() == key.ToUpper()).Select(x => x.Value).FirstOrDefault();
+                return properties.Where(x => x.Key.ToUpperInvariant() == key.ToUpperInvariant()).Select(x => x.Value).FirstOrDefault();
             }
 
             return null;
