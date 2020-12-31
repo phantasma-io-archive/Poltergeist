@@ -5603,7 +5603,7 @@ namespace Poltergeist
                             var gasPrice = accountManager.Settings.feePrice;
 
                             var sb = new ScriptBuilder();
-                            sb.AllowGas(target, Address.Null, gasPrice, AccountManager.MinGasLimit);
+                            sb.AllowGas(target, Address.Null, gasPrice, AccountManager.MinGasLimit * nftTransferList.Count);
                             foreach (var nftToBurn in nftTransferList)
                             {
                                 sb.CallInterop("Runtime.BurnToken", target, transferSymbol, Phantasma.Numerics.BigInteger.Parse(nftToBurn));
