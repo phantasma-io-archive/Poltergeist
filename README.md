@@ -7,7 +7,7 @@
 <h1 align="center">Poltergeist Wallet</h1>
 
 <p align="center">
-  Minimalistic wallet for the Phantasma Ecosystem
+  Fully-featured wallet for the Phantasma ecosystem
 </p>
 
 # Poltergeist
