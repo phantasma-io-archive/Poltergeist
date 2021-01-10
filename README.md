@@ -11,7 +11,7 @@
 </p>
 
 # Poltergeist
-- Bundles both NEO and Phantasma wallets to facilitate easy bi-drectional chain swapping of tokens.
+- Bundles NEO, Ethereum and Phantasma wallets to facilitate easy bi-drectional chain swapping of tokens.
 - Features an intuitive, fun, retro, arcade User Experience. 
 - Simple but so very powerful and damn fast!  
 
