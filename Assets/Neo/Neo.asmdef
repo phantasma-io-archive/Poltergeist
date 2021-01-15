@@ -1,0 +1,6 @@
+{
+    "name": "Neo",
+    "references": [
+        "Phantasma.SDK"
+    ]
+}

@@ -18,14 +18,6 @@ using System.Linq;
 
 namespace Phantasma.SDK
 {
-    public enum EPHANTASMA_SDK_ERROR_TYPE
-    {
-        API_ERROR,
-        WEB_REQUEST_ERROR,
-        FAILED_PARSING_JSON,
-        MALFORMED_RESPONSE
-    }
-
     internal static class PhantasmaAPIUtils
     {
         internal static long GetInt64(this DataNode node, string name)

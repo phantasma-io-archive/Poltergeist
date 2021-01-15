@@ -1,0 +1,23 @@
+﻿{
+    "name": "Tests",
+    "references": [
+        "Neo"
+    ],
+    "precompiledReferences": [
+        "Phantasma.Blockchain.dll",
+        "Phantasma.CodeGen.dll",
+        "Phantasma.Core.dll",
+        "Phantasma.Cryptography.dll",
+        "Phantasma.Domain.dll",
+        "Phantasma.Ethereum.dll",
+        "Phantasma.Numerics.dll",
+        "Phantasma.Storage.dll",
+        "Phantasma.VM.dll"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}
