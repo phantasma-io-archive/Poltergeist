@@ -23,15 +23,47 @@ namespace Poltergeist
         private PhantasmaKeys _keys;
         protected override WalletStatus Status => AccountManager.Instance.CurrentState != null ? WalletStatus.Ready : WalletStatus.Closed;
 
-        protected override Account GetAccount()
+        public WalletConnector() : base()
+        {
+        }
+
+        private PlatformKind RequestPlatform(string platform)
+        {
+            var accountManager = AccountManager.Instance;
+
+            PlatformKind targetPlatform;
+
+            if (!Enum.TryParse<PlatformKind>(platform, true, out targetPlatform))
+            {
+                return PlatformKind.None;
+            }
+
+            if (!accountManager.CurrentAccount.platforms.HasFlag(targetPlatform))
+            {
+                return PlatformKind.None;
+            }
+
+            if (accountManager.CurrentPlatform != targetPlatform)
+            {
+                accountManager.CurrentPlatform = targetPlatform;
+            }
+
+            return targetPlatform;
+        }
+
+        protected override void GetAccount(string platform, Action<Account, string> callback)
         {
             var accountManager = AccountManager.Instance;
             var account = AccountManager.Instance.CurrentAccount;
 
-            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
-                accountManager.CurrentPlatform = PlatformKind.Phantasma;
-
             var state = AccountManager.Instance.CurrentState;
+
+            var targetPlatform = RequestPlatform(platform);
+            if (targetPlatform == PlatformKind.None)
+            {
+                callback(new Account(), "Unsupported platform: " + platform);
+                return;
+            }
 
             if (state != null)
             {
@@ -43,54 +75,30 @@ namespace Poltergeist
                     decimals = x.Decimals,
                 });
 
-                return new Account()
+                callback(new Account()
                 {                    
                     name = account.name,
                     alias = account.name,
                     address = state.address,
                     balances = balances.ToArray(),
                     avatar = state.avatarData,
-                };
+                    platform = platform,
+                    external = targetPlatform != PlatformKind.Phantasma ? state.address : ""
+                }, null);
+
+                return;
             }
 
-            // TODO should return an error to plink here!!!
-            Log.WriteError("not logged in, pls implement this case!");
-
-            return new Account()
-            {
-                name = "Unknown",
-                alias = "unknown",
-                address = Address.Null.Text,
-                balances = new Balance[0],
-                avatar = DefaultAvatar
-            };
+            callback(new Account(), "not logged in, devs should implement this case!");
         }
 
-        protected override PhantasmaKeys Keys {
-            get
-            {
-                var currentWIF = AccountManager.Instance.CurrentWif;
-                if (currentWIF != _WIF)
-                {
-                    _WIF = currentWIF;
-                    _keys = PhantasmaKeys.FromWIF(_WIF);
-                }
-
-                return _keys;
-            }
-        }
-
-        public WalletConnector() : base()
-        {
-        }
-
-        protected override void InvokeScript(byte[] script, int id, Action<byte[], string> callback)
+        protected override void InvokeScript(string chain, byte[] script, int id, Action<byte[], string> callback)
         {
             WalletGUI.Instance.CallOnUIThread(() =>
             {
                 try
                 {
-                    WalletGUI.Instance.InvokeScript("main", script, (result, msg) =>
+                    WalletGUI.Instance.InvokeScript(chain, script, (result, msg) =>
                     {
                         callback(result, msg);
                     });
@@ -122,12 +130,16 @@ namespace Poltergeist
             });
         }
 
-        protected override void SignTransaction(string chain, byte[] script, byte[] payload, int id, Action<Hash, string> callback)
+        protected override void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, Action<Hash, string> callback)
         {
             var accountManager = AccountManager.Instance;
 
-            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
-                accountManager.CurrentPlatform = PlatformKind.Phantasma;
+            var targetPlatform = RequestPlatform(platform);
+            if (targetPlatform == PlatformKind.None)
+            {
+                callback(Hash.Null, "Unsupported platform: " + platform);
+                return;
+            }
 
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
@@ -139,69 +151,65 @@ namespace Poltergeist
             var nexus = AccountManager.Instance.Settings.nexusName;
             var account = AccountManager.Instance.CurrentAccount;
 
-            if (account.platforms.HasFlag(PlatformKind.Phantasma))
+            WalletGUI.Instance.CallOnUIThread(() =>
             {
-                WalletGUI.Instance.CallOnUIThread(() =>
+                try
                 {
-                    try
-                    {
-                        WalletGUI.Instance.StartCoroutine(DescriptionUtils.GetDescription(script, (description, error) => {
+                    WalletGUI.Instance.StartCoroutine(DescriptionUtils.GetDescription(script, (description, error) => {
 
-                            if (description == null)
+                        if (description == null)
+                        {
+                            WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + error);
+                            callback(Hash.Null, "description parsing error");
+                            return;
+                        }
+
+                        WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
+                        {
+                            if (success)
                             {
-                                WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + error);
-                                callback(Hash.Null, "description parsing error");
-                                return;
-                            }
-
-                            WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
-                            {
-                                if (success)
-                                {
-                                    WalletGUI.Instance.SendTransaction(description, script, payload, chain, ProofOfWork.None, (hash) =>
-                                    {
-                                        AppFocus.Instance.EndFocus();
-
-                                        if (hash != Hash.Null)
-                                        {
-                                            callback(hash, null);
-                                        }
-                                        else
-                                        {
-                                            callback(Hash.Null, "something bad happend while sending");
-                                        }
-                                    });
-                                }
-                                else
+                                WalletGUI.Instance.SendTransaction(description, script, payload, chain, ProofOfWork.None, (hash) =>
                                 {
                                     AppFocus.Instance.EndFocus();
-                                    callback(Hash.Null, "user rejected");
-                                }
-                            });
-                        }));
-                    }
-                    catch( Exception e )
-                    {
-                        WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + e.Message);
-                        callback(Hash.Null, "description parsing error");
-                        return;
-                    }
-                });
 
-            }
-            else
-            {
-                callback(Hash.Null, "current account does not support Phantasma platform");
-            }
+                                    if (hash != Hash.Null)
+                                    {
+                                        callback(hash, null);
+                                    }
+                                    else
+                                    {
+                                        callback(Hash.Null, "something bad happend while sending");
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                AppFocus.Instance.EndFocus();
+                                callback(Hash.Null, "user rejected");
+                            }
+                        });
+                    }));
+                }
+                catch( Exception e )
+                {
+                    WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + e.Message);
+                    callback(Hash.Null, "description parsing error");
+                    return;
+                }
+            });
         }
 
 
-        protected override void SignData(byte[] data, SignatureKind kind, int id, Action<string, string, string> callback)
+        protected override void SignData(string platform, SignatureKind kind, byte[] data, int id, Action<string, string, string> callback)
         {
             var accountManager = AccountManager.Instance;
 
-            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
-                accountManager.CurrentPlatform = PlatformKind.Phantasma;
+            var targetPlatform = RequestPlatform(platform);
+            if (targetPlatform == PlatformKind.None)
+            {
+                callback(null, null, "Unsupported platform: " + platform);
+                return;
+            }
 
             var state = AccountManager.Instance.CurrentState;
             if (state == null)
@@ -218,61 +226,59 @@ namespace Poltergeist
 
             var account = AccountManager.Instance.CurrentAccount;
 
-            if (account.platforms.HasFlag(PlatformKind.Phantasma))
+            WalletGUI.Instance.CallOnUIThread(() =>
             {
-                WalletGUI.Instance.CallOnUIThread(() =>
+                var description = System.Text.Encoding.UTF8.GetString(data);
+
+                WalletGUI.Instance.Prompt("The dapp wants to sign the following data. Accept?\n" + description, (success) =>
                 {
-                    var description = System.Text.Encoding.UTF8.GetString(data);
+                    AppFocus.Instance.EndFocus();
 
-                    WalletGUI.Instance.Prompt("The dapp wants to sign the following data. Accept?\n" + description, (success) =>
+                    if (success)
                     {
-                        AppFocus.Instance.EndFocus();
+                        var phantasmaKeys = PhantasmaKeys.FromWIF(account.GetWif(AccountManager.Instance.CurrentPasswordHash));
 
-                        if (success)
+                        var randomValue = UnityEngine.Random.Range(0, int.MaxValue);
+                        var randomBytes = BitConverter.GetBytes(randomValue);
+
+                        var msg = ByteArrayUtils.ConcatBytes(randomBytes, data);
+                        var signature = phantasmaKeys.Sign(msg);
+
+                        byte[] sigBytes = null;
+
+                        using (var stream = new MemoryStream())
                         {
-                            var phantasmaKeys = PhantasmaKeys.FromWIF(account.GetWif(AccountManager.Instance.CurrentPasswordHash));
-
-                            var randomValue = UnityEngine.Random.Range(0, int.MaxValue);
-                            var randomBytes = BitConverter.GetBytes(randomValue);
-
-                            var msg = ByteArrayUtils.ConcatBytes(randomBytes, data);
-                            var signature = phantasmaKeys.Sign(msg);
-
-                            byte[] sigBytes = null;
-
-                            using (var stream = new MemoryStream())
+                            using (var writer = new BinaryWriter(stream))
                             {
-                                using (var writer = new BinaryWriter(stream))
-                                {
-                                    writer.WriteSignature(signature);
-                                }
-
-                                sigBytes = stream.ToArray();
+                                writer.WriteSignature(signature);
                             }
 
-                            var hexSig = Base16.Encode(sigBytes);
-                            var hexRand = Base16.Encode(randomBytes);
-
-                            callback(hexSig, hexRand, null);
+                            sigBytes = stream.ToArray();
                         }
-                        else
-                        {
-                            callback(null, null, "user rejected");
-                        }
-                    });
 
+                        var hexSig = Base16.Encode(sigBytes);
+                        var hexRand = Base16.Encode(randomBytes);
+
+                        callback(hexSig, hexRand, null);
+                    }
+                    else
+                    {
+                        callback(null, null, "user rejected");
+                    }
                 });
 
-            }
-            else
-            {
-                callback(null, null, "current account does not support Phantasma platform");
-            }
+            });
         }
- 
-        protected override void Authorize(string dapp, string token, Action<bool, string> callback)
+
+        protected override void Authorize(string dapp, string token, int version, Action<bool, string> callback)
         {
             var accountManager = AccountManager.Instance;
+
+            if (version > WalletConnector.LinkProtocol)
+            {
+                callback(false, "unknown Phantasma Link version " + version);
+                return;
+            }
 
             if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
                 accountManager.CurrentPlatform = PlatformKind.Phantasma;
