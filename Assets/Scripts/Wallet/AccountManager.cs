@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -224,7 +224,7 @@ namespace Poltergeist
         public static readonly int MaxAccountNameLength = 16;
         public string WalletIdentifier => "PGT" + UnityEngine.Application.version;
 
-        public static readonly int MinGasLimit = 800;
+        public static readonly int MinGasLimit = 1500;
 
         public Settings Settings { get; private set; }
 
