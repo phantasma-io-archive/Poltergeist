@@ -3978,7 +3978,7 @@ namespace Poltergeist
                                         {
                                             var line = amount == balance.Staked ? "You won't be able to claim KCAL anymore." : "The amount of KCAL that will be able to claim later will be reduced.";
                                             
-                                            if (amount == balance.Staked  && accountManager.CurrentState.name != ValidationUtils.ANONYMOUS)
+                                            if (amount == balance.Staked  && accountManager.CurrentState.name != ValidationUtils.ANONYMOUS_NAME)
                                             {
                                                 line += "\nYour account will also lose the current registed name.";
                                             }

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -1560,7 +1560,7 @@ namespace Poltergeist
                     address = GetAddress(CurrentIndex, PlatformKind.Ethereum),
                     balances = new Balance[0],
                     flags = AccountFlags.None,
-                    name = ValidationUtils.ANONYMOUS,
+                    name = ValidationUtils.ANONYMOUS_NAME,
                 };
 
                 SaveAccounts();
@@ -2018,7 +2018,7 @@ namespace Poltergeist
                                         {
                                             platform = platform,
                                             address = keys.Address,
-                                            name = ValidationUtils.ANONYMOUS, // TODO support NNS
+                                            name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
                                             balances = balanceMap.Values.ToArray(),
                                             flags = AccountFlags.None
                                         };
@@ -2064,7 +2064,7 @@ namespace Poltergeist
                                     {
                                         platform = platform,
                                         address = ethereumAddressUtil.ConvertToChecksumAddress(keys.Address),
-                                        name = ValidationUtils.ANONYMOUS, // TODO support NNS
+                                        name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
                                         balances = balanceMap.Values.ToArray(),
                                         flags = AccountFlags.None
                                     };
@@ -2132,7 +2132,7 @@ namespace Poltergeist
                     address = GetAddress(CurrentIndex, platform),
                     balances = new Balance[0],
                     flags = AccountFlags.None,
-                    name = ValidationUtils.ANONYMOUS,
+                    name = ValidationUtils.ANONYMOUS_NAME,
                 };
             }
         }
