@@ -40,6 +40,20 @@ namespace Phantasma.SDK
 
         private static object Locker = new object();
 
+        private static bool OpenLogFileStream(string filePath, FileMode fileMode)
+        {
+            try
+            {
+                LogFileStream = File.Open(filePath, fileMode, FileAccess.Write, FileShare.Read);
+            }
+            catch(Exception)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public static void Init(string fileName, Level maxLevel, bool forceWorkingFolderUsage = false, bool overwriteOldContent = false, bool addTid = false)
         {
             MaxLevel = maxLevel;
@@ -58,8 +72,6 @@ namespace Phantasma.SDK
             }
 #endif
 
-            FilePath = Path.Combine(FilePath, fileName);
-
             // Opening log stream.
             FileMode _fileMode = FileMode.Append;
 
@@ -68,7 +80,25 @@ namespace Phantasma.SDK
                 _fileMode = FileMode.Create;
                 OverwriteOldContent = false;
             }
-            LogFileStream = File.Open(FilePath, _fileMode, FileAccess.Write, FileShare.Read);
+
+            string filePath = "";
+            for(var i = 0; i < 1000; i++)
+            {
+                if (i == 0)
+                {
+                    filePath = Path.Combine(FilePath, fileName);
+                }
+                else
+                {
+                    var extension = Path.GetExtension(fileName);
+                    filePath = Path.Combine(FilePath, Path.ChangeExtension(Path.GetFileNameWithoutExtension(fileName) + "-" + i, extension));
+                }
+                
+                if (OpenLogFileStream(filePath, _fileMode))
+                    break;
+            }
+            FilePath = filePath;
+
             LogStreamWriter = new StreamWriter(LogFileStream);
         }
 
