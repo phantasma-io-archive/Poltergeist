@@ -1,5 +1,6 @@
 {
     "name": "Neo",
+    "allowUnsafeCode" : true,
     "references": [
         "Phantasma.SDK"
     ]
