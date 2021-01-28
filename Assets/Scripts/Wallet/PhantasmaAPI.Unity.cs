@@ -1512,23 +1512,11 @@ namespace Phantasma.SDK
         }
 
 
-        private string swapsDisabled = null;
-
         //Returns platform swaps for a specific address.
         public IEnumerator GetSwapsForAddress(string accountInput, Action<Swap[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            if (swapsDisabled != null)
-            {
-                errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, swapsDisabled);
-                yield break;
-            }
-
             yield return WebClient.RPCRequest(Host, "getSwapsForAddress", WebClient.NoTimeout, 0, (error, msg) =>
             {
-                if (msg.Contains("not available"))
-                {
-                    swapsDisabled = msg;
-                }
                 errorHandlingCallback(error, msg);
             }, (node) =>
             {
