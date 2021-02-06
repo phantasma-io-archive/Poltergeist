@@ -1716,6 +1716,20 @@ namespace Poltergeist
 
         private void DoWalletsScreen()
         {
+            var accountManager = AccountManager.Instance;
+
+            // This is a strange fix i don't fully understand.
+            // On an old slow Mac there was an exception
+            // that indicated that accounts list were modified
+            // at the same time as DoWalletsScreen() was displaying accounts list.
+            // It shouldn't be possible because Start() is called and should be finished
+            // before OnGUI() call (at least that's what i read in Unity documentation).
+            // But this fix helped and PG stopped crashing on that old Mac.
+            if (!accountManager.AccountsAreReadyToBeUsed)
+            {
+                return;
+            }    
+
             int endY;
             DoButtonGrid<int>(true, accountOptions.Length, Units(2), 0, out endY, (index) =>
             {
@@ -1822,8 +1836,6 @@ namespace Poltergeist
                         }
                 }
             });
-
-            var accountManager = AccountManager.Instance;
 
             int startY = (int)(windowRect.y + Units(5));
 

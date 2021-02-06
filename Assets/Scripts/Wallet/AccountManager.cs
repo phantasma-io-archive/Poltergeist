@@ -229,6 +229,7 @@ namespace Poltergeist
         public Settings Settings { get; private set; }
 
         public List<Account> Accounts { get; private set; }
+        public bool AccountsAreReadyToBeUsed = false;
 
         public static List<Token> SupportedTokens = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
@@ -867,6 +868,8 @@ namespace Poltergeist
                 var bytes = Base16.Decode(wallets);
                 Accounts = Serialization.Unserialize<Account[]>(bytes).ToList();
             }
+
+            AccountsAreReadyToBeUsed = true;
         }
 
         public void SaveAccounts()
