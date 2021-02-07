@@ -65,6 +65,7 @@ namespace Poltergeist
         public const string EthereumNetworkTag = "settings.ethereum.network";
         public const string EthereumLocalnetSoulContractTag = "settings.ethereum.localnet.soul.contract";
         public const string EthereumLocalnetKcalContractTag = "settings.ethereum.localnet.kcal.contract";
+        public const string EthereumLocalnetDankContractTag = "settings.ethereum.localnet.dank.contract";
         public const string EthereumRPCTag = "settings.ethereum.rpc.url";
         public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
         public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
@@ -95,6 +96,7 @@ namespace Poltergeist
         public EthereumNetwork ethereumNetwork;
         public string ethereumLocalnetSoulContract;
         public string ethereumLocalnetKcalContract;
+        public string ethereumLocalnetDankContract;
         public string ethereumRPCURL;
         public BigInteger ethereumGasPriceGwei;
         public BigInteger ethereumTransferGasLimit;
@@ -122,6 +124,7 @@ namespace Poltergeist
                 "Ethereum network: " + this.ethereumNetwork + "\n" +
                 "Ethereum localnet SOUL contract: " + this.ethereumLocalnetSoulContract + "\n" +
                 "Ethereum localnet KCAL contract: " + this.ethereumLocalnetKcalContract + "\n" +
+                "Ethereum localnet DANK contract: " + this.ethereumLocalnetDankContract + "\n" +
                 "Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                 "Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
                 "Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
@@ -209,6 +212,7 @@ namespace Poltergeist
 
             this.ethereumLocalnetSoulContract = PlayerPrefs.GetString(EthereumLocalnetSoulContractTag, GetDefaultValue(EthereumLocalnetSoulContractTag));
             this.ethereumLocalnetKcalContract = PlayerPrefs.GetString(EthereumLocalnetKcalContractTag, GetDefaultValue(EthereumLocalnetKcalContractTag));
+            this.ethereumLocalnetDankContract = PlayerPrefs.GetString(EthereumLocalnetDankContractTag, GetDefaultValue(EthereumLocalnetDankContractTag));
 
             if (this.ethereumNetwork == EthereumNetwork.Main_Net || this.ethereumNetwork == EthereumNetwork.Ropsten)
             {
@@ -463,6 +467,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(EthereumNetworkTag, this.ethereumNetwork.ToString());
             PlayerPrefs.SetString(EthereumLocalnetSoulContractTag, this.ethereumLocalnetSoulContract.ToString());
             PlayerPrefs.SetString(EthereumLocalnetKcalContractTag, this.ethereumLocalnetKcalContract.ToString());
+            PlayerPrefs.SetString(EthereumLocalnetDankContractTag, this.ethereumLocalnetDankContract.ToString());
             PlayerPrefs.SetString(EthereumRPCTag, this.ethereumRPCURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.SetString(EthereumTransferGasLimitTag, this.ethereumTransferGasLimit.ToString());

@@ -999,6 +999,27 @@ namespace Poltergeist
                     }
                     break;
 
+                case "DANK":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = Settings.ethereumLocalnetDankContract;
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
                 default:
                     _return_value = "";
                     break;
@@ -1033,6 +1054,7 @@ namespace Poltergeist
                 new Token() { symbol = "USDT", apiSymbol = "tether", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
                 new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
                 new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags },
+                new Token() { symbol = "DANK", apiSymbol = "", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "DANK", flags = extFlags },
 
                 new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = "neo", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
@@ -1064,7 +1086,8 @@ namespace Poltergeist
                 new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
                 new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
                 new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
-                new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = "ethereum", hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags }/*,
+                new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = "ethereum", hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags },
+                new Token() { symbol = "DANK", apiSymbol = "", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "DANK", flags = extFlags }/*,
                 new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }*/
             };
 
