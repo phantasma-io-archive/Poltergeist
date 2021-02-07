@@ -368,7 +368,7 @@ namespace Poltergeist
                             var startDate = GetTimestampArg(entry, 6);
                             var untilDate = GetTimestampArg(entry, 7);
                             var extensionPeriod = GetStringArg(entry, 8);
-                            var typeAuction = GetStringArg(entry, 9);
+                            var typeAuction = GetNumberArg(entry, 9);
                             var listingFee = GetStringArg(entry, 10);
                             var listingFeeAddress = GetStringArg(entry, 11);
 
@@ -392,7 +392,7 @@ namespace Poltergeist
                                 sb.AppendLine($"\u2605 List {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for a Dutch Auction with a starting price of {price} {priceSymbol} and an end price of {endPrice} {priceSymbol}.");
                                 break;
                             }
-
+                            break;
                         }
                     case "market.BidToken":
                         {
@@ -400,10 +400,10 @@ namespace Poltergeist
                             var tokenSymbol = GetStringArg(entry, 1);
                             var nftNumber = GetStringArg(entry, 2);
 
-                            Token priceToken;
-                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+                            //Token priceToken;
+                            //accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
 
-                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 3), priceToken.decimals);
+                            //var price = UnitConversion.ToDecimal(GetNumberArg(entry, 3), priceToken.decimals);
 
                             var buyingFee = GetStringArg(entry, 4);
                             var buyingFeeAddress = GetStringArg(entry, 5);
