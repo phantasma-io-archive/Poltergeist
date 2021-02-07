@@ -332,6 +332,86 @@ namespace Poltergeist
 
                             break;
                         }
+                    case "market.EditAuction":
+                        {
+                            var dst = GetStringArg(entry, 0);
+                            var tokenSymbol = GetStringArg(entry, 1);
+                            var priceSymbol = GetStringArg(entry, 2);
+                            var nftNumber = GetStringArg(entry, 3);
+
+                            Token priceToken;
+                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+
+                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
+                            var endPrice = UnitConversion.ToDecimal(GetNumberArg(entry, 5), priceToken.decimals);
+
+                            var startDate = GetTimestampArg(entry, 6);
+                            var untilDate = GetTimestampArg(entry, 7);
+                            var extensionPeriod = GetStringArg(entry, 8);
+
+                            sb.AppendLine($"\u2605 Edit {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} Auction.");
+                            break;
+                        }
+                    case "market.ListToken":
+                        {
+                            var dst = GetStringArg(entry, 0);
+                            var tokenSymbol = GetStringArg(entry, 1);
+                            var priceSymbol = GetStringArg(entry, 2);
+                            var nftNumber = GetStringArg(entry, 3);
+
+                            Token priceToken;
+                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+
+                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
+                            var endPrice = UnitConversion.ToDecimal(GetNumberArg(entry, 5), priceToken.decimals);
+
+                            var startDate = GetTimestampArg(entry, 6);
+                            var untilDate = GetTimestampArg(entry, 7);
+                            var extensionPeriod = GetStringArg(entry, 8);
+                            var typeAuction = GetStringArg(entry, 9);
+                            var listingFee = GetStringArg(entry, 10);
+                            var listingFeeAddress = GetStringArg(entry, 11);
+
+                            if (typeAuction == 0)
+                            {
+                                sb.AppendLine($"\u2605 List {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for a Fixed Auction with a price of {price} {priceSymbol}.");
+                                break;
+                            }
+                            else if (typeAuction == 1)
+                            {
+                                sb.AppendLine($"\u2605 List {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for a Schedule Auction with a starting price of {price} {priceSymbol}.");
+                                break;
+                            }
+                            else if (typeAuction == 2)
+                            {
+                                sb.AppendLine($"\u2605 List {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for a Reserve Auction with a reserve price of {price} {priceSymbol}.");
+                                break;
+                            }
+                            else if (typeAuction == 3)
+                            {
+                                sb.AppendLine($"\u2605 List {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for a Dutch Auction with a starting price of {price} {priceSymbol} and an end price of {endPrice} {priceSymbol}.");
+                                break;
+                            }
+
+                        }
+                    case "market.BidToken":
+                        {
+                            var dst = GetStringArg(entry, 0);
+                            var tokenSymbol = GetStringArg(entry, 1);
+                            var nftNumber = GetStringArg(entry, 2);
+
+                            Token priceToken;
+                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+
+                            var price = UnitConversion.ToDecimal(GetNumberArg(entry, 3), priceToken.decimals);
+
+                            var buyingFee = GetStringArg(entry, 4);
+                            var buyingFeeAddress = GetStringArg(entry, 5);
+
+
+                            sb.AppendLine($"\u2605 Bid on {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} Auction.");
+                            break;
+                        }
                     case "Runtime.MintToken":
                         {
                             var owner = GetStringArg(entry, 0);
