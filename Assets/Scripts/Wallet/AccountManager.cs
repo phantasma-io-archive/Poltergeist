@@ -231,6 +231,11 @@ namespace Poltergeist
         public List<Account> Accounts { get; private set; }
         public bool AccountsAreReadyToBeUsed = false;
 
+        // Developer only, to be used for debug perposes.
+        public string DevOverridePhaPublicAddress = "";
+        public string DevOverrideNeoPublicAddress = "";
+        public string DevOverrideEthPublicAddress = "";
+
         public static List<Token> SupportedTokens = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
         public string CurrentTokenCurrency { get; private set; }
@@ -1254,10 +1259,11 @@ namespace Poltergeist
                                     case PlatformKind.Neo:
                                         {
                                             var keys = NeoKeys.FromWIF(transfer.key);
+                                            var address = string.IsNullOrEmpty(DevOverrideNeoPublicAddress) ? keys.Address : DevOverrideNeoPublicAddress;
 
-                                            StartCoroutine(neoApi.GetUnspent(keys.Address, (unspent) =>
+                                            StartCoroutine(neoApi.GetUnspent(address, (unspent) =>
                                             {
-                                                Log.Write("Got unspents for " + keys.Address);
+                                                Log.Write("Got unspents for " + address);
 
                                                 if (transfer.symbol == "NEO" || transfer.symbol == "GAS")
                                                 {
@@ -1349,10 +1355,11 @@ namespace Poltergeist
                                     case PlatformKind.Ethereum:
                                         {
                                             var keys = EthereumKey.FromWIF(transfer.key);
+                                            var address = string.IsNullOrEmpty(DevOverrideEthPublicAddress) ? keys.Address : DevOverrideEthPublicAddress;
 
                                             if (transfer.symbol == "ETH")
                                             {
-                                                StartCoroutine(ethereumApi.GetNonce(keys.Address,
+                                                StartCoroutine(ethereumApi.GetNonce(address,
                                                 (nonce) =>
                                                 {
                                                     var hexTx = ethereumApi.SignTransaction(keys, nonce, transfer.destination,
@@ -1374,7 +1381,7 @@ namespace Poltergeist
                                             {
                                                 if (GetTokenBySymbol(transfer.symbol, PlatformKind.Ethereum, out Token ethToken))
                                                 {
-                                                    StartCoroutine(ethereumApi.GetNonce(keys.Address,
+                                                    StartCoroutine(ethereumApi.GetNonce(address,
                                                     (nonce) =>
                                                     {
                                                         var gasLimit = Settings.ethereumTokenTransferGasLimit;
@@ -1812,8 +1819,12 @@ namespace Poltergeist
                     case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(wif);
+                            var address = string.IsNullOrEmpty(DevOverridePhaPublicAddress) ? keys.Address.Text : DevOverridePhaPublicAddress;
+                            
                             var ethKeys = EthereumKey.FromWIF(wif);
-                            StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
+                            var ethAddress = string.IsNullOrEmpty(DevOverrideEthPublicAddress) ? ethKeys.Address : DevOverrideEthPublicAddress;
+
+                            StartCoroutine(phantasmaApi.GetAccount(address, (acc) =>
                             {
                                 var balanceMap = new Dictionary<string, Balance>();
 
@@ -1885,7 +1896,7 @@ namespace Poltergeist
                                     }
                                 }
 
-                                RequestPendings(keys.Address.Text, (phaSwaps, phaError) =>
+                                RequestPendings(address, (phaSwaps, phaError) =>
                                 {
                                     if (phaSwaps != null)
                                     {
@@ -1896,7 +1907,7 @@ namespace Poltergeist
                                         Log.WriteWarning(phaError);
                                     }
 
-                                    RequestPendings(ethKeys.Address, (swaps, error) =>
+                                    RequestPendings(ethAddress, (swaps, error) =>
                                     {
                                         if (swaps != null)
                                         {
@@ -1952,8 +1963,9 @@ namespace Poltergeist
                     case PlatformKind.Neo:
                         {
                             var keys = NeoKeys.FromWIF(wif);
+                            var address = string.IsNullOrEmpty(DevOverrideNeoPublicAddress) ? keys.Address : DevOverrideNeoPublicAddress;
 
-                            var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
+                            var url = GetNeoscanAPIUrl($"get_balance/{address}");
 
                             StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                             {
@@ -1992,9 +2004,9 @@ namespace Poltergeist
                                     }
                                 }
 
-                                StartCoroutine(neoApi.GetUnclaimed(keys.Address, (amount) =>
+                                StartCoroutine(neoApi.GetUnclaimed(address, (amount) =>
                                 {
-                                    RequestPendings(keys.Address, (swaps, error) =>
+                                    RequestPendings(address, (swaps, error) =>
                                     {
                                         var balanceMap = new Dictionary<string, Balance>();
 
@@ -2043,7 +2055,7 @@ namespace Poltergeist
                                         var state = new AccountState()
                                         {
                                             platform = platform,
-                                            address = keys.Address,
+                                            address = address,
                                             name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
                                             balances = balanceMap.Values.ToArray(),
                                             flags = AccountFlags.None
@@ -2059,13 +2071,14 @@ namespace Poltergeist
                     case PlatformKind.Ethereum:
                         {
                             var keys = EthereumKey.FromWIF(wif);
+                            var address = string.IsNullOrEmpty(DevOverrideEthPublicAddress) ? keys.Address : DevOverrideEthPublicAddress;
 
                             var ethTokens = SupportedTokens.Where(x => x.platform.ToUpper() == PlatformKind.Ethereum.ToString().ToUpper());
                             var balances = new List<Balance>();
 
                             Action onLoadFinish = new Action(() =>
                             {
-                                RequestPendings(keys.Address, (swaps, error) =>
+                                RequestPendings(address, (swaps, error) =>
                                 {
                                     var balanceMap = new Dictionary<string, Balance>();
                                     foreach (var ethToken in ethTokens)
@@ -2089,7 +2102,7 @@ namespace Poltergeist
                                     var state = new AccountState()
                                     {
                                         platform = platform,
-                                        address = ethereumAddressUtil.ConvertToChecksumAddress(keys.Address),
+                                        address = ethereumAddressUtil.ConvertToChecksumAddress(address),
                                         name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
                                         balances = balanceMap.Values.ToArray(),
                                         flags = AccountFlags.None
@@ -2102,7 +2115,7 @@ namespace Poltergeist
                             {
                                 if (ethToken.symbol == "ETH")
                                 {
-                                    StartCoroutine(ethereumApi.GetBalance(keys.Address, ethToken.symbol, ethToken.decimals, (balance) =>
+                                    StartCoroutine(ethereumApi.GetBalance(address, ethToken.symbol, ethToken.decimals, (balance) =>
                                     {
                                         balances.Add(balance);
 
@@ -2118,7 +2131,7 @@ namespace Poltergeist
                                 }
                                 else
                                 {
-                                    StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
+                                    StartCoroutine(ethereumApi.GetTokenBalance(address,
                                         GetEthereumContract(ethToken.symbol),
                                         ethToken.symbol, ethToken.decimals, (balanceSoul) =>
                                     {
@@ -2457,7 +2470,9 @@ namespace Poltergeist
                     case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(wif);
-                            StartCoroutine(phantasmaApi.GetAddressTransactions(keys.Address.Text, 1, 20, (x, page, max) =>
+                            var address = string.IsNullOrEmpty(DevOverridePhaPublicAddress) ? keys.Address.Text : DevOverridePhaPublicAddress;
+
+                            StartCoroutine(phantasmaApi.GetAddressTransactions(address, 1, 20, (x, page, max) =>
                             {
                                 var history = new List<HistoryEntry>();
 
@@ -2487,7 +2502,9 @@ namespace Poltergeist
                     case PlatformKind.Neo:
                         {
                             var keys = NeoKeys.FromWIF(wif);
-                            var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
+                            var address = string.IsNullOrEmpty(DevOverrideNeoPublicAddress) ? keys.Address : DevOverrideNeoPublicAddress;
+
+                            var url = GetNeoscanAPIUrl($"get_address_abstracts/{address}/1");
 
                             StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
                             {
@@ -2526,7 +2543,9 @@ namespace Poltergeist
                     case PlatformKind.Ethereum:
                         {
                             var keys = EthereumKey.FromWIF(wif);
-                            var urlEth = GetEtherscanAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
+                            var address = string.IsNullOrEmpty(DevOverrideEthPublicAddress) ? keys.Address : DevOverrideEthPublicAddress;
+
+                            var urlEth = GetEtherscanAPIUrl($"module=account&action=txlist&address={address}&sort=desc");
 
                             StartCoroutine(WebClient.RESTRequest(urlEth, WebClient.DefaultTimeout, (error, msg) =>
                             {
@@ -2534,7 +2553,7 @@ namespace Poltergeist
                             },
                             (responseEth) =>
                             {
-                                var urlErc20 = GetEtherscanAPIUrl($"module=account&action=tokentx&address={keys.Address}&sort=desc");
+                                var urlErc20 = GetEtherscanAPIUrl($"module=account&action=tokentx&address={address}&sort=desc");
                                 StartCoroutine(WebClient.RESTRequest(urlErc20, WebClient.DefaultTimeout, (error, msg) =>
                                 {
                                     ReportWalletHistory(platform, null);
@@ -3034,13 +3053,13 @@ namespace Poltergeist
             switch (platform)
             {
                 case PlatformKind.Phantasma:
-                    return Accounts[index].phaAddress;
+                    return string.IsNullOrEmpty(DevOverridePhaPublicAddress) ? Accounts[index].phaAddress : DevOverridePhaPublicAddress;
 
                 case PlatformKind.Neo:
-                    return Accounts[index].neoAddress;
+                    return string.IsNullOrEmpty(DevOverrideNeoPublicAddress) ? Accounts[index].neoAddress : DevOverrideNeoPublicAddress;
 
                 case PlatformKind.Ethereum:
-                    return Accounts[index].ethAddress;
+                    return string.IsNullOrEmpty(DevOverrideEthPublicAddress) ? Accounts[index].ethAddress : DevOverrideEthPublicAddress;
             }
 
             return null;
