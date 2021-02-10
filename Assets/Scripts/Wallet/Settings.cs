@@ -59,6 +59,7 @@ namespace Poltergeist
         public const string NexusKindTag = "settings.nexus.kind";
         public const string CurrencyTag = "settings.currency";
         public const string GasPriceTag = "settings.fee.price";
+        public const string GasLimitTag = "settings.fee.limit";
 
         public const string NeoGasFeeTag = "settings.neo.gas.fee";
 
@@ -92,6 +93,7 @@ namespace Poltergeist
         public string nexusName;
         public string currency;
         public BigInteger feePrice;
+        public BigInteger feeLimit;
         public decimal neoGasFee;
         public EthereumNetwork ethereumNetwork;
         public string ethereumLocalnetSoulContract;
@@ -118,6 +120,7 @@ namespace Poltergeist
                 "Phantasma Explorer: " + this.phantasmaExplorer + "\n" +
                 "Phantasma NFT Explorer: " + this.phantasmaNftExplorer + "\n" +
                 "Fee price: " + this.feePrice + "\n" +
+                "Fee limit: " + this.feeLimit + "\n" +
                 "Neo RPC: " + this.neoRPCURL + "\n" +
                 "Neoscan: " + this.neoscanURL + "\n" +
                 "Neo GAS fee: " + this.neoGasFee + "\n" +
@@ -188,7 +191,13 @@ namespace Poltergeist
             var defaultGasPrice = 100000;
             if (!BigInteger.TryParse(PlayerPrefs.GetString(GasPriceTag, defaultGasPrice.ToString()), out feePrice))
             {
-                this.feePrice = 100000;
+                this.feePrice = defaultGasPrice;
+            }
+
+            var defaultGasLimit = 1600;
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(GasLimitTag, defaultGasLimit.ToString()), out feeLimit))
+            {
+                this.feeLimit = defaultGasLimit;
             }
 
             // Doing it in a bit more complex way to avoid decimal parsing problem for different cultures.
@@ -459,6 +468,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(PhantasmaExplorerTag, this.phantasmaExplorer);
             PlayerPrefs.SetString(PhantasmaNftExplorerTag, this.phantasmaNftExplorer);
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
+            PlayerPrefs.SetString(GasLimitTag, this.feeLimit.ToString());
             PlayerPrefs.SetString(NeoGasFeeTag, this.neoGasFee.ToString());
 
             PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
