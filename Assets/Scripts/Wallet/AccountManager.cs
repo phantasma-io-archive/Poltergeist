@@ -224,8 +224,6 @@ namespace Poltergeist
         public static readonly int MaxAccountNameLength = 16;
         public string WalletIdentifier => "PGT" + UnityEngine.Application.version;
 
-        public static readonly int MinGasLimit = 1500;
-
         public Settings Settings { get; private set; }
 
         public List<Account> Accounts { get; private set; }
@@ -2946,7 +2944,7 @@ namespace Poltergeist
                 var script = ScriptUtils.BeginScript()
                     .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
                     .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, MinGasLimit)
+                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
                     .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
                     .SpendGas(transcodedAddress)
                     .EndScript();
