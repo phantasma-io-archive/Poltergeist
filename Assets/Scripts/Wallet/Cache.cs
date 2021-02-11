@@ -191,6 +191,16 @@ public static class Cache
 
         string filePath = GetFilePath(CacheId, FileType.PNG);
 
+        var imageSizeLimit = 256;
+        if (CacheContents.width > imageSizeLimit)
+        {
+            TextureScaler.scale(CacheContents, imageSizeLimit, (int)((double)imageSizeLimit / CacheContents.width * CacheContents.height));
+        }
+        else if (CacheContents.height > imageSizeLimit)
+        {
+            TextureScaler.scale(CacheContents, (int)((double)imageSizeLimit / CacheContents.height * CacheContents.width), imageSizeLimit);
+        }
+
         byte[] bytes = CacheContents.EncodeToPNG();
         File.WriteAllBytes(filePath, bytes);
 
