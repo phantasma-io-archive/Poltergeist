@@ -379,7 +379,7 @@ namespace Poltergeist
                             }
                             else if (typeAuction == 1)
                             {
-                                sb.AppendLine($"\u2605 List {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for a Schedule Auction with a starting price of {price} {priceSymbol}.");
+                                sb.AppendLine($"\u2605 List {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} for a Classic Auction with a starting price of {price} {priceSymbol}.");
                                 break;
                             }
                             else if (typeAuction == 2)
