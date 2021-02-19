@@ -1018,6 +1018,27 @@ namespace Poltergeist
                     }
                     break;
 
+                case "DYT":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = Settings.ethereumLocalnetDytContract;
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
                 default:
                     _return_value = "";
                     break;
@@ -1047,6 +1068,7 @@ namespace Poltergeist
                 new Token() { symbol = "GHOST", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GHOST").ToString(), decimals = 0, maxSupply = "0", name = "Ghost", flags = nftFlags },
                 new Token() { symbol = "CROWN", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("CROWN").ToString(), decimals = 0, maxSupply = "0", name = "Crown", flags = nftFlags },
                 new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "0", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
+                new Token() { symbol = "DYT", apiSymbol = "dynamite", platform = DomainSettings.PlatformName, hash = Hash.FromString("DYT").ToString(), decimals = 18, maxSupply = "1500000", name = "DYT", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
                 new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Ethereum", flags = extFlags },
                 new Token() { symbol = "DAI", apiSymbol = "dai", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
                 new Token() { symbol = "USDT", apiSymbol = "tether", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },

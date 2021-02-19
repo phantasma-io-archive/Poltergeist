@@ -2596,6 +2596,10 @@ namespace Poltergeist
                     settings.ethereumLocalnetDankContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetDankContract);
                     curY += Units(3);
 
+                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth local DYT hash");
+                    settings.ethereumLocalnetDytContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetDytContract);
+                    curY += Units(3);
+
                     GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Ethereum RPC URL");
                     settings.ethereumRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumRPCURL);
                     curY += Units(3);
