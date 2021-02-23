@@ -997,11 +997,32 @@ namespace Poltergeist
                     }
                     break;
 
+                case "MUU":
+                    switch (Settings.ethereumNetwork)
+                    {
+                        case EthereumNetwork.Main_Net:
+                            _return_value = "25836ce76065A3DfCeF069fD4964C240C4F2523F";
+                            break;
+
+                        case EthereumNetwork.Ropsten:
+                            _return_value = "";
+                            break;
+
+                        case EthereumNetwork.Local_Net:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
                 case "DANK":
                     switch (Settings.ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "";
+                            _return_value = "9ea1ae46c15a4164b74463bc26f8aa3b0eea2e6e";
                             break;
 
                         case EthereumNetwork.Ropsten:
@@ -1068,13 +1089,14 @@ namespace Poltergeist
                 new Token() { symbol = "GHOST", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GHOST").ToString(), decimals = 0, maxSupply = "0", name = "Ghost", flags = nftFlags },
                 new Token() { symbol = "CROWN", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("CROWN").ToString(), decimals = 0, maxSupply = "0", name = "Crown", flags = nftFlags },
                 new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "0", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
-                new Token() { symbol = "DYT", apiSymbol = "dynamite", platform = DomainSettings.PlatformName, hash = Hash.FromString("DYT").ToString(), decimals = 18, maxSupply = "1500000", name = "DYT", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
+                new Token() { symbol = "DYT", apiSymbol = "dynamite", platform = DomainSettings.PlatformName, hash = Hash.FromString("DYT").ToString(), decimals = 18, maxSupply = "1500000", name = "DYT", flags = extFlags },
                 new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Ethereum", flags = extFlags },
                 new Token() { symbol = "DAI", apiSymbol = "dai", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
                 new Token() { symbol = "USDT", apiSymbol = "tether", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
                 new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
                 new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags },
-                new Token() { symbol = "DANK", apiSymbol = "", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "DANK", flags = extFlags },
+                new Token() { symbol = "MUU", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MUU").ToString(), decimals = 18, maxSupply = "2000000000", name = "MUU", flags = extFlags },
+                new Token() { symbol = "DANK", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("DANK").ToString(), decimals = 18, maxSupply = "50000000", name = "DANK", flags = extFlags },
 
                 new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
                 new Token() { symbol = "NEO", apiSymbol = "neo", platform = "neo", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
@@ -1107,6 +1129,8 @@ namespace Poltergeist
                 new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
                 new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
                 new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = "ethereum", hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags },
+                new Token() { symbol = "DYT", apiSymbol = "", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "DYT", flags = extFlags },
+                new Token() { symbol = "MUU", apiSymbol = "", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "MUU", flags = extFlags },
                 new Token() { symbol = "DANK", apiSymbol = "", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "DANK", flags = extFlags }/*,
                 new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }*/
             };
