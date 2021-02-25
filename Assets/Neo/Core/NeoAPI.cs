@@ -942,7 +942,7 @@ namespace Phantasma.Neo.Core
 
                     callback(amount);
                 }
-                , ErrorHandler, url);
+                , ErrorHandlerWithThrow, url);
         }
 
         public IEnumerator SendRawTransaction(string hexTx, Action<string> callback)

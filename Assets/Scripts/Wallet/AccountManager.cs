@@ -2036,7 +2036,7 @@ namespace Poltergeist
                                     }
                                 }
 
-                                StartCoroutine(neoApi.GetUnclaimed(keys.Address, (amount) =>
+                                CoroutineUtils.StartThrowingCoroutine(this, neoApi.GetUnclaimed(keys.Address, (amount) =>
                                 {
                                     RequestPendings(keys.Address, (swaps, error) =>
                                     {
@@ -2094,7 +2094,13 @@ namespace Poltergeist
                                         };
                                         ReportWalletBalance(platform, state);
                                     });
-                                }));
+                                }), ex =>
+                                {
+                                    if (ex != null)
+                                    {
+                                        ReportWalletBalance(platform, null);
+                                    }
+                                });
 
                             }));
                         }
