@@ -409,7 +409,7 @@ namespace Poltergeist
                             var buyingFeeAddress = GetStringArg(entry, 5);
 
 
-                            sb.AppendLine($"\u2605 Bid on {tokenSymbol} NFT #{ShortenTokenId(nftNumber)} Auction.");
+                            sb.AppendLine($"\u2605 Bid or Buy {tokenSymbol} NFT #{ShortenTokenId(nftNumber)}.");
                             break;
                         }
                     case "Runtime.MintToken":
