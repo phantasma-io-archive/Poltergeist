@@ -357,8 +357,6 @@ namespace Poltergeist
             Log.Write(Screen.width + " x " + Screen.height);
             currencyOptions = AccountManager.Instance.Currencies.ToArray();
 
-            StartCoroutine(TtrsStore.LoadStoreInfo());
-
             // We will use this RawImage object to set/change background image.
             background = GameObject.Find("Background").GetComponent<RawImage>();
         }
