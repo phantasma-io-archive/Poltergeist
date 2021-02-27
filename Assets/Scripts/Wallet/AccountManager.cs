@@ -1043,11 +1043,11 @@ namespace Poltergeist
                     switch (Settings.ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "";
+                            _return_value = "740623d2c797b7D8D1EcB98e9b4Afcf99Ec31E14";
                             break;
 
                         case EthereumNetwork.Ropsten:
-                            _return_value = "";
+                            _return_value = "e7018AcAd667012D50eDB363eFfa4f2f56C6A0b0";
                             break;
 
                         case EthereumNetwork.Local_Net:
