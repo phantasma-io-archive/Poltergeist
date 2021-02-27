@@ -1614,6 +1614,7 @@ namespace Poltergeist
                 return false;
             }
 
+            // Password cannot contain account name.
             if (password.ToLowerInvariant().Contains(name.ToLowerInvariant()))
             {
                 return false;
@@ -1621,7 +1622,8 @@ namespace Poltergeist
 
             foreach (var common in commonPasswords)
             {
-                if (name.Equals(common, StringComparison.OrdinalIgnoreCase))
+                // Password shouldn't be listed in a bad passwords list.
+                if (password.Equals(common, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
