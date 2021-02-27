@@ -4363,7 +4363,7 @@ namespace Poltergeist
 
                      var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
 
-                     if (Address.IsValidAddress(destAddress))
+                     if (Address.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
                      {
                          if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                          {
@@ -4375,7 +4375,7 @@ namespace Poltergeist
                          }
                      }
                      else
-                     if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
+                     if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Neo))
                      {
                          if (accountManager.CurrentPlatform == PlatformKind.Neo)
                          {
@@ -4392,7 +4392,7 @@ namespace Poltergeist
                          }
                      }
                      else
-                     if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress))
+                     if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Ethereum))
                      {
                          if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
                          {
@@ -4409,7 +4409,7 @@ namespace Poltergeist
                          }
                      }
                      else
-                     if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name)
+                     if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
                      {
                          BeginWaitingModal("Looking up account name");
                          accountManager.ValidateAccountName(destAddress, (lookupAddress) =>
@@ -5726,7 +5726,9 @@ namespace Poltergeist
                         return; // user canceled
                     }
 
-                    if (Address.IsValidAddress(destAddress))
+                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
+                    if (Address.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
                     {
                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                         {
@@ -5740,10 +5742,15 @@ namespace Poltergeist
                     else
                     if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
                     {
-                        MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
+                        MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to Neo address not supported.");
                     }
                     else
-                    if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name)
+                    if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress))
+                    {
+                        MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to Ethereum address not supported.");
+                    }
+                    else
+                    if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
                     {
                         BeginWaitingModal("Looking up account name");
                         accountManager.ValidateAccountName(destAddress, (lookupAddress) =>

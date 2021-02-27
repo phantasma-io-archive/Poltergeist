@@ -151,6 +151,11 @@ namespace Poltergeist
                     return PlatformKind.None;
             }
         }
+        public static bool ValidateTransferTarget(this PlatformKind kind, Token token, PlatformKind targetKind)
+        {
+            var targets = kind.GetTransferTargets(token);
+            return targets.HasFlag(targetKind);
+        }
     }
 
     public struct TransferRequest
