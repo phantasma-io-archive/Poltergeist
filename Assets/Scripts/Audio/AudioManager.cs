@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using Phantasma.SDK;
 
 namespace Poltergeist
 {
@@ -13,8 +14,15 @@ namespace Poltergeist
 
         void Awake()
         {
-            Instance = this;
-            this.audioSource = this.gameObject.AddComponent<AudioSource>();
+            try
+            {
+                Instance = this;
+                this.audioSource = this.gameObject.AddComponent<AudioSource>();
+            }
+            catch(System.Exception ex)
+            {
+                Log.Write("Audio initialization exception: " + ex);
+            }
         }
 
         private Dictionary<string, AudioClip> _clips = new Dictionary<string, AudioClip>();
