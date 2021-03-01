@@ -458,100 +458,103 @@ namespace Poltergeist
                     },
                     (response) =>
                     {
-                        rpcNumberPhantasma = response.ChildCount;
-
-                        if (String.IsNullOrEmpty(Settings.phantasmaRPCURL))
+                        if (response != null)
                         {
-                            // Checking if we are still on mainnet
-                            if (Settings.nexusKind == NexusKind.Main_Net)
+                            rpcNumberPhantasma = response.ChildCount;
+
+                            if (String.IsNullOrEmpty(Settings.phantasmaRPCURL))
                             {
-                                // If we have no previously used RPC, we select random one at first.
-                                var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
-                                var node = response.GetNodeByIndex(index);
-                                var result = node.GetString("url") + "/rpc";
-                                Settings.phantasmaRPCURL = result;
-                                Log.Write($"Changed Phantasma RPC url {index} => {result}");
+                                // Checking if we are still on mainnet
+                                if (Settings.nexusKind == NexusKind.Main_Net)
+                                {
+                                    // If we have no previously used RPC, we select random one at first.
+                                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
+                                    var node = response.GetNodeByIndex(index);
+                                    var result = node.GetString("url") + "/rpc";
+                                    Settings.phantasmaRPCURL = result;
+                                    Log.Write($"Changed Phantasma RPC url {index} => {result}");
+                                }
                             }
-                        }
 
-                        UpdateAPIs();
+                            UpdateAPIs();
 
-                        // Benchmarking RPCs.
-                        foreach (var node in response.Children)
-                        {
-                            var rpcUrl = node.GetString("url") + "/rpc";
+                            // Benchmarking RPCs.
+                            foreach (var node in response.Children)
+                            {
+                                var rpcUrl = node.GetString("url") + "/rpc";
 
-                            StartCoroutine(
-                                WebClient.Ping(rpcUrl, (error, msg) =>
-                                {
-                                    Log.Write("Ping error: " + error);
-
-                                    rpcBenchmarkedPhantasma++;
-
-                                    lock (rpcResponseTimesPhantasma)
+                                StartCoroutine(
+                                    WebClient.Ping(rpcUrl, (error, msg) =>
                                     {
-                                        rpcResponseTimesPhantasma.Add(new RpcBenchmarkData(rpcUrl, true, new TimeSpan()));
-                                    }
+                                        Log.Write("Ping error: " + error);
 
-                                    if (rpcBenchmarkedPhantasma == rpcNumberPhantasma)
-                                    {
+                                        rpcBenchmarkedPhantasma++;
+
+                                        lock (rpcResponseTimesPhantasma)
+                                        {
+                                            rpcResponseTimesPhantasma.Add(new RpcBenchmarkData(rpcUrl, true, new TimeSpan()));
+                                        }
+
+                                        if (rpcBenchmarkedPhantasma == rpcNumberPhantasma)
+                                        {
                                         // We finished benchmarking, time to select best RPC server.
                                         TimeSpan bestTime;
-                                        string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.Phantasma, out bestTime);
+                                            string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.Phantasma, out bestTime);
 
-                                        if (String.IsNullOrEmpty(bestRpcUrl))
-                                        {
-                                            Log.WriteWarning("All Phantasma RPC servers are unavailable. Please check your network connection.");
-                                        }
-                                        else
-                                        {
-                                            Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                            
-                                            // Checking if we are still on mainnet
-                                            if (Settings.nexusKind == NexusKind.Main_Net)
+                                            if (String.IsNullOrEmpty(bestRpcUrl))
                                             {
-                                                Settings.phantasmaRPCURL = bestRpcUrl;
-                                                UpdateAPIs();
-                                                Settings.SaveOnExit();
+                                                Log.WriteWarning("All Phantasma RPC servers are unavailable. Please check your network connection.");
                                             }
-                                        }
-                                    }
-                                },
-                                (responseTime) =>
-                                {
-                                    rpcBenchmarkedPhantasma++;
-
-                                    rpcAvailablePhantasma++;
-
-                                    lock (rpcResponseTimesPhantasma)
-                                    {
-                                        rpcResponseTimesPhantasma.Add(new RpcBenchmarkData(rpcUrl, false, responseTime));
-                                    }
-
-                                    if (rpcBenchmarkedPhantasma == rpcNumberPhantasma)
-                                    {
-                                        // We finished benchmarking, time to select best RPC server.
-                                        TimeSpan bestTime;
-                                        string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.Phantasma, out bestTime);
-
-                                        if (String.IsNullOrEmpty(bestRpcUrl))
-                                        {
-                                            Log.WriteWarning("All Phantasma RPC servers are unavailable. Please check your network connection.");
-                                        }
-                                        else
-                                        {
-                                            // Checking if we are still on mainnet
-                                            if (Settings.nexusKind == NexusKind.Main_Net)
+                                            else
                                             {
                                                 Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                                Settings.phantasmaRPCURL = bestRpcUrl;
-                                                UpdateAPIs();
-                                                Settings.SaveOnExit();
+
+                                            // Checking if we are still on mainnet
+                                            if (Settings.nexusKind == NexusKind.Main_Net)
+                                                {
+                                                    Settings.phantasmaRPCURL = bestRpcUrl;
+                                                    UpdateAPIs();
+                                                    Settings.SaveOnExit();
+                                                }
                                             }
                                         }
-                                    }
-                                })
-                            );
+                                    },
+                                    (responseTime) =>
+                                    {
+                                        rpcBenchmarkedPhantasma++;
+
+                                        rpcAvailablePhantasma++;
+
+                                        lock (rpcResponseTimesPhantasma)
+                                        {
+                                            rpcResponseTimesPhantasma.Add(new RpcBenchmarkData(rpcUrl, false, responseTime));
+                                        }
+
+                                        if (rpcBenchmarkedPhantasma == rpcNumberPhantasma)
+                                        {
+                                        // We finished benchmarking, time to select best RPC server.
+                                        TimeSpan bestTime;
+                                            string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.Phantasma, out bestTime);
+
+                                            if (String.IsNullOrEmpty(bestRpcUrl))
+                                            {
+                                                Log.WriteWarning("All Phantasma RPC servers are unavailable. Please check your network connection.");
+                                            }
+                                            else
+                                            {
+                                            // Checking if we are still on mainnet
+                                            if (Settings.nexusKind == NexusKind.Main_Net)
+                                                {
+                                                    Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                                    Settings.phantasmaRPCURL = bestRpcUrl;
+                                                    UpdateAPIs();
+                                                    Settings.SaveOnExit();
+                                                }
+                                            }
+                                        }
+                                    })
+                                );
+                            }
                         }
                     })
                 );
