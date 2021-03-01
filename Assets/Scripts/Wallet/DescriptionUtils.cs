@@ -412,6 +412,20 @@ namespace Poltergeist
                             sb.AppendLine($"\u2605 Bid or Buy {tokenSymbol} NFT #{ShortenTokenId(nftNumber)}.");
                             break;
                         }
+                    case "sale.Purchase":
+                        {
+                            var saleHash = GetStringArg(entry, 1);
+                            var tokenSymbol = GetStringArg(entry, 2);
+                            var tokenAmount = GetStringArg(entry, 3);
+
+                            Token priceToken;
+                            accountManager.GetTokenBySymbol(tokenSymbol, PlatformKind.Phantasma, out priceToken);
+
+                            var purchase = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
+
+                            sb.AppendLine($"\u2605 Participate to sale {saleHash} with {purchase} {tokenSymbol}.");
+                            break;
+                        }
                     case "Runtime.MintToken":
                         {
                             var owner = GetStringArg(entry, 0);
