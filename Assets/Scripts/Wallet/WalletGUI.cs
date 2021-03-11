@@ -3748,7 +3748,7 @@ namespace Poltergeist
             DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Continue", () =>
             {
                 AudioManager.Instance.PlaySFX("confirm");
-                PromptBox("You confirm that you have backup your private key?\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.", ModalConfirmCancel, (result) =>
+                PromptBox("You confirm that you have backed up your seed phrase?\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.", ModalConfirmCancel, (result) =>
                 {
                     if (result == PromptResult.Success)
                     {
@@ -5015,7 +5015,7 @@ namespace Poltergeist
                     switch (index)
                     {
                         case 1:
-                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma || !accountManager.CurrentState.flags.HasFlag(AccountFlags.Validator))
+                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
                             {
                                 enabled = false;
                             }
@@ -5074,7 +5074,7 @@ namespace Poltergeist
                                 var newKeys = PhantasmaKeys.FromWIF(wif);
                                 if (newKeys.Address.Text != accountManager.CurrentState.address)
                                 {
-                                    PromptBox("Are you sure you want to migrate this account?\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
+                                    PromptBox("Are you sure you want to migrate this account?\nBy doing a migration, any existing rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
                                         {
@@ -5085,7 +5085,7 @@ namespace Poltergeist
                                             var gasLimit = accountManager.Settings.feeLimit;
 
                                             sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
-                                            sb.CallContract("validator", "Migrate", address, newKeys.Address);
+                                            sb.CallContract("account", "Migrate", address, newKeys.Address);
                                             sb.SpendGas(address);
                                             var script = sb.EndScript();
 
