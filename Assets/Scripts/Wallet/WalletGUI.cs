@@ -5015,7 +5015,7 @@ namespace Poltergeist
                     switch (index)
                     {
                         case 1:
-                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma || !accountManager.CurrentState.flags.HasFlag(AccountFlags.Validator))
+                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
                             {
                                 enabled = false;
                             }
@@ -5074,7 +5074,7 @@ namespace Poltergeist
                                 var newKeys = PhantasmaKeys.FromWIF(wif);
                                 if (newKeys.Address.Text != accountManager.CurrentState.address)
                                 {
-                                    PromptBox("Are you sure you want to migrate this account?\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
+                                    PromptBox("Are you sure you want to migrate this account?\nBy doing a migration, any existing rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
                                         {
@@ -5085,7 +5085,7 @@ namespace Poltergeist
                                             var gasLimit = accountManager.Settings.feeLimit;
 
                                             sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
-                                            sb.CallContract("validator", "Migrate", address, newKeys.Address);
+                                            sb.CallContract("account", "Migrate", address, newKeys.Address);
                                             sb.SpendGas(address);
                                             var script = sb.EndScript();
 
