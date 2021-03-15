@@ -23,7 +23,7 @@ using System.Threading;
 using Phantasma.Neo.Core;
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
 using SFB;
-#else
+#elif UNITY_ANDROID
 using static NativeFilePicker;
 #endif
 using System.IO;
@@ -3325,12 +3325,11 @@ namespace Poltergeist
                         {
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
                             UploadSelectedFile(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), "", false).FirstOrDefault());
-#else
-#if UNITY_ANDROID
+#elif UNITY_ANDROID
                             var extensionFilter = new string[] {"audio/*", "video/*", "image/*", "text/*", "application/*"};
-#else // iOS
-                            var extensionFilter = new string[] {"public.audiovisual-content", "public.image", "public.text", "public.archive"};
-#endif
+//#else // iOS
+//                            var extensionFilter = new string[] {"public.audiovisual-content", "public.image", "public.text", "public.archive"};
+//#endif
                             NativeFilePicker.PickFile((path) => { UploadSelectedFile(path); }, extensionFilter);
 #endif
 
@@ -3690,7 +3689,7 @@ namespace Poltergeist
 
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
                         MessageBox(MessageKind.Default, $"The archive '{filePath}' was downloaded!");
-#else
+#elif UNITY_ANDROID
                         NativeFilePicker.ExportFile(filePath, (success) => 
                             { 
                                 if(success)
@@ -4985,7 +4984,13 @@ namespace Poltergeist
                             _accountSubMenu = 2;
                             break;
                         }
-
+#if UNITY_IOS
+                    case 2:
+                        {
+                            PushState(GUIState.Dapps);
+                            break;
+                        }
+#else
                     case 2:
                         {
                             PushState(GUIState.Storage);
@@ -4997,6 +5002,7 @@ namespace Poltergeist
                             PushState(GUIState.Dapps);
                             break;
                         }
+#endif
                 }
             });
         }
@@ -5348,12 +5354,11 @@ namespace Poltergeist
                             };
 
                             UploadSelectedAvatar(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), extensions, false).FirstOrDefault());
-#else
-#if UNITY_ANDROID
+#elif UNITY_ANDROID
                             var extensionFilter = new string[] {"image/*"};
-#else
-                            var extensionFilter = new string[] {"public.image"};
-#endif // iOS
+//#else
+//                            var extensionFilter = new string[] {"public.image"};
+//#endif // iOS
                             NativeFilePicker.PickFile((path) => { UploadSelectedAvatar(path); }, extensionFilter);
 #endif
 
@@ -5449,7 +5454,11 @@ namespace Poltergeist
             GUI.DrawTexture(dropRect, ResourceManager.Instance.Dropshadow);
         }
 
-        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "Storage", "Dapps"};
+#if UNITY_IOS
+        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "Dapps"};
+#else
+        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "Storage", "Dapps" };
+#endif
         private string[] managerMenu = new string[] { "Export Private Key", "Migrate", "Delete Account", "Back" };
         private string[] customizationMenu = new string[] { "Setup Name", "Setup Avatar", "Multi-signature", "Back" };
 
