@@ -159,9 +159,7 @@ namespace Poltergeist
 
                         if (description == null)
                         {
-                            WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + error);
-                            callback(Hash.Null, "description parsing error");
-                            return;
+                            description = "Could not decode transaction contents.";
                         }
 
                         WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
