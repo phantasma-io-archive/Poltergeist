@@ -3187,6 +3187,7 @@ namespace Poltergeist
         private DappEntry[] availableDapps = new DappEntry[]
         {
             new DappEntry("GhostMarket", "marketplace", "https://ghostmarket.io/"),
+            new DappEntry("Moonjar", "game", "https://moonjar.io/")
             /*new DappEntry("Katacomb", "game", "http://katacomb.io/"),*/
             /*new DappEntry("Nachomen", "game", "https://nacho.men/"),*/
         };
