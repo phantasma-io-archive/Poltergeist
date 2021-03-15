@@ -159,6 +159,7 @@ namespace Poltergeist
 
                         if (description == null)
                         {
+                            Log.Write("Error during description parsing.\nDetails: " + error);
                             description = "Could not decode transaction contents.";
                         }
 
