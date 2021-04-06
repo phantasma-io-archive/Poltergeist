@@ -587,6 +587,10 @@ namespace Phantasma.SDK
             return result;
         }
 
+        public bool IsBurnable()
+        {
+            return flags.Contains(TokenFlags.Burnable.ToString());
+        }
         public bool IsFungible()
         {
             return flags.Contains(TokenFlags.Fungible.ToString());

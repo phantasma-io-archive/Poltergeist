@@ -4388,51 +4388,6 @@ namespace Poltergeist
                                 });
                             };
                         }
-                        /*else
-                        if (balance.Available > 0)
-                        {
-                            secondaryAction = "Burn";
-                            secondaryEnabled = true;
-                            secondaryCallback = () =>
-                            {
-                                RequireAmount("Burning KCAL", null, "KCAL", 0.1m, balance.Available, (amount) =>
-                                {
-                                    var amountText = MoneyFormat(amount);
-                                    PromptBox($"Do you want to burn {amountText} KCAL?\nIt will be sent to the SES energy bomb!", ModalYesNo, (result) =>
-                                    {
-                                        if (result == PromptResult.Success)
-                                        {
-                                            var address = Address.FromText(state.address);
-
-                                            var burnAddress = Address.FromHash("bomb");
-
-                                            var sb = new ScriptBuilder();
-                                            var gasPrice = accountManager.Settings.feePrice;
-
-                                            sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
-                                            if (amount <= 0.1m && balance.Available <= 0.1m)
-                                            {
-                                                sb.TransferBalance(balance.Symbol, address, burnAddress);                                                
-                                            }
-                                            else
-                                            {
-                                                sb.TransferTokens(balance.Symbol, address, burnAddress, UnitConversion.ToBigInteger(amount, balance.Decimals));
-                                            }
-                                            sb.SpendGas(address);
-                                            var script = sb.EndScript();
-
-                                            SendTransaction($"Burn {amountText} KCAL", script, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
-                                            {
-                                                if (hash != Hash.Null)
-                                                {
-                                                    MessageBox(MessageKind.Success, "Your burned some KCAL!\nTransaction hash: " + hash);
-                                                }
-                                            });
-                                        }
-                                    });
-                                });
-                            };
-                        }*/
                         break;
 
                     case "GAS":
@@ -4592,125 +4547,185 @@ namespace Poltergeist
                 });
             }
 
-            DoButton(balance.Available > 0, new Rect(rect.x + rect.width - (Units(6) + 8), curY + btnY, Units(4) + 8, Units(2)), "Send", () =>
+            string mainAction;
+            if (accountManager.CurrentPlatform == PlatformKind.Phantasma &&
+                balance.Burnable &&
+                balance.Fungible &&
+                Input.GetKey(KeyCode.LeftShift))
+                mainAction = "Burn";
+            else
+                mainAction = "Send";
+
+            DoButton(balance.Available > 0, new Rect(rect.x + rect.width - (Units(6) + 8), curY + btnY, Units(4) + 8, Units(2)), mainAction, () =>
             {
-                 AudioManager.Instance.PlaySFX("click");
+                AudioManager.Instance.PlaySFX("click");
 
-                 transferSymbol = balance.Symbol;
-                 var transferName = $"{transferSymbol} transfer";
-                 Phantasma.SDK.Token transferToken;
+                if (mainAction == "Send")
+                {
+                    transferSymbol = balance.Symbol;
+                    var transferName = $"{transferSymbol} transfer";
+                    Phantasma.SDK.Token transferToken;
 
-                Tokens.GetToken(transferSymbol, accountManager.CurrentPlatform, out transferToken);
+                    Tokens.GetToken(transferSymbol, accountManager.CurrentPlatform, out transferToken);
 
-                 if (string.IsNullOrEmpty(transferToken.flags))
-                 {
-                     MessageBox(MessageKind.Error, $"Operations with token {transferSymbol} are not supported yet in this version.");
-                     return;
-                 }
+                    if (string.IsNullOrEmpty(transferToken.flags))
+                    {
+                        MessageBox(MessageKind.Error, $"Operations with token {transferSymbol} are not supported yet in this version.");
+                        return;
+                    }
 
-                 if (transferToken.IsTransferable() && !transferToken.IsFungible())
-                 {
-                     // We should do this initialization here and not in PushState,
-                     // to allow "Back" button to work properly.
-                     nftScroll = Vector2.zero;
-                     nftTransferList.Clear();
-                     nftFilterName = "";
-                     nftFilterTypeIndex = 0;
-                     nftFilterType = "All";
-                     nftFilterRarity = 0;
-                     nftFilterMinted = 0;
-                     accountManager.RefreshNft(false, transferSymbol);
+                    if (transferToken.IsTransferable() && !transferToken.IsFungible())
+                    {
+                        // We should do this initialization here and not in PushState,
+                        // to allow "Back" button to work properly.
+                        nftScroll = Vector2.zero;
+                        nftTransferList.Clear();
+                        nftFilterName = "";
+                        nftFilterTypeIndex = 0;
+                        nftFilterType = "All";
+                        nftFilterRarity = 0;
+                        nftFilterMinted = 0;
+                        accountManager.RefreshNft(false, transferSymbol);
 
-                     PushState(GUIState.Nft);
-                     return;
-                 }
+                        PushState(GUIState.Nft);
+                        return;
+                    }
 
-                 if (!transferToken.IsTransferable())
-                 {
-                     MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
-                     return;
-                 }
+                    if (!transferToken.IsTransferable())
+                    {
+                        MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
+                        return;
+                    }
 
-                 ShowModal(transferName, "Enter destination address", ModalState.Input, 3, 64, ModalConfirmCancel, 1, (result, destAddress) =>
-                 {
-                     if (result == PromptResult.Failure)
-                     {
-                         return; // user canceled
-                     }
+                    ShowModal(transferName, "Enter destination address", ModalState.Input, 3, 64, ModalConfirmCancel, 1, (result, destAddress) =>
+                    {
+                        if (result == PromptResult.Failure)
+                        {
+                            return; // user canceled
+                        }
 
-                     var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                        var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
 
-                     if (Address.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
-                     {
-                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                         {
-                             ContinuePhantasmaTransfer(transferName, transferSymbol, destAddress);
-                         }
-                         else
-                         {
-                             ContinueSwap(PlatformKind.Phantasma, transferName, transferSymbol, destAddress);
-                         }
-                     }
-                     else
-                     if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Neo))
-                     {
-                         if (accountManager.CurrentPlatform == PlatformKind.Neo)
-                         {
-                             ContinueNeoTransfer(transferName, transferSymbol, destAddress);
-                         }
-                         else
-                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                         {
-                             ContinueSwap(PlatformKind.Neo, transferName, transferSymbol, destAddress);
-                         }
-                         else
-                         {
-                             MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
-                         }
-                     }
-                     else
-                     if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Ethereum))
-                     {
-                         if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
-                         {
-                             ContinueEthTransfer(transferName, transferSymbol, destAddress);
-                         }
-                         else
-                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-                         {
-                             ContinueSwap(PlatformKind.Ethereum, transferName, transferSymbol, destAddress);
-                         }
-                         else
-                         {
-                             MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
-                         }
-                     }
-                     else
-                     if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
-                     {
-                         BeginWaitingModal("Looking up account name");
-                         accountManager.ValidateAccountName(destAddress, (lookupAddress) =>
-                         {
-                             EndWaitingModal();
+                        if (Address.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
+                        {
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                            {
+                                ContinuePhantasmaTransfer(transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            {
+                                ContinueSwap(PlatformKind.Phantasma, transferName, transferSymbol, destAddress);
+                            }
+                        }
+                        else
+                        if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Neo))
+                        {
+                            if (accountManager.CurrentPlatform == PlatformKind.Neo)
+                            {
+                                ContinueNeoTransfer(transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                            {
+                                ContinueSwap(PlatformKind.Neo, transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
+                            }
+                        }
+                        else
+                        if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Ethereum))
+                        {
+                            if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+                            {
+                                ContinueEthTransfer(transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                            {
+                                ContinueSwap(PlatformKind.Ethereum, transferName, transferSymbol, destAddress);
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to this type of address not supported.");
+                            }
+                        }
+                        else
+                        if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
+                        {
+                            BeginWaitingModal("Looking up account name");
+                            accountManager.ValidateAccountName(destAddress, (lookupAddress) =>
+                            {
+                                EndWaitingModal();
 
-                             if (lookupAddress != null)
-                             {
-                                 ContinuePhantasmaTransfer(transferName, transferSymbol, lookupAddress);
-                             }
-                             else
-                             {
-                                 MessageBox(MessageKind.Error, "No account with such name exists.");
-                             }
-                         });
-                     }
-                     else
-                     {
-                         MessageBox(MessageKind.Error, "Invalid destination address.");
-                     }
-                 });
+                                if (lookupAddress != null)
+                                {
+                                    ContinuePhantasmaTransfer(transferName, transferSymbol, lookupAddress);
+                                }
+                                else
+                                {
+                                    MessageBox(MessageKind.Error, "No account with such name exists.");
+                                }
+                            });
+                        }
+                        else
+                        {
+                            MessageBox(MessageKind.Error, "Invalid destination address.");
+                        }
+                    });
 
-                 modalHints = GenerateAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
-             });
+                    modalHints = GenerateAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
+                }
+                else if (mainAction == "Burn")
+                {
+                    RequireAmount($"Burn {balance.Symbol} tokens", null, balance.Symbol, 0.1m, balance.Available, (amountToBurn) =>
+                    {
+                        PromptBox($"Are you sure you want to burn {amountToBurn} {balance.Symbol} tokens?", ModalConfirmCancel, (result) =>
+                        {
+                            if (result == PromptResult.Success)
+                            {
+                                byte[] script;
+                                try
+                                {
+                                    var target = Address.FromText(state.address);
+                                    var gasPrice = accountManager.Settings.feePrice;
+                                    var gasLimit = accountManager.Settings.feeLimit;
+
+                                    var sb = new ScriptBuilder();
+                                    sb.AllowGas(target, Address.Null, gasPrice, gasLimit);
+                                    sb.CallInterop("Runtime.BurnTokens", target, balance.Symbol, UnitConversion.ToBigInteger(amountToBurn, balance.Decimals));
+                                    sb.SpendGas(target);
+                                    script = sb.EndScript();
+                                }
+                                catch (Exception e)
+                                {
+                                    MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
+                                    return;
+                                }
+
+                                SendTransaction($"Burn {amountToBurn} {balance.Symbol} tokens", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                {
+                                    if (hash != Hash.Null)
+                                    {
+                                        ShowModal("Success",
+                                            $"You burned {amountToBurn} {balance.Symbol} tokens!\nTransaction hash: " + hash,
+                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                        {
+                                            AudioManager.Instance.PlaySFX("click");
+
+                                            if (viewTxChoice == PromptResult.Failure)
+                                            {
+                                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        }, 10);
+                    });
+                }
+            });
         }
 
         private void DoNftScreen()

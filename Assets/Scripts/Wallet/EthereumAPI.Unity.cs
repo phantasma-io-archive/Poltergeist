@@ -30,7 +30,8 @@ namespace Phantasma.SDK
                     Claimable = 0,
                     Staked = 0,
                     Chain = "main",
-                    Decimals = tokenDecimals
+                    Decimals = tokenDecimals,
+                    Fungible = true
                 };
 
                 callback(balance);
@@ -51,7 +52,8 @@ namespace Phantasma.SDK
                     Claimable = 0,
                     Staked = 0,
                     Chain = "main",
-                    Decimals = tokenDecimals
+                    Decimals = tokenDecimals,
+                    Fungible = true
                 };
 
                 callback(balance);
@@ -83,7 +85,8 @@ namespace Phantasma.SDK
                     Claimable = 0,
                     Staked = 0,
                     Chain = "main",
-                    Decimals = tokenDecimals
+                    Decimals = tokenDecimals,
+                    Fungible = true
                 };
 
                 callback(balance);

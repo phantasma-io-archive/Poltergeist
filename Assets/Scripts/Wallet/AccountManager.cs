@@ -214,6 +214,8 @@ namespace Poltergeist
         public decimal Claimable;
         public string Chain;
         public int Decimals;
+        public bool Burnable;
+        public bool Fungible;
         public string PendingPlatform;
         public string PendingHash;
         public string[] Ids;
@@ -1608,15 +1610,18 @@ namespace Poltergeist
 
                                 foreach (var entry in acc.balances)
                                 {
+                                    var token = Tokens.GetToken(entry.symbol, PlatformKind.Phantasma);
                                     balanceMap[entry.symbol] = new Balance()
                                     {
                                         Symbol = entry.symbol,
-                                        Available = AmountFromString(entry.amount, Tokens.GetTokenDecimals(entry.symbol, PlatformKind.Phantasma)),
+                                        Available = AmountFromString(entry.amount, token.decimals),
                                         Pending = 0,
                                         Staked = 0,
                                         Claimable = 0,
                                         Chain = entry.chain,
-                                        Decimals = Tokens.GetTokenDecimals(entry.symbol, PlatformKind.Phantasma),
+                                        Decimals = token.decimals,
+                                        Burnable = token.IsBurnable(),
+                                        Fungible = token.IsFungible(),
                                         Ids = entry.ids
                                     };
                                 }
@@ -1636,6 +1641,7 @@ namespace Poltergeist
                                     }
                                     else
                                     {
+                                        var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
                                         var entry = new Balance()
                                         {
                                             Symbol = symbol,
@@ -1644,7 +1650,9 @@ namespace Poltergeist
                                             Staked = stakedAmount,
                                             Claimable = 0,
                                             Pending = 0,
-                                            Decimals = Tokens.GetTokenDecimals(symbol, PlatformKind.Phantasma)
+                                            Decimals = token.decimals,
+                                            Burnable = token.IsBurnable(),
+                                            Fungible = token.IsFungible()
                                         };
                                         balanceMap[symbol] = entry;
                                     }
@@ -1660,6 +1668,7 @@ namespace Poltergeist
                                     }
                                     else
                                     {
+                                        var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
                                         var entry = new Balance()
                                         {
                                             Symbol = symbol,
@@ -1668,7 +1677,9 @@ namespace Poltergeist
                                             Staked = 0,
                                             Claimable = claimableAmount,
                                             Pending = 0,
-                                            Decimals = Tokens.GetTokenDecimals(symbol, PlatformKind.Phantasma)
+                                            Decimals = token.decimals,
+                                            Burnable = token.IsBurnable(),
+                                            Fungible = token.IsFungible()
                                         };
                                         balanceMap[symbol] = entry;
                                     }
@@ -1775,7 +1786,9 @@ namespace Poltergeist
                                                 Claimable = 0, // TODO support claimable GAS
                                                 Staked = 0,
                                                 Chain = "main",
-                                                Decimals = token.decimals
+                                                Decimals = token.decimals,
+                                                Burnable = token.IsBurnable(),
+                                                Fungible = token.IsFungible()
                                             });
                                         }
                                     }
@@ -1814,7 +1827,9 @@ namespace Poltergeist
                                                         Claimable = amount,
                                                         Staked = 0,
                                                         Chain = "main",
-                                                        Decimals = neoToken.decimals
+                                                        Decimals = neoToken.decimals,
+                                                        Burnable = neoToken.IsBurnable(),
+                                                        Fungible = neoToken.IsFungible()
                                                     };
                                                 }
                                             }
@@ -1974,8 +1989,8 @@ namespace Poltergeist
                     continue;
                 }
 
-                var decimals = Tokens.GetTokenDecimals(swap.symbol, platform);
-                var amount = AmountFromString(swap.value, decimals);
+                var token = Tokens.GetToken(swap.symbol, platform);
+                var amount = AmountFromString(swap.value, token.decimals);
 
                 Log.Write($"Found pending {platformName} swap: {amount} {swap.symbol}");
 
@@ -1996,7 +2011,9 @@ namespace Poltergeist
                         Staked = 0,
                         Claimable = 0,
                         Pending = amount,
-                        Decimals = decimals,
+                        Decimals = token.decimals,
+                        Burnable = token.IsBurnable(),
+                        Fungible = token.IsFungible(),
                         PendingHash = swap.sourceHash,
                         PendingPlatform = swap.sourcePlatform,
                     };
