@@ -122,7 +122,7 @@ namespace Poltergeist
 
         public static PlatformKind GetTransferTargets(this PlatformKind kind, Token token)
         {
-            if (!token.flags.Contains("Foreign"))
+            if (!token.IsSwappable())
             {
                 return kind;
             }
@@ -133,18 +133,18 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     targets = PlatformKind.Phantasma;
-                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Neo.ToString().ToUpper()) ? PlatformKind.Neo : PlatformKind.None;
-                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Ethereum.ToString().ToUpper()) ? PlatformKind.Ethereum : PlatformKind.None;
+                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Neo) ? PlatformKind.Neo : PlatformKind.None;
+                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Ethereum) ? PlatformKind.Ethereum : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.Neo:
                     targets = PlatformKind.Neo;
-                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Phantasma.ToString().ToUpper()) ? PlatformKind.Phantasma : PlatformKind.None;
+                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.Ethereum:
                     targets = PlatformKind.Ethereum;
-                    targets |= AccountManager.SupportedTokens.Any(x => x.symbol == token.symbol && x.platform.ToUpper() == PlatformKind.Phantasma.ToString().ToUpper()) ? PlatformKind.Phantasma : PlatformKind.None;
+                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
                 default:
@@ -234,7 +234,6 @@ namespace Poltergeist
         public List<Account> Accounts { get; private set; }
         public bool AccountsAreReadyToBeUsed = false;
 
-        public static List<Token> SupportedTokens = null;
         private Dictionary<string, decimal> _tokenPrices = new Dictionary<string, decimal>();
         public string CurrentTokenCurrency { get; private set; }
 
@@ -887,266 +886,26 @@ namespace Poltergeist
             PlayerPrefs.Save();
         }
 
-        private const string TokenInfoTag = "info.tokens";
-
-        public string GetEthereumContract(string symbol)
+        private void TokensReinit()
         {
-            string _return_value;
+            Tokens.Reset();
 
-            switch (symbol.ToUpper())
+            StartCoroutine(phantasmaApi.GetTokens((tokens) =>
             {
-                case "SOUL":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "79C75E2e8720B39e258F41c37cC4f309E0b0fF80";
-                            break;
+                Tokens.Init(tokens);
 
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "19861B13425d8aCFB70eB91Ac50EC3cF721d0C8a";
-                            break;
+                CurrentTokenCurrency = "";
 
-                        case EthereumNetwork.Local_Net:
-                            _return_value = Settings.ethereumLocalnetSoulContract;
-                            break;
+                Status = "ok";
+            }, (error, msg) =>
+            {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
 
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "KCAL":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "14EB60F5f270B059B0c788De0Ddc51Da86f8a06d";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "8218c82446bb74fB525fECC8844B03C34f987efe";
-                            break;
-
-                        case EthereumNetwork.Local_Net:
-                            _return_value = Settings.ethereumLocalnetKcalContract;
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "DAI":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "";
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "USDT":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "";
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "USDC":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "";
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "WBTC":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "";
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "MUU":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "25836ce76065A3DfCeF069fD4964C240C4F2523F";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "";
-                            break;
-
-                        case EthereumNetwork.Local_Net:
-                            _return_value = "";
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "DANK":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "9ea1ae46c15a4164b74463bc26f8aa3b0eea2e6e";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "";
-                            break;
-
-                        case EthereumNetwork.Local_Net:
-                            _return_value = Settings.ethereumLocalnetDankContract;
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                case "DYT":
-                    switch (Settings.ethereumNetwork)
-                    {
-                        case EthereumNetwork.Main_Net:
-                            _return_value = "740623d2c797b7D8D1EcB98e9b4Afcf99Ec31E14";
-                            break;
-
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "e7018AcAd667012D50eDB363eFfa4f2f56C6A0b0";
-                            break;
-
-                        case EthereumNetwork.Local_Net:
-                            _return_value = Settings.ethereumLocalnetDytContract;
-                            break;
-
-                        default:
-                            _return_value = "";
-                            break;
-                    }
-                    break;
-
-                default:
-                    _return_value = "";
-                    break;
-            }
-
-            Log.Write($"GetEthereumContract({symbol}): {_return_value}", Log.Level.Debug1);
-
-            if (String.IsNullOrEmpty(_return_value))
-                Log.WriteWarning($"Ethereum contract for {symbol} [{Settings.ethereumNetwork}] not found!");
-
-            return _return_value;
-        }
-
-        private void PrepareTokens()
-        {
-            var extFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString() + "," + TokenFlags.Foreign.ToString() + "," + TokenFlags.Divisible.ToString();
-            var pepFlags = TokenFlags.Transferable.ToString() + "," + TokenFlags.Fungible.ToString();
-            var nftFlags = TokenFlags.Transferable.ToString();
-            SupportedTokens = new List<Token>() {
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = DomainSettings.PlatformName, hash = "", decimals = 10, maxSupply = "0", name = "Phantasma Energy", flags = extFlags },
-                new Token() { symbol = "NEO", apiSymbol = "neo", platform = DomainSettings.PlatformName, hash = "", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
-                new Token() { symbol = "GAS", apiSymbol = "gas", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "100000000", name = "GAS (Neo)", flags = extFlags },
-                new Token() { symbol = "MKNI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MKNI").ToString(), decimals = 0, maxSupply = "1000000", name = "Mankini", flags = pepFlags },
-                new Token() { symbol = "NACHO", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("NACHO").ToString(), decimals = 8, maxSupply = "1000000", name = "Nachos", flags = pepFlags },
-                new Token() { symbol = "TTRS", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("TTRS").ToString(), decimals = 0, maxSupply = "0", name = "22series", flags = nftFlags },
-                new Token() { symbol = "GHOST", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GHOST").ToString(), decimals = 0, maxSupply = "0", name = "Ghost", flags = nftFlags },
-                new Token() { symbol = "CROWN", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("CROWN").ToString(), decimals = 0, maxSupply = "0", name = "Crown", flags = nftFlags },
-                new Token() { symbol = "GOATI", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("GOATI").ToString(), decimals = 3, maxSupply = "0", name = "GOATi", flags = pepFlags + "," + TokenFlags.Divisible.ToString() },
-                new Token() { symbol = "DYT", apiSymbol = "dynamite", platform = DomainSettings.PlatformName, hash = Hash.FromString("DYT").ToString(), decimals = 18, maxSupply = "1500000", name = "DYT", flags = extFlags },
-                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Ethereum", flags = extFlags },
-                new Token() { symbol = "DAI", apiSymbol = "dai", platform = DomainSettings.PlatformName, hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
-                new Token() { symbol = "USDT", apiSymbol = "tether", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
-                new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = DomainSettings.PlatformName, hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
-                new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = DomainSettings.PlatformName, hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags },
-                new Token() { symbol = "MUU", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("MUU").ToString(), decimals = 18, maxSupply = "2000000000", name = "MUU", flags = extFlags },
-                new Token() { symbol = "DANK", apiSymbol = "", platform = DomainSettings.PlatformName, hash = Hash.FromString("DANK").ToString(), decimals = 18, maxSupply = "50000000", name = "DANK", flags = extFlags },
-
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "neo", hash = "ed07cffad18f1308db51920d99a2af60ac66a7b3", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "NEO", apiSymbol = "neo", platform = "neo", hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b", decimals = 0, maxSupply = "100000000", name = "Neo", flags = extFlags },
-                new Token() { symbol = "GAS", apiSymbol = "gas", platform = "neo", hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7", decimals = 8, maxSupply = "100000000", name = "GAS (Neo)", flags = extFlags },
-                new Token() { symbol = "SWTH", apiSymbol = "switcheo", platform = "neo", hash = "3e09e602eeeb401a2fec8e8ea137d59aae54a139", decimals = 8, maxSupply = "2160000000", name = "Switcheo", flags = extFlags },
-                new Token() { symbol = "NEX", apiSymbol = "neon-exchange", platform = "neo", hash = "3a4acd3647086e7c44398aac0349802e6a171129", decimals = 8, maxSupply = "50000000", name = "Nex", flags = extFlags },
-                new Token() { symbol = "TKY", apiSymbol = "thekey", platform = "neo", hash = "132947096727c84c7f9e076c90f08fec3bc17f18", decimals = 8, maxSupply = "1000000000", name = "The Key", flags = extFlags },
-                new Token() { symbol = "CGAS", apiSymbol = "", platform = "neo", hash = "74f2dc36a68fdc4682034178eb2220729231db76", decimals = 8, maxSupply = "1000000000", name = "NEP5 GAS", flags = extFlags },
-                new Token() { symbol = "MCT", apiSymbol = "master-contract-token", platform = "neo", hash = "a87cc2a513f5d8b4a42432343687c2127c60bc3f", decimals = 8, maxSupply = "1000000000", name = "Master Contract", flags = extFlags },
-                new Token() { symbol = "DBC", apiSymbol = "deepbrain-chain", platform = "neo", hash = "b951ecbbc5fe37a9c280a76cb0ce0014827294cf", decimals = 8, maxSupply = "1000000000", name = "DeepBrain Coin", flags = extFlags },
-                new Token() { symbol = "FTW", apiSymbol = "ftw", platform = "neo", hash = "11dbc2316f35ea031449387f615d9e4b0cbafe8b", decimals = 8, maxSupply = "1000000000", name = "For The Win", flags = extFlags },
-                new Token() { symbol = "ACAT", apiSymbol = "alphacat", platform = "neo", hash = "7f86d61ff377f1b12e589a5907152b57e2ad9a7a", decimals = 8, maxSupply = "1000000000", name = "Alphacat", flags = extFlags },
-                new Token() { symbol = "QLC", apiSymbol = "qlink", platform = "neo", hash = "0d821bd7b6d53f5c2b40e217c6defc8bbe896cf5", decimals = 8, maxSupply = "1000000000", name = "Qlink Token", flags = extFlags },
-                new Token() { symbol = "TNC", apiSymbol = "trinity-network-credit", platform = "neo", hash = "08e8c4400f1af2c20c28e0018f29535eb85d15b6", decimals = 8, maxSupply = "1000000000", name = "Trinity Network Credit", flags = extFlags },
-                new Token() { symbol = "PHX", apiSymbol = "red-pulse", platform = "neo", hash = "1578103c13e39df15d0d29826d957e85d770d8c9", decimals = 8, maxSupply = "1000000000", name = "Red Pulse Phoenix", flags = extFlags },
-                new Token() { symbol = "LRN", apiSymbol = "loopring-neo", platform = "neo", hash = "06fa8be9b6609d963e8fc63977b9f8dc5f10895f", decimals = 8, maxSupply = "1000000000", name = "Loopring Neo Token", flags = extFlags },
-                new Token() { symbol = "ASA", apiSymbol = "asura", platform = "neo", hash = "a58b56b30425d3d1f8902034996fcac4168ef71d", decimals = 8, maxSupply = "1000000000", name = "Asura World Coin", flags = extFlags },
-                new Token() { symbol = "OBT", apiSymbol = "orbis-token", platform = "neo", hash = "0e86a40588f715fcaf7acd1812d50af478e6e917", decimals = 8, maxSupply = "1000000000", name = "Orbis", flags = extFlags },
-                new Token() { symbol = "RHT", apiSymbol = "hashpuppy-token", platform = "neo", hash = "2328008e6f6c7bd157a342e789389eb034d9cbc4", decimals = 8, maxSupply = "1000000000", name = "HashPuppy Token", flags = extFlags },
-                new Token() { symbol = "LX", apiSymbol = "lux", platform = "neo", hash = "bb3b54ab244b3658155f2db4429fc38ac4cef625", decimals = 8, maxSupply = "1000000000", name = "Moonlight Lux", flags = extFlags },
-                new Token() { symbol = "BRDG", apiSymbol = "bridge-protocol", platform = "neo", hash = "78fd589f7894bf9642b4a573ec0e6957dfd84c48", decimals = 8, maxSupply = "1000000000", name = "Bridge Protocol", flags = extFlags },
-                new Token() { symbol = "ALEPH", apiSymbol = "aleph", platform = "neo", hash = "2efdb22c152896964665d0a8214dc7bd59232162", decimals = 8, maxSupply = "0", name = "Aleph.im", flags = extFlags },
-                new Token() { symbol = "TMN", apiSymbol = "translateme-network-token", platform = "neo", hash = "d613223fa138a1555ff711581982462acde209c5", decimals = 8, maxSupply = "0", name = "TranslateMe Network Token", flags = extFlags },
-                new Token() { symbol = "FLM", apiSymbol = "flamingo-finance", platform = "neo", hash = "4d9eab13620fe3569ba3b0e56e2877739e4145e3", decimals = 8, maxSupply = "0", name = "Flamingo Finance", flags = extFlags },
-
-                new Token() { symbol = "SOUL", apiSymbol = "phantasma", platform = "ethereum", hash = "", decimals = 8, maxSupply = "0", name = "Phantasma Stake", flags = extFlags },
-                new Token() { symbol = "KCAL", apiSymbol = "phantasma-energy", platform = "ethereum", hash = "", decimals = 10, maxSupply = "0", name = "Phantasma Energy", flags = extFlags },
-                new Token() { symbol = "ETH", apiSymbol = "ethereum", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "Ethereum", flags = extFlags },
-                new Token() { symbol = "DAI", apiSymbol = "dai", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "Dai Stablecoin", flags = extFlags },
-                new Token() { symbol = "USDT", apiSymbol = "tether", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "Tether USD", flags = extFlags },
-                new Token() { symbol = "USDC", apiSymbol = "usd-coin", platform = "ethereum", hash = "", decimals = 6, maxSupply = "0", name = "USD Coin", flags = extFlags },
-                new Token() { symbol = "WBTC", apiSymbol = "wrapped-bitcoin", platform = "ethereum", hash = "", decimals = 8, maxSupply = "0", name = "Wrapped BTC", flags = extFlags },
-                new Token() { symbol = "DYT", apiSymbol = "", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "DYT", flags = extFlags },
-                new Token() { symbol = "MUU", apiSymbol = "", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "MUU", flags = extFlags },
-                new Token() { symbol = "DANK", apiSymbol = "", platform = "ethereum", hash = "", decimals = 18, maxSupply = "0", name = "DANK", flags = extFlags }/*,
-                new Token() { symbol = "MKNI", apiSymbol = "", platform = "ethereum", hash = "", decimals = 0, maxSupply = "1000000", name = "Mankini", flags = extFlags }*/
-            };
-
-            CurrentTokenCurrency = "";
-
-            Log.Write($"{SupportedTokens.Count} tokens supported");
-            Status = "ok";
+                Log.WriteError("Tokens initialization error: " + msg);
+            }));
         }
 
         public void RefreshTokenPrices()
@@ -1172,29 +931,30 @@ namespace Poltergeist
                 CurrentTokenCurrency = Settings.currency;
                 _lastPriceUpdate = DateTime.UtcNow;
 
-                var expectedFlag = TokenFlags.Foreign.ToString();
-                var symbolList = SupportedTokens.Where(x => x.flags.Contains(expectedFlag));
-                StartCoroutine(FetchTokenPrices(symbolList, CurrentTokenCurrency));
+                StartCoroutine(FetchTokenPrices(Tokens.GetTokensForCoingecko(), CurrentTokenCurrency));
             }
         }
 
-        public void UpdateAPIs()
+        public void UpdateAPIs(bool possibleNexusChange = false)
         {
             Log.Write("reinit APIs => " + Settings.phantasmaRPCURL);
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             ethereumApi = new EthereumAPI(Settings.ethereumRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
 
-            // We should renew all interop addresses when switching between nets.
-            // Otherwise we might send funds to wrong interop address.
-            ClearInteropMap();
+            if (possibleNexusChange)
+            {
+                // We should renew all interop addresses when switching between nets.
+                // Otherwise we might send funds to wrong interop address.
+                ClearInteropMap();
+
+                TokensReinit();
+            }
         }
 
         private void LoadNexus()
         {
-            UpdateAPIs();
-
-            PrepareTokens();
+            UpdateAPIs(true);
 
             /*var tokenList = PlayerPrefs.GetString(TokenInfoTag, "");
 
@@ -1224,29 +984,6 @@ namespace Poltergeist
         void Update()
         {
 
-        }
-
-        public int GetTokenDecimals(string symbol, PlatformKind platform)
-        {
-            var token = SupportedTokens.Where(x => x.symbol == symbol && x.platform.ToUpper() == platform.ToString().ToUpper()).SingleOrDefault();
-            if (token != null)
-            {
-                return token.decimals;
-            }
-
-            return -1;
-        }
-
-        public bool GetTokenBySymbol(string symbol, PlatformKind platform, out Token token)
-        {
-            token = SupportedTokens.Where(x => x.symbol == symbol && x.platform.ToUpper() == platform.ToString().ToUpper()).SingleOrDefault();
-            if (token != null)
-            {
-                return true;
-            }
-
-            token = new Token();
-            return false;
         }
 
         public decimal AmountFromString(string str, int decimals)
@@ -1335,11 +1072,11 @@ namespace Poltergeist
                                                 {
                                                     Token token;
 
-                                                    if (GetTokenBySymbol(transfer.symbol, PlatformKind.Neo, out token))
+                                                    if (Tokens.GetToken(transfer.symbol, PlatformKind.Neo, out token))
                                                     {
                                                         var amount = System.Numerics.BigInteger.Parse(UnitConversion.ToBigInteger(transfer.amount, token.decimals).ToString());
 
-                                                        var nep5 = new NEP5(neoApi, token.hash);
+                                                        var nep5 = new NEP5(neoApi, Tokens.GetTokenHash(token, PlatformKind.Neo));
                                                         CoroutineUtils.StartThrowingCoroutine(this, nep5.Transfer(unspent, keys, transfer.destination, amount, transfer.interop, Settings.neoGasFee,
                                                         (tx, error) =>
                                                         {
@@ -1424,7 +1161,7 @@ namespace Poltergeist
                                             }
                                             else
                                             {
-                                                if (GetTokenBySymbol(transfer.symbol, PlatformKind.Ethereum, out Token ethToken))
+                                                if (Tokens.GetToken(transfer.symbol, PlatformKind.Ethereum, out Token ethToken))
                                                 {
                                                     StartCoroutine(ethereumApi.GetNonce(keys.Address,
                                                     (nonce) =>
@@ -1436,7 +1173,7 @@ namespace Poltergeist
                                                         }
 
                                                         var hexTx = ethereumApi.SignTokenTransaction(keys, nonce,
-                                                            GetEthereumContract(ethToken.symbol),
+                                                            Tokens.GetTokenHash(ethToken, PlatformKind.Ethereum),
                                                             transfer.destination,
                                                             UnitConversion.ToBigInteger(transfer.amount, ethToken.decimals),
                                                             Settings.ethereumGasPriceGwei * 1000000000, // Converting to WEI
@@ -1874,18 +1611,18 @@ namespace Poltergeist
                                     balanceMap[entry.symbol] = new Balance()
                                     {
                                         Symbol = entry.symbol,
-                                        Available = AmountFromString(entry.amount, GetTokenDecimals(entry.symbol, PlatformKind.Phantasma)),
+                                        Available = AmountFromString(entry.amount, Tokens.GetTokenDecimals(entry.symbol, PlatformKind.Phantasma)),
                                         Pending = 0,
                                         Staked = 0,
                                         Claimable = 0,
                                         Chain = entry.chain,
-                                        Decimals = GetTokenDecimals(entry.symbol, PlatformKind.Phantasma),
+                                        Decimals = Tokens.GetTokenDecimals(entry.symbol, PlatformKind.Phantasma),
                                         Ids = entry.ids
                                     };
                                 }
 
-                                var stakedAmount = AmountFromString(acc.stake.amount, GetTokenDecimals("SOUL", PlatformKind.Phantasma));
-                                var claimableAmount = AmountFromString(acc.stake.unclaimed, GetTokenDecimals("KCAL", PlatformKind.Phantasma));
+                                var stakedAmount = AmountFromString(acc.stake.amount, Tokens.GetTokenDecimals("SOUL", PlatformKind.Phantasma));
+                                var claimableAmount = AmountFromString(acc.stake.unclaimed, Tokens.GetTokenDecimals("KCAL", PlatformKind.Phantasma));
 
                                 var stakeTimestamp = new Timestamp(acc.stake.time);
 
@@ -1907,7 +1644,7 @@ namespace Poltergeist
                                             Staked = stakedAmount,
                                             Claimable = 0,
                                             Pending = 0,
-                                            Decimals = GetTokenDecimals(symbol, PlatformKind.Phantasma)
+                                            Decimals = Tokens.GetTokenDecimals(symbol, PlatformKind.Phantasma)
                                         };
                                         balanceMap[symbol] = entry;
                                     }
@@ -1931,7 +1668,7 @@ namespace Poltergeist
                                             Staked = 0,
                                             Claimable = claimableAmount,
                                             Pending = 0,
-                                            Decimals = GetTokenDecimals(symbol, PlatformKind.Phantasma)
+                                            Decimals = Tokens.GetTokenDecimals(symbol, PlatformKind.Phantasma)
                                         };
                                         balanceMap[symbol] = entry;
                                     }
@@ -2013,9 +1750,9 @@ namespace Poltergeist
                             },
                             (response) =>
                             {
-                                var neoTokens = SupportedTokens.Where(x => x.platform.ToUpper() == PlatformKind.Neo.ToString().ToUpper());
-
                                 var balances = new List<Balance>();
+
+                                var neoTokens = Tokens.GetTokens(PlatformKind.Neo);
 
                                 var balance = response.GetNode("balance");
                                 foreach (var entry in balance.Children)
@@ -2026,9 +1763,9 @@ namespace Poltergeist
 
                                     Token token;
 
-                                    if (GetTokenBySymbol(symbol, PlatformKind.Neo, out token))
+                                    if (Tokens.GetToken(symbol, PlatformKind.Neo, out token))
                                     {
-                                        if (hash == token.hash)
+                                        if (hash.ToUpper() == Tokens.GetTokenHash(token, PlatformKind.Neo).ToUpper())
                                         {
                                             balances.Add(new Balance()
                                             {
@@ -2118,7 +1855,7 @@ namespace Poltergeist
                         {
                             var keys = EthereumKey.FromWIF(wif);
 
-                            var ethTokens = SupportedTokens.Where(x => x.platform.ToUpper() == PlatformKind.Ethereum.ToString().ToUpper());
+                            var ethTokens = Tokens.GetTokens(PlatformKind.Ethereum);
                             var balances = new List<Balance>();
 
                             Action onLoadFinish = new Action(() =>
@@ -2177,7 +1914,7 @@ namespace Poltergeist
                                 else
                                 {
                                     StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
-                                        GetEthereumContract(ethToken.symbol),
+                                        Tokens.GetTokenHash(ethToken, PlatformKind.Ethereum),
                                         ethToken.symbol, ethToken.decimals, (balanceSoul) =>
                                     {
                                         balances.Add(balanceSoul);
@@ -2237,7 +1974,7 @@ namespace Poltergeist
                     continue;
                 }
 
-                var decimals = GetTokenDecimals(swap.symbol, platform);
+                var decimals = Tokens.GetTokenDecimals(swap.symbol, platform);
                 var amount = AmountFromString(swap.value, decimals);
 
                 Log.Write($"Found pending {platformName} swap: {amount} {swap.symbol}");
@@ -2333,7 +2070,7 @@ namespace Poltergeist
                 if (_nfts.ContainsKey(platform))
                     _nfts[platform].Clear();
 
-                if (GetTokenBySymbol(symbol, platform, out var tokenInfo))
+                if (Tokens.GetToken(symbol, platform, out var tokenInfo))
                 {
                     switch (platform)
                     {
@@ -2344,7 +2081,7 @@ namespace Poltergeist
                                 Log.Write("Getting NFTs...");
                                 foreach (var balanceEntry in CurrentState.balances)
                                 {
-                                    if (balanceEntry.Symbol == symbol && !tokenInfo.flags.Contains(TokenFlags.Fungible.ToString()))
+                                    if (balanceEntry.Symbol == symbol && !tokenInfo.IsFungible())
                                     {
                                         nftDescriptionsAreFullyLoaded = false;
 

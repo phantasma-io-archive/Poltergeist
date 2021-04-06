@@ -264,8 +264,7 @@ namespace Poltergeist
                             var symbol = GetStringArg(entry, 2);
                             var amount = GetNumberArg(entry, 3);
 
-                            Token token;
-                            accountManager.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
+                            var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
 
                             var total = UnitConversion.ToDecimal(amount, token.decimals);
 
@@ -296,8 +295,7 @@ namespace Poltergeist
                             var priceSymbol = GetStringArg(entry, 2);
                             var nftNumber = GetStringArg(entry, 3);
 
-                            Token priceToken;
-                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+                            var priceToken = Tokens.GetToken(priceSymbol, PlatformKind.Phantasma);
 
                             var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
 
@@ -339,8 +337,7 @@ namespace Poltergeist
                             var priceSymbol = GetStringArg(entry, 2);
                             var nftNumber = GetStringArg(entry, 3);
 
-                            Token priceToken;
-                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+                            var priceToken = Tokens.GetToken(priceSymbol, PlatformKind.Phantasma);
 
                             var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
                             var endPrice = UnitConversion.ToDecimal(GetNumberArg(entry, 5), priceToken.decimals);
@@ -359,8 +356,7 @@ namespace Poltergeist
                             var priceSymbol = GetStringArg(entry, 2);
                             var nftNumber = GetStringArg(entry, 3);
 
-                            Token priceToken;
-                            accountManager.GetTokenBySymbol(priceSymbol, PlatformKind.Phantasma, out priceToken);
+                            var priceToken = Tokens.GetToken(priceSymbol, PlatformKind.Phantasma);
 
                             var price = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
                             var endPrice = UnitConversion.ToDecimal(GetNumberArg(entry, 5), priceToken.decimals);
@@ -418,8 +414,7 @@ namespace Poltergeist
                             var tokenSymbol = GetStringArg(entry, 2);
                             var tokenAmount = GetStringArg(entry, 3);
 
-                            Token priceToken;
-                            accountManager.GetTokenBySymbol(tokenSymbol, PlatformKind.Phantasma, out priceToken);
+                            var priceToken = Tokens.GetToken(tokenSymbol, PlatformKind.Phantasma);
 
                             var purchase = UnitConversion.ToDecimal(GetNumberArg(entry, 4), priceToken.decimals);
 
@@ -442,8 +437,7 @@ namespace Poltergeist
                             var symbol = GetStringArg(entry, 1);
                             var amount = GetNumberArg(entry, 2);
 
-                            Token token;
-                            accountManager.GetTokenBySymbol(symbol, PlatformKind.Phantasma, out token);
+                            var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
 
                             var total = UnitConversion.ToDecimal(amount, token.decimals);
 
@@ -468,10 +462,9 @@ namespace Poltergeist
                             var amount = GetNumberArg(entry, 4);
                             var amountString = amount.ToString();
 
-                            Token infuseToken;
-                            accountManager.GetTokenBySymbol(infuseSymbol, PlatformKind.Phantasma, out infuseToken);
+                            var infuseToken = Tokens.GetToken(infuseSymbol, PlatformKind.Phantasma);
 
-                            sb.AppendLine($"\u2605 Infuse {targetSymbol} NFT #{ShortenTokenId(tokenID)} with " + (infuseToken.flags.Contains("Fungible") ? $"{UnitConversion.ToDecimal(amount, infuseToken.decimals)} {infuseSymbol}." : $"{infuseSymbol} NFT #{ShortenTokenId(amountString)}."));
+                            sb.AppendLine($"\u2605 Infuse {targetSymbol} NFT #{ShortenTokenId(tokenID)} with " + (infuseToken.IsFungible() ? $"{UnitConversion.ToDecimal(amount, infuseToken.decimals)} {infuseSymbol}." : $"{infuseSymbol} NFT #{ShortenTokenId(amountString)}."));
                             break;
                         }
                     case "Nexus.CreateToken":
@@ -535,14 +528,14 @@ namespace Poltergeist
                             }
                             if (infusedAmount > 0)
                             {
-                                accountManager.GetTokenBySymbol(infusedAsset, PlatformKind.Phantasma, out var infusedToken);
-                                var infusedAmountWithDecimals = infusedToken.flags.Contains("Fungible") ? UnitConversion.ToDecimal(infusedAmount, infusedToken.decimals) : 0;
+                                var infusedToken = Tokens.GetToken(infusedAsset, PlatformKind.Phantasma);
+                                var infusedAmountWithDecimals = infusedToken.IsFungible() ? UnitConversion.ToDecimal(infusedAmount, infusedToken.decimals) : 0;
 
                                 sb.AppendLine($"\u2605 Infuse {numOfNfts}x {mintTicker} with {(infusedAmountWithDecimals > 0 ? infusedAmountWithDecimals.ToString() : infusedAmount.ToString())} {infusedAsset} each.");
                             }
                             if (listPrice > 0)
                             {
-                                accountManager.GetTokenBySymbol(listPriceCurrency, PlatformKind.Phantasma, out var listPriceToken);
+                                var listPriceToken = Tokens.GetToken(listPriceCurrency, PlatformKind.Phantasma);
                                 var listPriceWithDecimals = (listPrice > 0) ? UnitConversion.ToDecimal(listPrice, listPriceToken.decimals) : 0;
 
                                 sb.AppendLine($"\u2605 Sell {numOfNfts}x {mintTicker}, for {listPriceWithDecimals} {listPriceCurrency}, offer valid until {listLastEndDate}.");

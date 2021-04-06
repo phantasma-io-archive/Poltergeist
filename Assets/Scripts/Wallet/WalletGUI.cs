@@ -2433,8 +2433,8 @@ namespace Poltergeist
             accountManager.UpdateRPCURL(PlatformKind.Phantasma);
             accountManager.UpdateRPCURL(PlatformKind.Neo);
 
+            accountManager.UpdateAPIs(true);
             accountManager.RefreshTokenPrices();
-            accountManager.UpdateAPIs();
             accountManager.Settings.Save();
             return true;
         }
@@ -2584,22 +2584,6 @@ namespace Poltergeist
 
                 if (settings.ethereumNetwork == EthereumNetwork.Local_Net)
                 {
-                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth local SOUL hash");
-                    settings.ethereumLocalnetSoulContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetSoulContract);
-                    curY += Units(3);
-
-                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth local KCAL hash");
-                    settings.ethereumLocalnetKcalContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetKcalContract);
-                    curY += Units(3);
-
-                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth local DANK hash");
-                    settings.ethereumLocalnetDankContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetDankContract);
-                    curY += Units(3);
-
-                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Eth local DYT hash");
-                    settings.ethereumLocalnetDytContract = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumLocalnetDytContract);
-                    curY += Units(3);
-
                     GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Ethereum RPC URL");
                     settings.ethereumRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumRPCURL);
                     curY += Units(3);
@@ -4261,9 +4245,9 @@ namespace Poltergeist
 
                     default:
                         {
-                            if (accountManager.GetTokenBySymbol(balance.Symbol, accountManager.CurrentPlatform, out var token))
+                            if (Tokens.GetToken(balance.Symbol, accountManager.CurrentPlatform, out var token))
                             {
-                                if (!token.flags.Contains(TokenFlags.Fungible.ToString()))
+                                if (!token.IsFungible())
                                 {
                                     // It's an NFT. We add additional button to get to NFTs view mode.
 
@@ -4323,7 +4307,7 @@ namespace Poltergeist
                  var transferName = $"{transferSymbol} transfer";
                  Phantasma.SDK.Token transferToken;
 
-                 accountManager.GetTokenBySymbol(transferSymbol, accountManager.CurrentPlatform, out transferToken);
+                Tokens.GetToken(transferSymbol, accountManager.CurrentPlatform, out transferToken);
 
                  if (string.IsNullOrEmpty(transferToken.flags))
                  {
@@ -4331,7 +4315,7 @@ namespace Poltergeist
                      return;
                  }
 
-                 if (transferToken.flags.Contains(TokenFlags.Transferable.ToString()) && !transferToken.flags.Contains(TokenFlags.Fungible.ToString()))
+                 if (transferToken.IsTransferable() && !transferToken.IsFungible())
                  {
                      // We should do this initialization here and not in PushState,
                      // to allow "Back" button to work properly.
@@ -4348,7 +4332,7 @@ namespace Poltergeist
                      return;
                  }
 
-                 if (!transferToken.flags.Contains(TokenFlags.Transferable.ToString()))
+                 if (!transferToken.IsTransferable())
                  {
                      MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
                      return;
@@ -4678,9 +4662,9 @@ namespace Poltergeist
                         var symbol = item.infusion[i].Key;
                         var amountOrId = item.infusion[i].Value;
 
-                        if (accountManager.GetTokenBySymbol(symbol, accountManager.CurrentPlatform, out var token))
+                        if (Tokens.GetToken(symbol, accountManager.CurrentPlatform, out var token))
                         {
-                            if (token.flags.Contains(TokenFlags.Fungible.ToString()))
+                            if (token.IsFungible())
                                 fungibleInfusions.Add(symbol, UnitConversion.ToDecimal(amountOrId, token.decimals));
                             else
                             {
@@ -5715,7 +5699,7 @@ namespace Poltergeist
                 var transferName = $"{transferSymbol} transfer";
                 Phantasma.SDK.Token transferToken;
 
-                accountManager.GetTokenBySymbol(transferSymbol, accountManager.CurrentPlatform, out transferToken);
+                Tokens.GetToken(transferSymbol, accountManager.CurrentPlatform, out transferToken);
 
                 if (string.IsNullOrEmpty(transferToken.flags))
                 {
@@ -5723,7 +5707,7 @@ namespace Poltergeist
                     return;
                 }
 
-                if (!transferToken.flags.Contains(TokenFlags.Transferable.ToString()))
+                if (!transferToken.IsTransferable())
                 {
                     MessageBox(MessageKind.Error, $"Transfers of {transferSymbol} tokens are not allowed.");
                     return;
@@ -5825,7 +5809,7 @@ namespace Poltergeist
                 }
 
                 var estimatedFee = usedGas * accountManager.Settings.feePrice;
-                var feeDecimals = accountManager.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
+                var feeDecimals = Tokens.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
                 description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
             }
             else if (accountManager.CurrentPlatform == PlatformKind.Neo)
@@ -5962,7 +5946,7 @@ namespace Poltergeist
 
                         try
                         {
-                            var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
+                            var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                             var gasPrice = accountManager.Settings.feePrice;
                             var gasLimit = accountManager.Settings.feeLimit;
@@ -6048,7 +6032,7 @@ namespace Poltergeist
                     {
                         description = $"Transfer {symbol} NFTs\n";
 
-                        var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
+                        var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                         var gasPrice = accountManager.Settings.feePrice;
                         var gasLimit = accountManager.Settings.feeLimit;
@@ -6125,7 +6109,7 @@ namespace Poltergeist
 
         private bool ValidDecimals(decimal amount, string symbol)
         {
-            var decimals = AccountManager.Instance.GetTokenDecimals(symbol, AccountManager.Instance.CurrentPlatform);
+            var decimals = Tokens.GetTokenDecimals(symbol, AccountManager.Instance.CurrentPlatform);
 
             if (decimals > 0)
             {
@@ -6487,7 +6471,7 @@ namespace Poltergeist
 
                                     try
                                     {
-                                        var decimals = accountManager.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
+                                        var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                                         var gasPrice = accountManager.Settings.feePrice;
                                         var gasLimit = accountManager.Settings.feeLimit;
@@ -6671,12 +6655,12 @@ namespace Poltergeist
                 return;
             }
 
-            var swapDecimals = accountManager.GetTokenDecimals(swapSymbol, accountManager.CurrentPlatform);
+            var swapDecimals = Tokens.GetTokenDecimals(swapSymbol, accountManager.CurrentPlatform);
             decimal swapBalance = state.GetAvailableAmount(swapSymbol);
 
-            if (accountManager.GetTokenBySymbol(swapSymbol, accountManager.CurrentPlatform, out var tokenInfo))
+            if (Tokens.GetToken(swapSymbol, accountManager.CurrentPlatform, out var tokenInfo))
             {
-                if(!tokenInfo.flags.Contains(TokenFlags.Fungible.ToString()))
+                if(!tokenInfo.IsFungible())
                 {
                     // We cannot swap NFTs.
                     MessageBox(MessageKind.Error, $"Not enough {feeSymbol} for transaction fees.");
@@ -6700,7 +6684,7 @@ namespace Poltergeist
                                  var gasPrice = accountManager.Settings.feePrice;
                                  var gasLimit = accountManager.Settings.feeLimit;
 
-                                 var decimals = accountManager.GetTokenDecimals(feeSymbol, accountManager.CurrentPlatform);
+                                 var decimals = Tokens.GetTokenDecimals(feeSymbol, accountManager.CurrentPlatform);
 
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")

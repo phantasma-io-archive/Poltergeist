@@ -517,17 +517,42 @@ namespace Phantasma.SDK
         }
     }
 
+    public class TokenPlatform
+    {
+        public string platform;
+        public string hash;
+
+        public static TokenPlatform FromNode(DataNode node)
+        {
+            var result = new TokenPlatform();
+
+            result.platform = node.GetString("platform");
+            result.hash = node.GetString("hash");
+
+            return result;
+        }
+
+        public override string ToString()
+        {
+            return $"Platform {platform}, hash {hash}";
+        }
+    }
+
     public class Token
     {
         public string symbol; //
+        public bool mainnetToken;
         public string apiSymbol; // API symbols may differ.
         public string name; //
         public int decimals; //
         public string currentSupply; //
         public string maxSupply; //
-        public string platform; //
-        public string hash; //
+        public string burnedSupply;
+        public string address;
+        public string owner;
         public string flags; //
+        public string script;
+        public TokenPlatform[] external;
         public decimal price;
 
         public static Token FromNode(DataNode node)
@@ -535,16 +560,57 @@ namespace Phantasma.SDK
             Token result = new Token();
 
             result.symbol = node.GetString("symbol");
+            result.mainnetToken = true;
             result.name = node.GetString("name");
             result.decimals = node.GetInt32("decimals");
             result.currentSupply = node.GetString("currentSupply");
             result.maxSupply = node.GetString("maxSupply");
-            result.platform = node.GetString("platform");
-            result.hash = node.GetString("hash");
+            result.burnedSupply = node.GetString("burnedSupply");
+            result.address = node.GetString("address");
+            result.owner = node.GetString("owner");
             result.flags = node.GetString("flags");
+            result.script = node.GetString("script");
+
+            var platforms = new List<TokenPlatform>();
+            if (node.HasNode("external"))
+            {
+                foreach (var platform in node.GetNode("external").Children)
+                {
+                    platforms.Add(TokenPlatform.FromNode(platform));
+                }
+
+                result.external = platforms.ToArray();
+            }
+            
             result.price = 0;
 
             return result;
+        }
+
+        public bool IsFungible()
+        {
+            return flags.Contains(TokenFlags.Fungible.ToString());
+        }
+        public bool IsTransferable()
+        {
+            return flags.Contains(TokenFlags.Transferable.ToString());
+        }
+        public bool IsSwappable()
+        {
+            return flags.Contains(TokenFlags.Swappable.ToString());
+        }
+
+        public override string ToString()
+        {
+            var platforms = "";
+            if (external != null)
+            {
+                foreach (var platform in external)
+                {
+                    platforms += "\t" + platform.ToString() + "\n";
+                }
+            }
+            return $"Symbol {symbol} ({name}), decimals {decimals}, supplies {currentSupply}/{maxSupply}/{burnedSupply}, flags '{flags}'. Platforms:\n{platforms}";
         }
     }
 

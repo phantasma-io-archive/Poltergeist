@@ -64,10 +64,6 @@ namespace Poltergeist
         public const string NeoGasFeeTag = "settings.neo.gas.fee";
 
         public const string EthereumNetworkTag = "settings.ethereum.network";
-        public const string EthereumLocalnetSoulContractTag = "settings.ethereum.localnet.soul.contract";
-        public const string EthereumLocalnetKcalContractTag = "settings.ethereum.localnet.kcal.contract";
-        public const string EthereumLocalnetDankContractTag = "settings.ethereum.localnet.dank.contract";
-        public const string EthereumLocalnetDytContractTag = "settings.ethereum.localnet.dyt.contract";
         public const string EthereumRPCTag = "settings.ethereum.rpc.url";
         public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
         public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
@@ -97,10 +93,6 @@ namespace Poltergeist
         public BigInteger feeLimit;
         public decimal neoGasFee;
         public EthereumNetwork ethereumNetwork;
-        public string ethereumLocalnetSoulContract;
-        public string ethereumLocalnetKcalContract;
-        public string ethereumLocalnetDankContract;
-        public string ethereumLocalnetDytContract;
         public string ethereumRPCURL;
         public BigInteger ethereumGasPriceGwei;
         public BigInteger ethereumTransferGasLimit;
@@ -127,10 +119,6 @@ namespace Poltergeist
                 "Neoscan: " + this.neoscanURL + "\n" +
                 "Neo GAS fee: " + this.neoGasFee + "\n" +
                 "Ethereum network: " + this.ethereumNetwork + "\n" +
-                "Ethereum localnet SOUL contract: " + this.ethereumLocalnetSoulContract + "\n" +
-                "Ethereum localnet KCAL contract: " + this.ethereumLocalnetKcalContract + "\n" +
-                "Ethereum localnet DANK contract: " + this.ethereumLocalnetDankContract + "\n" +
-                "Ethereum localnet DYT contract: " + this.ethereumLocalnetDytContract + "\n" +
                 "Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                 "Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
                 "Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
@@ -221,11 +209,6 @@ namespace Poltergeist
             {
                 this.ethereumNetwork = EthereumNetwork.Unknown;
             }
-
-            this.ethereumLocalnetSoulContract = PlayerPrefs.GetString(EthereumLocalnetSoulContractTag, GetDefaultValue(EthereumLocalnetSoulContractTag));
-            this.ethereumLocalnetKcalContract = PlayerPrefs.GetString(EthereumLocalnetKcalContractTag, GetDefaultValue(EthereumLocalnetKcalContractTag));
-            this.ethereumLocalnetDankContract = PlayerPrefs.GetString(EthereumLocalnetDankContractTag, GetDefaultValue(EthereumLocalnetDankContractTag));
-            this.ethereumLocalnetDytContract = PlayerPrefs.GetString(EthereumLocalnetDytContractTag, GetDefaultValue(EthereumLocalnetDytContractTag));
 
             if (this.ethereumNetwork == EthereumNetwork.Main_Net || this.ethereumNetwork == EthereumNetwork.Ropsten)
             {
@@ -407,14 +390,6 @@ namespace Poltergeist
                     }
                     break;
 
-                case EthereumLocalnetSoulContractTag:
-                    _return_value = "4c2AF2fB374B988363deb535Bf0fF2D1Eb7b2106"; // Value from http://mankinieth.phantasma.io:7545/
-                    break;
-
-                case EthereumLocalnetKcalContractTag:
-                    _return_value = "a9858F0E2037C18dD6a0b4Bc082d41B0536D47E2"; // Value from http://mankinieth.phantasma.io:7545/
-                    break;
-
                 case NeoscanAPITag:
                     switch (nexusKind)
                     {
@@ -479,10 +454,6 @@ namespace Poltergeist
             PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
 
             PlayerPrefs.SetString(EthereumNetworkTag, this.ethereumNetwork.ToString());
-            PlayerPrefs.SetString(EthereumLocalnetSoulContractTag, this.ethereumLocalnetSoulContract.ToString());
-            PlayerPrefs.SetString(EthereumLocalnetKcalContractTag, this.ethereumLocalnetKcalContract.ToString());
-            PlayerPrefs.SetString(EthereumLocalnetDankContractTag, this.ethereumLocalnetDankContract.ToString());
-            PlayerPrefs.SetString(EthereumLocalnetDytContractTag, this.ethereumLocalnetDytContract.ToString());
             PlayerPrefs.SetString(EthereumRPCTag, this.ethereumRPCURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.SetString(EthereumTransferGasLimitTag, this.ethereumTransferGasLimit.ToString());
