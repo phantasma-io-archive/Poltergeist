@@ -332,7 +332,7 @@ namespace Poltergeist
             }
             else
             {
-                return "-";
+                return null;
             }
         }
 

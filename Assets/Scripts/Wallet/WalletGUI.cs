@@ -3066,7 +3066,8 @@ namespace Poltergeist
                 style.normal.textColor = new Color(1, 1, 1, 0.75f);
                 style.fontSize -= VerticalLayout ? 4: 2;
 
-                GUI.Label(subRect, $"{MoneyFormat(amount)} {symbol} {caption} ({AccountManager.Instance.GetTokenWorth(symbol, amount)})");
+                var value = AccountManager.Instance.GetTokenWorth(symbol, amount);
+                GUI.Label(subRect, $"{MoneyFormat(amount)} {symbol} {caption}" + (value == null ? "" : $" ({value})"));
                 style.fontSize += VerticalLayout ? 4 : 2;
                 style.normal.textColor = tempColor;
 
@@ -3860,7 +3861,8 @@ namespace Poltergeist
             var style = GUI.skin.label;
 
             style.fontSize -= VerticalLayout ? 0 : 4;
-            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{MoneyFormat(balance.Available)} {balance.Symbol} ({accountManager.GetTokenWorth(balance.Symbol, balance.Available)})");
+            var value = accountManager.GetTokenWorth(balance.Symbol, balance.Available);
+            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{MoneyFormat(balance.Available)} {balance.Symbol}" + (value == null ? "" : $" ({value})"));
             style.fontSize += VerticalLayout ? 0 : 4;
 
             var subRect = new Rect(posX, posY + Units(1) + 4, Units(20), Units(2));
