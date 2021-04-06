@@ -1129,7 +1129,7 @@ namespace Poltergeist
 
             var style = GUI.skin.label;
             style.fontSize -= 6;
-            GUI.Label(new Rect(windowRect.width / 2 + ((AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? Units(7) - 4 : Units(5)), 12, 32, Units(2)), Application.version);
+            GUI.Label(new Rect(windowRect.width / 2 + ((AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString()) ? Units(7) - 4 : Units(5)), 12, Units(4), Units(2)), Application.version);
             style.fontSize += 6;
 
             var accountManager = AccountManager.Instance;
