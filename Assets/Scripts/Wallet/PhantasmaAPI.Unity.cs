@@ -610,7 +610,7 @@ namespace Phantasma.SDK
                     platforms += "\t" + platform.ToString() + "\n";
                 }
             }
-            return $"Symbol {symbol} ({name}), decimals {decimals}, supplies {currentSupply}/{maxSupply}/{burnedSupply}, flags '{flags}'. Platforms:\n{platforms}";
+            return $"Symbol {symbol} ({name}), decimals {decimals}, supplies {currentSupply}/{maxSupply}/{burnedSupply}, flags '{flags}', coinGeckoId '{apiSymbol}', mainnetToken '{mainnetToken}'. Platforms:\n{platforms}";
         }
     }
 

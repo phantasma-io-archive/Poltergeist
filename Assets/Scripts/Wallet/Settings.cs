@@ -62,12 +62,14 @@ namespace Poltergeist
         public const string GasLimitTag = "settings.fee.limit";
 
         public const string NeoGasFeeTag = "settings.neo.gas.fee";
+        public const string NeoUserTokensTag = "settings.neo.user.tokens";
 
         public const string EthereumNetworkTag = "settings.ethereum.network";
         public const string EthereumRPCTag = "settings.ethereum.rpc.url";
         public const string EthereumGasPriceGweiTag = "settings.ethereum.gas.price.gwei";
         public const string EthereumTransferGasLimitTag = "settings.ethereum.transfer.gas.limit";
         public const string EthereumTokenTransferGasLimitTag = "settings.ethereum.token.transfer.gas.limit";
+        public const string EthereumUserTokensTag = "settings.ethereum.user.tokens";
 
         public const string SFXTag = "settings.sfx";
 
@@ -92,11 +94,13 @@ namespace Poltergeist
         public BigInteger feePrice;
         public BigInteger feeLimit;
         public decimal neoGasFee;
+        public string neoUserTokens;
         public EthereumNetwork ethereumNetwork;
         public string ethereumRPCURL;
         public BigInteger ethereumGasPriceGwei;
         public BigInteger ethereumTransferGasLimit;
         public BigInteger ethereumTokenTransferGasLimit;
+        public string ethereumUserTokens;
         public NexusKind nexusKind;
         public bool sfx;
         public Log.Level logLevel;
@@ -118,11 +122,13 @@ namespace Poltergeist
                 "Neo RPC: " + this.neoRPCURL + "\n" +
                 "Neoscan: " + this.neoscanURL + "\n" +
                 "Neo GAS fee: " + this.neoGasFee + "\n" +
+                "Neo user tokens: " + this.neoUserTokens + "\n" +
                 "Ethereum network: " + this.ethereumNetwork + "\n" +
                 "Ethereum RPC: " + this.ethereumRPCURL + "\n" +
                 "Ethereum gas price (Gwei): " + this.ethereumGasPriceGwei + "\n" +
                 "Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
                 "Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
+                "Ethereum user tokens: " + this.ethereumUserTokens + "\n" +
                 "Nexus name: " + this.nexusName + "\n" +
                 "Currency: " + this.currency + "\n" +
                 "Sfx: " + this.sfx + "\n" +
@@ -203,6 +209,8 @@ namespace Poltergeist
             else
                 this.neoGasFee = 0.001m;
 
+            neoUserTokens = PlayerPrefs.GetString(NeoUserTokensTag, null);
+
             // Ethereum
             var ethereumNetwork = PlayerPrefs.GetString(EthereumNetworkTag, EthereumNetwork.Main_Net.ToString());
             if (!Enum.TryParse<EthereumNetwork>(ethereumNetwork, true, out this.ethereumNetwork))
@@ -233,6 +241,8 @@ namespace Poltergeist
             {
                 this.ethereumTokenTransferGasLimit = 100000;
             }
+
+            ethereumUserTokens = PlayerPrefs.GetString(EthereumUserTokensTag, null);
 
             this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
 
@@ -449,6 +459,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(GasPriceTag, this.feePrice.ToString());
             PlayerPrefs.SetString(GasLimitTag, this.feeLimit.ToString());
             PlayerPrefs.SetString(NeoGasFeeTag, this.neoGasFee.ToString());
+            PlayerPrefs.SetString(NeoUserTokensTag, this.neoUserTokens);
 
             PlayerPrefs.SetString(NeoRPCTag, this.neoRPCURL);
             PlayerPrefs.SetString(NeoscanAPITag, this.neoscanURL);
@@ -458,6 +469,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
             PlayerPrefs.SetString(EthereumTransferGasLimitTag, this.ethereumTransferGasLimit.ToString());
             PlayerPrefs.SetString(EthereumTokenTransferGasLimitTag, this.ethereumTokenTransferGasLimit.ToString());
+            PlayerPrefs.SetString(EthereumUserTokensTag, this.ethereumUserTokens);
 
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
             PlayerPrefs.SetString(CurrencyTag, this.currency);

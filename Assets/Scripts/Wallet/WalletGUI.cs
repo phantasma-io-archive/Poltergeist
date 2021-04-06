@@ -611,6 +611,7 @@ namespace Poltergeist
         private string[] ModalSendCancel = new string[] { "Send", "Cancel" };
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
         private string[] ModalHexWif = new string[] { "HEX format", "WIF format" };
+        private string[] ModalNeoEthereum = new string[] { "Neo", "Ethereum" };
 
         private string[] modalOptions;
         private int modalConfirmDelay;
@@ -2468,10 +2469,10 @@ namespace Poltergeist
             GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "");
 
             // Height calculation:
-            // 1) 22 elements with total height of (element height + spacing) * 22 = Units(3) * 22.
+            // 1) 27 elements with total height of (element height + spacing) * 27 = Units(3) * 27.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 22 + Units(2) * 3 + Units(1));
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 27 + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - ((VerticalLayout) ? Units(10) : Units(4)));
 
@@ -2651,6 +2652,277 @@ namespace Poltergeist
             settings.uiThemeName = availableUiThemes[uiThemeIndex].ToString();
             curY += dropHeight + Units(1);
 
+
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Add token", () =>
+            {
+                PromptBox("Please select token's blockchain", ModalNeoEthereum, (blockchain) =>
+                {
+                    PlatformKind platform;
+                    if (blockchain == PromptResult.Success)
+                    {
+                        platform = PlatformKind.Neo;
+                    }
+                    else
+                    {
+                        platform = PlatformKind.Ethereum;
+                    }
+                    ShowModal("Token Symbol", "Enter symbol of a token", ModalState.Input, 2, -1, ModalConfirmCancel, 1, (result, tokenSymbol) =>
+                    {
+                        if (result == PromptResult.Success)
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+
+                            ShowModal("Token Name", "Enter name of a token", ModalState.Input, 2, -1, ModalConfirmCancel, 1, (result2, tokenName) =>
+                            {
+                                if (result2 == PromptResult.Success)
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
+
+                                    ShowModal("Token Decimals", "Enter decimals of a token", ModalState.Input, 1, -1, ModalConfirmCancel, 1, (result3, tokenDecimals) =>
+                                    {
+                                        if (result3 == PromptResult.Success)
+                                        {
+                                            AudioManager.Instance.PlaySFX("click");
+
+                                            try
+                                            {
+                                                Int32.Parse(tokenDecimals);
+                                            }
+                                            catch(Exception)
+                                            {
+                                                MessageBox(MessageKind.Error, "Invalid decimals!");
+                                                return;
+                                            }
+
+                                            ShowModal("Token Hash", "Enter hash of a token (without 0x prefix)", ModalState.Input, 40, 42, ModalConfirmCancel, 1, (result4, tokenHash) =>
+                                            {
+                                                if (result4 == PromptResult.Success)
+                                                {
+                                                    AudioManager.Instance.PlaySFX("click");
+
+                                                    if (tokenHash.StartsWith("0x"))
+                                                        tokenHash = tokenHash.Substring(2);
+
+                                                    ShowModal("Token CoinGecko identifier", "Enter id of a token (you can leave it blank, token price won't be available)", ModalState.Input, 2, -1, ModalConfirmCancel, 1, (result5, coinGeckoId) =>
+                                                    {
+                                                        if (result5 == PromptResult.Success)
+                                                        {
+                                                            AudioManager.Instance.PlaySFX("click");
+                                                            Tokens.UserTokenAdd(platform, tokenSymbol, tokenName, Int32.Parse(tokenDecimals), tokenHash, coinGeckoId);
+
+                                                            MessageBox(MessageKind.Default, "Token successfully added!");
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+            curY += Units(3);
+
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Edit token", () =>
+            {
+                PromptBox("Please select token's blockchain", ModalNeoEthereum, (blockchain) =>
+                {
+                    PlatformKind platform;
+                    if (blockchain == PromptResult.Success)
+                    {
+                        platform = PlatformKind.Neo;
+                    }
+                    else
+                    {
+                        platform = PlatformKind.Ethereum;
+                    }
+                    ShowModal("Token Symbol", "Enter symbol of a token", ModalState.Input, 2, -1, ModalConfirmCancel, 1, (result, tokenSymbol) =>
+                    {
+                        if (result == PromptResult.Success)
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+
+                            ShowModal("Token Name", "Enter name of a token", ModalState.Input, 2, -1, ModalConfirmCancel, 1, (result2, tokenName) =>
+                            {
+                                if (result2 == PromptResult.Success)
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
+
+                                    ShowModal("Token Decimals", "Enter decimals of a token", ModalState.Input, 1, -1, ModalConfirmCancel, 1, (result3, tokenDecimals) =>
+                                    {
+                                        if (result3 == PromptResult.Success)
+                                        {
+                                            AudioManager.Instance.PlaySFX("click");
+
+                                            try
+                                            {
+                                                Int32.Parse(tokenDecimals);
+                                            }
+                                            catch (Exception)
+                                            {
+                                                MessageBox(MessageKind.Error, "Invalid decimals!");
+                                                return;
+                                            }
+
+                                            ShowModal("Token Hash", "Enter hash of a token (without 0x prefix)", ModalState.Input, 40, 42, ModalConfirmCancel, 1, (result4, tokenHash) =>
+                                            {
+                                                if (result4 == PromptResult.Success)
+                                                {
+                                                    AudioManager.Instance.PlaySFX("click");
+
+                                                    if (tokenHash.StartsWith("0x"))
+                                                        tokenHash = tokenHash.Substring(2);
+
+                                                    ShowModal("Token CoinGecko identifier", "Enter id of a token (you can leave it blank, token price won't be available)", ModalState.Input, 2, -1, ModalConfirmCancel, 1, (result5, coinGeckoId) =>
+                                                    {
+                                                        if (result5 == PromptResult.Success)
+                                                        {
+                                                            AudioManager.Instance.PlaySFX("click");
+                                                            if (Tokens.UserTokenEdit(platform, tokenSymbol, tokenName, Int32.Parse(tokenDecimals), tokenHash, coinGeckoId))
+                                                            {
+                                                                MessageBox(MessageKind.Default, "Token successfully edited!");
+                                                            }
+                                                            else
+                                                            {
+                                                                MessageBox(MessageKind.Default, "Token editing failed!");
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+            curY += Units(3);
+
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Delete token", () =>
+            {
+                PromptBox("Please select token's blockchain", ModalNeoEthereum, (blockchain) =>
+                {
+                    PlatformKind platform;
+                    if (blockchain == PromptResult.Success)
+                    {
+                        platform = PlatformKind.Neo;
+                    }
+                    else
+                    {
+                        platform = PlatformKind.Ethereum;
+                    }
+                    ShowModal("Token Symbol", "Enter symbol of a token", ModalState.Input, 2, -1, ModalConfirmCancel, 1, (result, tokenSymbol) =>
+                    {
+                        if (result == PromptResult.Success)
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+
+                            PromptBox($"Are you sure you want to delete token {tokenSymbol.ToUpper()} [{platform}]?", ModalConfirmCancel, (deleteResult) =>
+                            {
+                                if (deleteResult == PromptResult.Success)
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
+
+                                    if (Tokens.UserTokenDelete(platform, tokenSymbol))
+                                    {
+                                        MessageBox(MessageKind.Default, "Token successfully deleted!");
+                                    }
+                                    else
+                                    {
+                                        MessageBox(MessageKind.Default, "Token deletion failed!");
+                                    }
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+            curY += Units(3);
+
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Delete all tokens", () =>
+            {
+                PromptBox($"Are you sure you want to delete all user tokens for Ethereum and Neo?", ModalConfirmCancel, (deleteResult) =>
+                {
+                    if (deleteResult == PromptResult.Success)
+                    {
+                        AudioManager.Instance.PlaySFX("click");
+
+                        Tokens.UserTokensDeleteAll();
+                        MessageBox(MessageKind.Default, "Tokens successfully deleted!");
+                    }
+                });
+            });
+            curY += Units(3);
+
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Export tokens", () =>
+            {
+                PromptBox("Please select tokens' blockchain", ModalNeoEthereum, (blockchain) =>
+                {
+                    PlatformKind platform;
+                    if (blockchain == PromptResult.Success)
+                    {
+                        platform = PlatformKind.Neo;
+                    }
+                    else
+                    {
+                        platform = PlatformKind.Ethereum;
+                    }
+
+                    ShowModal("Tokens Export", $"Copy tokens export data to the clipboard?",
+                        ModalState.Message, 0, 0, ModalConfirmCancel, 0, (result, input) =>
+                    {
+                        AudioManager.Instance.PlaySFX("click");
+
+                        if (result == PromptResult.Success)
+                        {
+                            GUIUtility.systemCopyBuffer = Tokens.UserTokensGet(platform);
+                            MessageBox(MessageKind.Default, "Tokens export data copied to the clipboard.");
+                        }
+                    });
+                });
+            });
+            curY += Units(3);
+
+            DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Import tokens", () =>
+            {
+                PromptBox("Please select tokens' blockchain", ModalNeoEthereum, (blockchain) =>
+                {
+                    PlatformKind platform;
+                    if (blockchain == PromptResult.Success)
+                    {
+                        platform = PlatformKind.Neo;
+                    }
+                    else
+                    {
+                        platform = PlatformKind.Ethereum;
+                    }
+
+                    ShowModal("Tokens Import", "Please enter tokens data that you received from Tokens Export dialog:", ModalState.Input, 1, -1, ModalConfirmCancel, 4, (result, tokensData) =>
+                    {
+                        AudioManager.Instance.PlaySFX("click");
+
+                        if (result == PromptResult.Success)
+                        {
+                            if (Tokens.UserTokensSet(platform, tokensData))
+                            {
+                                MessageBox(MessageKind.Default, "Tokens successfully imported.");
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Default, "Tokens cannot be imported.");
+                            }
+                        }
+                    });
+                });
+            });
+            curY += Units(3);
+
+
+            curY += Units(1);
             DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Clear cache", () =>
             {
                 PromptBox("Are you sure you want to clear wallet's cache?", ModalConfirmCancel, (result) =>
