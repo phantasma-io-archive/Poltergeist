@@ -2472,7 +2472,26 @@ namespace Poltergeist
             // 1) 27 elements with total height of (element height + spacing) * 27 = Units(3) * 27.
             // 2) Dropdown space for log level combo: Units(2) * 3.
             // 3) Last element has additional Units(1) spacing before it.
-            var insideRect = new Rect(0, 0, boxWidth, Units(3) * 27 + Units(2) * 3 + Units(1));
+            int elementsNumber;
+            switch(settings.nexusKind)
+            {
+                case NexusKind.Main_Net:
+                    elementsNumber = 18;
+                    break;
+                case NexusKind.Test_Net:
+                    elementsNumber = VerticalLayout ? 22 : 21;
+                    break;
+                case NexusKind.Mankini_Test_Net:
+                    elementsNumber = VerticalLayout ? 20 : 19;
+                    break;
+                case NexusKind.Local_Net:
+                    elementsNumber = VerticalLayout ? 28 : 27;
+                    break;
+                default:
+                    elementsNumber = 27;
+                    break;
+            }
+            var insideRect = new Rect(0, 0, boxWidth, Units(3) * elementsNumber + Units(2) * 3 + Units(1));
             // Height calculation: Units(4) space in the bottom of box is occupied by buttons row.
             var outsideRect = new Rect(startX, startY, boxWidth, boxHeight - ((VerticalLayout) ? Units(10) : Units(4)));
 
