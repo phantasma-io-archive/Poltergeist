@@ -1023,6 +1023,26 @@ namespace Poltergeist
             }
             GUI.enabled = temp;
         }
+        private void DoButton(bool enabled, bool pressed, Rect rect, string text, Action callback)
+        {
+            if (enabled && pressed)
+            {
+                callback();
+            }
+            else
+            {
+                var temp = GUI.enabled;
+                GUI.enabled = enabled;
+                if (GUI.Button(rect, text))
+                {
+                    if (currentAnimation == AnimationDirection.None)
+                    {
+                        callback();
+                    }
+                }
+                GUI.enabled = temp;
+            }
+        }
         private void DoButton(bool enabled, Rect rect, Texture texture, bool active, Action callback)
         {
             var temp = GUI.enabled;
@@ -1307,7 +1327,7 @@ namespace Poltergeist
             }
 
             // Calculating, how much space caption will occupy vertically.
-            int captionDisplayedHeight =  Math.Min(captionAvailableHeight, captionHeight);
+            int captionDisplayedHeight = Math.Min(captionAvailableHeight, captionHeight);
 
             int captionWidth = (int)rect.width;
 
@@ -1357,6 +1377,18 @@ namespace Poltergeist
                 hintY = curY;
             }
 
+            var enterPressed = false;
+            var escapePressed = false;
+            var e = UnityEngine.Event.current;
+            if (e.type == EventType.KeyUp && (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter))
+            {
+                enterPressed = true;
+            }
+            else if (e.type == EventType.KeyUp && e.keyCode == KeyCode.Escape)
+            {
+                escapePressed = true;
+            }
+
             if (modalState == ModalState.Input)
             {
                 if (modalMaxLines > 1)
@@ -1388,7 +1420,9 @@ namespace Poltergeist
             {
                 int halfWidth = (int)(modalRect.width / 2);
 
-                DoButton((!hasHints || !hintComboBox.DropDownIsOpened()), new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
+                DoButton((!hasHints || !hintComboBox.DropDownIsOpened()),
+                    escapePressed && (modalOptions == ModalConfirmCancel || modalOptions == ModalSendCancel || modalOptions == ModalYesNo),
+                    new Rect((halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[1], () =>
                 {
                     if (modalOptions == ModalOkCopy)
                     {
@@ -1409,6 +1443,7 @@ namespace Poltergeist
                 });
 
                 DoButton((!hasHints || !hintComboBox.DropDownIsOpened()) && Time.time - modalTime >= modalConfirmDelay && (modalState != ModalState.Input || modalInput.Length >= modalMinInputLength),
+                    enterPressed && (modalOptions == ModalOkCopy || modalOptions == ModalOkView || modalOptions == ModalConfirmCancel || modalOptions == ModalSendCancel || modalOptions == ModalYesNo),
                     new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), (modalConfirmDelay > 0 && (Time.time - modalTime < modalConfirmDelay)) ? modalOptions[0] + " (" + (modalConfirmDelay - Math.Floor(Time.time - modalTime)) + ")" : modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("confirm");
@@ -1418,7 +1453,9 @@ namespace Poltergeist
             else
             if (modalOptions.Length > 0)
             {
-                DoButton(true, new Rect((modalRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
+                DoButton(true,
+                    (escapePressed || enterPressed) && modalOptions == ModalOk,
+                    new Rect((modalRect.width - btnWidth) / 2, curY, btnWidth, Units(2)), modalOptions[0], () =>
                 {
                     AudioManager.Instance.PlaySFX("click");
                     modalResult = PromptResult.Success;
