@@ -159,6 +159,7 @@ namespace Poltergeist
     {
         public RawImage background;
         private Texture2D soulMasterLogo;
+        private Texture2D lockTexture;
 
         private Dictionary<PlatformKind, Texture2D> QRCodeTextures = new Dictionary<PlatformKind, Texture2D>();
 
@@ -1093,6 +1094,8 @@ namespace Poltergeist
             else
                 background.texture = Resources.Load<Texture2D>($"Skins/{uiThemeName}/background");
             soulMasterLogo = Resources.Load<Texture2D>($"Skins/{AccountManager.Instance.Settings.uiThemeName}/soul_master");
+
+            lockTexture = Resources.Load<Texture2D>("lock");
 
             GUI.enabled = true;
 
@@ -3695,6 +3698,11 @@ namespace Poltergeist
             GUI.Label(VerticalLayout ? new Rect(Units(2), curY + Units(3), Units(20), Units(2) + 4) : new Rect(Units(26), curY + 12, Units(20), Units(2) + 4),
                 BytesToString(entry.size));
             style.fontSize += VerticalLayout ? 2 : 0;
+
+            if (entry.encryption != null)
+            {
+                GUI.DrawTexture(new Rect(rect.x + rect.width - Units(17) - 8, curY + (VerticalLayout ? Units(3) : Units(1)), Units(2), Units(2)), lockTexture);
+            }
 
             var btnRect = new Rect(rect.x + rect.width - Units(15), curY + (VerticalLayout ? Units(3) : Units(1)), Units(6), Units(2));
             var btnRect2 = new Rect(rect.x + rect.width - Units(8), curY + (VerticalLayout ? Units(3) : Units(1)), Units(6), Units(2));
