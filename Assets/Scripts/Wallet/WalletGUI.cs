@@ -1,4 +1,5 @@
 ﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -199,8 +200,6 @@ namespace Poltergeist
         private string[] currencyOptions;
         private ComboBox currencyComboBox = new ComboBox();
 
-        private ComboBox platformComboBox = new ComboBox();
-
         private ComboBox hintComboBox = new ComboBox();
 
         private int nexusIndex;
@@ -257,7 +256,6 @@ namespace Poltergeist
         private void ResetAllCombos()
         {
             currencyComboBox.ResetState();
-            platformComboBox.ResetState();
             hintComboBox.ResetState();
             nexusComboBox.ResetState();
             ethereumNetworkComboBox.ResetState();
@@ -1021,6 +1019,34 @@ namespace Poltergeist
                 if (currentAnimation == AnimationDirection.None)
                 {
                     callback();
+                }
+            }
+            GUI.enabled = temp;
+        }
+        private void DoButton(bool enabled, Rect rect, Texture texture, bool active, Action callback)
+        {
+            var temp = GUI.enabled;
+            GUI.enabled = enabled;
+            if (active)
+            {
+                var style = new GUIStyle(GUI.skin.button);
+                style.normal = style.hover;
+                if (GUI.Button(rect, texture, style))
+                {
+                    if (currentAnimation == AnimationDirection.None)
+                    {
+                        callback();
+                    }
+                }
+            }
+            else
+            {
+                if (GUI.Button(rect, texture))
+                {
+                    if (currentAnimation == AnimationDirection.None)
+                    {
+                        callback();
+                    }
                 }
             }
             GUI.enabled = temp;
@@ -3152,7 +3178,7 @@ namespace Poltergeist
 
             if (mainToken != null)
             {
-                GUI.DrawTexture(new Rect(Units(2), curY, 24, 24), ResourceManager.Instance.GetToken(mainToken));
+                GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY : curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
             }
 
             // Saving platform combo position to draw it later.
@@ -3196,14 +3222,14 @@ namespace Poltergeist
 
             if (showCopyToClipboardButton)
             {
-                DoButton(!platformComboBox.DropDownIsOpened(), new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Copy Address", () =>
+                DoButton(true, new Rect(windowRect.width / 2 - btnWidth - Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Copy Address", () =>
                   {
                       AudioManager.Instance.PlaySFX("click");
                       GUIUtility.systemCopyBuffer = address;
                       MessageBox(MessageKind.Default, "Address copied to clipboard.");
                   });
 
-                DoButton(!platformComboBox.DropDownIsOpened(), new Rect(windowRect.width / 2 + Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Explorer", () =>
+                DoButton(true, new Rect(windowRect.width / 2 + Border, curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Explorer", () =>
                 {
                     AudioManager.Instance.PlaySFX("click");
                     switch(accountManager.CurrentPlatform)
@@ -3223,29 +3249,24 @@ namespace Poltergeist
                 curY += Units(3);
             }
 
+            // TODO move to a proper place in code
             // Drawing combo in the very end, to avoid combo dropdown overlapping with other elements.
-            int currentPlatformIndex = 0;
-            var platformList = accountManager.CurrentAccount.platforms.Split();
 
-            // We do not show platform combo for NFTs screens to avoid errors.
-            if (platformList.Count > 1 && (guiState != GUIState.Nft && guiState != GUIState.NftView && guiState != GUIState.NftTransferList))
+            // We do not show platform switchers for NFTs screens to avoid errors.
+            if (accountManager.CurrentAccount.platforms.Split().Count > 1 && (guiState != GUIState.Nft && guiState != GUIState.NftView && guiState != GUIState.NftTransferList))
             {
-                for (int i = 0; i < platformList.Count; i++)
-                {
-                    if (platformList[i] == accountManager.CurrentPlatform)
-                    {
-                        currentPlatformIndex = i;
-                        break;
-                    }
-                }
-                platformComboBox.SelectedItemIndex = currentPlatformIndex;
+                DoButton(true, new Rect(Units(4) + 8, platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120"), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
+                DoButton(true, new Rect(Units(7) + (VerticalLayout ? 4 : 0), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120"), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
+                DoButton(true, new Rect(Units(9) + (VerticalLayout ? 16 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120"), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
 
-                int dropHeight;
-                var platformIndex = platformComboBox.Show(new Rect(Units(4) + 8, platformComboBoxY, Units(8), Units(1) + (VerticalLayout ? 8 : 0)), platformList, 0, out dropHeight);
-
-                if (platformIndex != currentPlatformIndex)
+                if (!VerticalLayout)
                 {
-                    accountManager.CurrentPlatform = platformList[platformIndex];
+                    var style = GUI.skin.label;
+                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                        GUI.contentColor = Color.black;
+                    GUI.Label(new Rect(Units(12), platformComboBoxY - 12, Units(7), Units(2)), accountManager.CurrentPlatform.ToString().ToUpper());
+                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                        GUI.contentColor = Color.white;
                 }
             }
 
