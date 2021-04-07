@@ -662,7 +662,7 @@ namespace Phantasma.SDK
             switch (symbol)
             {
                 case "CROWN":
-                    result.parsedRom = new CrownRom(result.rom);
+                    result.parsedRom = new CrownRom(result.rom, result.ID);
                     break;
                 default:
                     result.parsedRom = new CustomRom(result.rom);
@@ -732,11 +732,14 @@ namespace Phantasma.SDK
     }
     public class CrownRom : IRom
     {
+        public string tokenId;
         public Address staker;
         public Core.Types.Timestamp date;
 
-        public CrownRom(byte[] rom)
+        public CrownRom(byte[] rom, string tokenId)
         {
+            this.tokenId = tokenId;
+
             using (var stream = new System.IO.MemoryStream(rom))
             {
                 using (var reader = new System.IO.BinaryReader(stream))
@@ -746,7 +749,7 @@ namespace Phantasma.SDK
             }
         }
 
-        public string GetName() => "Crown NFT";
+        public string GetName() => "CROWN #" + tokenId;
         public string GetDescription() => "";
         public DateTime GetDate() => date;
 
