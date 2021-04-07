@@ -2119,6 +2119,8 @@ namespace Poltergeist
                                         counter++;
                                     }
 
+                                    accountManagementSelectedList.Clear();
+
                                     MessageBox(MessageKind.Default, $"{counter} wallets removed from this device.");
                                 }
                             }, 15);
