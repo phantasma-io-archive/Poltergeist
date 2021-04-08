@@ -121,7 +121,7 @@ public static class TtrsStore
 
     public static IEnumerator LoadStoreNft(string[] ids, Action<Nft> onItemLoadedCallback, Action onAllItemsLoadedCallback)
     {
-        var url = "http://www.22series.com/api/store/nft";
+        var url = "https://www.22series.com/api/store/nft";
         var storeNft = Cache.GetDataNode("ttrs-store-nft", Cache.FileType.JSON, 60 * 24);
         if (storeNft != null)
         {
