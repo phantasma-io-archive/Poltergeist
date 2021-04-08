@@ -3219,7 +3219,7 @@ namespace Poltergeist
 
             if (mainToken != null)
             {
-                GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY : curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken));
+                GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY : curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken, accountManager.CurrentPlatform));
             }
 
             // Saving platform combo position to draw it later.
@@ -3296,9 +3296,9 @@ namespace Poltergeist
             // We do not show platform switchers for NFTs screens to avoid errors.
             if (accountManager.CurrentAccount.platforms.Split().Count > 1 && (guiState != GUIState.Nft && guiState != GUIState.NftView && guiState != GUIState.NftTransferList))
             {
-                DoButton(true, new Rect(Units(4) + 8, platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120"), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
-                DoButton(true, new Rect(Units(7) + (VerticalLayout ? 4 : 0), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120"), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
-                DoButton(true, new Rect(Units(9) + (VerticalLayout ? 16 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120"), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
+                DoButton(true, new Rect(Units(4) + 8, platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
+                DoButton(true, new Rect(Units(7) + (VerticalLayout ? 4 : 0), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
+                DoButton(true, new Rect(Units(9) + (VerticalLayout ? 16 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
 
                 if (!VerticalLayout)
                 {
@@ -4192,7 +4192,7 @@ namespace Poltergeist
 
             GUI.Box(rect, "");
 
-            var icon = ResourceManager.Instance.GetToken(balance.Symbol);
+            var icon = ResourceManager.Instance.GetToken(balance.Symbol, accountManager.CurrentPlatform);
             if (icon != null)
             {
                 if (VerticalLayout)

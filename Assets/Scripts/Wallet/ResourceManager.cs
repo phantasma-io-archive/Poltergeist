@@ -21,7 +21,7 @@ public class ResourceManager : MonoBehaviour
 
     void Start()
     {
-        WalletLogo = GetToken("soul");
+        WalletLogo = GetToken("soul", PlatformKind.Phantasma);
         MasterLogo = Resources.Load<Texture>("soul_master");
         Dropshadow = Resources.Load<Texture>("dropshadow");
         NftAudioPlaceholder = Resources.Load<Texture>("nft_audio_placeholder");
@@ -37,7 +37,7 @@ public class ResourceManager : MonoBehaviour
     }
 
     //https://github.com/CityOfZion/neon-wallet/tree/dev/app/assets/nep5/png
-    public Texture GetToken(string symbol)
+    public Texture GetToken(string symbol, PlatformKind platform)
     {
         if (_symbols.ContainsKey(symbol))
         {
@@ -48,6 +48,11 @@ public class ResourceManager : MonoBehaviour
 
         if(texture == null)
             texture = Resources.Load<Texture>("Tokens/" + symbol);
+
+        if(texture == null)
+        {
+            texture = Resources.Load<Texture>("Tokens/UNKNOWN_TOKEN_" + platform.ToString().ToUpper());
+        }
 
         _symbols[symbol] = texture;
 
