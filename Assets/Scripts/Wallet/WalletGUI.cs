@@ -3194,33 +3194,7 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
-            string mainToken;
-
-            switch (accountManager.CurrentPlatform)
-            {
-                case PlatformKind.Phantasma:
-                    mainToken = "SOUL";
-                    break;
-
-                case PlatformKind.Neo:
-                    mainToken = "NEO";
-                    break;
-
-                case PlatformKind.Ethereum:
-                    mainToken = "ETH";
-                    break;
-
-                default:
-                    mainToken = null;
-                    break;
-            }
-
             int curY = VerticalLayout ? Units(6) : Units(1);
-
-            if (mainToken != null)
-            {
-                GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY : curY - 4, 24, 24), ResourceManager.Instance.GetToken(mainToken, accountManager.CurrentPlatform));
-            }
 
             // Saving platform combo position to draw it later.
             int platformComboBoxY = curY;
@@ -3241,16 +3215,9 @@ namespace Poltergeist
 
             var btnWidth = Units(8);
 
-            int refreshOffset = 2;
-
-            if (VerticalLayout)
-            {
-                refreshOffset += 3;
-            }
-
             if (refresh != null)
             {
-                DoButton(true, new Rect(windowRect.width - (btnWidth + Border * refreshOffset), curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Refresh", () =>
+                DoButton(true, new Rect(windowRect.width - (VerticalLayout ? btnWidth + Border + 8 : btnWidth + Border * 2), curY, btnWidth, Units(1) + (VerticalLayout ? 8 : 0)), "Refresh", () =>
                 {
                     refresh();
                 });
@@ -3296,9 +3263,9 @@ namespace Poltergeist
             // We do not show platform switchers for NFTs screens to avoid errors.
             if (accountManager.CurrentAccount.platforms.Split().Count > 1 && (guiState != GUIState.Nft && guiState != GUIState.NftView && guiState != GUIState.NftTransferList))
             {
-                DoButton(true, new Rect(Units(4) + 8, platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
-                DoButton(true, new Rect(Units(7) + (VerticalLayout ? 4 : 0), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
-                DoButton(true, new Rect(Units(9) + (VerticalLayout ? 16 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
+                DoButton(true, new Rect(Units(1) + 8 + (VerticalLayout ? 0 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
+                DoButton(true, new Rect(Units(4) + (VerticalLayout ? 4 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
+                DoButton(true, new Rect(Units(6) + 16, platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
 
                 if (!VerticalLayout)
                 {
