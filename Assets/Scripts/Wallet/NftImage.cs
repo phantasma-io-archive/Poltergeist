@@ -173,7 +173,7 @@ public static class NftImages
 
         UnityWebRequest request = UnityWebRequestTexture.GetTexture(fullUrl);
         yield return request.SendWebRequest();
-        if (request.isNetworkError || request.isHttpError)
+        if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError || request.result == UnityWebRequest.Result.DataProcessingError)
         {
             Log.Write(request.error);
 
