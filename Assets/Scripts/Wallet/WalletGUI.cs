@@ -3196,8 +3196,23 @@ namespace Poltergeist
 
             int curY = VerticalLayout ? Units(6) : Units(1);
 
-            // Saving platform combo position to draw it later.
-            int platformComboBoxY = curY;
+            // We do not show platform switchers for NFTs screens to avoid errors.
+            if (accountManager.CurrentAccount.platforms.Split().Count > 1 && (guiState != GUIState.Nft && guiState != GUIState.NftView && guiState != GUIState.NftTransferList))
+            {
+                DoButton(true, new Rect(Units(1) + 8 + (VerticalLayout ? 0 : 8), curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
+                DoButton(true, new Rect(Units(4) + (VerticalLayout ? 4 : 8), curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
+                DoButton(true, new Rect(Units(6) + 16, curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
+
+                if (!VerticalLayout)
+                {
+                    var style = GUI.skin.label;
+                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                        GUI.contentColor = Color.black;
+                    GUI.Label(new Rect(Units(9) + 4, curY - 12, Units(7), Units(2)), accountManager.CurrentPlatform.ToString().ToUpper());
+                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                        GUI.contentColor = Color.white;
+                }
+            }
 
             string address = "";
             switch(accountManager.CurrentPlatform)
@@ -3255,27 +3270,6 @@ namespace Poltergeist
                 });
 
                 curY += Units(3);
-            }
-
-            // TODO move to a proper place in code
-            // Drawing combo in the very end, to avoid combo dropdown overlapping with other elements.
-
-            // We do not show platform switchers for NFTs screens to avoid errors.
-            if (accountManager.CurrentAccount.platforms.Split().Count > 1 && (guiState != GUIState.Nft && guiState != GUIState.NftView && guiState != GUIState.NftTransferList))
-            {
-                DoButton(true, new Rect(Units(1) + 8 + (VerticalLayout ? 0 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
-                DoButton(true, new Rect(Units(4) + (VerticalLayout ? 4 : 8), platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
-                DoButton(true, new Rect(Units(6) + 16, platformComboBoxY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
-
-                if (!VerticalLayout)
-                {
-                    var style = GUI.skin.label;
-                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
-                        GUI.contentColor = Color.black;
-                    GUI.Label(new Rect(Units(12), platformComboBoxY - 12, Units(7), Units(2)), accountManager.CurrentPlatform.ToString().ToUpper());
-                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
-                        GUI.contentColor = Color.white;
-                }
             }
 
             return curY;
