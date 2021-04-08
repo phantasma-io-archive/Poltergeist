@@ -311,6 +311,8 @@ namespace Phantasma.SDK
             var requestNumber = GetNextRequestNumber();
             Log.Write($"REST request (POST) [{requestNumber}]\nurl: {url}", Log.Level.Networking);
 
+            Log.Write($"REST request (POST) [{requestNumber}]\nserializedJson: {serializedJson}", Log.Level.Debug1);
+
             request = new UnityWebRequest(url, "POST");
 
             byte[] data = Encoding.UTF8.GetBytes(serializedJson);
