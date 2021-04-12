@@ -4293,7 +4293,13 @@ namespace Poltergeist
                             {
                                 RequireAmount($"Stake SOUL", null, "SOUL", 0.1m, balance.Available, (selectedAmount) =>
                                 {
-                                    var expectedDailyKCAL = (selectedAmount + balance.Staked) * 0.002m;
+                                    var crownMultiplier = 1m;
+                                    var crownBalance = state.balances.Where(x => x.Symbol.ToUpper() == "CROWN").FirstOrDefault();
+                                    if(crownBalance != default(Balance))
+                                    {
+                                        crownMultiplier += crownBalance.Available * 0.05m;
+                                    }
+                                    var expectedDailyKCAL = (selectedAmount + balance.Staked) * 0.002m * crownMultiplier;
 
                                     var twoSmsWarning = "";
                                     if(selectedAmount >= 100000)
@@ -4301,7 +4307,7 @@ namespace Poltergeist
                                         twoSmsWarning = "\n\nSoul Master rewards are distributed evenly to every wallet with 50K or more SOUL. As you are staking over 100K SOUL, to maximise your rewards, you may wish to stake each 50K SOUL in a separate wallet.";
                                     }
 
-                                    StakeSOUL(selectedAmount, $"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {expectedDailyKCAL} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, (hash) =>
+                                    StakeSOUL(selectedAmount, $"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {MoneyFormat(expectedDailyKCAL, selectedAmount >= 1 ? MoneyFormatType.Standard : MoneyFormatType.Long)} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, (hash) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
