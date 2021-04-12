@@ -21,7 +21,7 @@ using System.Collections;
 using Phantasma.Ethereum;
 using System.Threading;
 using Phantasma.Neo.Core;
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
 using SFB;
 #elif UNITY_ANDROID
 using static NativeFilePicker;
@@ -3623,7 +3623,7 @@ namespace Poltergeist
                 {
                     case 0:
                         {
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
                             UploadSelectedFile(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), "", false).FirstOrDefault());
 #elif UNITY_ANDROID
                             var extensionFilter = new string[] {"audio/*", "video/*", "image/*", "text/*", "application/*"};
@@ -3669,7 +3669,7 @@ namespace Poltergeist
 
             DoButton(true, btnRect, "Download", () =>
             {
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
                 var outputFolderPath = StandaloneFileBrowser.OpenFolderPanel("Select output folder", accountManager.Settings.GetLastVisitedFolder(), false).FirstOrDefault();
 
                 if (!string.IsNullOrEmpty(outputFolderPath))
@@ -5681,7 +5681,7 @@ namespace Poltergeist
                     case 1:
                         {
                             // Open file with filter
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
                             var extensions = new[] {
                                 new ExtensionFilter("Image Files", "png", "jpg", "jpeg" ),
                             };
