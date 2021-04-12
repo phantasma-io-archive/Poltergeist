@@ -5564,6 +5564,12 @@ namespace Poltergeist
                 {
                     switch (index)
                     {
+                        case 0:
+                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+                            {
+                                enabled = false;
+                            }
+                            break;
                         case 1:
                             if (accountManager.CurrentPlatform != PlatformKind.Phantasma || accountManager.CurrentState.name != "anonymous")
                             {
