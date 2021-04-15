@@ -4107,7 +4107,7 @@ namespace Poltergeist
             {
                 if (VerticalLayout)
                 {
-                    GUI.DrawTexture(new Rect(windowRect.width - Units(6), Units(4) + 4, Units(6), Units(6)), soulMasterLogo);
+                    GUI.DrawTexture(new Rect(windowRect.width / 2 - Units(3), Units(4) + 4, Units(6), Units(6)), soulMasterLogo);
                 }
                 else
                 {
