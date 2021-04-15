@@ -5348,7 +5348,8 @@ namespace Poltergeist
                     switch (index)
                     {
                         case 1:
-                            if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
+                            // Disable account migration for now
+                            // if (accountManager.CurrentPlatform != PlatformKind.Phantasma)
                             {
                                 enabled = false;
                             }
