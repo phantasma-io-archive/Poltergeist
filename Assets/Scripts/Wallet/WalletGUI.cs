@@ -6945,6 +6945,7 @@ namespace Poltergeist
                 // No sense in asking user for ETH fees - they are set by BP, we have to try to do our best with predicting them.
                 StartCoroutine(EthRequestSwapFeesAsBP((fastest) =>
                 {
+                    Log.Write("ETH fastest swap fee (estimated): " + fastest);
                     var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "ETH" ? accountManager.Settings.ethereumTransferGasLimit : accountManager.Settings.ethereumTokenTransferGasLimit) * fastest, 9); // 9 because we convert from Gwei, not Wei
 
                     proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
@@ -7243,37 +7244,53 @@ namespace Poltergeist
 
             var urlCoroutine1 = StartCoroutine(WebClient.RESTRequest(url1, WebClient.DefaultTimeout, (error, msg) =>
             {
-                Log.Write("URL1 error: " + error);
+                Log.Write("EthRequestSwapFeesAsBP(): URL1 error: " + error);
             },
             (response1) =>
             {
-                fee1 = response1.GetInt32(feeKey1, 0);
+                fee1 = response1.GetDecimal(feeKey1, 0);
+                Log.Write("EthRequestSwapFeesAsBP(): Fee 1 retrieved: " + fee1);
             }));
 
             var urlCoroutine2 = StartCoroutine(WebClient.RESTRequest(url2, WebClient.DefaultTimeout, (error, msg) =>
             {
-                Log.Write("URL2 error: " + error);
+                Log.Write("EthRequestSwapFeesAsBP(): URL2 error: " + error);
             },
             (response) =>
             {
-                fee2 = response.GetInt32(feeKey2, 0);
+                fee2 = response.GetDecimal(feeKey2, 0);
+                Log.Write("EthRequestSwapFeesAsBP(): Fee 2 retrieved: " + fee2);
             }));
 
             var urlCoroutine3 = StartCoroutine(WebClient.RESTRequest(url3, WebClient.DefaultTimeout, (error, msg) =>
             {
-                Log.Write("URL3 error: " + error);
+                Log.Write("EthRequestSwapFeesAsBP(): URL3 error: " + error);
             },
             (response) =>
             {
-                fee3 = response.GetInt32(feeKey3, 0);
+                fee3 = response.GetDecimal(feeKey3, 0);
+                Log.Write("EthRequestSwapFeesAsBP(): Fee 3 retrieved: " + fee3);
             }));
 
             yield return urlCoroutine1;
             yield return urlCoroutine2;
             yield return urlCoroutine3;
 
-            var median = GetMedian(new decimal[] { fee1, fee2, fee3 });
+            // Excluding 0 values. BP is not doing it yet,
+            // but if not done, it completely ruins calculation.
+            var fees = new List<decimal>();
+            if (fee1 != 0)
+                fees.Add(fee1);
+            if (fee2 != 0)
+                fees.Add(fee2);
+            if (fee3 != 0)
+                fees.Add(fee3);
 
+            // TODO use average.
+            // For now it copies bp's code.
+            var median = GetMedian(fees.ToArray());
+            Log.Write("EthRequestSwapFeesAsBP(): median: " + median);
+            
             callback(new BigInteger((long)(median + feeIncrease)));
         }
 #endregion
