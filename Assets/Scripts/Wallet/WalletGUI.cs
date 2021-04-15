@@ -3203,15 +3203,12 @@ namespace Poltergeist
                 DoButton(true, new Rect(Units(4) + (VerticalLayout ? 4 : 8), curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
                 DoButton(true, new Rect(Units(6) + 16, curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
 
-                if (!VerticalLayout)
-                {
-                    var style = GUI.skin.label;
-                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
-                        GUI.contentColor = Color.black;
-                    GUI.Label(new Rect(Units(9) + 4, curY - 12, Units(7), Units(2)), accountManager.CurrentPlatform.ToString().ToUpper());
-                    if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
-                        GUI.contentColor = Color.white;
-                }
+                var style = GUI.skin.label;
+                if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                    GUI.contentColor = Color.black;
+                GUI.Label(new Rect(Units(9) + 4, curY - (VerticalLayout ? 8 : 12), Units(7), Units(2)), VerticalLayout ? accountManager.CurrentPlatform.ToString().ToUpper().Substring(0, 3) : accountManager.CurrentPlatform.ToString().ToUpper());
+                if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
+                    GUI.contentColor = Color.white;
             }
 
             string address = "";
