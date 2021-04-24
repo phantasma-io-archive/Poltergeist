@@ -2793,6 +2793,17 @@ namespace Poltergeist
 
             var account = Accounts[currentIndex];
             account.WIF = wif;
+            
+            // Initializing new public addresses.
+            var phaKeys = PhantasmaKeys.FromWIF(account.WIF);
+            account.phaAddress = phaKeys.Address.ToString();
+
+            var neoKeys = NeoKeys.FromWIF(account.WIF);
+            account.neoAddress = neoKeys.Address.ToString();
+
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
+
             Accounts[currentIndex] = account;
             SaveAccounts();
         }

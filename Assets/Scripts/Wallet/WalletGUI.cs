@@ -30,6 +30,7 @@ using System.IO;
 using System.Text;
 using Archive = Phantasma.SDK.Archive;
 using Phantasma.Blockchain.Storage;
+using NBitcoin;
 
 namespace Poltergeist
 {
@@ -207,6 +208,11 @@ namespace Poltergeist
 
         private NexusKind[] availableNexus = Enum.GetValues(typeof(NexusKind)).Cast<NexusKind>().ToArray();
 
+        private int mnemonicPhraseLengthIndex;
+        private ComboBox mnemonicPhraseLengthComboBox = new ComboBox();
+
+        private MnemonicPhraseLength[] availableMnemonicPhraseLengths = Enum.GetValues(typeof(MnemonicPhraseLength)).Cast<MnemonicPhraseLength>().ToArray();
+
         private int ethereumNetworkIndex;
         private ComboBox ethereumNetworkComboBox = new ComboBox();
 
@@ -258,6 +264,7 @@ namespace Poltergeist
             currencyComboBox.ResetState();
             hintComboBox.ResetState();
             nexusComboBox.ResetState();
+            mnemonicPhraseLengthComboBox.ResetState();
             ethereumNetworkComboBox.ResetState();
             logLevelComboBox.ResetState();
             uiThemeComboBox.ResetState();
@@ -521,6 +528,17 @@ namespace Poltergeist
                         }
                         nexusComboBox.SelectedItemIndex = nexusIndex;
 
+                        mnemonicPhraseLengthIndex = 0;
+                        for (int i = 0; i < availableMnemonicPhraseLengths.Length; i++)
+                        {
+                            if (availableMnemonicPhraseLengths[i] == accountManager.Settings.mnemonicPhraseLength)
+                            {
+                                mnemonicPhraseLengthIndex = i;
+                                break;
+                            }
+                        }
+                        mnemonicPhraseLengthComboBox.SelectedItemIndex = mnemonicPhraseLengthIndex;
+
                         ethereumNetworkIndex = 0;
                         for (int i = 0; i < availableEthereumNetworks.Length; i++)
                         {
@@ -610,6 +628,7 @@ namespace Poltergeist
         private string[] ModalYesNo = new string[] { "Yes" , "No" };
         private string[] ModalHexWif = new string[] { "HEX format", "WIF format" };
         private string[] ModalNeoEthereum = new string[] { "Neo", "Ethereum" };
+        private string[] ModalCurrentLegacy = new string[] { "Current", "Legacy" };
 
         private string[] modalOptions;
         private int modalConfirmDelay;
@@ -756,20 +775,25 @@ namespace Poltergeist
                         if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
                         {
                             accountManager.CurrentPasswordHash = passwordHash;
+                            callback(auth);
                         }
                         else
                         {
-                            auth = PromptResult.Failure;
+                            MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
+                            {
+                                RequestPassword(description, platforms, callback);
+                            });
                         }
                     }
                     catch (Exception e)
                     {
-                        auth = PromptResult.Failure;
                         Log.WriteWarning("Authorization error: " + e.ToString());
+                        MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
+                        {
+                            RequestPassword(description, platforms, callback);
+                        });
                     }
                 }
-
-                callback(auth);                
             });
         }
         #endregion
@@ -1731,9 +1755,9 @@ namespace Poltergeist
 
                 if (isNewWallet)
                 {
-                    var bip = new Bitcoin.BIP39.BIP39(128, "", Bitcoin.BIP39.BIP39.Language.English);
-                    seedPhrase = bip.MnemonicSentence;
-                    var privKey = bip.SeedBytes.Take(32).ToArray();
+                    seedPhrase = BIP39NBitcoin.GenerateMnemonic(AccountManager.Instance.Settings.mnemonicPhraseLength);
+                    var privKey = BIP39NBitcoin.MnemonicToPK(seedPhrase);
+
                     var keys = new PhantasmaKeys(privKey);
                     wif = keys.ToWIF();
 
@@ -1813,7 +1837,7 @@ namespace Poltergeist
 
                     case 1:
                         {
-                            ShowModal("Wallet Import", "Supported inputs:\n12 word seed phrase\nPrivate key (HEX format)\nPrivate key (WIF format)\nEncrypted private key (NEP2)", ModalState.Input, 32, 1024, ModalConfirmCancel, 4, (result, key) =>
+                            ShowModal("Wallet Import", "Supported inputs:\n12/24 word seed phrase\nPrivate key (HEX format)\nPrivate key (WIF format)\nEncrypted private key (NEP2)", ModalState.Input, 32, 1024, ModalConfirmCancel, 4, (result, key) =>
                             {
                                 if (result == PromptResult.Success)
                                 {
@@ -1848,19 +1872,35 @@ namespace Poltergeist
                                         });
                                     }
                                     else
-                                    if (key.Count(x => x == ' ') == 11)
+                                    if (key.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length == 12)
                                     {
-                                        ShowModal("Seed import",
-                                            "For wallets created with Poltergeist v1.0-v1.2: Enter seed password.\nIf you put a wrong password, the wrong public address will be generated.\n\nNOTE: For wallets created with v1.3 or later (without a seed password), you must leave this field blank.\nThis is NOT your wallet password used to log into the wallet.\n",
-                                            ModalState.Input, 0, 64, ModalConfirmCancel, 1, (seedResult, password) =>
+                                        PromptBox("Please select seed phrase version.\n\nUse 'Current' for seed phrases generated in Poltergeist 2.4 and newer or MetaMask, use 'Legacy' for seed phrases generated in Poltergeist 2.3 and earlier.", ModalCurrentLegacy, (legacy) =>
                                         {
-                                            if (seedResult != PromptResult.Success)
+                                            if (legacy == PromptResult.Failure)
                                             {
-                                                return; // user canceled
-                                            }
+                                                // Legacy seed
+                                                ShowModal("Legacy seed import",
+                                                    "For wallets created with Poltergeist v1.0-v1.2: Enter seed password.\nIf you put a wrong password, the wrong public address will be generated.\n\nNOTE: For wallets created with v1.3 or later (without a seed password), you must leave this field blank.\nThis is NOT your wallet password used to log into the wallet.\n",
+                                                    ModalState.Input, 0, 64, ModalConfirmCancel, 1, (seedResult, password) =>
+                                                {
+                                                    if (seedResult != PromptResult.Success)
+                                                    {
+                                                        return; // user canceled
+                                                    }
 
-                                            ImportSeedPhrase(key, password);
+                                                    ImportSeedPhrase(key, password, true);
+                                                });
+                                            }
+                                            else
+                                            {
+                                                ImportSeedPhrase(key, null, false);
+                                            }
                                         });
+                                    }
+                                    else
+                                    if (key.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length == 24)
+                                    {
+                                        ImportSeedPhrase(key, null, false);
                                     }
                                     else
                                     {
@@ -2237,12 +2277,16 @@ namespace Poltergeist
                 });
         }
 
-        private void ImportSeedPhrase(string key, string password)
+        private void ImportSeedPhrase(string mnemonicPhrase, string password, bool legacySeed)
         {
             try
             {
-                var bip = new Bitcoin.BIP39.BIP39(key, password, Bitcoin.BIP39.BIP39.Language.English);
-                var privKey = bip.SeedBytes.Take(32).ToArray();
+                byte[] privKey;
+                if(legacySeed)
+                    privKey = BIP39Legacy.MnemonicToPK(mnemonicPhrase, password);
+                else
+                    privKey = BIP39NBitcoin.MnemonicToPK(mnemonicPhrase);
+
                 var decryptedKeys = new PhantasmaKeys(privKey);
                 ImportWallet(decryptedKeys.ToWIF(), null);
             }
@@ -2543,19 +2587,19 @@ namespace Poltergeist
             switch(settings.nexusKind)
             {
                 case NexusKind.Main_Net:
-                    elementsNumber = 18;
+                    elementsNumber = 19;
                     break;
                 case NexusKind.Test_Net:
-                    elementsNumber = VerticalLayout ? 22 : 21;
+                    elementsNumber = VerticalLayout ? 23 : 22;
                     break;
                 case NexusKind.Mankini_Test_Net:
-                    elementsNumber = VerticalLayout ? 20 : 19;
+                    elementsNumber = VerticalLayout ? 21 : 20;
                     break;
                 case NexusKind.Local_Net:
-                    elementsNumber = VerticalLayout ? 28 : 27;
+                    elementsNumber = VerticalLayout ? 29 : 28;
                     break;
                 default:
-                    elementsNumber = 27;
+                    elementsNumber = 28;
                     break;
             }
             var insideRect = new Rect(0, 0, boxWidth, Units(3) * elementsNumber + Units(2) * 3 + Units(1));
@@ -2605,6 +2649,12 @@ namespace Poltergeist
             {
                 settings.RestoreEndpoints(true);
             }
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Mnemonic length");
+            var mnemonicPhraseLengthsList = availableMnemonicPhraseLengths.Select(x => x.ToString().Replace('_', ' ')).ToArray();
+            mnemonicPhraseLengthIndex = mnemonicPhraseLengthComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), mnemonicPhraseLengthsList, 0, out dropHeight, null, 0);
+            settings.mnemonicPhraseLength = availableMnemonicPhraseLengths[mnemonicPhraseLengthIndex];
+            curY += dropHeight + Units(1);
 
             bool hasCustomEndPoints = false;
             bool hasCustomFee = false;
@@ -4015,6 +4065,39 @@ namespace Poltergeist
             });
         }
 
+        private static int GetNextInt32(System.Security.Cryptography.RNGCryptoServiceProvider rnd)
+        {
+            byte[] randomInt = new byte[4];
+            rnd.GetBytes(randomInt);
+            return Convert.ToInt32(randomInt[0]);
+        }
+        private void TrySeedVerification(int[] wordsOrder)
+        {
+            ShowModal("Seed verification", $"To confirm that you have backed up your seed phrase, enter your seed words in the following order: {string.Join(", ", wordsOrder)}",
+                ModalState.Input, 24 + 11, -1, ModalConfirmCancel, 4, (result, input) =>
+            {
+                if (result == PromptResult.Success)
+                {
+                    var wordsToVerify = input.Split(' ');
+                    var wordsToVerifyOrdered = new string[wordsToVerify.Length];
+                    for (var i = 0; i < wordsOrder.Length; i++)
+                    {
+                        wordsToVerifyOrdered[wordsOrder[i] - 1] = wordsToVerify[i];
+                    }
+
+                    if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerifyOrdered)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
+                    {
+                        SetState(GUIState.Account);
+                    }
+                    else
+                    {
+                        MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () => {
+                            TrySeedVerification(wordsOrder);
+                        });
+                    }
+                }
+            });
+        }
         private void DoBackupScreen()
         {
             int curY;
@@ -4035,7 +4118,7 @@ namespace Poltergeist
 
             GUI.Label(rect, "WARNING");
             rect.y += Border*2;
-            GUI.Label(rect, "For your own safety, write down these words on a piece of paper and store it safely and hidden.\n\nThe words serve as a back-up of your wallet.");
+            GUI.Label(rect, "For your own safety, write down these words on a piece of paper and store it safely and hidden.\nThese words serve as a back-up of your wallet.\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.");
 
             var btnWidth = Units(10);
             curY = (int)(windowRect.height - Units(VerticalLayout ? 6: 7));
@@ -4049,13 +4132,17 @@ namespace Poltergeist
             DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Continue", () =>
             {
                 AudioManager.Instance.PlaySFX("confirm");
-                PromptBox("You confirm that you have backed up your seed phrase?\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.", ModalConfirmCancel, (result) =>
-                {
-                    if (result == PromptResult.Success)
-                    {
-                        SetState(GUIState.Account);
-                    }
-                });
+
+                int[] wordsOrder;
+                if(AccountManager.Instance.Settings.mnemonicPhraseLength == MnemonicPhraseLength.Twelve_Words)
+                    wordsOrder = Enumerable.Range(1, 12).ToArray();
+                else
+                    wordsOrder = Enumerable.Range(1, 24).ToArray();
+
+                var rnd = new System.Security.Cryptography.RNGCryptoServiceProvider();
+                wordsOrder = wordsOrder.OrderBy(x => GetNextInt32(rnd)).ToArray();
+
+                TrySeedVerification(wordsOrder);
             });
         }
 
@@ -5402,10 +5489,13 @@ namespace Poltergeist
                                     return; // user cancelled
                                 }
 
+                                var account = accountManager.Accounts[accountManager.CurrentIndex];
+                                var oldWif = account.WIF;
+
                                 var newKeys = PhantasmaKeys.FromWIF(wif);
                                 if (newKeys.Address.Text != accountManager.CurrentState.address)
                                 {
-                                    PromptBox("Are you sure you want to migrate this account?\nBy doing a migration, any existing rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
+                                    PromptBox("Are you sure you want to migrate this account?\n\nBefore doing migration, make sure that both old and new private keys (WIFs or seed phrases) are safely stored.\n\nCheck your Eth and Neo balances for current wallet, if they have funds, move them to a new wallet before doing migration.\n\nBy doing a migration, any existing Phantasma rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
                                     {
                                         if (result == PromptResult.Success)
                                         {
@@ -5427,7 +5517,10 @@ namespace Poltergeist
                                                     accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif);
                                                     AudioManager.Instance.PlaySFX("click");
                                                     CloseCurrentStack();
-                                                    MessageBox(MessageKind.Default, "The account was migrated.");
+
+                                                    ShowModal("Message",
+                                                        $"The account was migrated.\nIf you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
+                                                        ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => {});
                                                 }
                                                 else
                                                 {
@@ -5468,7 +5561,7 @@ namespace Poltergeist
                                         }
                                     });
                                 }
-                            });
+                            }, 15);
                         }
                         break;
 

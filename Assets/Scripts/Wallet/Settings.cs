@@ -29,6 +29,12 @@ namespace Poltergeist
         Phantasia
     }
 
+    public enum MnemonicPhraseLength
+    {
+        Twelve_Words,
+        Twenty_Four_Words
+    }
+
     public static class SettingsExtension
     {
         public static bool IsValidURL(this string url)
@@ -84,6 +90,8 @@ namespace Poltergeist
 
         public const string LastVisitedFolderTag = "last.visited.folder";
 
+        public const string MnemonicPhraseLengthTag = "mnemonic.phrase.length";
+
         public string phantasmaRPCURL;
         public string phantasmaExplorer;
         public string phantasmaNftExplorer;
@@ -110,6 +118,7 @@ namespace Poltergeist
         public int nftSortMode;
         public int nftSortDirection;
         public string lastVisitedFolder;
+        public MnemonicPhraseLength mnemonicPhraseLength;
 
         public override string ToString()
         {
@@ -137,7 +146,8 @@ namespace Poltergeist
                 "Log overwrite: " + this.logOverwriteMode + "\n" +
                 "TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
                 "NFT sort mode: " + this.nftSortMode + "\n" +
-                "NFT sort direction: " + this.nftSortDirection;
+                "NFT sort direction: " + this.nftSortDirection + "\n" +
+                "Mnemonic phrase length: " + this.mnemonicPhraseLength;
         }
 
         public void LoadLogSettings()
@@ -256,6 +266,12 @@ namespace Poltergeist
             this.lastVisitedFolder = PlayerPrefs.GetString(LastVisitedFolderTag, documentFolderPath);
             if (!System.IO.Directory.Exists(this.lastVisitedFolder))
                 this.lastVisitedFolder = documentFolderPath;
+
+            var mnemonicPhraseLength = PlayerPrefs.GetString(MnemonicPhraseLengthTag, MnemonicPhraseLength.Twelve_Words.ToString());
+            if (!Enum.TryParse<MnemonicPhraseLength>(mnemonicPhraseLength, true, out this.mnemonicPhraseLength))
+            {
+                this.mnemonicPhraseLength = MnemonicPhraseLength.Twelve_Words;
+            }
 
             Log.Write("Settings: Load: " + ToString());
         }
@@ -477,6 +493,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(UiThemeNameTag, this.uiThemeName);
             PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
+            PlayerPrefs.SetString(MnemonicPhraseLengthTag, this.mnemonicPhraseLength.ToString());
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save: " + ToString());
