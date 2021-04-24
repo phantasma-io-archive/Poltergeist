@@ -876,12 +876,25 @@ namespace Poltergeist
                 Accounts = Serialization.Unserialize<Account[]>(bytes).ToList();
             }
 
+            if (walletVersion == 2)
+            {
+                // Legacy seeds, we should mark accounts.
+                for (var i = 0; i < Accounts.Count; i++)
+                {
+                    var account = Accounts[i];
+                    account.misc = "legacy-seed";
+                    Accounts[i] = account;
+                }
+
+                SaveAccounts();
+            }
+
             AccountsAreReadyToBeUsed = true;
         }
 
         public void SaveAccounts()
         {
-            PlayerPrefs.SetInt(WalletVersionTag, 2);
+            PlayerPrefs.SetInt(WalletVersionTag, 3);
 
             var bytes = Serialization.Serialize(Accounts.ToArray());
             PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
@@ -2568,7 +2581,7 @@ namespace Poltergeist
             return symbol == "SOUL" || symbol == "NEO" || symbol == "GAS";
         }
 
-        public int AddWallet(string name, PlatformKind platforms, string wif, string password)
+        public int AddWallet(string name, PlatformKind platforms, string wif, string password, bool legacySeed)
         {
             if (string.IsNullOrEmpty(name) || name.Length < 3)
             {
@@ -2621,6 +2634,8 @@ namespace Poltergeist
                 account.passwordProtected = false;
                 account.WIF = wif;
             }
+
+            account.misc = legacySeed ? "legacy-seed" : "";
 
             Accounts.Add(account);
 
@@ -2793,6 +2808,7 @@ namespace Poltergeist
 
             var account = Accounts[currentIndex];
             account.WIF = wif;
+            account.misc = ""; // Migration does not guarantee that new account have current seed, but that's all that we can do with it.
             
             // Initializing new public addresses.
             var phaKeys = PhantasmaKeys.FromWIF(account.WIF);

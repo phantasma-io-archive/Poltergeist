@@ -1630,7 +1630,17 @@ namespace Poltergeist
 
                         Animate(AnimationDirection.Up, false, () =>
                         {
-                            callback?.Invoke(true);
+                            if (accountManager.CurrentAccount.misc != null && accountManager.CurrentAccount.misc.Contains("legacy-seed"))
+                            {
+                                MessageBox(MessageKind.Default, "This account was created using legacy mnemonic phrase, please migrate to account created with Poltergeist 2.4 or newer to be compatible with future updates.", () =>
+                                {
+                                    callback?.Invoke(true);
+                                });
+                            }
+                            else
+                            {
+                                callback?.Invoke(true);
+                            }
                         });
                     });
                 }
@@ -1646,7 +1656,7 @@ namespace Poltergeist
             });
         }
 
-        private void ImportWallet(string wif, string password)
+        private void ImportWallet(string wif, string password, bool legacySeed)
         {
             if (wif != null)
             {
@@ -1672,17 +1682,17 @@ namespace Poltergeist
                         {
                             if (wantsPass == PromptResult.Success)
                             {
-                                TrySettingWalletPassword(name, wif);
+                                TrySettingWalletPassword(name, wif, legacySeed);
                             }
                             else
                             {
-                                FinishCreateAccount(name, wif, "");
+                                FinishCreateAccount(name, wif, "", legacySeed);
                             }
                         });
                     }
                     else
                     {
-                        FinishCreateAccount(name, wif, password);
+                        FinishCreateAccount(name, wif, password, legacySeed);
                     }
                 }
             });
@@ -1722,7 +1732,7 @@ namespace Poltergeist
             return true;
         }
 
-        private void TrySettingWalletPassword(string name, string wif)
+        private void TrySettingWalletPassword(string name, string wif, bool legacySeed)
         {
             ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
             {
@@ -1730,24 +1740,24 @@ namespace Poltergeist
                 {
                     if (IsGoodPassword(name, password))
                     {
-                        FinishCreateAccount(name, wif, password);
+                        FinishCreateAccount(name, wif, password, legacySeed);
                     }
                     else
                     {
                         MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {AccountManager.MinPasswordLength} characters and can't be easy to guess.", () =>
                         {
-                            TrySettingWalletPassword(name, wif);
+                            TrySettingWalletPassword(name, wif, legacySeed);
                         });
                     }
                 }
                 else
                 {
-                    FinishCreateAccount(name, wif, "");
+                    FinishCreateAccount(name, wif, "", legacySeed);
                 }
             });
         }
 
-        private void FinishCreateAccount(string name, string wif, string password)
+        private void FinishCreateAccount(string name, string wif, string password, bool legacySeed)
         {
             try
             {
@@ -1760,6 +1770,8 @@ namespace Poltergeist
 
                     var keys = new PhantasmaKeys(privKey);
                     wif = keys.ToWIF();
+
+                    legacySeed = false;
 
 #if UNITY_EDITOR
                     GUIUtility.systemCopyBuffer = seedPhrase;
@@ -1774,7 +1786,7 @@ namespace Poltergeist
                     platforms |= platform;
                 }
 
-                int walletIndex = accountManager.AddWallet(name, platforms, wif, password);
+                int walletIndex = accountManager.AddWallet(name, platforms, wif, password, legacySeed);
                 LoginIntoAccount(walletIndex, (succes) =>
                 {
                     if (succes)
@@ -1831,7 +1843,7 @@ namespace Poltergeist
                 {
                     case 0:
                         {
-                            ImportWallet(null, null);
+                            ImportWallet(null, null, false);
                             break;
                         }
 
@@ -1843,14 +1855,20 @@ namespace Poltergeist
                                 {
                                     if (PhantasmaAPI.IsValidPrivateKey(key))
                                     {
-                                        ImportWallet(key, null);
+                                        PromptBox("Was this private key created using a Poltergeist version earlier than v2.4 (before end of April 2021)?", ModalYesNo, (legacySeed) =>
+                                        {
+                                            ImportWallet(key, null, legacySeed == PromptResult.Success);
+                                        });
                                     }
                                     else
                                     if (key.Length == 64 || (key.Length == 66 && key.ToUpper().StartsWith("0X")))
                                     {
                                         var priv = Base16.Decode(key);
                                         var tempKey = new PhantasmaKeys(priv);
-                                        ImportWallet(tempKey.ToWIF(), null);
+                                        PromptBox("Was this WIF created using a Poltergeist version earlier than v2.4 (before May 2021)?", ModalYesNo, (legacySeed) =>
+                                        {
+                                            ImportWallet(tempKey.ToWIF(), null, legacySeed == PromptResult.Success);
+                                        });
                                     }
                                     else
                                     if (key.Length == 58 && key.StartsWith("6"))
@@ -1862,7 +1880,7 @@ namespace Poltergeist
                                                 try
                                                 {
                                                     var decryptedKeys = Phantasma.Neo.Core.NeoKeys.FromNEP2(key, passphrase);
-                                                    ImportWallet(decryptedKeys.WIF, passphrase);
+                                                    ImportWallet(decryptedKeys.WIF, passphrase, true);
                                                 }
                                                 catch (Exception e)
                                                 {
@@ -2087,6 +2105,17 @@ namespace Poltergeist
                                                 }
                                             }
 
+                                            if (accountsExport.accountsVersion == 2)
+                                            {
+                                                // Legacy seeds, we should mark accounts.
+                                                for (var i = 0; i < accountsToImport.Count; i++)
+                                                {
+                                                    var account = accountsToImport[i];
+                                                    account.misc = "legacy-seed";
+                                                    accountsToImport[i] = account;
+                                                }
+                                            }
+
                                             ShowModal("Wallets Import",
                                                 (someWillBeImported ? (messageWillBeImported + "\n\n") : "") + (someWillBeSkipped ? messageWillBeSkipped : ""),
                                                 ModalState.Message, 0, 0, ModalConfirmCancel, 0, (result2, input) =>
@@ -2288,7 +2317,7 @@ namespace Poltergeist
                     privKey = BIP39NBitcoin.MnemonicToPK(mnemonicPhrase);
 
                 var decryptedKeys = new PhantasmaKeys(privKey);
-                ImportWallet(decryptedKeys.ToWIF(), null);
+                ImportWallet(decryptedKeys.ToWIF(), null, legacySeed);
             }
             catch (Exception e)
             {
