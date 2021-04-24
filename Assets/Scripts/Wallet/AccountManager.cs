@@ -2799,8 +2799,10 @@ namespace Poltergeist
             SaveAccounts();
         }
 
-        internal void ReplaceAccountWIF(int currentIndex, string wif)
+        internal void ReplaceAccountWIF(int currentIndex, string wif, out string deletedDuplicateWallet)
         {
+            deletedDuplicateWallet = null;
+
             if (currentIndex < 0 || currentIndex >= Accounts.Count())
             {
                 return;
@@ -2821,6 +2823,17 @@ namespace Poltergeist
             account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
 
             Accounts[currentIndex] = account;
+
+            for(var i = 0; i < Accounts.Count; i++)
+            {
+                if(i != currentIndex && Accounts[i].phaAddress == account.phaAddress)
+                {
+                    deletedDuplicateWallet = Accounts[i].name;
+                    Accounts.RemoveAt(i);
+                    break;
+                }
+            }
+
             SaveAccounts();
         }
 

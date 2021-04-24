@@ -5543,12 +5543,12 @@ namespace Poltergeist
                                             {
                                                 if (hash != Hash.Null)
                                                 {
-                                                    accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif);
+                                                    accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif, out var deletedDuplicateWallet);
                                                     AudioManager.Instance.PlaySFX("click");
                                                     CloseCurrentStack();
 
                                                     ShowModal("Message",
-                                                        $"The account was migrated.\nIf you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
+                                                        $"The account was migrated.\n{(string.IsNullOrEmpty(deletedDuplicateWallet) ? "" : $"\nDuplicate account '{deletedDuplicateWallet}' was deleted.\n")}If you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
                                                         ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => {});
                                                 }
                                                 else
