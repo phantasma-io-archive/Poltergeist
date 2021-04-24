@@ -132,9 +132,23 @@ public static class Tokens
             // TODO remove after mainnet fix.
             // Fix for incorrect hash returned by BP.
             var neoToken = Tokens.GetToken("NEO", PlatformKind.Neo);
-            neoToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b";
+            try
+            {
+                neoToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b";
+            }
+            catch(Exception e)
+            {
+                Log.Write($"NEO token hash registration exception: {e}");
+            }
             var gasToken = Tokens.GetToken("GAS", PlatformKind.Neo);
-            gasToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7";
+            try
+            {
+                gasToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7";
+            }
+            catch (Exception e)
+            {
+                Log.Write($"GAS token hash registration exception: {e}");
+            }
 
             Tokens.Load(PlatformKind.Ethereum);
             Tokens.Load(PlatformKind.Neo);
