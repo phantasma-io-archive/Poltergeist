@@ -4102,25 +4102,36 @@ namespace Poltergeist
         }
         private void TrySeedVerification(int[] wordsOrder)
         {
-            ShowModal("Seed verification", $"To confirm that you have backed up your seed phrase, enter your seed words in the following order: {string.Join(", ", wordsOrder)}",
+            ShowModal("Seed verification", $"To confirm that you have backed up your seed phrase, enter your seed words in the following order: {string.Join(" ", wordsOrder)}",
                 ModalState.Input, 24 + 11, -1, ModalConfirmCancel, 4, (result, input) =>
             {
                 if (result == PromptResult.Success)
                 {
-                    var wordsToVerify = input.Split(' ');
-                    var wordsToVerifyOrdered = new string[wordsToVerify.Length];
-                    for (var i = 0; i < wordsOrder.Length; i++)
+                    try
                     {
-                        wordsToVerifyOrdered[wordsOrder[i] - 1] = wordsToVerify[i];
-                    }
+                        var wordsToVerify = input.Split(' ');
+                        var wordsToVerifyOrdered = new string[wordsToVerify.Length];
+                        for (var i = 0; i < wordsOrder.Length; i++)
+                        {
+                            wordsToVerifyOrdered[wordsOrder[i] - 1] = wordsToVerify[i];
+                        }
 
-                    if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerifyOrdered)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
-                    {
-                        SetState(GUIState.Account);
+                        if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerifyOrdered)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
+                        {
+                            SetState(GUIState.Account);
+                        }
+                        else
+                        {
+                            MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
+                            {
+                                TrySeedVerification(wordsOrder);
+                            });
+                        }
                     }
-                    else
+                    catch(Exception)
                     {
-                        MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () => {
+                        MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
+                        {
                             TrySeedVerification(wordsOrder);
                         });
                     }
