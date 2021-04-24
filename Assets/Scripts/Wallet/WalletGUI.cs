@@ -1865,7 +1865,7 @@ namespace Poltergeist
                                     {
                                         var priv = Base16.Decode(key);
                                         var tempKey = new PhantasmaKeys(priv);
-                                        PromptBox("Was this WIF created using a Poltergeist version earlier than v2.4 (before May 2021)?", ModalYesNo, (legacySeed) =>
+                                        PromptBox("Was this WIF created using a Poltergeist version earlier than v2.4 (before end of April 2021)?", ModalYesNo, (legacySeed) =>
                                         {
                                             ImportWallet(tempKey.ToWIF(), null, legacySeed == PromptResult.Success);
                                         });
