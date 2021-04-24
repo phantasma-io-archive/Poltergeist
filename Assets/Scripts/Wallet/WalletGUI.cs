@@ -2194,7 +2194,7 @@ namespace Poltergeist
 
                                     MessageBox(MessageKind.Default, $"{counter} wallets removed from this device.");
                                 }
-                            }, 15);
+                            }, 10);
                             break;
                         }
 
@@ -3162,7 +3162,7 @@ namespace Poltergeist
                                 CloseCurrentStack();
                             });
                         }
-                    }, 15);
+                    }, 10);
                 });
 
                 curY += Units(3);
@@ -5601,7 +5601,7 @@ namespace Poltergeist
                                         }
                                     });
                                 }
-                            }, 15);
+                            }, 10);
                         }
                         break;
 
