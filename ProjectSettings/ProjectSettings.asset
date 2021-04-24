@@ -146,6 +146,7 @@ PlayerSettings:
   androidSupportedAspectRatio: 1
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
+    Android: com.Phantasma.PoltergeistWallet
     Standalone: com.Phantasma.PoltergeistWallet
   buildNumber:
     Standalone: 0
