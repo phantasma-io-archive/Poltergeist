@@ -5529,50 +5529,60 @@ namespace Poltergeist
                                     return; // user cancelled
                                 }
 
-                                var account = accountManager.Accounts[accountManager.CurrentIndex];
-                                var oldWif = account.WIF;
-
-                                var newKeys = PhantasmaKeys.FromWIF(wif);
-                                if (newKeys.Address.Text != accountManager.CurrentState.address)
+                                if (accountManager.CurrentState.archives.Where(x => x.encryption != null).Any())
                                 {
-                                    PromptBox("Are you sure you want to migrate this account?\n\nBefore doing migration, make sure that both old and new private keys (WIFs or seed phrases) are safely stored.\n\nCheck your Eth and Neo balances for current wallet, if they have funds, move them to a new wallet before doing migration.\n\nBy doing a migration, any existing Phantasma rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
+                                    MessageBox(MessageKind.Default, "Before migration, please download and remove all encrypted files from the storage.", () =>
                                     {
-                                        if (result == PromptResult.Success)
-                                        {
-                                            var address = Address.FromText(accountManager.CurrentState.address);
-
-                                            var sb = new ScriptBuilder();
-                                            var gasPrice = accountManager.Settings.feePrice;
-                                            var gasLimit = accountManager.Settings.feeLimit;
-
-                                            sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
-                                            sb.CallContract("account", "Migrate", address, newKeys.Address);
-                                            sb.SpendGas(address);
-                                            var script = sb.EndScript();
-
-                                            SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
-                                            {
-                                                if (hash != Hash.Null)
-                                                {
-                                                    accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif, out var deletedDuplicateWallet);
-                                                    AudioManager.Instance.PlaySFX("click");
-                                                    CloseCurrentStack();
-
-                                                    ShowModal("Message",
-                                                        $"The account was migrated.\n{(string.IsNullOrEmpty(deletedDuplicateWallet) ? "" : $"\nDuplicate account '{deletedDuplicateWallet}' was deleted.\n")}If you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
-                                                        ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => {});
-                                                }
-                                                else
-                                                {
-                                                    MessageBox(MessageKind.Error, "It was not possible to migrate the account.");
-                                                }
-                                            });
-                                        }
+                                        return;
                                     });
                                 }
                                 else
                                 {
-                                    MessageBox(MessageKind.Error, "You need to provide a different WIF.");
+                                    var account = accountManager.Accounts[accountManager.CurrentIndex];
+                                    var oldWif = account.WIF;
+
+                                    var newKeys = PhantasmaKeys.FromWIF(wif);
+                                    if (newKeys.Address.Text != accountManager.CurrentState.address)
+                                    {
+                                        PromptBox("Are you sure you want to migrate this account?\n\nBefore doing migration, make sure that both old and new private keys (WIFs or seed phrases) are safely stored.\n\nCheck your Eth and Neo balances for current wallet, if they have funds, move them to a new wallet before doing migration.\n\nBy doing a migration, any existing Phantasma rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
+                                        {
+                                            if (result == PromptResult.Success)
+                                            {
+                                                var address = Address.FromText(accountManager.CurrentState.address);
+
+                                                var sb = new ScriptBuilder();
+                                                var gasPrice = accountManager.Settings.feePrice;
+                                                var gasLimit = accountManager.Settings.feeLimit;
+
+                                                sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                                                sb.CallContract("account", "Migrate", address, newKeys.Address);
+                                                sb.SpendGas(address);
+                                                var script = sb.EndScript();
+
+                                                SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                                {
+                                                    if (hash != Hash.Null)
+                                                    {
+                                                        accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif, out var deletedDuplicateWallet);
+                                                        AudioManager.Instance.PlaySFX("click");
+                                                        CloseCurrentStack();
+
+                                                        ShowModal("Message",
+                                                            $"The account was migrated.\n{(string.IsNullOrEmpty(deletedDuplicateWallet) ? "" : $"\nDuplicate account '{deletedDuplicateWallet}' was deleted.\n")}If you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
+                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
+                                                    }
+                                                    else
+                                                    {
+                                                        MessageBox(MessageKind.Error, "It was not possible to migrate the account.");
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                    else
+                                    {
+                                        MessageBox(MessageKind.Error, "You need to provide a different WIF.");
+                                    }
                                 }
 
                             });
