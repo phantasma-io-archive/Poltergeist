@@ -175,7 +175,16 @@ namespace Poltergeist
             {
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
-                this.phantasmaRPCURL = GetDefaultValue(PhantasmaRPCTag);
+                if (this.nexusKind == NexusKind.Main_Net)
+                {
+                    this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
+                }
+                else
+                {
+                    // We cannot do it for mainnet, because for mainnet we store best RPC here.
+                    // For testnets we should update with default value.
+                    this.phantasmaRPCURL = GetDefaultValue(PhantasmaRPCTag);
+                }
                 this.phantasmaExplorer = GetDefaultValue(PhantasmaExplorerTag);
                 this.phantasmaNftExplorer = GetDefaultValue(PhantasmaNftExplorerTag);
                 this.neoRPCURL = GetDefaultValue(NeoRPCTag);
