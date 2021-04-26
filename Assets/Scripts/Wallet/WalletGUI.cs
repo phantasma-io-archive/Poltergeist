@@ -1632,10 +1632,10 @@ namespace Poltergeist
                         {
                             if (accountManager.CurrentAccount.misc != null && accountManager.CurrentAccount.misc.Contains("legacy-seed"))
                             {
-                                MessageBox(MessageKind.Default, "This account was created using legacy mnemonic phrase, please migrate to account created with Poltergeist 2.4 or newer to be compatible with future updates.", () =>
-                                {
+                                //MessageBox(MessageKind.Default, "This account was created using legacy mnemonic phrase, please migrate to account created with Poltergeist 2.4 or newer to be compatible with future updates.", () =>
+                                //{
                                     callback?.Invoke(true);
-                                });
+                                //});
                             }
                             else
                             {
