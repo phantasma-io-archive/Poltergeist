@@ -15,7 +15,6 @@
 {"symbol": "SWTH", "apiSymbol": "switcheo"},
 {"symbol": "NEX", "apiSymbol": "neon-exchange"},
 {"symbol": "TKY", "apiSymbol": "thekey"},
-{"symbol": "CGAS", "apiSymbol": ""},
 {"symbol": "MCT", "apiSymbol": "master-contract-token"},
 {"symbol": "DBC", "apiSymbol": "deepbrain-chain"},
 {"symbol": "FTW", "apiSymbol": "ftw"},

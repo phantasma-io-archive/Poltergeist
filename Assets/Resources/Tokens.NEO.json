@@ -1,7 +1,6 @@
 [{"symbol": "SWTH", "name": "Switcheo", "decimals": 8, "hash": "3e09e602eeeb401a2fec8e8ea137d59aae54a139"},
 {"symbol": "NEX", "name": "Nex", "decimals": 8, "hash": "3a4acd3647086e7c44398aac0349802e6a171129"},
 {"symbol": "TKY", "name": "The Key", "decimals": 8, "hash": "132947096727c84c7f9e076c90f08fec3bc17f18"},
-{"symbol": "CGAS", "name": "NEP5 GAS", "decimals": 8, "hash": "74f2dc36a68fdc4682034178eb2220729231db76"},
 {"symbol": "MCT", "name": "Master Contract", "decimals": 8, "hash": "a87cc2a513f5d8b4a42432343687c2127c60bc3f"},
 {"symbol": "DBC", "name": "DeepBrain Coin", "decimals": 8, "hash": "b951ecbbc5fe37a9c280a76cb0ce0014827294cf"},
 {"symbol": "FTW", "name": "For The Win", "decimals": 8, "hash": "11dbc2316f35ea031449387f615d9e4b0cbafe8b"},
