@@ -213,6 +213,12 @@ namespace Poltergeist
 
         private MnemonicPhraseLength[] availableMnemonicPhraseLengths = Enum.GetValues(typeof(MnemonicPhraseLength)).Cast<MnemonicPhraseLength>().ToArray();
 
+        private int mnemonicPhraseVerificationModeIndex;
+        private ComboBox mnemonicPhraseVerificationModeComboBox = new ComboBox();
+
+        private MnemonicPhraseVerificationMode[] availableMnemonicPhraseVerificationModes = Enum.GetValues(typeof(MnemonicPhraseVerificationMode)).Cast<MnemonicPhraseVerificationMode>().ToArray();
+
+
         private int ethereumNetworkIndex;
         private ComboBox ethereumNetworkComboBox = new ComboBox();
 
@@ -265,6 +271,7 @@ namespace Poltergeist
             hintComboBox.ResetState();
             nexusComboBox.ResetState();
             mnemonicPhraseLengthComboBox.ResetState();
+            mnemonicPhraseVerificationModeComboBox.ResetState();
             ethereumNetworkComboBox.ResetState();
             logLevelComboBox.ResetState();
             uiThemeComboBox.ResetState();
@@ -538,6 +545,17 @@ namespace Poltergeist
                             }
                         }
                         mnemonicPhraseLengthComboBox.SelectedItemIndex = mnemonicPhraseLengthIndex;
+
+                        mnemonicPhraseVerificationModeIndex = 0;
+                        for (int i = 0; i < availableMnemonicPhraseVerificationModes.Length; i++)
+                        {
+                            if (availableMnemonicPhraseVerificationModes[i] == accountManager.Settings.mnemonicPhraseVerificationMode)
+                            {
+                                mnemonicPhraseVerificationModeIndex = i;
+                                break;
+                            }
+                        }
+                        mnemonicPhraseVerificationModeComboBox.SelectedItemIndex = mnemonicPhraseVerificationModeIndex;
 
                         ethereumNetworkIndex = 0;
                         for (int i = 0; i < availableEthereumNetworks.Length; i++)
@@ -2616,19 +2634,19 @@ namespace Poltergeist
             switch(settings.nexusKind)
             {
                 case NexusKind.Main_Net:
-                    elementsNumber = 19;
+                    elementsNumber = 20;
                     break;
                 case NexusKind.Test_Net:
-                    elementsNumber = VerticalLayout ? 23 : 22;
+                    elementsNumber = VerticalLayout ? 24 : 23;
                     break;
                 case NexusKind.Mankini_Test_Net:
-                    elementsNumber = VerticalLayout ? 21 : 20;
+                    elementsNumber = VerticalLayout ? 22 : 21;
                     break;
                 case NexusKind.Local_Net:
-                    elementsNumber = VerticalLayout ? 29 : 28;
+                    elementsNumber = VerticalLayout ? 30 : 29;
                     break;
                 default:
-                    elementsNumber = 28;
+                    elementsNumber = 29;
                     break;
             }
             var insideRect = new Rect(0, 0, boxWidth, Units(3) * elementsNumber + Units(2) * 3 + Units(1));
@@ -2679,10 +2697,16 @@ namespace Poltergeist
                 settings.RestoreEndpoints(true);
             }
 
-            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Mnemonic length");
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Seed length");
             var mnemonicPhraseLengthsList = availableMnemonicPhraseLengths.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             mnemonicPhraseLengthIndex = mnemonicPhraseLengthComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), mnemonicPhraseLengthsList, 0, out dropHeight, null, 0);
             settings.mnemonicPhraseLength = availableMnemonicPhraseLengths[mnemonicPhraseLengthIndex];
+            curY += dropHeight + Units(1);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Seed verification");
+            var mnemonicPhraseVerificationModesList = availableMnemonicPhraseVerificationModes.Select(x => x.ToString().Replace('_', ' ')).ToArray();
+            mnemonicPhraseVerificationModeIndex = mnemonicPhraseVerificationModeComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), mnemonicPhraseVerificationModesList, 0, out dropHeight, null, 0);
+            settings.mnemonicPhraseVerificationMode = availableMnemonicPhraseVerificationModes[mnemonicPhraseVerificationModeIndex];
             curY += dropHeight + Units(1);
 
             bool hasCustomEndPoints = false;
@@ -4102,25 +4126,35 @@ namespace Poltergeist
         }
         private void TrySeedVerification(int[] wordsOrder)
         {
-            ShowModal("Seed verification", $"To confirm that you have backed up your seed phrase, enter your seed words in the following order: {string.Join(" ", wordsOrder)}",
-                ModalState.Input, 24 + 11, -1, ModalConfirmCancel, 4, (result, input) =>
+            if (AccountManager.Instance.Settings.mnemonicPhraseVerificationMode == MnemonicPhraseVerificationMode.Full)
             {
-                if (result == PromptResult.Success)
+                ShowModal("Seed verification", $"To confirm that you have backed up your seed phrase, enter your seed words in the following order: {string.Join(" ", wordsOrder)}",
+                    ModalState.Input, 24 + 11, -1, ModalConfirmCancel, 4, (result, input) =>
                 {
-                    try
+                    if (result == PromptResult.Success)
                     {
-                        var wordsToVerify = input.Split(' ');
-                        var wordsToVerifyOrdered = new string[wordsToVerify.Length];
-                        for (var i = 0; i < wordsOrder.Length; i++)
+                        try
                         {
-                            wordsToVerifyOrdered[wordsOrder[i] - 1] = wordsToVerify[i];
-                        }
+                            var wordsToVerify = input.Split(' ');
+                            var wordsToVerifyOrdered = new string[wordsToVerify.Length];
+                            for (var i = 0; i < wordsOrder.Length; i++)
+                            {
+                                wordsToVerifyOrdered[wordsOrder[i] - 1] = wordsToVerify[i];
+                            }
 
-                        if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerifyOrdered)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
-                        {
-                            SetState(GUIState.Account);
+                            if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerifyOrdered)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
+                            {
+                                SetState(GUIState.Account);
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
+                                {
+                                    TrySeedVerification(wordsOrder);
+                                });
+                            }
                         }
-                        else
+                        catch (Exception)
                         {
                             MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
                             {
@@ -4128,15 +4162,41 @@ namespace Poltergeist
                             });
                         }
                     }
-                    catch(Exception)
+                });
+            }
+            else
+            {
+                ShowModal("Seed verification", $"To confirm that you have backed up your seed phrase, enter your seed words:",
+                    ModalState.Input, 24 + 11, -1, ModalConfirmCancel, 4, (result, input) =>
+                {
+                    if (result == PromptResult.Success)
                     {
-                        MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
+                        try
                         {
-                            TrySeedVerification(wordsOrder);
-                        });
+                            var wordsToVerify = input.Split(' ');
+
+                            if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerify)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
+                            {
+                                SetState(GUIState.Account);
+                            }
+                            else
+                            {
+                                MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
+                                {
+                                    TrySeedVerification(wordsOrder);
+                                });
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
+                            {
+                                TrySeedVerification(wordsOrder);
+                            });
+                        }
                     }
-                }
-            });
+                });
+            }
         }
         private void DoBackupScreen()
         {

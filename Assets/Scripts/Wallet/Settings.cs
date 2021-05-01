@@ -35,6 +35,12 @@ namespace Poltergeist
         Twenty_Four_Words
     }
 
+    public enum MnemonicPhraseVerificationMode
+    {
+        Full,
+        Simplified
+    }
+
     public static class SettingsExtension
     {
         public static bool IsValidURL(this string url)
@@ -91,6 +97,7 @@ namespace Poltergeist
         public const string LastVisitedFolderTag = "last.visited.folder";
 
         public const string MnemonicPhraseLengthTag = "mnemonic.phrase.length";
+        public const string MnemonicPhraseVerificationModeTag = "mnemonic.phrase.verification.mode";
 
         public string phantasmaRPCURL;
         public string phantasmaExplorer;
@@ -119,6 +126,7 @@ namespace Poltergeist
         public int nftSortDirection;
         public string lastVisitedFolder;
         public MnemonicPhraseLength mnemonicPhraseLength;
+        public MnemonicPhraseVerificationMode mnemonicPhraseVerificationMode;
 
         public override string ToString()
         {
@@ -147,7 +155,8 @@ namespace Poltergeist
                 "TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
                 "NFT sort mode: " + this.nftSortMode + "\n" +
                 "NFT sort direction: " + this.nftSortDirection + "\n" +
-                "Mnemonic phrase length: " + this.mnemonicPhraseLength;
+                "Mnemonic phrase length: " + this.mnemonicPhraseLength + "\n" +
+                "Mnemonic phrase verification mode: " + this.mnemonicPhraseVerificationMode;
         }
 
         public void LoadLogSettings()
@@ -280,6 +289,12 @@ namespace Poltergeist
             if (!Enum.TryParse<MnemonicPhraseLength>(mnemonicPhraseLength, true, out this.mnemonicPhraseLength))
             {
                 this.mnemonicPhraseLength = MnemonicPhraseLength.Twelve_Words;
+            }
+
+            var mnemonicPhraseVerificationMode = PlayerPrefs.GetString(MnemonicPhraseVerificationModeTag, MnemonicPhraseVerificationMode.Full.ToString());
+            if (!Enum.TryParse<MnemonicPhraseVerificationMode>(mnemonicPhraseVerificationMode, true, out this.mnemonicPhraseVerificationMode))
+            {
+                this.mnemonicPhraseVerificationMode = MnemonicPhraseVerificationMode.Full;
             }
 
             Log.Write("Settings: Load: " + ToString());
@@ -503,6 +518,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.SetString(MnemonicPhraseLengthTag, this.mnemonicPhraseLength.ToString());
+            PlayerPrefs.SetString(MnemonicPhraseVerificationModeTag, this.mnemonicPhraseVerificationMode.ToString());
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save: " + ToString());
