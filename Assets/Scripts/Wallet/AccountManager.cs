@@ -272,6 +272,15 @@ namespace Poltergeist
         public Phantasma.Neo.Core.NeoAPI neoApi;
 
         public static PlatformKind[] AvailablePlatforms { get; private set; }
+        public static PlatformKind MergeAvailablePlatforms()
+        {
+            var platforms = PlatformKind.None;
+            foreach (var platform in AccountManager.AvailablePlatforms)
+            {
+                platforms |= platform;
+            }
+            return platforms;
+        }
 
         private Dictionary<string, string> _currencyMap = new Dictionary<string, string>();
         public IEnumerable<string> Currencies => _currencyMap.Keys;
@@ -2581,7 +2590,7 @@ namespace Poltergeist
             return symbol == "SOUL" || symbol == "NEO" || symbol == "GAS";
         }
 
-        public int AddWallet(string name, PlatformKind platforms, string wif, string password, bool legacySeed)
+        public int AddWallet(string name, string wif, string password, bool legacySeed)
         {
             if (string.IsNullOrEmpty(name) || name.Length < 3)
             {
@@ -2601,7 +2610,7 @@ namespace Poltergeist
                 }
             }
 
-            var account = new Account() { name = name, platforms = platforms, misc = "" };
+            var account = new Account() { name = name, platforms = AccountManager.MergeAvailablePlatforms(), misc = "" };
 
             // Initializing public addresses.
             var phaKeys = PhantasmaKeys.FromWIF(wif);

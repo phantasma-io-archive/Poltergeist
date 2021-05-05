@@ -195,7 +195,10 @@ namespace Poltergeist
 
         private string currentTitle;
 
-        private string seedPhrase;
+        private string newWalletName;
+        private string newWalletSeedPhrase;
+        private string newWalletWif;
+        private string newWalletPassword;
 
         private int currencyIndex;
         private string[] currencyOptions;
@@ -411,7 +414,10 @@ namespace Poltergeist
             switch (guiState)
             {
                 case GUIState.Backup:
-                    seedPhrase = null;
+                    newWalletName = null;
+                    newWalletSeedPhrase = null;
+                    newWalletWif = null;
+                    newWalletPassword = null;
                     break;
 
                 case GUIState.ScanQR:
@@ -1625,7 +1631,7 @@ namespace Poltergeist
         {
             Log.Write("Login into account initiated.");
 
-            var isNewAccount = !string.IsNullOrEmpty(seedPhrase);
+            var isNewAccount = !string.IsNullOrEmpty(newWalletSeedPhrase);
 
             var accountManager = AccountManager.Instance;
             accountManager.SelectAccount(index);
@@ -1644,7 +1650,7 @@ namespace Poltergeist
                     }
 
                     Animate(AnimationDirection.Down, true, () => {
-                        PushState(isNewAccount ? GUIState.Backup : GUIState.Balances);
+                        PushState(GUIState.Balances);
 
                         Animate(AnimationDirection.Up, false, () =>
                         {
@@ -1676,9 +1682,10 @@ namespace Poltergeist
 
         private void ImportWallet(string wif, string password, bool legacySeed)
         {
+            var accountManager = AccountManager.Instance;
+
             if (wif != null)
             {
-                var accountManager = AccountManager.Instance;
                 foreach (var account in accountManager.Accounts)
                 {
                     var keys = PhantasmaKeys.FromWIF(wif);
@@ -1694,23 +1701,39 @@ namespace Poltergeist
             {
                 if (result == PromptResult.Success)
                 {
-                    if (password == null)
+                    var nameAlreadyTaken = false;
+                    for (int i = 0; i < accountManager.Accounts.Count(); i++)
                     {
-                        PromptBox("Do you want to add a password to this wallet?\nThe password will be required to open the wallet.\nIt will also be prompted every time you do a transaction", ModalYesNo, (wantsPass) =>
+                        if (accountManager.Accounts[i].name.Equals(name, StringComparison.OrdinalIgnoreCase))
                         {
-                            if (wantsPass == PromptResult.Success)
-                            {
-                                TrySettingWalletPassword(name, wif, legacySeed);
-                            }
-                            else
-                            {
-                                FinishCreateAccount(name, wif, "", legacySeed);
-                            }
-                        });
+                            nameAlreadyTaken = true;
+                        }
+                    }
+
+                    if (nameAlreadyTaken)
+                    {
+                        MessageBox(MessageKind.Error, "An account with this name already exists.");
                     }
                     else
                     {
-                        FinishCreateAccount(name, wif, password, legacySeed);
+                        if (password == null)
+                        {
+                            PromptBox("Do you want to add a password to this wallet?\nThe password will be required to open the wallet.\nIt will also be prompted every time you do a transaction", ModalYesNo, (wantsPass) =>
+                            {
+                                if (wantsPass == PromptResult.Success)
+                                {
+                                    TrySettingWalletPassword(name, wif, legacySeed);
+                                }
+                                else
+                                {
+                                    FinishCreateAccount(name, wif, "", legacySeed);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            FinishCreateAccount(name, wif, password, legacySeed);
+                        }
                     }
                 }
             });
@@ -1783,43 +1806,41 @@ namespace Poltergeist
 
                 if (isNewWallet)
                 {
-                    seedPhrase = BIP39NBitcoin.GenerateMnemonic(AccountManager.Instance.Settings.mnemonicPhraseLength);
-                    var privKey = BIP39NBitcoin.MnemonicToPK(seedPhrase);
+                    newWalletSeedPhrase = BIP39NBitcoin.GenerateMnemonic(AccountManager.Instance.Settings.mnemonicPhraseLength);
+                    var privKey = BIP39NBitcoin.MnemonicToPK(newWalletSeedPhrase);
 
                     var keys = new PhantasmaKeys(privKey);
                     wif = keys.ToWIF();
 
                     legacySeed = false;
-
-#if UNITY_EDITOR
-                    GUIUtility.systemCopyBuffer = seedPhrase;
-#endif
                 }
 
                 var accountManager = AccountManager.Instance;
 
-                var platforms = PlatformKind.None;
-                foreach (var platform in AccountManager.AvailablePlatforms)
+                if (isNewWallet)
                 {
-                    platforms |= platform;
-                }
+                    Animate(AnimationDirection.Down, true, () =>
+                    {
+                        newWalletName = name;
+                        newWalletWif = wif;
+                        newWalletPassword = password;
 
-                int walletIndex = accountManager.AddWallet(name, platforms, wif, password, legacySeed);
-                LoginIntoAccount(walletIndex, (succes) =>
+                        PushState(GUIState.Backup);
+                    });
+                }
+                else
                 {
-                    if (succes)
-                    {
-                        accountManager.SaveAccounts();
-                    }
-                    else
-                    {
-                        accountManager.DeleteAccount(walletIndex);
-                    }
-                });
+                    int walletIndex = accountManager.AddWallet(name, wif, password, legacySeed);
+                    accountManager.SaveAccounts();
+                    LoginIntoAccount(walletIndex);
+                }
             }
             catch (Exception e)
             {
-                seedPhrase = null; // seedPhrase is used to determine value of isNewWallet global flag, and should be reset in case of error.
+                newWalletName = null;
+                newWalletSeedPhrase = null; // seedPhrase is used to determine value of isNewWallet global flag, and should be reset in case of error.
+                newWalletWif = null;
+                newWalletPassword = null;
                 MessageBox(MessageKind.Error, "Error creating account.\n" + e.Message);
             }
         }
@@ -4124,7 +4145,7 @@ namespace Poltergeist
             rnd.GetBytes(randomInt);
             return Convert.ToInt32(randomInt[0]);
         }
-        private void TrySeedVerification(int[] wordsOrder)
+        private void TrySeedVerification(int[] wordsOrder, Action<bool> callback)
         {
             if (AccountManager.Instance.Settings.mnemonicPhraseVerificationMode == MnemonicPhraseVerificationMode.Full)
             {
@@ -4142,23 +4163,24 @@ namespace Poltergeist
                                 wordsToVerifyOrdered[wordsOrder[i] - 1] = wordsToVerify[i];
                             }
 
-                            if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerifyOrdered)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
+                            if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerifyOrdered)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(newWalletSeedPhrase)))
                             {
-                                SetState(GUIState.Account);
+                                callback(true);
                             }
                             else
                             {
                                 MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
                                 {
-                                    TrySeedVerification(wordsOrder);
+                                    TrySeedVerification(wordsOrder, callback);
                                 });
                             }
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
+                            Log.WriteWarning("TrySeedVerification: Exception: " + e);
                             MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
                             {
-                                TrySeedVerification(wordsOrder);
+                                TrySeedVerification(wordsOrder, callback);
                             });
                         }
                     }
@@ -4175,23 +4197,24 @@ namespace Poltergeist
                         {
                             var wordsToVerify = input.Split(' ');
 
-                            if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerify)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(seedPhrase)))
+                            if (BIP39NBitcoin.MnemonicToPK(string.Join(" ", wordsToVerify)).SequenceEqual(BIP39NBitcoin.MnemonicToPK(newWalletSeedPhrase)))
                             {
-                                SetState(GUIState.Account);
+                                callback(true);
                             }
                             else
                             {
                                 MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
                                 {
-                                    TrySeedVerification(wordsOrder);
+                                    TrySeedVerification(wordsOrder, callback);
                                 });
                             }
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
+                            Log.WriteWarning("TrySeedVerification: Exception: " + e);
                             MessageBox(MessageKind.Error, "Seed phrase is incorrect!", () =>
                             {
-                                TrySeedVerification(wordsOrder);
+                                TrySeedVerification(wordsOrder, callback);
                             });
                         }
                     }
@@ -4203,7 +4226,7 @@ namespace Poltergeist
             int curY;
 
             curY = Units(5);
-            GUI.Label(new Rect(Border, curY, windowRect.width - Border * 2, Units(6)), seedPhrase);
+            GUI.Label(new Rect(Border, curY, windowRect.width - Border * 2, Units(6)), newWalletSeedPhrase);
 
             curY += Units(11);
             int warningHeight = Units(16);
@@ -4225,7 +4248,7 @@ namespace Poltergeist
             DoButton(true, new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, Units(2)), "Copy to clipboard", () =>
             {
                 AudioManager.Instance.PlaySFX("click");
-                GUIUtility.systemCopyBuffer = seedPhrase;
+                GUIUtility.systemCopyBuffer = newWalletSeedPhrase;
                 MessageBox(MessageKind.Default, "Seed phrase copied to the clipboard.");
             });
 
@@ -4242,7 +4265,23 @@ namespace Poltergeist
                 var rnd = new System.Security.Cryptography.RNGCryptoServiceProvider();
                 wordsOrder = wordsOrder.OrderBy(x => GetNextInt32(rnd)).ToArray();
 
-                TrySeedVerification(wordsOrder);
+                TrySeedVerification(wordsOrder, (success) =>
+                {
+                    if (success)
+                    {
+                        var accountManager = AccountManager.Instance;
+                        int walletIndex = accountManager.AddWallet(newWalletName, newWalletWif, newWalletPassword, false);
+                        accountManager.SaveAccounts();
+                        
+                        PopState();
+                        
+                        LoginIntoAccount(walletIndex);
+                    }
+                    else
+                    {
+                        PopState();
+                    }
+                });
             });
         }
 
