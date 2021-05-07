@@ -219,6 +219,11 @@ namespace Poltergeist
 
         private MnemonicPhraseVerificationMode[] availableMnemonicPhraseVerificationModes = Enum.GetValues(typeof(MnemonicPhraseVerificationMode)).Cast<MnemonicPhraseVerificationMode>().ToArray();
 
+        private int passwordModeIndex;
+        private ComboBox passwordModeComboBox = new ComboBox();
+
+        private PasswordMode[] availablePasswordModes = Enum.GetValues(typeof(PasswordMode)).Cast<PasswordMode>().ToArray();
+
 
         private int ethereumNetworkIndex;
         private ComboBox ethereumNetworkComboBox = new ComboBox();
@@ -273,6 +278,7 @@ namespace Poltergeist
             nexusComboBox.ResetState();
             mnemonicPhraseLengthComboBox.ResetState();
             mnemonicPhraseVerificationModeComboBox.ResetState();
+            passwordModeComboBox.ResetState();
             ethereumNetworkComboBox.ResetState();
             logLevelComboBox.ResetState();
             uiThemeComboBox.ResetState();
@@ -559,6 +565,17 @@ namespace Poltergeist
                         }
                         mnemonicPhraseVerificationModeComboBox.SelectedItemIndex = mnemonicPhraseVerificationModeIndex;
 
+                        passwordModeIndex = 0;
+                        for (int i = 0; i < availablePasswordModes.Length; i++)
+                        {
+                            if (availablePasswordModes[i] == accountManager.Settings.passwordMode)
+                            {
+                                passwordModeIndex = i;
+                                break;
+                            }
+                        }
+                        passwordModeComboBox.SelectedItemIndex = passwordModeIndex;
+
                         ethereumNetworkIndex = 0;
                         for (int i = 0; i < availableEthereumNetworks.Length; i++)
                         {
@@ -761,7 +778,7 @@ namespace Poltergeist
             });
         }
 
-        public void RequestPassword(string description, PlatformKind platforms, Action<PromptResult> callback)
+        public void RequestPassword(string description, PlatformKind platforms, bool forcePasswordPrompt, Action<PromptResult> callback)
         {
             var accountManager = AccountManager.Instance;
 
@@ -772,6 +789,12 @@ namespace Poltergeist
             }
 
             if (!accountManager.CurrentAccount.passwordProtected)
+            {
+                callback(PromptResult.Success);
+                return;
+            }
+
+            if(!forcePasswordPrompt && accountManager.Settings.passwordMode == PasswordMode.Ask_Only_On_Login)
             {
                 callback(PromptResult.Success);
                 return;
@@ -801,7 +824,7 @@ namespace Poltergeist
                         {
                             MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
                             {
-                                RequestPassword(description, platforms, callback);
+                                RequestPassword(description, platforms, forcePasswordPrompt, callback);
                             });
                         }
                     }
@@ -810,7 +833,7 @@ namespace Poltergeist
                         Log.WriteWarning("Authorization error: " + e.ToString());
                         MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
                         {
-                            RequestPassword(description, platforms, callback);
+                            RequestPassword(description, platforms, forcePasswordPrompt, callback);
                         });
                     }
                 }
@@ -1632,7 +1655,7 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
             accountManager.SelectAccount(index);
 
-            RequestPassword("Open wallet", accountManager.CurrentAccount.platforms, (auth) =>
+            RequestPassword("Open wallet", accountManager.CurrentAccount.platforms, true, (auth) =>
             {
                 if (auth == PromptResult.Success)
                 {
@@ -2685,19 +2708,19 @@ namespace Poltergeist
             switch(settings.nexusKind)
             {
                 case NexusKind.Main_Net:
-                    elementsNumber = 20;
+                    elementsNumber = 21;
                     break;
                 case NexusKind.Test_Net:
-                    elementsNumber = VerticalLayout ? 24 : 23;
+                    elementsNumber = VerticalLayout ? 25 : 24;
                     break;
                 case NexusKind.Mankini_Test_Net:
-                    elementsNumber = VerticalLayout ? 22 : 21;
+                    elementsNumber = VerticalLayout ? 23 : 22;
                     break;
                 case NexusKind.Local_Net:
-                    elementsNumber = VerticalLayout ? 30 : 29;
+                    elementsNumber = VerticalLayout ? 31 : 30;
                     break;
                 default:
-                    elementsNumber = 29;
+                    elementsNumber = 30;
                     break;
             }
             var insideRect = new Rect(0, 0, boxWidth, Units(3) * elementsNumber + Units(2) * 3 + Units(1));
@@ -2758,6 +2781,12 @@ namespace Poltergeist
             var mnemonicPhraseVerificationModesList = availableMnemonicPhraseVerificationModes.Select(x => x.ToString().Replace('_', ' ')).ToArray();
             mnemonicPhraseVerificationModeIndex = mnemonicPhraseVerificationModeComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), mnemonicPhraseVerificationModesList, 0, out dropHeight, null, 0);
             settings.mnemonicPhraseVerificationMode = availableMnemonicPhraseVerificationModes[mnemonicPhraseVerificationModeIndex];
+            curY += dropHeight + Units(1);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Password mode");
+            var passwordModesList = availablePasswordModes.Select(x => x.ToString().Replace('_', ' ')).ToArray();
+            passwordModeIndex = passwordModeComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), passwordModesList, 0, out dropHeight, null, 0);
+            settings.passwordMode = availablePasswordModes[passwordModeIndex];
             curY += dropHeight + Units(1);
 
             bool hasCustomEndPoints = false;
@@ -5718,7 +5747,7 @@ namespace Poltergeist
                             {
                                 if (result == PromptResult.Success)
                                 {
-                                    RequestPassword("Account Deletion", accountManager.CurrentAccount.platforms, (delete) =>
+                                    RequestPassword("Account Deletion", accountManager.CurrentAccount.platforms, false, (delete) =>
                                     {
                                         if (delete == PromptResult.Success)
                                         {
@@ -6451,7 +6480,7 @@ namespace Poltergeist
                 }
             }
 
-            RequestPassword(description, accountManager.CurrentPlatform, (auth) =>
+            RequestPassword(description, accountManager.CurrentPlatform, false, (auth) =>
             {
                 if (auth == PromptResult.Success)
                 {

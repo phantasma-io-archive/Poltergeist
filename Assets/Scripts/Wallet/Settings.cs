@@ -35,6 +35,12 @@ namespace Poltergeist
         Twenty_Four_Words
     }
 
+    public enum PasswordMode
+    {
+        Ask_Always,
+        Ask_Only_On_Login
+    }
+
     public enum MnemonicPhraseVerificationMode
     {
         Full,
@@ -99,6 +105,8 @@ namespace Poltergeist
         public const string MnemonicPhraseLengthTag = "mnemonic.phrase.length";
         public const string MnemonicPhraseVerificationModeTag = "mnemonic.phrase.verification.mode";
 
+        public const string PasswordModeTag = "password.mode";
+
         public string phantasmaRPCURL;
         public string phantasmaExplorer;
         public string phantasmaNftExplorer;
@@ -127,6 +135,7 @@ namespace Poltergeist
         public string lastVisitedFolder;
         public MnemonicPhraseLength mnemonicPhraseLength;
         public MnemonicPhraseVerificationMode mnemonicPhraseVerificationMode;
+        public PasswordMode passwordMode;
 
         public override string ToString()
         {
@@ -156,7 +165,8 @@ namespace Poltergeist
                 "NFT sort mode: " + this.nftSortMode + "\n" +
                 "NFT sort direction: " + this.nftSortDirection + "\n" +
                 "Mnemonic phrase length: " + this.mnemonicPhraseLength + "\n" +
-                "Mnemonic phrase verification mode: " + this.mnemonicPhraseVerificationMode;
+                "Mnemonic phrase verification mode: " + this.mnemonicPhraseVerificationMode + "\n" +
+                "Password mode: " + this.passwordMode;
         }
 
         public void LoadLogSettings()
@@ -295,6 +305,12 @@ namespace Poltergeist
             if (!Enum.TryParse<MnemonicPhraseVerificationMode>(mnemonicPhraseVerificationMode, true, out this.mnemonicPhraseVerificationMode))
             {
                 this.mnemonicPhraseVerificationMode = MnemonicPhraseVerificationMode.Full;
+            }
+
+            var passwordMode = PlayerPrefs.GetString(PasswordModeTag, PasswordMode.Ask_Always.ToString());
+            if (!Enum.TryParse<PasswordMode>(passwordMode, true, out this.passwordMode))
+            {
+                this.passwordMode = PasswordMode.Ask_Always;
             }
 
             Log.Write("Settings: Load: " + ToString());
@@ -519,6 +535,7 @@ namespace Poltergeist
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.SetString(MnemonicPhraseLengthTag, this.mnemonicPhraseLength.ToString());
             PlayerPrefs.SetString(MnemonicPhraseVerificationModeTag, this.mnemonicPhraseVerificationMode.ToString());
+            PlayerPrefs.SetString(PasswordModeTag, this.passwordMode.ToString());
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save: " + ToString());
