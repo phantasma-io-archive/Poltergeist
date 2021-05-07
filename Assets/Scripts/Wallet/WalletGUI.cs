@@ -1819,13 +1819,16 @@ namespace Poltergeist
         {
             ShowModal("Number of created wallets", "Enter number of wallets to derive from this seed phrase.\n\nUse \"1\" if unsure.", ModalState.Input, 1, -1, ModalConfirmCancel, 1, (success, input) =>
             {
-                if (UInt32.TryParse(input, out var numberOfWallets))
+                if (success == PromptResult.Success)
                 {
-                    DeriveAccountFromSeed(mnemonicPhrase, 0, numberOfWallets);
-                }
-                else
-                {
-                    MessageBox(MessageKind.Error, "Incorrect number", () => { DeriveAccountsFromSeed(mnemonicPhrase); });
+                    if (UInt32.TryParse(input, out var numberOfWallets))
+                    {
+                        DeriveAccountFromSeed(mnemonicPhrase, 0, numberOfWallets);
+                    }
+                    else
+                    {
+                        MessageBox(MessageKind.Error, "Incorrect number", () => { DeriveAccountsFromSeed(mnemonicPhrase); });
+                    }
                 }
             }, 0, "1");
         }
