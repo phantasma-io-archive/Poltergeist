@@ -195,10 +195,8 @@ namespace Poltergeist
 
         private string currentTitle;
 
-        private string newWalletName;
         private string newWalletSeedPhrase;
-        private string newWalletWif;
-        private string newWalletPassword;
+        private Action newWalletCallback;
 
         private int currencyIndex;
         private string[] currencyOptions;
@@ -414,10 +412,8 @@ namespace Poltergeist
             switch (guiState)
             {
                 case GUIState.Backup:
-                    newWalletName = null;
                     newWalletSeedPhrase = null;
-                    newWalletWif = null;
-                    newWalletPassword = null;
+                    newWalletCallback = null;
                     break;
 
                 case GUIState.ScanQR:
@@ -674,7 +670,7 @@ namespace Poltergeist
 
         private Texture2D _promptPicture;
 
-        private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback, int confirmDelay = 0)
+        private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback, int confirmDelay = 0, string defaultValue = "")
         {
             if (modalState == ModalState.None)
             {
@@ -682,7 +678,7 @@ namespace Poltergeist
             }
 
             modalResult = PromptResult.Waiting;
-            modalInput = "";
+            modalInput = defaultValue;
             modalState = state;
             modalTitle = title;
 
@@ -1680,9 +1676,12 @@ namespace Poltergeist
             });
         }
 
-        private void ImportWallet(string wif, string password, bool legacySeed)
+        // pkIndex = -1 means single wallet created from pk or legacy seed.
+        private void ImportWallet(string wif, int pkIndex, uint overallDerivationCount, string password, bool legacySeed, Action<int> callback)
         {
             var accountManager = AccountManager.Instance;
+
+            var walletNumberString = overallDerivationCount > 1 ? $" #{pkIndex + 1}" : "";
 
             if (wif != null)
             {
@@ -1691,13 +1690,13 @@ namespace Poltergeist
                     var keys = PhantasmaKeys.FromWIF(wif);
                     if (account.phaAddress == keys.Address.ToString())
                     {
-                        MessageBox(MessageKind.Error, $"This private key is already imported in a different account: {account.name}.");
+                        MessageBox(MessageKind.Error, $"Private key{walletNumberString} is already imported in a different account: {account.name}.", () => { callback(-1); });
                         return;
                     }
                 }
             }
 
-            ShowModal("Wallet Name", "Enter a name for your wallet", ModalState.Input, AccountManager.MinAccountNameLength, AccountManager.MaxAccountNameLength, ModalConfirmCancel, 1, (result, name) =>
+            ShowModal("Wallet Name", $"Enter a name for your wallet{walletNumberString}", ModalState.Input, AccountManager.MinAccountNameLength, AccountManager.MaxAccountNameLength, ModalConfirmCancel, 1, (result, name) =>
             {
                 if (result == PromptResult.Success)
                 {
@@ -1712,27 +1711,27 @@ namespace Poltergeist
 
                     if (nameAlreadyTaken)
                     {
-                        MessageBox(MessageKind.Error, "An account with this name already exists.");
+                        MessageBox(MessageKind.Error, "An account with this name already exists.", () => { ImportWallet(wif, pkIndex, overallDerivationCount, password, legacySeed, callback); });
                     }
                     else
                     {
                         if (password == null)
                         {
-                            PromptBox("Do you want to add a password to this wallet?\nThe password will be required to open the wallet.\nIt will also be prompted every time you do a transaction", ModalYesNo, (wantsPass) =>
+                            PromptBox($"Do you want to add a password to wallet{walletNumberString}?\nThe password will be required to open the wallet.\nIt will also be prompted every time you do a transaction", ModalYesNo, (wantsPass) =>
                             {
                                 if (wantsPass == PromptResult.Success)
                                 {
-                                    TrySettingWalletPassword(name, wif, legacySeed);
+                                    TrySettingWalletPassword(name, wif, legacySeed, callback);
                                 }
                                 else
                                 {
-                                    FinishCreateAccount(name, wif, "", legacySeed);
+                                    FinishCreateAccount(name, wif, "", legacySeed, callback);
                                 }
                             });
                         }
                         else
                         {
-                            FinishCreateAccount(name, wif, password, legacySeed);
+                            FinishCreateAccount(name, wif, password, legacySeed, callback);
                         }
                     }
                 }
@@ -1773,7 +1772,7 @@ namespace Poltergeist
             return true;
         }
 
-        private void TrySettingWalletPassword(string name, string wif, bool legacySeed)
+        private void TrySettingWalletPassword(string name, string wif, bool legacySeed, Action<int> callback)
         {
             ShowModal("Wallet Password", "Enter a password for your wallet", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (passResult, password) =>
             {
@@ -1781,66 +1780,77 @@ namespace Poltergeist
                 {
                     if (IsGoodPassword(name, password))
                     {
-                        FinishCreateAccount(name, wif, password, legacySeed);
+                        FinishCreateAccount(name, wif, password, legacySeed, callback);
                     }
                     else
                     {
                         MessageBox(MessageKind.Error, $"That password is either too short or too weak.\nNeeds at least {AccountManager.MinPasswordLength} characters and can't be easy to guess.", () =>
                         {
-                            TrySettingWalletPassword(name, wif, legacySeed);
+                            TrySettingWalletPassword(name, wif, legacySeed, callback);
                         });
                     }
                 }
                 else
                 {
-                    FinishCreateAccount(name, wif, "", legacySeed);
+                    FinishCreateAccount(name, wif, "", legacySeed, callback);
                 }
             });
         }
 
-        private void FinishCreateAccount(string name, string wif, string password, bool legacySeed)
+        private void DeriveAccountFromSeed(string mnemonicPhrase, uint derivationIndex, uint overallDerivationCount)
         {
-            try
+            ImportWallet(BIP39NBitcoin.MnemonicToWif(mnemonicPhrase, derivationIndex), (int)derivationIndex, overallDerivationCount, null, false, (walletIndex) =>
             {
-                bool isNewWallet = wif == null;
-
-                if (isNewWallet)
+                if (derivationIndex == overallDerivationCount - 1)
                 {
-                    newWalletSeedPhrase = BIP39NBitcoin.GenerateMnemonic(AccountManager.Instance.Settings.mnemonicPhraseLength);
-                    var privKey = BIP39NBitcoin.MnemonicToPK(newWalletSeedPhrase);
-
-                    var keys = new PhantasmaKeys(privKey);
-                    wif = keys.ToWIF();
-
-                    legacySeed = false;
-                }
-
-                var accountManager = AccountManager.Instance;
-
-                if (isNewWallet)
-                {
-                    Animate(AnimationDirection.Down, true, () =>
+                    if (derivationIndex == 0 && walletIndex >= 0)
                     {
-                        newWalletName = name;
-                        newWalletWif = wif;
-                        newWalletPassword = password;
-
-                        PushState(GUIState.Backup);
-                    });
+                        // We login into account if only 1 account is created.
+                        LoginIntoAccount(walletIndex);
+                    }
                 }
                 else
                 {
-                    int walletIndex = accountManager.AddWallet(name, wif, password, legacySeed);
-                    accountManager.SaveAccounts();
+                    DeriveAccountFromSeed(mnemonicPhrase, derivationIndex + 1, overallDerivationCount);
+                }
+            });
+        }
+        private void DeriveAccountsFromSeed(string mnemonicPhrase)
+        {
+            ShowModal("Number of created wallets", "Enter number of wallets to derive from this seed phrase.\n\nUse \"1\" if unsure.", ModalState.Input, 1, -1, ModalConfirmCancel, 1, (success, input) =>
+            {
+                if (UInt32.TryParse(input, out var numberOfWallets))
+                {
+                    DeriveAccountFromSeed(mnemonicPhrase, 0, numberOfWallets);
+                }
+                else
+                {
+                    MessageBox(MessageKind.Error, "Incorrect number", () => { DeriveAccountsFromSeed(mnemonicPhrase); });
+                }
+            }, 0, "1");
+        }
+
+        private void FinishCreateAccount(string name, string wif, string password, bool legacySeed, Action<int> callback)
+        {
+            try
+            {
+                var accountManager = AccountManager.Instance;
+
+                int walletIndex = accountManager.AddWallet(name, wif, password, legacySeed);
+                accountManager.SaveAccounts();
+                if (callback == null)
+                {
                     LoginIntoAccount(walletIndex);
+                }
+                else
+                {
+                    callback(walletIndex);
                 }
             }
             catch (Exception e)
             {
-                newWalletName = null;
                 newWalletSeedPhrase = null; // seedPhrase is used to determine value of isNewWallet global flag, and should be reset in case of error.
-                newWalletWif = null;
-                newWalletPassword = null;
+                newWalletCallback = null;
                 MessageBox(MessageKind.Error, "Error creating account.\n" + e.Message);
             }
         }
@@ -1882,7 +1892,20 @@ namespace Poltergeist
                 {
                     case 0:
                         {
-                            ImportWallet(null, null, false);
+                            newWalletSeedPhrase = BIP39NBitcoin.GenerateMnemonic(AccountManager.Instance.Settings.mnemonicPhraseLength);
+
+                            Animate(AnimationDirection.Down, true, () =>
+                            {
+                                newWalletCallback = new Action(() =>
+                                {
+                                    DeriveAccountsFromSeed(newWalletSeedPhrase);
+
+                                    PopState();
+                                });
+
+                                PushState(GUIState.Backup);
+                            });
+                            
                             break;
                         }
 
@@ -1896,7 +1919,7 @@ namespace Poltergeist
                                     {
                                         PromptBox("Was this private key created using a Poltergeist version earlier than v2.4 (before end of April 2021)?", ModalYesNo, (legacySeed) =>
                                         {
-                                            ImportWallet(key, null, legacySeed == PromptResult.Success);
+                                            ImportWallet(key, -1, 1, null, legacySeed == PromptResult.Success, null);
                                         });
                                     }
                                     else
@@ -1906,7 +1929,7 @@ namespace Poltergeist
                                         var tempKey = new PhantasmaKeys(priv);
                                         PromptBox("Was this WIF created using a Poltergeist version earlier than v2.4 (before end of April 2021)?", ModalYesNo, (legacySeed) =>
                                         {
-                                            ImportWallet(tempKey.ToWIF(), null, legacySeed == PromptResult.Success);
+                                            ImportWallet(tempKey.ToWIF(), -1, 1, null, legacySeed == PromptResult.Success, null);
                                         });
                                     }
                                     else
@@ -1919,7 +1942,7 @@ namespace Poltergeist
                                                 try
                                                 {
                                                     var decryptedKeys = Phantasma.Neo.Core.NeoKeys.FromNEP2(key, passphrase);
-                                                    ImportWallet(decryptedKeys.WIF, passphrase, true);
+                                                    ImportWallet(decryptedKeys.WIF, -1, 1, passphrase, true, null);
                                                 }
                                                 catch (Exception e)
                                                 {
@@ -2349,14 +2372,18 @@ namespace Poltergeist
         {
             try
             {
-                byte[] privKey;
-                if(legacySeed)
-                    privKey = BIP39Legacy.MnemonicToPK(mnemonicPhrase, password);
+                if (legacySeed)
+                {
+                    var privKey = BIP39Legacy.MnemonicToPK(mnemonicPhrase, password);
+                    var decryptedKeys = new PhantasmaKeys(privKey);
+                    ImportWallet(decryptedKeys.ToWIF(), -1, 1, null, legacySeed, null);
+                }
                 else
-                    privKey = BIP39NBitcoin.MnemonicToPK(mnemonicPhrase);
+                {
+                    DeriveAccountsFromSeed(mnemonicPhrase);
+                }
 
-                var decryptedKeys = new PhantasmaKeys(privKey);
-                ImportWallet(decryptedKeys.ToWIF(), null, legacySeed);
+                
             }
             catch (Exception e)
             {
@@ -4269,13 +4296,7 @@ namespace Poltergeist
                 {
                     if (success)
                     {
-                        var accountManager = AccountManager.Instance;
-                        int walletIndex = accountManager.AddWallet(newWalletName, newWalletWif, newWalletPassword, false);
-                        accountManager.SaveAccounts();
-                        
-                        PopState();
-                        
-                        LoginIntoAccount(walletIndex);
+                        newWalletCallback();
                     }
                     else
                     {

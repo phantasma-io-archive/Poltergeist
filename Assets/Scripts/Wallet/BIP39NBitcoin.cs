@@ -10,12 +10,12 @@ public static class BIP39NBitcoin
         return mnemo.ToString();
     }
 
-    public static byte[] MnemonicToPK(string mnemonicPhrase)
+    public static byte[] MnemonicToPK(string mnemonicPhrase, uint pkIndex = 0)
     {
         var mnemonic = new Mnemonic(mnemonicPhrase);
         var keyPathToDerive = KeyPath.Parse("m/44'/60'/0'/0");
         var pk = new ExtKey(mnemonic.DeriveSeed(null)).Derive(keyPathToDerive);
-        var keyNew = pk.Derive(0);
+        var keyNew = pk.Derive(pkIndex);
         var pkeyBytes = keyNew.PrivateKey.PubKey.ToBytes();
         var ecParams = SecNamedCurves.GetByName("secp256k1");
         var point = ecParams.Curve.DecodePoint(pkeyBytes);
@@ -30,5 +30,11 @@ public static class BIP39NBitcoin
             uncompressedBytes[uncompressedBytes.Length - 1 - i] = yCoord[yCoord.Length - 1 - i];
         }
         return keyNew.PrivateKey.ToBytes();
+    }
+    public static string MnemonicToWif(string mnemonicPhrase, uint pkIndex = 0)
+    {
+        var privKey = BIP39NBitcoin.MnemonicToPK(mnemonicPhrase, pkIndex);
+        var phaKeys = new Phantasma.Cryptography.PhantasmaKeys(privKey);
+        return phaKeys.ToWIF();
     }
 }
