@@ -1511,7 +1511,7 @@ namespace Poltergeist
                     }
                 });
 
-                DoButton((!hasHints || !hintComboBox.DropDownIsOpened()) && Time.time - modalTime >= modalConfirmDelay && (modalState != ModalState.Input || modalInput.Length >= modalMinInputLength),
+                DoButton((!hasHints || !hintComboBox.DropDownIsOpened()) && Time.time - modalTime >= modalConfirmDelay && ((modalState != ModalState.Input && modalState != ModalState.Password) || modalInput.Length >= modalMinInputLength),
                     enterPressed && (modalOptions == ModalOkCopy || modalOptions == ModalOkView || modalOptions == ModalConfirmCancel || modalOptions == ModalSendCancel || modalOptions == ModalYesNo),
                     new Rect(halfWidth + (halfWidth - btnWidth) / 2, curY, btnWidth, Units(2)), (modalConfirmDelay > 0 && (Time.time - modalTime < modalConfirmDelay)) ? modalOptions[0] + " (" + (modalConfirmDelay - Math.Floor(Time.time - modalTime)) + ")" : modalOptions[0], () =>
                 {
