@@ -268,6 +268,8 @@ namespace Poltergeist
 
         private string fatalError;
 
+        private string masterPassword;
+
         public static WalletGUI Instance { get; private set; }
 
         // Helps to close opened drop-down lists when they are not needed any more.
@@ -778,7 +780,43 @@ namespace Poltergeist
             });
         }
 
-        public void RequestPassword(string description, PlatformKind platforms, bool forcePasswordPrompt, Action<PromptResult> callback)
+        private void TryPassword(string password, string description, PlatformKind platforms, bool forcePasswordPrompt, bool allowMasterPasswordPrompt, Action<PromptResult> callback)
+        {
+            var accountManager = AccountManager.Instance;
+
+            // Checking if we can get correct public key by decrypting WIF with given password.
+            string wif;
+            try
+            {
+                AccountManager.GetPasswordHashBySalt(password, accountManager.CurrentAccount.passwordIterations, accountManager.CurrentAccount.salt, out string passwordHash);
+
+                wif = AccountManager.DecryptString(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
+
+                if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
+                {
+                    accountManager.CurrentPasswordHash = passwordHash;
+                    callback(PromptResult.Success);
+                }
+                else
+                {
+                    MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
+                    {
+                        masterPassword = null;
+                        RequestPassword(description, platforms, forcePasswordPrompt, allowMasterPasswordPrompt, callback);
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                Log.WriteWarning("Authorization error: " + e.ToString());
+                MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
+                {
+                    masterPassword = null;
+                    RequestPassword(description, platforms, forcePasswordPrompt, allowMasterPasswordPrompt, callback);
+                });
+            }
+        }
+        public void RequestPassword(string description, PlatformKind platforms, bool forcePasswordPrompt, bool allowMasterPasswordPrompt, Action<PromptResult> callback)
         {
             var accountManager = AccountManager.Instance;
 
@@ -794,50 +832,55 @@ namespace Poltergeist
                 return;
             }
 
-            if(!forcePasswordPrompt && accountManager.Settings.passwordMode == PasswordMode.Ask_Only_On_Login)
+            if (!forcePasswordPrompt && accountManager.Settings.passwordMode == PasswordMode.Ask_Only_On_Login)
             {
                 callback(PromptResult.Success);
                 return;
             }
 
-            AudioManager.Instance.PlaySFX("auth");
-            ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
-            {
-                var auth = result;
-
-                if (auth == PromptResult.Success)
+            var proceedWithPasswordCheck = new Action(() =>
                 {
-                    // Checking if we can get correct public key by decrypting WIF with given password.
-                    string wif;
-                    try
+                    if (!string.IsNullOrEmpty(masterPassword))
                     {
-                        AccountManager.GetPasswordHashBySalt(input, accountManager.CurrentAccount.passwordIterations, accountManager.CurrentAccount.salt, out string passwordHash);
-
-                        wif = AccountManager.DecryptString(accountManager.CurrentAccount.WIF, passwordHash, accountManager.CurrentAccount.iv);
-
-                        if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
-                        {
-                            accountManager.CurrentPasswordHash = passwordHash;
-                            callback(auth);
-                        }
-                        else
-                        {
-                            MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
-                            {
-                                RequestPassword(description, platforms, forcePasswordPrompt, callback);
-                            });
-                        }
+                        TryPassword(masterPassword, description, platforms, forcePasswordPrompt, allowMasterPasswordPrompt, callback);
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Log.WriteWarning("Authorization error: " + e.ToString());
-                        MessageBox(MessageKind.Error, $"Incorrect password for '{accountManager.CurrentAccount.name}' account.", () =>
+                        AudioManager.Instance.PlaySFX("auth");
+                        ShowModal("Account Authorization", $"Account: {accountManager.CurrentAccount.name} ({platforms})\nAction: {description}\n\nInsert password to proceed...", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (result, input) =>
                         {
-                            RequestPassword(description, platforms, forcePasswordPrompt, callback);
+                            var auth = result;
+
+                            if (auth == PromptResult.Success)
+                            {
+                                TryPassword(input, description, platforms, forcePasswordPrompt, allowMasterPasswordPrompt, callback);
+                            }
                         });
                     }
-                }
-            });
+                });
+
+            if (AccountManager.Instance.Settings.passwordMode == PasswordMode.Master_Password &&
+                string.IsNullOrEmpty(masterPassword) &&
+                allowMasterPasswordPrompt)
+            {
+                ShowModal("Master Password", "Please enter master password", ModalState.Password, AccountManager.MinPasswordLength, AccountManager.MaxPasswordLength, ModalConfirmCancel, 1, (success, input) =>
+                {
+                    if (success == PromptResult.Success)
+                    {
+                        masterPassword = input;
+                        proceedWithPasswordCheck();
+                    }
+                    else
+                    {
+                        // Master password dialog cancelled, using usual password dialog.
+                        RequestPassword(description, platforms, forcePasswordPrompt, false, callback);
+                    }
+                });
+            }
+            else
+            {
+                proceedWithPasswordCheck();
+            }
         }
         #endregion
 
@@ -1655,7 +1698,7 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
             accountManager.SelectAccount(index);
 
-            RequestPassword("Open wallet", accountManager.CurrentAccount.platforms, true, (auth) =>
+            RequestPassword("Open wallet", accountManager.CurrentAccount.platforms, true, true, (auth) =>
             {
                 if (auth == PromptResult.Success)
                 {
@@ -1905,7 +1948,7 @@ namespace Poltergeist
             if (!accountManager.AccountsAreReadyToBeUsed)
             {
                 return;
-            }    
+            }
 
             int endY;
             DoButtonGrid<int>(true, accountOptions.Length, Units(2), 0, out endY, (index) =>
@@ -2785,9 +2828,16 @@ namespace Poltergeist
 
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Password mode");
             var passwordModesList = availablePasswordModes.Select(x => x.ToString().Replace('_', ' ')).ToArray();
+            var prevPasswordModeIndex = passwordModeIndex;
             passwordModeIndex = passwordModeComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), passwordModesList, 0, out dropHeight, null, 0);
             settings.passwordMode = availablePasswordModes[passwordModeIndex];
             curY += dropHeight + Units(1);
+
+            if (prevPasswordModeIndex != passwordModeIndex)
+            {
+                // Password mode is changed.
+                masterPassword = null;
+            }
 
             bool hasCustomEndPoints = false;
             bool hasCustomFee = false;
@@ -5747,7 +5797,7 @@ namespace Poltergeist
                             {
                                 if (result == PromptResult.Success)
                                 {
-                                    RequestPassword("Account Deletion", accountManager.CurrentAccount.platforms, false, (delete) =>
+                                    RequestPassword("Account Deletion", accountManager.CurrentAccount.platforms, false, false, (delete) =>
                                     {
                                         if (delete == PromptResult.Success)
                                         {
@@ -6480,7 +6530,7 @@ namespace Poltergeist
                 }
             }
 
-            RequestPassword(description, accountManager.CurrentPlatform, false, (auth) =>
+            RequestPassword(description, accountManager.CurrentPlatform, false, false, (auth) =>
             {
                 if (auth == PromptResult.Success)
                 {

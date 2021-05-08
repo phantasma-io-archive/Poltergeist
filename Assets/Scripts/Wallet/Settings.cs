@@ -38,7 +38,8 @@ namespace Poltergeist
     public enum PasswordMode
     {
         Ask_Always,
-        Ask_Only_On_Login
+        Ask_Only_On_Login,
+        Master_Password
     }
 
     public enum MnemonicPhraseVerificationMode
