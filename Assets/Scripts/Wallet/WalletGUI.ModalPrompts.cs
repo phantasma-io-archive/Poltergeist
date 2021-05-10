@@ -26,6 +26,7 @@ namespace Poltergeist
         private ModalState modalState;
         private Action<PromptResult, string> modalCallback;
         private string modalInput;
+        private string modalInputKey;
         private int modalMinInputLength;
         private int modalMaxInputLength;
         private string modalCaption;
@@ -48,6 +49,7 @@ namespace Poltergeist
 
             modalResult = PromptResult.Waiting;
             modalInput = defaultValue;
+            modalInputKey = null;
             modalState = state;
             modalTitle = title;
 

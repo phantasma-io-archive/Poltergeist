@@ -46,7 +46,23 @@ public static class Tokens
             var token = Tokens.GetToken(symbol);
             if (token != null)
             {
-                Log.WriteWarning($"Tokens.LoadFromText(): {platform} symbols: Token '{symbol}' already exists.");
+                if (token.name == name && token.decimals == decimals)
+                {
+                    var tokenList = token.external.ToList();
+                    if (tokenList.Any(x => x.platform == platform.ToString().ToLower()))
+                    {
+                        Log.WriteWarning($"Tokens.LoadFromText(): {platform} symbols: Token '{symbol}' already exists for platform.");
+                    }
+                    else
+                    {
+                        tokenList.Add(new TokenPlatform { platform = platform.ToString().ToLower(), hash = hash });
+                        token.external = tokenList.ToArray();
+                    }
+                }
+                else
+                {
+                    Log.WriteWarning($"Tokens.LoadFromText(): {platform} symbols: Token '{symbol}' already exists and is not compatible.");
+                }
             }
             else
             {
@@ -71,7 +87,12 @@ public static class Tokens
     }
     public static void Load(PlatformKind platform)
     {
-        var resource = Resources.Load<TextAsset>($"Tokens.{platform.ToString().ToUpper()}");
+        // Currently will only work after restart.
+        string testnet = "";
+        if (platform == PlatformKind.BSC && AccountManager.Instance.Settings.binanceSmartChainNetwork == BinanceSmartChainNetwork.Test_Net)
+            testnet = ".Testnet";
+        
+        var resource = Resources.Load<TextAsset>($"Tokens.{platform.ToString().ToUpper()}{testnet}");
 
         if (resource == null || string.IsNullOrEmpty(resource.text))
         {
@@ -152,10 +173,12 @@ public static class Tokens
 
             Tokens.Load(PlatformKind.Ethereum);
             Tokens.Load(PlatformKind.Neo);
+            Tokens.Load(PlatformKind.BSC);
 
             var accountManager = AccountManager.Instance;
             Tokens.LoadFromText(accountManager.Settings.ethereumUserTokens, PlatformKind.Ethereum);
             Tokens.LoadFromText(accountManager.Settings.neoUserTokens, PlatformKind.Neo);
+            Tokens.LoadFromText(accountManager.Settings.binanceSmartChainUserTokens, PlatformKind.BSC);
 
             Tokens.LoadCoinGeckoSymbols();
 

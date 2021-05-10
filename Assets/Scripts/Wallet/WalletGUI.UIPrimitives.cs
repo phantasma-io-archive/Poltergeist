@@ -263,6 +263,7 @@ namespace Poltergeist
                         else
                         {
                             modalInput = temp;
+                            modalInputKey = key;
                         }
                     }
                 }

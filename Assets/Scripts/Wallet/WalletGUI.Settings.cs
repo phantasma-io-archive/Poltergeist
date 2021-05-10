@@ -38,6 +38,13 @@ namespace Poltergeist
 
         private EthereumNetwork[] availableEthereumNetworks = Enum.GetValues(typeof(EthereumNetwork)).Cast<EthereumNetwork>().ToArray();
 
+
+        private int binanceSmartChainNetworkIndex;
+        private ComboBox binanceSmartChainNetworkComboBox = new ComboBox();
+
+        private BinanceSmartChainNetwork[] availableBinanceSmartChainNetworks = Enum.GetValues(typeof(BinanceSmartChainNetwork)).Cast<BinanceSmartChainNetwork>().ToArray();
+
+
         private int logLevelIndex;
         private ComboBox logLevelComboBox = new ComboBox();
 
@@ -241,6 +248,26 @@ namespace Poltergeist
                     settings.ethereumRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumRPCURL);
                     curY += Units(3);
                 }
+
+
+                GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "BSC network");
+                var binanceSmartChainNetworkList = availableBinanceSmartChainNetworks.Select(x => x.ToString().Replace('_', ' ')).ToArray();
+                var prevBinanceSmartChainNetworkNexus = binanceSmartChainNetworkIndex;
+                binanceSmartChainNetworkIndex = binanceSmartChainNetworkComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), binanceSmartChainNetworkList, 0, out dropHeight, null, 1);
+                settings.binanceSmartChainNetwork = availableBinanceSmartChainNetworks[binanceSmartChainNetworkIndex];
+                curY += dropHeight + Units(1);
+
+                if (prevBinanceSmartChainNetworkNexus != binanceSmartChainNetworkIndex)
+                {
+                    settings.RestoreBinanceSmartChainEndpoint();
+                }
+
+                if (settings.binanceSmartChainNetwork == BinanceSmartChainNetwork.Local_Net)
+                {
+                    GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "BSC RPC URL");
+                    settings.binanceSmartChainRPCURL = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.binanceSmartChainRPCURL);
+                    curY += Units(3);
+                }
             }
             else
             {
@@ -289,6 +316,24 @@ namespace Poltergeist
             var ethereumTokenTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.ethereumTokenTransferGasLimit.ToString());
             BigInteger.TryParse(ethereumTokenTransactionGasLimit, out settings.ethereumTokenTransferGasLimit);
             curY += Units(3);
+
+            // BinanceSmartChain fees, should be editable in all modes.
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "BSC gas price (Gwei)");
+            var binanceSmartChainGasPriceGwei = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.binanceSmartChainGasPriceGwei.ToString());
+            BigInteger.TryParse(binanceSmartChainGasPriceGwei, out settings.binanceSmartChainGasPriceGwei);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "BSC transfer gas limit");
+            var binanceSmartChainTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.binanceSmartChainTransferGasLimit.ToString());
+            BigInteger.TryParse(binanceSmartChainTransactionGasLimit, out settings.binanceSmartChainTransferGasLimit);
+            curY += Units(3);
+
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "BSC token tr. gas limit");
+            var binanceSmartChainTokenTransactionGasLimit = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.binanceSmartChainTokenTransferGasLimit.ToString());
+            BigInteger.TryParse(binanceSmartChainTokenTransactionGasLimit, out settings.binanceSmartChainTokenTransferGasLimit);
+            curY += Units(3);
+
 
             GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "Log level");
             logLevelIndex = logLevelComboBox.Show(new Rect(fieldComboX, curY, comboWidth, Units(2)), availableLogLevels.ToArray(), WalletGUI.Units(2) * 3, out dropHeight);

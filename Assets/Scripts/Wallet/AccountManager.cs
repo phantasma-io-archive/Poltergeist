@@ -35,6 +35,7 @@ namespace Poltergeist
         Phantasma = 0x1,
         Neo = 0x2,
         Ethereum = 0x4,
+        BSC = 0x8,
     }
 
     public struct Account
@@ -135,6 +136,7 @@ namespace Poltergeist
                     targets = PlatformKind.Phantasma;
                     targets |= Tokens.HasToken(token.symbol, PlatformKind.Neo) ? PlatformKind.Neo : PlatformKind.None;
                     targets |= Tokens.HasToken(token.symbol, PlatformKind.Ethereum) ? PlatformKind.Ethereum : PlatformKind.None;
+                    targets |= Tokens.HasToken(token.symbol, PlatformKind.BSC) ? PlatformKind.BSC : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.Neo:
@@ -144,6 +146,11 @@ namespace Poltergeist
 
                 case PlatformKind.Ethereum:
                     targets = PlatformKind.Ethereum;
+                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
+                    return targets;
+
+                case PlatformKind.BSC:
+                    targets = PlatformKind.BSC;
                     targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
@@ -269,6 +276,7 @@ namespace Poltergeist
 
         public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
         public Phantasma.SDK.EthereumAPI ethereumApi { get; private set; }
+        public Phantasma.SDK.EthereumAPI binanceSmartChainApi { get; private set; }
         public Phantasma.Neo.Core.NeoAPI neoApi;
 
         public static PlatformKind[] AvailablePlatforms { get; private set; }
@@ -328,6 +336,7 @@ namespace Poltergeist
             platforms.Add(PlatformKind.Phantasma);
             platforms.Add(PlatformKind.Neo);
             platforms.Add(PlatformKind.Ethereum);
+            platforms.Add(PlatformKind.BSC);
 
             AvailablePlatforms = platforms.ToArray();
         }
@@ -968,6 +977,7 @@ namespace Poltergeist
             Log.Write("reinit APIs => " + Settings.phantasmaRPCURL);
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             ethereumApi = new EthereumAPI(Settings.ethereumRPCURL);
+            binanceSmartChainApi = new EthereumAPI(Settings.binanceSmartChainRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
 
             if (possibleNexusChange)
@@ -1239,6 +1249,97 @@ namespace Poltergeist
                         break;
                     }
 
+                case PlatformKind.BSC:
+                    {
+                        try
+                        {
+                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+
+                            if (transfer.amount <= 0)
+                            {
+                                callback(Hash.Null, $"invalid transfer amount: {transfer.amount}");
+                            }
+                            else
+                            if (transfer.platform == CurrentPlatform)
+                            {
+                                switch (transfer.platform)
+                                {
+                                    case PlatformKind.BSC:
+                                        {
+                                            var keys = EthereumKey.FromWIF(transfer.key);
+
+                                            if (transfer.symbol == "BNB")
+                                            {
+                                                StartCoroutine(binanceSmartChainApi.GetNonce(keys.Address,
+                                                (nonce) =>
+                                                {
+                                                    var hexTx = binanceSmartChainApi.SignTransaction(keys, nonce, transfer.destination,
+                                                        UnitConversion.ToBigInteger(transfer.amount, 18), // Convert to WEI
+                                                        Settings.binanceSmartChainGasPriceGwei * 1000000000, // Converting to WEI
+                                                        Settings.binanceSmartChainTransferGasLimit);
+
+                                                    StartCoroutine(binanceSmartChainApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                    {
+                                                        callback(Hash.Null, msg);
+                                                    }));
+                                                },
+                                                (error, msg) =>
+                                                {
+                                                    callback(Hash.Null, msg);
+                                                }));
+                                            }
+                                            else
+                                            {
+                                                if (Tokens.GetToken(transfer.symbol, PlatformKind.BSC, out Token bscToken))
+                                                {
+                                                    StartCoroutine(binanceSmartChainApi.GetNonce(keys.Address,
+                                                    (nonce) =>
+                                                    {
+                                                        var gasLimit = Settings.binanceSmartChainTokenTransferGasLimit;
+                                                        if (SearchInteropMapForAddress(PlatformKind.BSC) == transfer.destination)
+                                                        {
+                                                            gasLimit = Settings.binanceSmartChainTokenTransferGasLimit;
+                                                        }
+
+                                                        var hexTx = binanceSmartChainApi.SignTokenTransaction(keys, nonce,
+                                                            Tokens.GetTokenHash(bscToken, PlatformKind.BSC),
+                                                            transfer.destination,
+                                                            UnitConversion.ToBigInteger(transfer.amount, bscToken.decimals),
+                                                            Settings.binanceSmartChainGasPriceGwei * 1000000000, // Converting to WEI
+                                                            gasLimit);
+
+                                                        StartCoroutine(binanceSmartChainApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                        {
+                                                            callback(Hash.Null, msg);
+                                                        }));
+                                                    },
+                                                    (error, msg) =>
+                                                    {
+                                                        callback(Hash.Null, msg);
+                                                    }));
+                                                }
+                                                else
+                                                {
+                                                    callback(Hash.Null, $"Token {transfer.symbol} not supported");
+                                                }
+                                            }
+
+                                            break;
+                                        }
+                                }
+                                return;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            callback(Hash.Null, e.ToString());
+                            return;
+                        }
+
+                        callback(Hash.Null, "something weird happened");
+                        break;
+                    }
+
                 default:
                     {
                         callback(Hash.Null, "not implemented for " + CurrentPlatform);
@@ -1409,6 +1510,27 @@ namespace Poltergeist
                 SaveAccounts();
 
                 platforms.Add(PlatformKind.Ethereum);
+            }
+
+            // We should add BinanceSmartChain platform to old accounts.
+            if (!platforms.Contains(PlatformKind.BSC))
+            {
+                var account = Accounts[_selectedAccountIndex];
+                account.platforms |= PlatformKind.BSC;
+                Accounts[_selectedAccountIndex] = account;
+
+                _states[PlatformKind.BSC] = new AccountState()
+                {
+                    platform = PlatformKind.BSC,
+                    address = GetAddress(CurrentIndex, PlatformKind.BSC),
+                    balances = new Balance[0],
+                    flags = AccountFlags.None,
+                    name = ValidationUtils.ANONYMOUS_NAME,
+                };
+
+                SaveAccounts();
+
+                platforms.Add(PlatformKind.BSC);
             }
 
             CurrentPlatform = platforms.FirstOrDefault();
@@ -1582,6 +1704,7 @@ namespace Poltergeist
                     break;
 
                 case PlatformKind.Ethereum:
+                case PlatformKind.BSC:
                     // For Ethereum we should return immediately
                     // since it's unpredictable if we would be able to find tx in mempool
                     // or it will appear there after several minutes.
@@ -1965,6 +2088,88 @@ namespace Poltergeist
                                             onLoadFinish();
                                         }
                                     },
+                                    (error, msg) =>
+                                    {
+                                        ReportWalletBalance(platform, null);
+                                    }));
+                                }
+                            }
+                        }
+                        break;
+
+                    case PlatformKind.BSC:
+                        {
+                            var keys = EthereumKey.FromWIF(wif);
+
+                            var bscTokens = Tokens.GetTokens(PlatformKind.BSC);
+                            var balances = new List<Balance>();
+
+                            Action onLoadFinish = new Action(() =>
+                            {
+                                RequestPendings(keys.Address, (swaps, error) =>
+                                {
+                                    var balanceMap = new Dictionary<string, Balance>();
+                                    foreach (var bscToken in bscTokens)
+                                    {
+                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == bscToken.symbol.ToUpper()).SingleOrDefault();
+                                        if (tokenBalance != null)
+                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
+                                    }
+
+                                    if (swaps != null)
+                                    {
+                                        MergeSwaps(PlatformKind.BSC, balanceMap, swaps);
+                                    }
+                                    else
+                                    {
+                                        Log.WriteWarning(error);
+                                    }
+
+                                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
+                                    var state = new AccountState()
+                                    {
+                                        platform = platform,
+                                        address = ethereumAddressUtil.ConvertToChecksumAddress(keys.Address),
+                                        name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
+                                        balances = balanceMap.Values.ToArray(),
+                                        flags = AccountFlags.None
+                                    };
+                                    ReportWalletBalance(platform, state);
+                                });
+                            });
+
+                            foreach (var bscToken in bscTokens)
+                            {
+                                if (bscToken.symbol == "BNB")
+                                {
+                                    StartCoroutine(binanceSmartChainApi.GetBalance(keys.Address, bscToken.symbol, bscToken.decimals, (balance) =>
+                                    {
+                                        balances.Add(balance);
+
+                                        if (balances.Count() == bscTokens.Count())
+                                        {
+                                            onLoadFinish();
+                                        }
+                                    },
+                                    (error, msg) =>
+                                    {
+                                        ReportWalletBalance(platform, null);
+                                    }));
+                                }
+                                else
+                                {
+                                    StartCoroutine(binanceSmartChainApi.GetTokenBalance(keys.Address,
+                                        Tokens.GetTokenHash(bscToken, PlatformKind.BSC),
+                                        bscToken.symbol, bscToken.decimals, (balanceSoul) =>
+                                        {
+                                            balances.Add(balanceSoul);
+
+                                            if (balances.Count() == bscTokens.Count())
+                                            {
+                                                onLoadFinish();
+                                            }
+                                        },
                                     (error, msg) =>
                                     {
                                         ReportWalletBalance(platform, null);
@@ -2430,6 +2635,75 @@ namespace Poltergeist
                         }
                         break;
 
+                    case PlatformKind.BSC:
+                        {
+                            var keys = EthereumKey.FromWIF(wif);
+                            var urlBsc = GetBscExplorerAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
+
+                            StartCoroutine(WebClient.RESTRequest(urlBsc, WebClient.DefaultTimeout, (error, msg) =>
+                            {
+                                ReportWalletHistory(platform, null);
+                            },
+                            (responseBsc) =>
+                            {
+                                var urlBep20 = GetBscExplorerAPIUrl($"module=account&action=tokentx&address={keys.Address}&sort=desc");
+                                StartCoroutine(WebClient.RESTRequest(urlBep20, WebClient.DefaultTimeout, (error, msg) =>
+                                {
+                                    ReportWalletHistory(platform, null);
+                                },
+                                (responseBep20) =>
+                                {
+                                    var bscHistory = new Dictionary<string, DateTime>();
+
+                                    // Adding BSC transactions to the dict.
+                                    if (responseBsc != null)
+                                    {
+                                        var entries = responseBsc.GetNode("result");
+                                        foreach (var entry in entries.Children)
+                                        {
+                                            var hash = entry.GetString("hash");
+                                            if (!bscHistory.Any(x => x.Key == hash))
+                                            {
+                                                bscHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
+                                        }
+                                    }
+
+                                    // Adding BEP20 transactions to the dict.
+                                    if (responseBep20 != null)
+                                    {
+                                        var entries = responseBep20.GetNode("result");
+                                        foreach (var entry in entries.Children)
+                                        {
+                                            var hash = entry.GetString("hash");
+                                            if (!bscHistory.Any(x => x.Key == hash))
+                                            {
+                                                bscHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
+                                        }
+                                    }
+
+                                    // Sorting tx-es by date.
+                                    var orderedBscHistory = bscHistory.OrderByDescending(x => x.Value);
+
+                                    var history = new List<HistoryEntry>();
+
+                                    foreach (var entry in orderedBscHistory)
+                                    {
+                                        history.Add(new HistoryEntry()
+                                        {
+                                            hash = entry.Key,
+                                            date = entry.Value,
+                                            url = GetBscTransactionURL(entry.Key),
+                                        });
+                                    }
+
+                                    ReportWalletHistory(platform, history);
+                                }));
+                            }));
+                        }
+                        break;
+
                     default:
                         ReportWalletHistory(platform, null);
                         break;
@@ -2546,6 +2820,57 @@ namespace Poltergeist
 
                 case EthereumNetwork.Ropsten:
                     return $"https://api-ropsten.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+
+                default:
+                    return null;
+            }
+        }
+
+        public string GetBscTransactionURL(string hash)
+        {
+            if (!hash.StartsWith("0x"))
+                hash = "0x" + hash;
+
+            switch (Settings.binanceSmartChainNetwork)
+            {
+                case BinanceSmartChainNetwork.Main_Net:
+                    return $"https://bscscan.com/tx/{hash}";
+
+                case BinanceSmartChainNetwork.Test_Net:
+                    return $"https://testnet.bscscan.com/tx/{hash}";
+
+                default:
+                    return null;
+            }
+        }
+
+        public string GetBscAddressURL(string address)
+        {
+            if (!address.StartsWith("0x"))
+                address = "0x" + address;
+
+            switch (Settings.binanceSmartChainNetwork)
+            {
+                case BinanceSmartChainNetwork.Main_Net:
+                    return $"https://bscscan.com/address/{address}";
+
+                case BinanceSmartChainNetwork.Test_Net:
+                    return $"https://testnet.bscscan.com/address/{address}";
+
+                default:
+                    return null;
+            }
+        }
+
+        private string GetBscExplorerAPIUrl(string request)
+        {
+            switch (Settings.binanceSmartChainNetwork)
+            {
+                case BinanceSmartChainNetwork.Main_Net:
+                    return $"https://bscscan.com/api?{request}";
+
+                case BinanceSmartChainNetwork.Test_Net:
+                    return $"https://testnet.bscscan.com/api?{request}";
 
                 default:
                     return null;
@@ -2680,6 +3005,24 @@ namespace Poltergeist
 
             return Address.FromInterop(2/*Ethereum*/, pubKey);
         }
+        public static Address EncodeBinanceSmartChainAddress(string addressText)
+        {
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
+            Throw.If(!ethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
+
+            if (addressText.StartsWith("0x"))
+            {
+                addressText = addressText.Substring(2);
+            }
+
+            var scriptHash = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
+
+            var pubKey = new byte[33];
+            ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
+
+            return Address.FromInterop(3/*BinanceSmartChain*/, pubKey);
+        }
 
         public static string DecodeNeoInteropAddress(Address address)
         {
@@ -2766,6 +3109,31 @@ namespace Poltergeist
 
                 var script = ScriptUtils.BeginScript()
                     .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
+                    .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
+                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                    .SpendGas(transcodedAddress)
+                    .EndScript();
+
+                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                {
+                    callback(hash, error);
+                }, (message, prikey, pubkey) =>
+                {
+                    return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                });
+            }
+            else if (sourcePlatform.ToLower() == PlatformKind.BSC.ToString().ToLower())
+            {
+                var wif = this.CurrentWif;
+                var ethKeys = EthereumKey.FromWIF(wif);
+                var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+
+                Hash ethTxHash = Hash.Parse(pendingHash);
+                var transcodedAddress = Address.FromKey(ethKeys);
+
+                var script = ScriptUtils.BeginScript()
+                    .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
                     .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
                     .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
                     .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
@@ -2905,6 +3273,9 @@ namespace Poltergeist
                     return Accounts[index].neoAddress;
 
                 case PlatformKind.Ethereum:
+                    return Accounts[index].ethAddress;
+
+                case PlatformKind.BSC:
                     return Accounts[index].ethAddress;
             }
 

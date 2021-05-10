@@ -115,6 +115,7 @@ namespace Poltergeist
             mnemonicPhraseVerificationModeComboBox.ResetState();
             passwordModeComboBox.ResetState();
             ethereumNetworkComboBox.ResetState();
+            binanceSmartChainNetworkComboBox.ResetState();
             logLevelComboBox.ResetState();
             uiThemeComboBox.ResetState();
             nftSortModeComboBox.ResetState();
@@ -415,6 +416,17 @@ namespace Poltergeist
                             }
                         }
                         ethereumNetworkComboBox.SelectedItemIndex = ethereumNetworkIndex;
+
+                        binanceSmartChainNetworkIndex = 0;
+                        for (int i = 0; i < availableBinanceSmartChainNetworks.Length; i++)
+                        {
+                            if (availableBinanceSmartChainNetworks[i] == accountManager.Settings.binanceSmartChainNetwork)
+                            {
+                                binanceSmartChainNetworkIndex = i;
+                                break;
+                            }
+                        }
+                        binanceSmartChainNetworkComboBox.SelectedItemIndex = binanceSmartChainNetworkIndex;
 
                         logLevelIndex = 0;
                         for (int i = 0; i < availableLogLevels.Length; i++)
@@ -1821,11 +1833,12 @@ namespace Poltergeist
                 DoButton(true, new Rect(Units(1) + 8 + (VerticalLayout ? 0 : 8), curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("SOUL_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Phantasma, () => { accountManager.CurrentPlatform = PlatformKind.Phantasma; });
                 DoButton(true, new Rect(Units(4) + (VerticalLayout ? 4 : 8), curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("ETH_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Ethereum, () => { accountManager.CurrentPlatform = PlatformKind.Ethereum; });
                 DoButton(true, new Rect(Units(6) + 16, curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("NEO_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.Neo, () => { accountManager.CurrentPlatform = PlatformKind.Neo; });
+                DoButton(true, new Rect(Units(9) + (VerticalLayout ? 12 : 8), curY - (VerticalLayout ? 0 : 4), Units(2), Units(1) + 8), ResourceManager.Instance.GetToken("BSC_h120", accountManager.CurrentPlatform), accountManager.CurrentPlatform == PlatformKind.BSC, () => { accountManager.CurrentPlatform = PlatformKind.BSC; });
 
                 var style = GUI.skin.label;
                 if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
                     GUI.contentColor = Color.black;
-                GUI.Label(new Rect(Units(9) + 4, curY - (VerticalLayout ? 8 : 12), Units(7), Units(2)), VerticalLayout ? accountManager.CurrentPlatform.ToString().ToUpper().Substring(0, 3) : accountManager.CurrentPlatform.ToString().ToUpper());
+                GUI.Label(new Rect(Units(12) + (VerticalLayout ? 4 : 0), curY - (VerticalLayout ? 8 : 12), Units(7), Units(2)), VerticalLayout ? accountManager.CurrentPlatform.ToString().ToUpper().Substring(0, 3) : accountManager.CurrentPlatform.ToString().ToUpper());
                 if (AccountManager.Instance.Settings.uiThemeName == UiThemes.Classic.ToString())
                     GUI.contentColor = Color.white;
             }
@@ -1840,6 +1853,9 @@ namespace Poltergeist
                     address = accountManager.CurrentAccount.neoAddress;
                     break;
                 case PlatformKind.Ethereum:
+                    address = accountManager.CurrentAccount.ethAddress;
+                    break;
+                case PlatformKind.BSC:
                     address = accountManager.CurrentAccount.ethAddress;
                     break;
             }
@@ -1881,6 +1897,9 @@ namespace Poltergeist
                             break;
                         case PlatformKind.Neo:
                             Application.OpenURL(accountManager.GetNeoscanAddressURL(address));
+                            break;
+                        case PlatformKind.BSC:
+                            Application.OpenURL(accountManager.GetBscAddressURL(address));
                             break;
                     }
                 });
@@ -2452,6 +2471,9 @@ namespace Poltergeist
                                                                 case PlatformKind.Ethereum:
                                                                     Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
                                                                     break;
+                                                                case PlatformKind.BSC:
+                                                                    Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
+                                                                    break;
                                                             }
                                                         }
                                                     });
@@ -2460,7 +2482,7 @@ namespace Poltergeist
                                     }
                                     else
                                     {
-                                        if (accountManager.CurrentPlatform == PlatformKind.Ethereum && error.Contains("destination hash is not yet available"))
+                                        if ((accountManager.CurrentPlatform == PlatformKind.Ethereum || accountManager.CurrentPlatform == PlatformKind.BSC) && error.Contains("destination hash is not yet available"))
                                             MessageBox(MessageKind.Default, $"Claim was processed but it will take some time for Ethereum transaction to be mined.\nPlease press claim again later to finalize claim procedure.");
                                         else
                                             MessageBox(MessageKind.Error, $"An error has occurred while claiming your {balance.Symbol}...\n{error}");
@@ -2883,16 +2905,29 @@ namespace Poltergeist
                             }
                         }
                         else
-                        if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Ethereum))
+                        if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress) && (accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Ethereum) || accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.BSC)))
                         {
                             if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
                             {
                                 ContinueEthTransfer(transferName, transferSymbol, destAddress);
                             }
+                            else if (accountManager.CurrentPlatform == PlatformKind.BSC)
+                            {
+                                ContinueBscTransfer(transferName, transferSymbol, destAddress);
+                            }
                             else
                             if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                             {
-                                ContinueSwap(PlatformKind.Ethereum, transferName, transferSymbol, destAddress);
+                                if (modalInputKey.ToUpper() == "SWAP TO ETH")
+                                {
+                                    Log.Write("SWAP TO ETH selected");
+                                    ContinueSwap(PlatformKind.Ethereum, transferName, transferSymbol, destAddress);
+                                }
+                                else if(modalInputKey.ToUpper() == "SWAP TO BSC")
+                                {
+                                    Log.Write("SWAP TO BSC selected");
+                                    ContinueSwap(PlatformKind.BSC, transferName, transferSymbol, destAddress);
+                                }
                             }
                             else
                             {
@@ -3634,7 +3669,7 @@ namespace Poltergeist
                                     var newKeys = PhantasmaKeys.FromWIF(wif);
                                     if (newKeys.Address.Text != accountManager.CurrentState.address)
                                     {
-                                        PromptBox("Are you sure you want to migrate this account?\n\nBefore doing migration, make sure that both old and new private keys (WIFs or seed phrases) are safely stored.\n\nCheck your Eth and Neo balances for current wallet, if they have funds, move them to a new wallet before doing migration.\n\nBy doing a migration, any existing Phantasma rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
+                                        PromptBox("Are you sure you want to migrate this account?\n\nBefore doing migration, make sure that both old and new private keys (WIFs or seed phrases) are safely stored.\n\nCheck your Eth/Neo/BSC balances for current wallet, if they have funds, move them to a new wallet before doing migration.\n\nBy doing a migration, any existing Phantasma rewards will be transfered without penalizations.\nTarget address: " + newKeys.Address.Text, ModalYesNo, (result) =>
                                         {
                                             if (result == PromptResult.Success)
                                             {
@@ -4211,7 +4246,7 @@ namespace Poltergeist
                     else
                     if (ethereumAddressUtil.IsValidEthereumAddressHexFormat(destAddress) && ethereumAddressUtil.IsChecksumAddress(destAddress))
                     {
-                        MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to Ethereum address not supported.");
+                        MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to Ethereum/BSC address not supported.");
                     }
                     else
                     if (ValidationUtils.IsValidIdentifier(destAddress) && destAddress != state.name && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
@@ -4306,6 +4341,28 @@ namespace Poltergeist
 
                     var estimatedFee = usedGas * accountManager.Settings.ethereumGasPriceGwei;
                     description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} ETH"; // 9 because we convert from Gwei, not Wei
+                }
+            }
+            else if (accountManager.CurrentPlatform == PlatformKind.BSC)
+            {
+                BigInteger usedGas;
+
+                var transfer = Serialization.Unserialize<TransferRequest>(script);
+                if (transfer.platform == PlatformKind.BSC)
+                {
+                    if (transfer.symbol == "BNB")
+                    {
+                        // BNB transfer.
+                        usedGas = accountManager.Settings.binanceSmartChainTransferGasLimit;
+                    }
+                    else
+                    {
+                        // Token transfer.
+                        usedGas = accountManager.Settings.binanceSmartChainTokenTransferGasLimit;
+                    }
+
+                    var estimatedFee = usedGas * accountManager.Settings.binanceSmartChainGasPriceGwei;
+                    description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} BNB"; // 9 because we convert from Gwei, not Wei
                 }
             }
 
@@ -4812,6 +4869,106 @@ namespace Poltergeist
             });
         }
 
+        private void ContinueBscTransfer(string transferName, string symbol, string destAddress)
+        {
+            var accountManager = AccountManager.Instance;
+            var state = accountManager.CurrentState;
+
+            if (accountManager.CurrentPlatform != PlatformKind.BSC)
+            {
+                MessageBox(MessageKind.Error, $"Current platform must be " + PlatformKind.BSC);
+                return;
+            }
+
+            var sourceAddress = accountManager.GetAddress(accountManager.CurrentIndex, accountManager.CurrentPlatform);
+
+            if (sourceAddress == destAddress)
+            {
+                MessageBox(MessageKind.Error, $"Source and destination address must be different!");
+                return;
+            }
+
+            var bnbBalance = accountManager.CurrentState.GetAvailableAmount("BNB");
+            if (bnbBalance <= 0)
+            {
+                MessageBox(MessageKind.Error, $"You will need at least a drop of BNB in this wallet to make a transaction.");
+                return;
+            }
+
+            var balance = state.GetAvailableAmount(symbol);
+            BscGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
+            {
+                EditBigIntegerFee("Set transaction gas price in GWEI", accountManager.Settings.binanceSmartChainGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, fee) =>
+                {
+                    if (result == PromptResult.Success)
+                    {
+                        accountManager.Settings.binanceSmartChainGasPriceGwei = fee;
+                        accountManager.Settings.SaveOnExit();
+
+                        BigInteger usedGas;
+                        if (symbol == "BNB")
+                        {
+                            // Eth transfer.
+                            usedGas = accountManager.Settings.binanceSmartChainTransferGasLimit;
+                        }
+                        else
+                        {
+                            // Simple token transfer.
+                            usedGas = accountManager.Settings.binanceSmartChainTokenTransferGasLimit;
+                        }
+
+                        var decimalFee = UnitConversion.ToDecimal(usedGas * accountManager.Settings.binanceSmartChainGasPriceGwei, 9); // 9 because we convert from Gwei, not Wei
+
+                        RequestFee(symbol, "BNB", decimalFee, (feeResult) =>
+                        {
+                            if (feeResult != PromptResult.Success)
+                            {
+                                MessageBox(MessageKind.Error, $"Without at least {decimalFee} BNB it is not possible to perform this transfer!");
+                                return;
+                            }
+
+                            if (symbol == "BNB")
+                            {
+                                balance -= decimalFee;
+                            }
+
+                            RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
+                            {
+                                var transfer = new TransferRequest()
+                                {
+                                    platform = PlatformKind.BSC,
+                                    amount = amount,
+                                    symbol = symbol,
+                                    key = accountManager.CurrentWif,
+                                    destination = destAddress
+                                };
+
+                                byte[] script = Serialization.Serialize(transfer);
+
+                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
+                                {
+                                    if (hash != Hash.Null)
+                                    {
+                                        ShowModal("Success",
+                                            $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use BSC explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash,
+                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                            {
+                                                AudioManager.Instance.PlaySFX("click");
+
+                                                if (viewTxChoice == PromptResult.Failure)
+                                                {
+                                                    Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
+                                                }
+                                            });
+                                    }
+                                });
+                            });
+                        });
+                    }
+                });
+            });
+        }
+
         private void ContinueSwap(PlatformKind destPlatform, string transferName, string swappedSymbol, string destination)
         {
             var accountManager = AccountManager.Instance;
@@ -4851,6 +5008,13 @@ namespace Poltergeist
                         return;
                     }
                     break;
+                case PlatformKind.BSC:
+                    if (destination != account.ethAddress)
+                    {
+                        MessageBox(MessageKind.Error, $"Only swaps within same account are allowed!\nYour BSC address is {account.ethAddress},\ntarget address is {destination}.");
+                        return;
+                    }
+                    break;
             }
 
             // We set GAS as main fee symbol for both NEO -> PHA and PHA -> NEO swaps.
@@ -4860,6 +5024,8 @@ namespace Poltergeist
             var feeSymbol0 = "GAS";
             if (accountManager.CurrentPlatform == PlatformKind.Ethereum || destPlatform == PlatformKind.Ethereum)
                 feeSymbol0 = "ETH";
+            if (accountManager.CurrentPlatform == PlatformKind.BSC || destPlatform == PlatformKind.BSC)
+                feeSymbol0 = "BNB";
 
             var proceedWithSwap = new Action<string, string, decimal>((symbol, feeSymbol, min) =>
             {
@@ -4888,10 +5054,10 @@ namespace Poltergeist
                     }
 
                     var balance = state.GetAvailableAmount(symbol);
-                    
+
                     // If we are swapping fogeign token that is also used for swapping fees,
                     // we subtract required swapping fee minimum from available balance to avoid errors.
-                    if (symbol == "GAS" || symbol == "ETH")
+                    if (symbol == "GAS" || symbol == "ETH" || symbol == "BNB")
                         balance -= min;
 
                     // To fix error if swapping whole KCAL balance to another chain.
@@ -4918,6 +5084,9 @@ namespace Poltergeist
                                     break;
                                 case PlatformKind.Ethereum:
                                     destAddress = AccountManager.EncodeEthereumAddress(destination);
+                                    break;
+                                case PlatformKind.BSC:
+                                    destAddress = AccountManager.EncodeBinanceSmartChainAddress(destination);
                                     break;
                                 default:
                                     MessageBox(MessageKind.Error, $"Swaps to {destPlatform} are not possible yet.");
@@ -5012,6 +5181,8 @@ namespace Poltergeist
                                             string successMessage;
                                             if(accountManager.CurrentPlatform == PlatformKind.Ethereum)
                                                 successMessage = $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
+                                            else if (accountManager.CurrentPlatform == PlatformKind.BSC)
+                                                successMessage = $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use BSC explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
                                             else
                                                 successMessage = $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash;
 
@@ -5027,6 +5198,8 @@ namespace Poltergeist
                                                             Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
                                                         else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
                                                             Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                                        else if (accountManager.CurrentPlatform == PlatformKind.BSC)
+                                                            Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
                                                     }
 
                                                     accountManager.RefreshBalances(false);
@@ -5071,6 +5244,37 @@ namespace Poltergeist
                 {
                     Log.Write("ETH fastest swap fee (estimated): " + fastest);
                     var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "ETH" ? accountManager.Settings.ethereumTransferGasLimit : accountManager.Settings.ethereumTokenTransferGasLimit) * fastest, 9); // 9 because we convert from Gwei, not Wei
+
+                    proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
+                }));
+            }
+            else if (feeSymbol0 == "BNB" && accountManager.CurrentPlatform == PlatformKind.BSC)
+            {
+                // Have to ask what fees user is willing to pay.
+
+                BscGasStationRequest((safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight) =>
+                {
+                    EditBigIntegerFee("Set transaction gas price in GWEI", accountManager.Settings.binanceSmartChainGasPriceGwei, safeLow, safeLowWait, standard, standardWait, fast, fastWeight, fastest, fastestWeight, (result, gasPrice) =>
+                    {
+                        if (result == PromptResult.Success)
+                        {
+                            accountManager.Settings.binanceSmartChainGasPriceGwei = gasPrice;
+                            accountManager.Settings.SaveOnExit();
+
+                            var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "BNB" ? accountManager.Settings.binanceSmartChainTransferGasLimit : accountManager.Settings.binanceSmartChainTokenTransferGasLimit) * fast, 9); // 9 because we convert from Gwei, not Wei
+
+                            proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
+                        }
+                    });
+                });
+            }
+            else if (feeSymbol0 == "BNB" && accountManager.CurrentPlatform == PlatformKind.Phantasma)
+            {
+                // No sense in asking user for BNB fees - they are set by BP, we have to try to do our best with predicting them.
+                StartCoroutine(BscRequestSwapFeesAsBP((fastest) =>
+                {
+                    Log.Write("BSC fastest swap fee (estimated): " + fastest);
+                    var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "BSC" ? accountManager.Settings.binanceSmartChainTransferGasLimit : accountManager.Settings.binanceSmartChainTokenTransferGasLimit) * fastest, 9); // 9 because we convert from Gwei, not Wei
 
                     proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
                 }));
@@ -5327,6 +5531,11 @@ namespace Poltergeist
                 }));
         }
 
+        private void BscGasStationRequest(Action<BigInteger, string, BigInteger, string, BigInteger, string, BigInteger, string> callback)
+        {
+            callback(5, "Slow", 10, "Avg", 15, "Fast", 25, "Fastest");
+        }
+
         // Taken from Spook to emulate Spook's Eth fee calculation.
         public static decimal GetMedian(decimal[] sourceArray)
         {
@@ -5417,7 +5626,15 @@ namespace Poltergeist
             
             callback(new BigInteger((long)(median + feeIncrease)));
         }
-#endregion
+
+        private IEnumerator BscRequestSwapFeesAsBP(Action<BigInteger> callback)
+        {
+            var feeIncrease = 40;
+            callback(new BigInteger((long)(25 + feeIncrease)));
+            
+            yield return new WaitForSeconds(.001f);
+        }
+        #endregion
 
         private Dictionary<string, string> GenerateAccountHints(PlatformKind targets)
         {
@@ -5472,6 +5689,7 @@ namespace Poltergeist
                     if (targets.HasFlag(platform))
                     {
                         if(accountManager.CurrentPlatform == PlatformKind.Ethereum && platform == PlatformKind.Phantasma ||
+                            accountManager.CurrentPlatform == PlatformKind.BSC && platform == PlatformKind.Phantasma ||
                             accountManager.CurrentPlatform == PlatformKind.Neo && platform == PlatformKind.Phantasma ||
                             accountManager.CurrentPlatform == PlatformKind.Phantasma && platform != PlatformKind.Phantasma)
                         {
