@@ -4830,7 +4830,10 @@ namespace Poltergeist
                                 return;
                             }
 
-                            balance -= decimalFee;
+                            if (symbol == "ETH")
+                            {
+                                balance -= decimalFee;
+                            }
 
                             RequireAmount(transferName, destAddress, symbol, 0.001m, balance, (amount) =>
                             {
