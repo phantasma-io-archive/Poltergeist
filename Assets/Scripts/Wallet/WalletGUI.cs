@@ -1298,6 +1298,19 @@ namespace Poltergeist
                 return;
             }
 
+            // This fix is related to previous one.
+            // If some account is added or edited, we can sometimes get "Collection was modified; enumeration operation may not execute." exception.
+            // Duplicating accounts list to avoid that.
+            List<Account> accountsCopy;
+            try
+            {
+                accountsCopy = accountManager.Accounts.ToList();
+            }
+            catch
+            {
+                return;
+            }
+
             int endY;
             DoButtonGrid<int>(true, accountOptions.Length, Units(2), 0, out endY, (index) =>
             {
@@ -1444,7 +1457,7 @@ namespace Poltergeist
 
             int panelHeight = Units(6);
 
-            DoScrollArea<Account>(ref accountScroll, startY, endY, panelHeight, accountManager.Accounts,
+            DoScrollArea<Account>(ref accountScroll, startY, endY, panelHeight, accountsCopy,
                 (account, index, curY, rect) =>
                 {
                     int btnWidth = Units(7);
