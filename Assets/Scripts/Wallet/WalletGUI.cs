@@ -1099,12 +1099,23 @@ namespace Poltergeist
 
             if (wif != null)
             {
+                PhantasmaKeys keys = null;
+                try
+                {
+                    keys = PhantasmaKeys.FromWIF(wif);
+                }
+                catch(Exception e)
+                {
+                    Log.Write("ImportWallet() exception: " + e);
+                    MessageBox(MessageKind.Error, $"Incorrect WIF format.", () => { if (callback != null) { callback(-1); } });
+                    return;
+                }
+
                 foreach (var account in accountManager.Accounts)
                 {
-                    var keys = PhantasmaKeys.FromWIF(wif);
                     if (account.phaAddress == keys.Address.ToString())
                     {
-                        MessageBox(MessageKind.Error, $"Private key{walletNumberString} is already imported in a different account: {account.name}.", () => { callback(-1); });
+                        MessageBox(MessageKind.Error, $"Private key{walletNumberString} is already imported in a different account: {account.name}.", () => { if (callback != null) { callback(-1); } });
                         return;
                     }
                 }
