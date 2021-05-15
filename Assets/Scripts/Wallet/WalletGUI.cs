@@ -2514,29 +2514,7 @@ namespace Poltergeist
                                 });
                             };
 
-                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma && balance.Symbol.ToUpper() == "KCAL")
-                            {
-                                // If we claim KCAL on PHA side and there's no KCAL to perform this claim,
-                                // we try to do cosmic swap from SOUL.
-
-                                // TODO - we should let the user choose what asset to swap instead of hardcoding it to SOUL...
-                                RequestKCAL("SOUL", (feeResult) =>
-                                {
-                                    if (feeResult == PromptResult.Success)
-                                    {
-                                        claim();
-                                    }
-                                    else
-                                    if (feeResult == PromptResult.Failure)
-                                    {
-                                        MessageBox(MessageKind.Error, $"KCAL is required to make transactions!");
-                                    }
-                                });
-                            }
-                            else
-                            {
-                                claim();
-                            }
+                            claim();
                         }
                     });
                 };
