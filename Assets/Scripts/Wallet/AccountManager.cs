@@ -937,7 +937,7 @@ namespace Poltergeist
                     ChangeFaultyRPCURL();
                 }
 
-                Log.WriteWarning("Tokens initialization error: " + msg);
+                Log.WriteError("Tokens initialization error: " + msg);
 
                 CurrentTokenCurrency = "";
 
@@ -1889,6 +1889,8 @@ namespace Poltergeist
                             },
                             (error, msg) =>
                             {
+                                Log.WriteWarning($"RefreshBalances[PHA] {error}: {msg}");
+
                                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                                 {
                                     ChangeFaultyRPCURL();
@@ -2007,6 +2009,7 @@ namespace Poltergeist
                                 {
                                     if (ex != null)
                                     {
+                                        Log.WriteWarning($"RefreshBalances[NEO] {ex}");
                                         ReportWalletBalance(platform, null);
                                     }
                                 });
@@ -2072,6 +2075,7 @@ namespace Poltergeist
                                     },
                                     (error, msg) =>
                                     {
+                                        Log.WriteWarning($"RefreshBalances[ETH/1] {error}: {msg}");
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
@@ -2090,6 +2094,7 @@ namespace Poltergeist
                                     },
                                     (error, msg) =>
                                     {
+                                        Log.WriteWarning($"RefreshBalances[ETH/2] {error}: {msg}");
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
@@ -2154,6 +2159,7 @@ namespace Poltergeist
                                     },
                                     (error, msg) =>
                                     {
+                                        Log.WriteWarning($"RefreshBalances[BSC/1] {error}: {msg}");
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
@@ -2172,6 +2178,7 @@ namespace Poltergeist
                                         },
                                     (error, msg) =>
                                     {
+                                        Log.WriteWarning($"RefreshBalances[BSC/2] {error}: {msg}");
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
