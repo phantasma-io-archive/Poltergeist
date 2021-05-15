@@ -1035,7 +1035,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null, IKeyPair customKeys2 = null, Func<byte[], byte[], byte[], byte[]> customSignFunction2 = null)
         {
             if (payload == null)
             {
@@ -1059,7 +1059,7 @@ namespace Poltergeist
                                 ChangeFaultyRPCURL();
                             }
                             callback(Hash.Null, msg);
-                        }, customSignFunction));
+                        }, customSignFunction, customKeys2, customSignFunction2));
                         break;
                     }
 
@@ -3105,55 +3105,109 @@ namespace Poltergeist
 
         internal void SettleSwap(string sourcePlatform, string destPlatform, string symbol, string pendingHash, Action<Hash, string> callback)
         {
+            var accountManager = AccountManager.Instance;
+
             if (sourcePlatform.ToLower() == PlatformKind.Ethereum.ToString().ToLower())
             {
                 var wif = this.CurrentWif;
                 var ethKeys = EthereumKey.FromWIF(wif);
                 var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+                var address = phantasmaKeys.Address;
 
                 Hash ethTxHash = Hash.Parse(pendingHash);
                 var transcodedAddress = Address.FromKey(ethKeys);
 
-                var script = ScriptUtils.BeginScript()
-                    .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
-                    .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
-                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                    .SpendGas(transcodedAddress)
-                    .EndScript();
+                var kcalBalance = accountManager._states[PlatformKind.Phantasma].GetAvailableAmount("KCAL");
 
-                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                byte[] script;
+                if (kcalBalance < 0.1m)
                 {
-                    callback(hash, error);
-                }, (message, prikey, pubkey) =>
+                    // We swap some tokens into KCAL
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
+                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                        .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(transcodedAddress)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
+                else
                 {
-                    return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
-                });
+                    // We use KCAL that is available on this account already
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
+                        .AllowGas(address, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(address)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, phantasmaKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, null, ethKeys, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
             }
             else if (sourcePlatform.ToLower() == PlatformKind.BSC.ToString().ToLower())
             {
                 var wif = this.CurrentWif;
                 var ethKeys = EthereumKey.FromWIF(wif);
                 var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+                var address = phantasmaKeys.Address;
 
                 Hash ethTxHash = Hash.Parse(pendingHash);
                 var transcodedAddress = Address.FromKey(ethKeys);
 
-                var script = ScriptUtils.BeginScript()
-                    .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
-                    .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
-                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                    .SpendGas(transcodedAddress)
-                    .EndScript();
+                var kcalBalance = accountManager._states[PlatformKind.Phantasma].GetAvailableAmount("KCAL");
 
-                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                byte[] script;
+                if (kcalBalance < 0.1m)
                 {
-                    callback(hash, error);
-                }, (message, prikey, pubkey) =>
+                    // We swap some tokens into KCAL
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
+                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                        .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(transcodedAddress)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
+                else
                 {
-                    return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
-                });
+                    // We use KCAL that is available on this account already
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
+                        .AllowGas(address, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(address)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, phantasmaKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, null, ethKeys, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
             }
             else
             {

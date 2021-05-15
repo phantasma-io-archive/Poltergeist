@@ -1647,7 +1647,7 @@ namespace Phantasma.SDK
             return SignAndSendTransactionWithPayload(keys, nexus, script, chain, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
         }
 
-        public IEnumerator SignAndSendTransactionWithPayload(IKeyPair keys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public IEnumerator SignAndSendTransactionWithPayload(IKeyPair keys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null, IKeyPair keys2 = null, Func<byte[], byte[], byte[], byte[]> customSignFunction2 = null)
         {
             Log.Write("Sending transaction...");
 
@@ -1659,6 +1659,10 @@ namespace Phantasma.SDK
             }
 
             tx.Sign(keys, customSignFunction);
+            if (keys2 != null)
+            {
+                tx.Sign(keys2, customSignFunction2);
+            }
 
             yield return SendRawTransaction(Base16.Encode(tx.ToByteArray(true)), callback, errorHandlingCallback);
         }
