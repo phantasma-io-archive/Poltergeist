@@ -18,7 +18,6 @@
 {"symbol": "MCT", "apiSymbol": "master-contract-token"},
 {"symbol": "DBC", "apiSymbol": "deepbrain-chain"},
 {"symbol": "FTW", "apiSymbol": "ftw"},
-{"symbol": "ACAT", "apiSymbol": "alphacat"},
 {"symbol": "QLC", "apiSymbol": "qlink"},
 {"symbol": "TNC", "apiSymbol": "trinity-network-credit"},
 {"symbol": "PHX", "apiSymbol": "red-pulse"},
