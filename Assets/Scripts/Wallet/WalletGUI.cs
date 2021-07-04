@@ -3665,8 +3665,7 @@ namespace Poltergeist
                                 }
                                 else
                                 {
-                                    var account = accountManager.Accounts[accountManager.CurrentIndex];
-                                    var oldWif = account.WIF;
+                                    var oldWif = accountManager.CurrentWif;
 
                                     var newKeys = PhantasmaKeys.FromWIF(wif);
                                     if (newKeys.Address.Text != accountManager.CurrentState.address)
@@ -3690,7 +3689,7 @@ namespace Poltergeist
                                                 {
                                                     if (hash != Hash.Null)
                                                     {
-                                                        accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif, out var deletedDuplicateWallet);
+                                                        accountManager.ReplaceAccountWIF(accountManager.CurrentIndex, wif, accountManager.CurrentPasswordHash, out var deletedDuplicateWallet);
                                                         AudioManager.Instance.PlaySFX("click");
                                                         CloseCurrentStack();
 

@@ -3237,7 +3237,7 @@ namespace Poltergeist
             SaveAccounts();
         }
 
-        internal void ReplaceAccountWIF(int currentIndex, string wif, out string deletedDuplicateWallet)
+        internal void ReplaceAccountWIF(int currentIndex, string wif, string passwordHash, out string deletedDuplicateWallet)
         {
             deletedDuplicateWallet = null;
 
@@ -3247,18 +3247,27 @@ namespace Poltergeist
             }
 
             var account = Accounts[currentIndex];
-            account.WIF = wif;
+            if (string.IsNullOrEmpty(passwordHash))
+            {
+                account.WIF = wif;
+            }
+            else
+            {
+                account.WIF = EncryptString(wif, passwordHash, out string iv);
+                account.iv = iv;
+            }
             account.misc = ""; // Migration does not guarantee that new account have current seed, but that's all that we can do with it.
             
             // Initializing new public addresses.
-            var phaKeys = PhantasmaKeys.FromWIF(account.WIF);
+            wif = account.GetWif(passwordHash); // Recreating to be sure all is good.
+            var phaKeys = PhantasmaKeys.FromWIF(wif);
             account.phaAddress = phaKeys.Address.ToString();
 
-            var neoKeys = NeoKeys.FromWIF(account.WIF);
+            var neoKeys = NeoKeys.FromWIF(wif);
             account.neoAddress = neoKeys.Address.ToString();
 
             var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
-            account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
+            account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
 
             Accounts[currentIndex] = account;
 
