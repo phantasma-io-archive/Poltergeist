@@ -937,7 +937,7 @@ namespace Poltergeist
                     ChangeFaultyRPCURL();
                 }
 
-                Log.WriteError("Tokens initialization error: " + msg);
+                Log.WriteWarning("Tokens initialization error: " + msg);
 
                 CurrentTokenCurrency = "";
 
