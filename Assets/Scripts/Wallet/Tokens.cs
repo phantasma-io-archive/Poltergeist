@@ -43,7 +43,7 @@ public static class Tokens
             var hash = externalToken.GetString("hash");
             var coinGeckoId = externalToken.GetString("coinGeckoId");
 
-            var token = Tokens.GetToken(symbol);
+            var token = Tokens.GetToken(symbol, platform);
             if (token != null)
             {
                 if (token.name == name && token.decimals == decimals)
@@ -128,13 +128,16 @@ public static class Tokens
         {
             var symbol = tokenApiSymbol.GetString("symbol");
             var apiSymbol = tokenApiSymbol.GetString("apiSymbol");
-            var token = Tokens.GetToken(symbol);
-            if (token != null)
+            var tokens = Tokens.GetTokens(symbol);
+            if (tokens.Length > 0)
             {
-                if (apiSymbol == "-") // Means token has no CoinGecko API ID.
-                    token.apiSymbol = "";
-                else
-                    token.apiSymbol = apiSymbol;
+                for (var i = 0; i < tokens.Length; i++)
+                {
+                    if (apiSymbol == "-") // Means token has no CoinGecko API ID.
+                        tokens[i].apiSymbol = "";
+                    else
+                        tokens[i].apiSymbol = apiSymbol;
+                }
             }
             else
             {
@@ -188,10 +191,10 @@ public static class Tokens
         }
     }
 
-    public static Token GetToken(string symbol)
+    public static Token[] GetTokens(string symbol)
     {
         return SupportedTokens.Where(x => x.symbol.ToUpper() == symbol.ToUpper())
-            .SingleOrDefault();
+            .ToArray();
     }
     public static Token GetToken(string symbol, PlatformKind platform)
     {
