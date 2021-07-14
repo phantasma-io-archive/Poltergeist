@@ -23,7 +23,6 @@
 {"symbol": "PHX", "apiSymbol": "red-pulse"},
 {"symbol": "LRN", "apiSymbol": "loopring-neo"},
 {"symbol": "ASA", "apiSymbol": "asura"},
-{"symbol": "OBT", "apiSymbol": "orbis-token"},
 {"symbol": "RHT", "apiSymbol": "hashpuppy-token"},
 {"symbol": "LX", "apiSymbol": "lux"},
 {"symbol": "BRDG", "apiSymbol": "bridge-protocol"},
