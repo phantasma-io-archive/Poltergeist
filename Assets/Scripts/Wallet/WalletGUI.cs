@@ -2918,18 +2918,25 @@ namespace Poltergeist
                                 ContinueBscTransfer(transferName, transferSymbol, destAddress);
                             }
                             else
-                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma && !string.IsNullOrEmpty(modalInputKey))
                             {
                                 if (modalInputKey.ToUpper() == "SWAP TO ETH")
                                 {
                                     Log.Write("SWAP TO ETH selected");
                                     ContinueSwap(PlatformKind.Ethereum, transferName, transferSymbol, destAddress);
                                 }
-                                else if(modalInputKey.ToUpper() == "SWAP TO BSC")
+                                else if (modalInputKey.ToUpper() == "SWAP TO BSC")
                                 {
                                     Log.Write("SWAP TO BSC selected");
                                     ContinueSwap(PlatformKind.BSC, transferName, transferSymbol, destAddress);
                                 }
+                            }
+                            else
+                            if (accountManager.CurrentPlatform == PlatformKind.Phantasma && string.IsNullOrEmpty(modalInputKey))
+                            {
+                                // If modalInputKey is empty, it means that address was copy-pasted,
+                                // but we need user to use "Swap to ..." menu.
+                                MessageBox(MessageKind.Error, $"To swap to Eth/BSC please use corresponding 'Swap to' menu.");
                             }
                             else
                             {
