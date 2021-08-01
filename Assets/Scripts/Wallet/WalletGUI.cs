@@ -2825,6 +2825,11 @@ namespace Poltergeist
                 balance.Fungible &&
                 Input.GetKey(KeyCode.LeftShift))
                 mainAction = "Burn";
+            else if(accountManager.CurrentPlatform == PlatformKind.Phantasma &&
+                balance.Symbol.ToUpper() == "SOUL" &&
+                balance.Staked >= 50000 &&
+                Input.GetKey(KeyCode.LeftShift))
+                mainAction = "SM reward";
             else
                 mainAction = "Send";
 
@@ -2968,6 +2973,50 @@ namespace Poltergeist
                     });
 
                     modalHints = GenerateAccountHints(accountManager.CurrentPlatform.GetTransferTargets(transferToken));
+                }
+                else if (mainAction == "SM reward")
+                {
+                    byte[] script;
+                    try
+                    {
+                        var address = Address.FromText(state.address);
+                        var gasPrice = accountManager.Settings.feePrice;
+                        var gasLimit = accountManager.Settings.feeLimit;
+
+                        var sb = new ScriptBuilder();
+
+                        sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                        sb.CallContract("stake", "MasterClaim", address);
+                        sb.SpendGas(address);
+                        script = sb.EndScript();
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
+                        return;
+                    }
+
+                    SendTransaction($"Claim SM reward", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                    {
+                        if (hash != Hash.Null)
+                        {
+                            ShowModal("Success",
+                                $"You claimed SM reward!\nTransaction hash: " + hash,
+                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                                {
+                                    AudioManager.Instance.PlaySFX("click");
+
+                                    if (viewTxChoice == PromptResult.Failure)
+                                    {
+                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                    }
+                                });
+                        }
+                    });
+
+                    accountManager.SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(accountManager.WalletIdentifier), ProofOfWork.None, null, (hash, error) =>
+                    {
+                    });
                 }
                 else if (mainAction == "Burn")
                 {
