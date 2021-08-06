@@ -3623,7 +3623,7 @@ namespace Poltergeist
                                                                                 $"Unclaimed: {unclaimed} KCAL\n" +
                                                                                 $"Stake: {stake} SOUL\n" +
                                                                                 $"Is SM: {isMaster}\n" +
-                                                                                $"Master date: {masterDate}\n" +
+                                                                                $"SM since: {masterDate}\n" +
                                                                                 $"Stake timestamp: {stakeTimestamp}\n" +
                                                                                 $"Next staking period starts in: {TimeSpan.FromSeconds((double)timeBeforeUnstake):hh\\:mm\\:ss}\n" +
                                                                                 $"Storage stake: {storageStake} SOUL\n" +

@@ -702,6 +702,7 @@ namespace Poltergeist
                                                     $"Phantasma staking information:\n\n" +
                                                     $"All SMs: {masterCount}\n" +
                                                     $"SMs eligible for next rewards distribution: {claimMasterCount}\n" +
+                                                    $"SM reward prediction: {125000/claimMasterCount} SOUL\n" +
                                                     $"Next SM rewards distribution date: {masterClaimDate}\n" +
                                                     $"SM threshold: {masterThreshold} SOUL\n",
                                                     ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
