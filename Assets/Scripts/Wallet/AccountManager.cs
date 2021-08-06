@@ -1379,6 +1379,25 @@ namespace Poltergeist
             }
         }
 
+        public void InvokeScriptPhantasma(string chain, byte[] script, Action<byte[], string> callback)
+        {
+            var account = this.CurrentAccount;
+
+            Log.Write("InvokeScriptPhantasma: " + System.Text.Encoding.UTF8.GetString(script), Log.Level.Debug1);
+            StartCoroutine(phantasmaApi.InvokeRawScript(chain, Base16.Encode(script), (x) =>
+            {
+                Log.Write("InvokeScriptPhantasma result: " + x.result, Log.Level.Debug1);
+                callback(Base16.Decode(x.result), null);
+            }, (error, log) =>
+            {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
+                callback(null, log);
+            }));
+        }
+
         public void GetArchive(Hash hash, Action<bool, Archive, string> callback)
         {
             var account = this.CurrentAccount;
