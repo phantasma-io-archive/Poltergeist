@@ -2525,35 +2525,60 @@ namespace Poltergeist
                     case "SOUL":
                         if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
                         {
-                            secondaryAction = "Stake";
-                            secondaryEnabled = balance.Available > 1.2m;
-                            secondaryCallback = () =>
+                            if (Input.GetKey(KeyCode.LeftShift))
                             {
-                                RequireAmount($"Stake SOUL", null, "SOUL", 0.1m, balance.Available, (selectedAmount) =>
+                                secondaryAction = "Info";
+                                secondaryEnabled = true;
+                                secondaryCallback = () =>
                                 {
-                                    var crownMultiplier = 1m;
-                                    var crownBalance = state.balances.Where(x => x.Symbol.ToUpper() == "CROWN").FirstOrDefault();
-                                    if(crownBalance != default(Balance))
+                                    accountManager.GetPhantasmaAddressInfo(state.address, (result, error) =>
                                     {
-                                        crownMultiplier += crownBalance.Available * 0.05m;
-                                    }
-                                    var expectedDailyKCAL = (selectedAmount + balance.Staked) * 0.002m * crownMultiplier;
-
-                                    var twoSmsWarning = "";
-                                    if(selectedAmount >= 100000)
-                                    {
-                                        twoSmsWarning = "\n\nSoul Master rewards are distributed evenly to every wallet with 50K or more SOUL. As you are staking over 100K SOUL, to maximise your rewards, you may wish to stake each 50K SOUL in a separate wallet.";
-                                    }
-
-                                    StakeSOUL(selectedAmount, $"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {MoneyFormat(expectedDailyKCAL, selectedAmount >= 1 ? MoneyFormatType.Standard : MoneyFormatType.Long)} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, (hash) =>
-                                    {
-                                        if (hash != Hash.Null)
+                                        if (!string.IsNullOrEmpty(error))
                                         {
-                                            MessageBox(MessageKind.Success, "Your SOUL was staked!\nTransaction hash: " + hash);
+                                            MessageBox(MessageKind.Error, "Something went wrong!\n" + error);
+                                            return;
+                                        }
+                                        else
+                                        {
+                                            ShowModal("Account information", result,
+                                                ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
+                                            return;
                                         }
                                     });
-                                });
-                            };
+                                };
+                            }
+                            else
+                            {
+                                secondaryAction = "Stake";
+                                secondaryEnabled = balance.Available > 1.2m;
+                                secondaryCallback = () =>
+                                {
+                                    RequireAmount($"Stake SOUL", null, "SOUL", 0.1m, balance.Available, (selectedAmount) =>
+                                    {
+                                        var crownMultiplier = 1m;
+                                        var crownBalance = state.balances.Where(x => x.Symbol.ToUpper() == "CROWN").FirstOrDefault();
+                                        if (crownBalance != default(Balance))
+                                        {
+                                            crownMultiplier += crownBalance.Available * 0.05m;
+                                        }
+                                        var expectedDailyKCAL = (selectedAmount + balance.Staked) * 0.002m * crownMultiplier;
+
+                                        var twoSmsWarning = "";
+                                        if (selectedAmount >= 100000)
+                                        {
+                                            twoSmsWarning = "\n\nSoul Master rewards are distributed evenly to every wallet with 50K or more SOUL. As you are staking over 100K SOUL, to maximise your rewards, you may wish to stake each 50K SOUL in a separate wallet.";
+                                        }
+
+                                        StakeSOUL(selectedAmount, $"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {MoneyFormat(expectedDailyKCAL, selectedAmount >= 1 ? MoneyFormatType.Standard : MoneyFormatType.Long)} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, (hash) =>
+                                        {
+                                            if (hash != Hash.Null)
+                                            {
+                                                MessageBox(MessageKind.Success, "Your SOUL was staked!\nTransaction hash: " + hash);
+                                            }
+                                        });
+                                    });
+                                };
+                            }
 
                             if (balance.Staked > 0)
                             {

@@ -723,173 +723,19 @@ namespace Poltergeist
                 {
                     if (result == PromptResult.Success)
                     {
-                        byte[] scriptUnclaimed;
-                        byte[] scriptStake;
-                        byte[] scriptStorageStake;
-                        byte[] scriptVotingPower;
-                        byte[] scriptStakeTimestamp;
-                        byte[] scriptTimeBeforeUnstake;
-                        byte[] scriptMasterDate;
-                        byte[] scriptIsMaster;
-                        try
+                        accountManager.GetPhantasmaAddressInfo(input, (result, error) =>
                         {
-                            var address = Address.FromText(input);
-
+                            if (!string.IsNullOrEmpty(error))
                             {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "GetUnclaimed", address);
-                                scriptUnclaimed = sb.EndScript();
-                            }
-                            {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "GetStake", address);
-                                scriptStake = sb.EndScript();
-                            }
-                            {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "GetStorageStake", address);
-                                scriptStorageStake = sb.EndScript();
-                            }
-                            {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "GetAddressVotingPower", address);
-                                scriptVotingPower = sb.EndScript();
-                            }
-                            {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "GetStakeTimestamp", address);
-                                scriptStakeTimestamp = sb.EndScript();
-                            }
-                            {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "GetTimeBeforeUnstake", address);
-                                scriptTimeBeforeUnstake = sb.EndScript();
-                            }
-                            {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "GetMasterDate", address);
-                                scriptMasterDate = sb.EndScript();
-                            }
-                            {
-                                var sb = new ScriptBuilder();
-                                sb.CallContract("stake", "IsMaster", address);
-                                scriptIsMaster = sb.EndScript();
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            MessageBox(MessageKind.Error, "Something went wrong!\n" + e.Message + "\n\n" + e.StackTrace);
-                            return;
-                        }
-
-                        accountManager.InvokeScriptPhantasma("main", scriptUnclaimed, (unclaimedResult, invokeError) =>
-                        {
-                            if (!string.IsNullOrEmpty(invokeError))
-                            {
-                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
+                                MessageBox(MessageKind.Error, "Something went wrong!\n" + error);
                                 return;
                             }
                             else
                             {
-                                accountManager.InvokeScriptPhantasma("main", scriptStake, (stakeResult, invokeError) =>
-                                {
-                                    if (!string.IsNullOrEmpty(invokeError))
-                                    {
-                                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        accountManager.InvokeScriptPhantasma("main", scriptStorageStake, (storageStakeResult, invokeError) =>
-                                        {
-                                            if (!string.IsNullOrEmpty(invokeError))
-                                            {
-                                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
-                                                return;
-                                            }
-                                            else
-                                            {
-                                                accountManager.InvokeScriptPhantasma("main", scriptVotingPower, (votingPowerResult, invokeError) =>
-                                                {
-                                                    if (!string.IsNullOrEmpty(invokeError))
-                                                    {
-                                                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
-                                                        return;
-                                                    }
-                                                    else
-                                                    {
-                                                        accountManager.InvokeScriptPhantasma("main", scriptStakeTimestamp, (stakeTimestampResult, invokeError) =>
-                                                        {
-                                                            if (!string.IsNullOrEmpty(invokeError))
-                                                            {
-                                                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
-                                                                return;
-                                                            }
-                                                            else
-                                                            {
-                                                                accountManager.InvokeScriptPhantasma("main", scriptTimeBeforeUnstake, (timeBeforeUnstakeResult, invokeError) =>
-                                                                {
-                                                                    if (!string.IsNullOrEmpty(invokeError))
-                                                                    {
-                                                                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
-                                                                        return;
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        accountManager.InvokeScriptPhantasma("main", scriptMasterDate, (masterDateResult, invokeError) =>
-                                                                        {
-                                                                            if (!string.IsNullOrEmpty(invokeError))
-                                                                            {
-                                                                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
-                                                                                return;
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                accountManager.InvokeScriptPhantasma("main", scriptIsMaster, (isMasterResult, invokeError) =>
-                                                                                {
-                                                                                    if (!string.IsNullOrEmpty(invokeError))
-                                                                                    {
-                                                                                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
-                                                                                        return;
-                                                                                    }
-                                                                                    else
-                                                                                    {
-                                                                                        var unclaimed = UnitConversion.ToDecimal(VMObject.FromBytes(unclaimedResult).AsNumber(), 10);
-                                                                                        var stake = UnitConversion.ToDecimal(VMObject.FromBytes(stakeResult).AsNumber(), 8);
-                                                                                        var storageStake = UnitConversion.ToDecimal(VMObject.FromBytes(storageStakeResult).AsNumber(), 8);
-                                                                                        var votingPower = VMObject.FromBytes(votingPowerResult).AsNumber();
-                                                                                        var stakeTimestamp = VMObject.FromBytes(stakeTimestampResult).AsTimestamp();
-                                                                                        var timeBeforeUnstake = VMObject.FromBytes(timeBeforeUnstakeResult).AsNumber();
-                                                                                        var masterDate = VMObject.FromBytes(masterDateResult).AsTimestamp();
-                                                                                        var isMaster = VMObject.FromBytes(isMasterResult).AsBool();
-
-                                                                                        ShowModal("Account information",
-                                                                                            $"{input} account information:\n\n" +
-                                                                                            $"Unclaimed: {unclaimed} KCAL\n" +
-                                                                                            $"Stake: {stake} SOUL\n" +
-                                                                                            $"Is SM: {isMaster}\n" +
-                                                                                            $"Master date: {masterDate}\n" +
-                                                                                            $"Stake timestamp: {stakeTimestamp}\n" +
-                                                                                            $"Next staking period starts in: {TimeSpan.FromSeconds((double)timeBeforeUnstake):hh\\:mm\\:ss}\n" +
-                                                                                            $"Storage stake: {storageStake} SOUL\n" +
-                                                                                            $"Voting power: {votingPower}\n",
-                                                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
-                                                                                    }
-                                                                                });
-                                                                            }
-                                                                        });
-                                                                    }
-                                                                });
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
+                                ShowModal("Account information", result,
+                                    ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
+                                return;
                             }
-
                         });
                     }
                 });

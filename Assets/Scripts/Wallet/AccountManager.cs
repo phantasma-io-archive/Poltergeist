@@ -18,6 +18,7 @@ using LunarLabs.Parser;
 using Phantasma.VM.Utils;
 using Phantasma.Blockchain;
 using Archive = Phantasma.SDK.Archive;
+using Phantasma.VM;
 
 namespace Poltergeist
 {
@@ -3470,6 +3471,180 @@ namespace Poltergeist
         public TokenData GetNft(string id)
         {
             return _nfts[CurrentPlatform].Where(x => x.ID == id).FirstOrDefault();
+        }
+
+        public void GetPhantasmaAddressInfo(Action<string, string> callback)
+        {
+            GetPhantasmaAddressInfo(_states[PlatformKind.Phantasma].address, callback);
+        }
+        public void GetPhantasmaAddressInfo(string addressString, Action<string, string> callback)
+        {
+            byte[] scriptUnclaimed;
+            byte[] scriptStake;
+            byte[] scriptStorageStake;
+            byte[] scriptVotingPower;
+            byte[] scriptStakeTimestamp;
+            byte[] scriptTimeBeforeUnstake;
+            byte[] scriptMasterDate;
+            byte[] scriptIsMaster;
+            try
+            {
+                var address = Address.FromText(addressString);
+
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetUnclaimed", address);
+                    scriptUnclaimed = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetStake", address);
+                    scriptStake = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetStorageStake", address);
+                    scriptStorageStake = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetAddressVotingPower", address);
+                    scriptVotingPower = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetStakeTimestamp", address);
+                    scriptStakeTimestamp = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetTimeBeforeUnstake", address);
+                    scriptTimeBeforeUnstake = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetMasterDate", address);
+                    scriptMasterDate = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "IsMaster", address);
+                    scriptIsMaster = sb.EndScript();
+                }
+            }
+            catch (Exception e)
+            {
+                callback(null, e.ToString());
+                return;
+            }
+
+            InvokeScriptPhantasma("main", scriptUnclaimed, (unclaimedResult, invokeError) =>
+            {
+                if (!string.IsNullOrEmpty(invokeError))
+                {
+                    callback(null, "Script invokation error!\n\n" + invokeError);
+                    return;
+                }
+                else
+                {
+                    InvokeScriptPhantasma("main", scriptStake, (stakeResult, invokeError) =>
+                    {
+                        if (!string.IsNullOrEmpty(invokeError))
+                        {
+                            callback(null, "Script invokation error!\n\n" + invokeError);
+                            return;
+                        }
+                        else
+                        {
+                            InvokeScriptPhantasma("main", scriptStorageStake, (storageStakeResult, invokeError) =>
+                            {
+                                if (!string.IsNullOrEmpty(invokeError))
+                                {
+                                    callback(null, "Script invokation error!\n\n" + invokeError);
+                                    return;
+                                }
+                                else
+                                {
+                                    InvokeScriptPhantasma("main", scriptVotingPower, (votingPowerResult, invokeError) =>
+                                    {
+                                        if (!string.IsNullOrEmpty(invokeError))
+                                        {
+                                            callback(null, "Script invokation error!\n\n" + invokeError);
+                                            return;
+                                        }
+                                        else
+                                        {
+                                            InvokeScriptPhantasma("main", scriptStakeTimestamp, (stakeTimestampResult, invokeError) =>
+                                            {
+                                                if (!string.IsNullOrEmpty(invokeError))
+                                                {
+                                                    callback(null, "Script invokation error!\n\n" + invokeError);
+                                                    return;
+                                                }
+                                                else
+                                                {
+                                                    InvokeScriptPhantasma("main", scriptTimeBeforeUnstake, (timeBeforeUnstakeResult, invokeError) =>
+                                                    {
+                                                        if (!string.IsNullOrEmpty(invokeError))
+                                                        {
+                                                            callback(null, "Script invokation error!\n\n" + invokeError);
+                                                            return;
+                                                        }
+                                                        else
+                                                        {
+                                                            InvokeScriptPhantasma("main", scriptMasterDate, (masterDateResult, invokeError) =>
+                                                            {
+                                                                if (!string.IsNullOrEmpty(invokeError))
+                                                                {
+                                                                    callback(null, "Script invokation error!\n\n" + invokeError);
+                                                                    return;
+                                                                }
+                                                                else
+                                                                {
+                                                                    InvokeScriptPhantasma("main", scriptIsMaster, (isMasterResult, invokeError) =>
+                                                                    {
+                                                                        if (!string.IsNullOrEmpty(invokeError))
+                                                                        {
+                                                                            callback(null, "Script invokation error!\n\n" + invokeError);
+                                                                            return;
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            var unclaimed = UnitConversion.ToDecimal(VMObject.FromBytes(unclaimedResult).AsNumber(), 10);
+                                                                            var stake = UnitConversion.ToDecimal(VMObject.FromBytes(stakeResult).AsNumber(), 8);
+                                                                            var storageStake = UnitConversion.ToDecimal(VMObject.FromBytes(storageStakeResult).AsNumber(), 8);
+                                                                            var votingPower = VMObject.FromBytes(votingPowerResult).AsNumber();
+                                                                            var stakeTimestamp = VMObject.FromBytes(stakeTimestampResult).AsTimestamp();
+                                                                            var timeBeforeUnstake = VMObject.FromBytes(timeBeforeUnstakeResult).AsNumber();
+                                                                            var masterDate = VMObject.FromBytes(masterDateResult).AsTimestamp();
+                                                                            var isMaster = VMObject.FromBytes(isMasterResult).AsBool();
+
+                                                                            callback($"{addressString} account information:\n\n" +
+                                                                                $"Unclaimed: {unclaimed} KCAL\n" +
+                                                                                $"Stake: {stake} SOUL\n" +
+                                                                                $"Is SM: {isMaster}\n" +
+                                                                                $"Master date: {masterDate}\n" +
+                                                                                $"Stake timestamp: {stakeTimestamp}\n" +
+                                                                                $"Next staking period starts in: {TimeSpan.FromSeconds((double)timeBeforeUnstake):hh\\:mm\\:ss}\n" +
+                                                                                $"Storage stake: {storageStake} SOUL\n" +
+                                                                                $"Voting power: {votingPower}\n", null);
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+            });
         }
     }
 }
