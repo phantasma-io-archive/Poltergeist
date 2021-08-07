@@ -380,6 +380,7 @@ namespace Phantasma.SDK
     {
         public string address; //
         public string kind; //
+        public string contract; //
         public string data; //
 
         public static Event FromNode(DataNode node)
@@ -388,6 +389,7 @@ namespace Phantasma.SDK
 
             result.address = node.GetString("address");
             result.kind = node.GetString("kind");
+            result.contract = node.GetString("contract");
             result.data = node.GetString("data");
 
             return result;
@@ -1269,7 +1271,15 @@ namespace Phantasma.SDK
             }, addressText, page, pageSize);
         }
 
-
+        public IEnumerator GetAllAddressTransactions(string addressText, Action<AccountTransactions> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        {
+            yield return WebClient.RPCRequest(Host, "getAddressTransactions", WebClient.NoTimeout, 0, errorHandlingCallback, (node) =>
+            {
+                node = node.GetNode("result");
+                var result = AccountTransactions.FromNode(node);
+                callback(result);
+            }, addressText);
+        }
         //Get number of transactions in a specific address and chain
         public IEnumerator GetAddressTransactionCount(string addressText, string chainInput, Action<int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
