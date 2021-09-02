@@ -60,6 +60,7 @@ namespace Poltergeist
         private bool transactionStillPending;
         private int transactionCheckCount;
         private DateTime transactionLastCheck;
+        private bool refreshBalanceAfterConfirmation;
 
         private AnimationDirection currentAnimation;
         private float animationTime;
@@ -983,10 +984,17 @@ namespace Poltergeist
                         {
                             PopState();
 
-                            accountManager.RefreshBalances(true, () =>
+                            if (refreshBalanceAfterConfirmation)
+                            {
+                                accountManager.RefreshBalances(true, () =>
+                                {
+                                    InvokeTransactionCallback(transactionHash);
+                                });
+                            }
+                            else
                             {
                                 InvokeTransactionCallback(transactionHash);
-                            });
+                            }
                         }
                         else
                         if (msg.ToLower().Contains("pending"))
@@ -2472,7 +2480,7 @@ namespace Poltergeist
                                     EndWaitingModal();
                                     if (settleHash != Hash.Null)
                                     {
-                                        ShowConfirmationScreen(settleHash, (hash) =>
+                                        ShowConfirmationScreen(settleHash, true, (hash) =>
                                         {
                                             if (hash != Hash.Null)
                                             {
@@ -4142,7 +4150,7 @@ namespace Poltergeist
                                         VerticalLayout ? (int)rect.y + border + (Units(2) + 4) : (int)rect.y + border,
                                         VerticalLayout ? rect.width - border * 4 : btnWidth, Units(2)), "To transfer list", () =>
                 {
-                    var nftTransferLimit = 100;
+                    /*var nftTransferLimit = 100;
                     if (nftTransferList.Count > nftTransferLimit)
                     {
                         PromptBox($"Currently sending is limited to {nftTransferLimit} NFTs for one transfer, reduce selection to first {nftTransferLimit}? ", ModalConfirmCancel, (result) =>
@@ -4154,7 +4162,7 @@ namespace Poltergeist
                             }
                         });
                     }
-                    else
+                    else*/
                     {
                         PushState(GUIState.NftTransferList);
                     }
@@ -4466,7 +4474,7 @@ namespace Poltergeist
                                     {
                                         if (hash != Hash.Null)
                                         {
-                                            ShowConfirmationScreen(hash, callback);
+                                            ShowConfirmationScreen(hash, true, callback);
                                         }
                                         else
                                         {
@@ -4498,14 +4506,161 @@ namespace Poltergeist
             });
         }
 
-        private void ShowConfirmationScreen(Hash hash, Action<Hash> callback)
+        public void SendTransactions(string description, List<byte[]> scripts, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
+        {
+            if (scripts.Count() == 0)
+            {
+                MessageBox(MessageKind.Error, "Null transaction script", () =>
+                {
+                    callback(Hash.Null);
+                });
+            }
+
+            var accountManager = AccountManager.Instance;
+            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
+            {
+                BigInteger usedGas = 0;
+
+                foreach(var script in scripts)
+                try
+                {
+                    var vm = new GasMachine(script, 0, null);
+                    var result = vm.Execute();
+                    usedGas += vm.UsedGas;
+                }
+                catch
+                {
+                    usedGas += 400;
+                }
+
+                var estimatedFee = usedGas * accountManager.Settings.feePrice;
+                var feeDecimals = Tokens.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
+                description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
+            }
+            else if (accountManager.CurrentPlatform == PlatformKind.Neo)
+            {
+                description += $"\nFee: {accountManager.Settings.neoGasFee * scripts.Count()} GAS";
+            }
+            else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+            {
+                BigInteger usedGas;
+
+                var transfer = Serialization.Unserialize<TransferRequest>(scripts[0]);
+                if (transfer.platform == PlatformKind.Ethereum)
+                {
+                    if (transfer.symbol == "ETH")
+                    {
+                        // Eth transfer.
+                        usedGas = accountManager.Settings.ethereumTransferGasLimit;
+                    }
+                    else
+                    {
+                        // Token transfer.
+                        usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
+                    }
+
+                    var estimatedFee = usedGas * accountManager.Settings.ethereumGasPriceGwei * scripts.Count();
+                    description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} ETH"; // 9 because we convert from Gwei, not Wei
+                }
+            }
+            else if (accountManager.CurrentPlatform == PlatformKind.BSC)
+            {
+                BigInteger usedGas;
+
+                var transfer = Serialization.Unserialize<TransferRequest>(scripts[0]);
+                if (transfer.platform == PlatformKind.BSC)
+                {
+                    if (transfer.symbol == "BNB")
+                    {
+                        // BNB transfer.
+                        usedGas = accountManager.Settings.binanceSmartChainTransferGasLimit;
+                    }
+                    else
+                    {
+                        // Token transfer.
+                        usedGas = accountManager.Settings.binanceSmartChainTokenTransferGasLimit;
+                    }
+
+                    var estimatedFee = usedGas * accountManager.Settings.binanceSmartChainGasPriceGwei * scripts.Count();
+                    description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} BNB"; // 9 because we convert from Gwei, not Wei
+                }
+            }
+
+            RequestPassword(description, accountManager.CurrentPlatform, false, false, (auth) =>
+            {
+                if (auth == PromptResult.Success)
+                {
+                    Animate(AnimationDirection.Right, true, () =>
+                    {
+                        Animate(AnimationDirection.Left, false, () =>
+                        {
+                            PromptBox(scripts.Count() > 1 ? $"Preparing {scripts.Count()} transactions...\n{description}" : $"Preparing transaction...\n{description}", ModalSendCancel, (result) =>
+                            {
+                                if (result == PromptResult.Success)
+                                {
+                                    SendTransactionsInternal(accountManager, description, scripts, payload, chain, PoW, callback);
+                                }
+                                else
+                                {
+                                    callback(Hash.Null);
+                                };
+                            });
+                        });
+                    });
+                }
+                else
+                if (auth == PromptResult.Failure)
+                {
+                    MessageBox(MessageKind.Error, $"Authorization failed.", () =>
+                    {
+                        callback(Hash.Null);
+                    });
+                }
+            });
+        }
+
+        private void SendTransactionsInternal(AccountManager accountManager, string description, List<byte[]> scripts, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
+        {
+            PushState(GUIState.Sending);
+
+            accountManager.SignAndSendTransaction(chain, scripts[0], payload, PoW, null, (hash, error) =>
+            {
+                if (hash != Hash.Null)
+                {
+                    if (scripts.Count() > 1)
+                    {
+                        ShowConfirmationScreen(hash, false, (txHash) =>
+                        {
+                            SendTransactionsInternal(accountManager, description, scripts.Skip(1).ToList(), payload, chain, PoW, callback);
+                        });
+                    }
+                    else
+                    {
+                        // Finishing, last script.
+                        ShowConfirmationScreen(hash, true, callback);
+                    }
+                }
+                else
+                {
+                    PopState();
+
+                    MessageBox(MessageKind.Error, $"Error sending transaction.\n{error}", () =>
+                    {
+                        callback(Hash.Null);
+                    });
+                }
+            });
+        }
+
+        private void ShowConfirmationScreen(Hash hash, bool refreshBalanceAfterConfirmation, Action<Hash> callback)
         {
             transactionCallback = callback;
             transactionStillPending = true;
             transactionCheckCount = 0;
             transactionHash = hash;
             transactionLastCheck = DateTime.UtcNow;
-            
+            this.refreshBalanceAfterConfirmation = refreshBalanceAfterConfirmation;
+
             if (guiState == GUIState.Sending)
             {
                 SetState(GUIState.Confirming);
@@ -4608,6 +4763,13 @@ namespace Poltergeist
             });
         }
 
+        public static IEnumerable<List<T>> SplitList<T>(List<T> locations, int nSize = 30)
+        {
+            for (int i = 0; i < locations.Count; i += nSize)
+            {
+                yield return locations.GetRange(i, Math.Min(nSize, locations.Count - i));
+            }
+        }
         private void ContinuePhantasmaNftTransfer(string transferName, string symbol, string destAddress)
         {
             var accountManager = AccountManager.Instance;
@@ -4634,41 +4796,47 @@ namespace Poltergeist
             {
                 if (feeResult == PromptResult.Success)
                 {
-                    byte[] script;
+                    var scripts = new List<byte[]>();
                     string description;
 
                     try
                     {
+                        var nftTransferLimit = 100;
+                        var nftSublists = SplitList<string>(nftTransferList, nftTransferLimit).ToArray();
+
                         description = $"Transfer {symbol} NFTs\n";
 
-                        var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
-
-                        var gasPrice = accountManager.Settings.feePrice;
-                        var gasLimit = accountManager.Settings.feeLimit;
-
-                        var sb = new ScriptBuilder();
-                        sb.AllowGas(source, Address.Null, gasPrice, gasLimit * nftTransferList.Count);
-
-                        foreach (var nft in nftTransferList)
+                        foreach (var nftSublist in nftSublists)
                         {
-                            sb.TransferNFT(symbol, source, destination, BigInteger.Parse(nft));
+                            var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
-                            string nftDescription = "";
-                            if(symbol == "TTRS")
+                            var gasPrice = accountManager.Settings.feePrice;
+                            var gasLimit = accountManager.Settings.feeLimit;
+
+                            var sb = new ScriptBuilder();
+                            sb.AllowGas(source, Address.Null, gasPrice, gasLimit * nftSublist.Count);
+
+                            foreach (var nft in nftSublist)
                             {
-                                var item = TtrsStore.GetNft(nft);
+                                sb.TransferNFT(symbol, source, destination, BigInteger.Parse(nft));
 
-                                if (item.NameEnglish != null)
-                                    nftDescription = " " + ((item.NameEnglish.Length > 25) ? item.NameEnglish.Substring(0, 22) + "..." : item.NameEnglish);
+                                string nftDescription = "";
+                                if (symbol == "TTRS")
+                                {
+                                    var item = TtrsStore.GetNft(nft);
 
-                                nftDescription += " Minted " + item.Timestamp.ToString("dd.MM.yy") + " #" + item.Mint;
+                                    if (item.NameEnglish != null)
+                                        nftDescription = " " + ((item.NameEnglish.Length > 25) ? item.NameEnglish.Substring(0, 22) + "..." : item.NameEnglish);
+
+                                    nftDescription += " Minted " + item.Timestamp.ToString("dd.MM.yy") + " #" + item.Mint;
+                                }
+
+                                description += $"#{nft.Substring(0, 5) + "..." + nft.Substring(nft.Length - 5)}{nftDescription}\n";
                             }
 
-                            description += $"#{nft.Substring(0, 5) + "..." + nft.Substring(nft.Length - 5)}{nftDescription}\n";
+                            sb.SpendGas(source);
+                            scripts.Add(sb.EndScript());
                         }
-
-                        sb.SpendGas(source);
-                        script = sb.EndScript();
 
                         description += $"to {destination}.";
                     }
@@ -4678,12 +4846,12 @@ namespace Poltergeist
                         return;
                     }
 
-                    SendTransaction(description, script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                    SendTransactions(description, scripts, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                     {
                         if (hash != Hash.Null)
                         {
                             ShowModal("Success",
-                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
+                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\n{(scripts.Count() > 1 ? "Last t" : "T")}ransaction hash:\n" + hash,
                                 ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                                 {
                                     AudioManager.Instance.PlaySFX("click");
