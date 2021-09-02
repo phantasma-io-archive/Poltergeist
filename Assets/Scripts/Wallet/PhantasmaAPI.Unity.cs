@@ -1596,7 +1596,7 @@ namespace Phantasma.SDK
 
 
         //Returns platform swaps for a specific address.
-        public IEnumerator GetSwapsForAddress(string accountInput, Action<Swap[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator GetSwapsForAddress(string accountInput, string platform, Action<Swap[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
             yield return WebClient.RPCRequest(Host, "getSwapsForAddress", WebClient.NoTimeout, 0, (error, msg) =>
             {
@@ -1610,7 +1610,7 @@ namespace Phantasma.SDK
                     result[i] = Swap.FromNode(child);
                 }
                 callback(result);
-            }, accountInput);
+            }, accountInput, platform);
         }
 
 
