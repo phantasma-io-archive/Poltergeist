@@ -45,7 +45,6 @@
 {"symbol": "CHZ", "apiSymbol": "chiliz"},
 {"symbol": "COMP", "apiSymbol": "compound-coin"},
 {"symbol": "ENJ", "apiSymbol": "enjincoin"},
-{"symbol": "FEI", "apiSymbol": "fei-protocol"},
 {"symbol": "CEL", "apiSymbol": "celsius-degree-token"},
 {"symbol": "GRT", "apiSymbol": "the-graph"},
 {"symbol": "MKR", "apiSymbol": "maker"},
