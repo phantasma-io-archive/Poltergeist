@@ -32,7 +32,6 @@
 {"symbol": "BNB", "apiSymbol": "binancecoin"},
 {"symbol": "UNI", "apiSymbol": "uniswap"},
 {"symbol": "LINK", "apiSymbol": "chainlink"},
-{"symbol": "WFIL", "apiSymbol": "wrapped-filecoin"},
 {"symbol": "CRO", "apiSymbol": "crypto-com-chain"},
 {"symbol": "cETH", "apiSymbol": "compound-ether"},
 {"symbol": "HOT", "apiSymbol": "holotoken"},
