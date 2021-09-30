@@ -135,24 +135,24 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     targets = PlatformKind.Phantasma;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Neo) ? PlatformKind.Neo : PlatformKind.None;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Ethereum) ? PlatformKind.Ethereum : PlatformKind.None;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.BSC) ? PlatformKind.BSC : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Neo) ? PlatformKind.Neo : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Ethereum) ? PlatformKind.Ethereum : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.BSC) ? PlatformKind.BSC : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.Neo:
                     targets = PlatformKind.Neo;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.Ethereum:
                     targets = PlatformKind.Ethereum;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.BSC:
                     targets = PlatformKind.BSC;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
                 default:

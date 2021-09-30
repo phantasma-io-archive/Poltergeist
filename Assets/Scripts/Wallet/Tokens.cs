@@ -203,11 +203,11 @@ public static class Tokens
             (platform != PlatformKind.Phantasma && x.external != null && x.external.Any(y => y.platform.ToUpper() == platform.ToString().ToUpper()))))
             .SingleOrDefault();
     }
-    public static bool HasToken(string symbol, PlatformKind platform)
+    public static bool HasSwappableToken(string symbol, PlatformKind platform)
     {
         return SupportedTokens.Any(x => x.symbol.ToUpper() == symbol.ToUpper() &&
-            ((platform == PlatformKind.Phantasma && x.mainnetToken == true) ||
-            (platform != PlatformKind.Phantasma && x.external != null && x.external.Any(y => y.platform.ToUpper() == platform.ToString().ToUpper()))));
+            ((platform == PlatformKind.Phantasma && x.IsSwappable() && x.mainnetToken == true) ||
+            (platform != PlatformKind.Phantasma && x.IsSwappable() && x.external != null && x.external.Any(y => y.platform.ToUpper() == platform.ToString().ToUpper()))));
     }
     public static bool GetToken(string symbol, PlatformKind platform, out Token token)
     {
