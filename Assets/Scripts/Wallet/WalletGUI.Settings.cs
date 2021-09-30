@@ -651,11 +651,11 @@ namespace Poltergeist
                     return;
                 }
 
-                accountManager.InvokeScriptPhantasma("main", scriptMasterClaimDate, (masterClaimDateResult, invokeError) =>
+                accountManager.InvokeScriptPhantasma("main", scriptMasterClaimDate, (masterClaimDateResult, masterClaimInvokeError) =>
                 {
-                    if(!string.IsNullOrEmpty(invokeError))
+                    if(!string.IsNullOrEmpty(masterClaimInvokeError))
                     {
-                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
+                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + masterClaimInvokeError);
                         return;
                     }
                     else
@@ -666,29 +666,29 @@ namespace Poltergeist
                             scriptClaimMasterCount = sb.EndScript();
                         }
 
-                        accountManager.InvokeScriptPhantasma("main", scriptClaimMasterCount, (claimMasterCountResult, invokeError) =>
+                        accountManager.InvokeScriptPhantasma("main", scriptClaimMasterCount, (claimMasterCountResult, claimMasterCountInvokeError) =>
                         {
-                            if (!string.IsNullOrEmpty(invokeError))
+                            if (!string.IsNullOrEmpty(claimMasterCountInvokeError))
                             {
-                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
+                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + claimMasterCountInvokeError);
                                 return;
                             }
                             else
                             {
-                                accountManager.InvokeScriptPhantasma("main", scriptMasterCount, (masterCountResult, invokeError) =>
+                                accountManager.InvokeScriptPhantasma("main", scriptMasterCount, (masterCountResult, masterCountInvokeError) =>
                                 {
-                                    if (!string.IsNullOrEmpty(invokeError))
+                                    if (!string.IsNullOrEmpty(masterCountInvokeError))
                                     {
-                                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
+                                        MessageBox(MessageKind.Error, "Script invokation error!\n\n" + masterCountInvokeError);
                                         return;
                                     }
                                     else
                                     {
-                                        accountManager.InvokeScriptPhantasma("main", scriptMasterThreshold, (masterThresholdResult, invokeError) =>
+                                        accountManager.InvokeScriptPhantasma("main", scriptMasterThreshold, (masterThresholdResult, masterThresholdInvokeError) =>
                                         {
-                                            if (!string.IsNullOrEmpty(invokeError))
+                                            if (!string.IsNullOrEmpty(masterThresholdInvokeError))
                                             {
-                                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + invokeError);
+                                                MessageBox(MessageKind.Error, "Script invokation error!\n\n" + masterThresholdInvokeError);
                                                 return;
                                             }
                                             else
@@ -724,7 +724,7 @@ namespace Poltergeist
                 {
                     if (result == PromptResult.Success)
                     {
-                        accountManager.GetPhantasmaAddressInfo(input, (result, error) =>
+                        accountManager.GetPhantasmaAddressInfo(input, (result2, error) =>
                         {
                             if (!string.IsNullOrEmpty(error))
                             {
@@ -733,8 +733,8 @@ namespace Poltergeist
                             }
                             else
                             {
-                                ShowModal("Account information", result,
-                                    ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
+                                ShowModal("Account information", result2,
+                                    ModalState.Message, 0, 0, ModalOkCopy, 0, (result3, input3) => { });
                                 return;
                             }
                         });

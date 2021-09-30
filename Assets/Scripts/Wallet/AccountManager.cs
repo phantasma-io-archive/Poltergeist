@@ -3551,74 +3551,74 @@ namespace Poltergeist
                 return;
             }
 
-            InvokeScriptPhantasma("main", scriptUnclaimed, (unclaimedResult, invokeError) =>
+            InvokeScriptPhantasma("main", scriptUnclaimed, (unclaimedResult, unclaimedInvokeError) =>
             {
-                if (!string.IsNullOrEmpty(invokeError))
+                if (!string.IsNullOrEmpty(unclaimedInvokeError))
                 {
-                    callback(null, "Script invokation error!\n\n" + invokeError);
+                    callback(null, "Script invokation error!\n\n" + unclaimedInvokeError);
                     return;
                 }
                 else
                 {
-                    InvokeScriptPhantasma("main", scriptStake, (stakeResult, invokeError) =>
+                    InvokeScriptPhantasma("main", scriptStake, (stakeResult, stakeInvokeError) =>
                     {
-                        if (!string.IsNullOrEmpty(invokeError))
+                        if (!string.IsNullOrEmpty(stakeInvokeError))
                         {
-                            callback(null, "Script invokation error!\n\n" + invokeError);
+                            callback(null, "Script invokation error!\n\n" + stakeInvokeError);
                             return;
                         }
                         else
                         {
-                            InvokeScriptPhantasma("main", scriptStorageStake, (storageStakeResult, invokeError) =>
+                            InvokeScriptPhantasma("main", scriptStorageStake, (storageStakeResult, storageStakeInvokeError) =>
                             {
-                                if (!string.IsNullOrEmpty(invokeError))
+                                if (!string.IsNullOrEmpty(storageStakeInvokeError))
                                 {
-                                    callback(null, "Script invokation error!\n\n" + invokeError);
+                                    callback(null, "Script invokation error!\n\n" + storageStakeInvokeError);
                                     return;
                                 }
                                 else
                                 {
-                                    InvokeScriptPhantasma("main", scriptVotingPower, (votingPowerResult, invokeError) =>
+                                    InvokeScriptPhantasma("main", scriptVotingPower, (votingPowerResult, votingPowerInvokeError) =>
                                     {
-                                        if (!string.IsNullOrEmpty(invokeError))
+                                        if (!string.IsNullOrEmpty(votingPowerInvokeError))
                                         {
-                                            callback(null, "Script invokation error!\n\n" + invokeError);
+                                            callback(null, "Script invokation error!\n\n" + votingPowerInvokeError);
                                             return;
                                         }
                                         else
                                         {
-                                            InvokeScriptPhantasma("main", scriptStakeTimestamp, (stakeTimestampResult, invokeError) =>
+                                            InvokeScriptPhantasma("main", scriptStakeTimestamp, (stakeTimestampResult, stakeTimestampInvokeError) =>
                                             {
-                                                if (!string.IsNullOrEmpty(invokeError))
+                                                if (!string.IsNullOrEmpty(stakeTimestampInvokeError))
                                                 {
-                                                    callback(null, "Script invokation error!\n\n" + invokeError);
+                                                    callback(null, "Script invokation error!\n\n" + stakeTimestampInvokeError);
                                                     return;
                                                 }
                                                 else
                                                 {
-                                                    InvokeScriptPhantasma("main", scriptTimeBeforeUnstake, (timeBeforeUnstakeResult, invokeError) =>
+                                                    InvokeScriptPhantasma("main", scriptTimeBeforeUnstake, (timeBeforeUnstakeResult, timeBeforeUnstakeInvokeError) =>
                                                     {
-                                                        if (!string.IsNullOrEmpty(invokeError))
+                                                        if (!string.IsNullOrEmpty(timeBeforeUnstakeInvokeError))
                                                         {
-                                                            callback(null, "Script invokation error!\n\n" + invokeError);
+                                                            callback(null, "Script invokation error!\n\n" + timeBeforeUnstakeInvokeError);
                                                             return;
                                                         }
                                                         else
                                                         {
-                                                            InvokeScriptPhantasma("main", scriptMasterDate, (masterDateResult, invokeError) =>
+                                                            InvokeScriptPhantasma("main", scriptMasterDate, (masterDateResult, masterDateInvokeError) =>
                                                             {
-                                                                if (!string.IsNullOrEmpty(invokeError))
+                                                                if (!string.IsNullOrEmpty(masterDateInvokeError))
                                                                 {
-                                                                    callback(null, "Script invokation error!\n\n" + invokeError);
+                                                                    callback(null, "Script invokation error!\n\n" + masterDateInvokeError);
                                                                     return;
                                                                 }
                                                                 else
                                                                 {
-                                                                    InvokeScriptPhantasma("main", scriptIsMaster, (isMasterResult, invokeError) =>
+                                                                    InvokeScriptPhantasma("main", scriptIsMaster, (isMasterResult, isMasterInvokeError) =>
                                                                     {
-                                                                    if (!string.IsNullOrEmpty(invokeError))
+                                                                    if (!string.IsNullOrEmpty(isMasterInvokeError))
                                                                     {
-                                                                        callback(null, "Script invokation error!\n\n" + invokeError);
+                                                                        callback(null, "Script invokation error!\n\n" + isMasterInvokeError);
                                                                         return;
                                                                     }
                                                                     else
