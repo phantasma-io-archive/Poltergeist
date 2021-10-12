@@ -53,17 +53,24 @@ namespace Poltergeist
 
         protected override void GetAccount(string platform, Action<Account, string> callback)
         {
-            var accountManager = AccountManager.Instance;
-            var account = AccountManager.Instance.CurrentAccount;
-
-            var state = AccountManager.Instance.CurrentState;
-
             var targetPlatform = RequestPlatform(platform);
             if (targetPlatform == PlatformKind.None)
             {
                 callback(new Account(), "Unsupported target platform: " + platform);
                 return;
             }
+
+            var accountManager = AccountManager.Instance;
+
+            if (accountManager.CurrentPlatform != targetPlatform)
+            {
+                accountManager.CurrentPlatform = targetPlatform;
+                WalletGUI.Instance.MessageBox(MessageKind.Default, "Phantasma Link changed current platform to :" + targetPlatform);
+            }
+
+            var account = accountManager.CurrentAccount;
+
+            var state = accountManager.CurrentState;
 
             if (state != null)
             {
