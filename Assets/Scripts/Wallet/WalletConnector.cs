@@ -61,7 +61,7 @@ namespace Poltergeist
             var targetPlatform = RequestPlatform(platform);
             if (targetPlatform == PlatformKind.None)
             {
-                callback(new Account(), "Unsupported platform: " + platform);
+                callback(new Account(), "Unsupported target platform: " + platform);
                 return;
             }
 
@@ -79,7 +79,7 @@ namespace Poltergeist
                 {                    
                     name = account.name,
                     alias = account.name,
-                    address = state.address,
+                    address = AccountManager.Instance.MainState.address,
                     balances = balances.ToArray(),
                     avatar = state.avatarData,
                     platform = platform,
