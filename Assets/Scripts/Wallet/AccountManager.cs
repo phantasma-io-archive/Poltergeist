@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +18,7 @@ using LunarLabs.Parser;
 using Phantasma.VM.Utils;
 using Phantasma.Blockchain;
 using Archive = Phantasma.SDK.Archive;
+using Phantasma.VM;
 
 namespace Poltergeist
 {
@@ -35,6 +36,7 @@ namespace Poltergeist
         Phantasma = 0x1,
         Neo = 0x2,
         Ethereum = 0x4,
+        BSC = 0x8,
     }
 
     public struct Account
@@ -133,18 +135,24 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     targets = PlatformKind.Phantasma;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Neo) ? PlatformKind.Neo : PlatformKind.None;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Ethereum) ? PlatformKind.Ethereum : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Neo) ? PlatformKind.Neo : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Ethereum) ? PlatformKind.Ethereum : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.BSC) ? PlatformKind.BSC : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.Neo:
                     targets = PlatformKind.Neo;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
                 case PlatformKind.Ethereum:
                     targets = PlatformKind.Ethereum;
-                    targets |= Tokens.HasToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
+                    return targets;
+
+                case PlatformKind.BSC:
+                    targets = PlatformKind.BSC;
+                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
                     return targets;
 
                 default:
@@ -256,6 +264,8 @@ namespace Poltergeist
         public List<TokenData> CurrentNfts => _nfts.ContainsKey(CurrentPlatform) ? _nfts[CurrentPlatform] : null;
         public HistoryEntry[] CurrentHistory => _history.ContainsKey(CurrentPlatform) ? _history[CurrentPlatform] : null;
 
+        public AccountState MainState => _states.ContainsKey(PlatformKind.Phantasma) ? _states[PlatformKind.Phantasma] : null;
+
         private bool nftDescriptionsAreFullyLoaded;
         private TtrsNftSortMode currentTtrsNftsSortMode = TtrsNftSortMode.None;
         private NftSortMode currentNftsSortMode = NftSortMode.None;
@@ -269,9 +279,19 @@ namespace Poltergeist
 
         public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
         public Phantasma.SDK.EthereumAPI ethereumApi { get; private set; }
+        public Phantasma.SDK.EthereumAPI binanceSmartChainApi { get; private set; }
         public Phantasma.Neo.Core.NeoAPI neoApi;
 
         public static PlatformKind[] AvailablePlatforms { get; private set; }
+        public static PlatformKind MergeAvailablePlatforms()
+        {
+            var platforms = PlatformKind.None;
+            foreach (var platform in AccountManager.AvailablePlatforms)
+            {
+                platforms |= platform;
+            }
+            return platforms;
+        }
 
         private Dictionary<string, string> _currencyMap = new Dictionary<string, string>();
         public IEnumerable<string> Currencies => _currencyMap.Keys;
@@ -319,6 +339,7 @@ namespace Poltergeist
             platforms.Add(PlatformKind.Phantasma);
             platforms.Add(PlatformKind.Neo);
             platforms.Add(PlatformKind.Ethereum);
+            platforms.Add(PlatformKind.BSC);
 
             AvailablePlatforms = platforms.ToArray();
         }
@@ -330,7 +351,7 @@ namespace Poltergeist
             {
                 var price = _tokenPrices[symbol] * amount;
                 var ch = _currencyMap[CurrentTokenCurrency];
-                return $"{WalletGUI.MoneyFormat(price, WalletGUI.MoneyFormatType.Short)} {ch}";
+                return $"{WalletGUI.MoneyFormat(price, MoneyFormatType.Short)} {ch}";
             }
             else
             {
@@ -876,12 +897,25 @@ namespace Poltergeist
                 Accounts = Serialization.Unserialize<Account[]>(bytes).ToList();
             }
 
+            if (walletVersion == 2)
+            {
+                // Legacy seeds, we should mark accounts.
+                for (var i = 0; i < Accounts.Count; i++)
+                {
+                    var account = Accounts[i];
+                    account.misc = "legacy-seed";
+                    Accounts[i] = account;
+                }
+
+                SaveAccounts();
+            }
+
             AccountsAreReadyToBeUsed = true;
         }
 
         public void SaveAccounts()
         {
-            PlayerPrefs.SetInt(WalletVersionTag, 2);
+            PlayerPrefs.SetInt(WalletVersionTag, 3);
 
             var bytes = Serialization.Serialize(Accounts.ToArray());
             PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
@@ -946,6 +980,7 @@ namespace Poltergeist
             Log.Write("reinit APIs => " + Settings.phantasmaRPCURL);
             phantasmaApi = new PhantasmaAPI(Settings.phantasmaRPCURL);
             ethereumApi = new EthereumAPI(Settings.ethereumRPCURL);
+            binanceSmartChainApi = new EthereumAPI(Settings.binanceSmartChainRPCURL);
             neoApi = new NeoAPI(Settings.neoRPCURL, Settings.neoscanURL);
 
             if (possibleNexusChange)
@@ -1003,7 +1038,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null, IKeyPair customKeys2 = null, Func<byte[], byte[], byte[], byte[]> customSignFunction2 = null)
         {
             if (payload == null)
             {
@@ -1027,7 +1062,7 @@ namespace Poltergeist
                                 ChangeFaultyRPCURL();
                             }
                             callback(Hash.Null, msg);
-                        }, customSignFunction));
+                        }, customSignFunction, customKeys2, customSignFunction2));
                         break;
                     }
 
@@ -1217,6 +1252,97 @@ namespace Poltergeist
                         break;
                     }
 
+                case PlatformKind.BSC:
+                    {
+                        try
+                        {
+                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+
+                            if (transfer.amount <= 0)
+                            {
+                                callback(Hash.Null, $"invalid transfer amount: {transfer.amount}");
+                            }
+                            else
+                            if (transfer.platform == CurrentPlatform)
+                            {
+                                switch (transfer.platform)
+                                {
+                                    case PlatformKind.BSC:
+                                        {
+                                            var keys = EthereumKey.FromWIF(transfer.key);
+
+                                            if (transfer.symbol == "BNB")
+                                            {
+                                                StartCoroutine(binanceSmartChainApi.GetNonce(keys.Address,
+                                                (nonce) =>
+                                                {
+                                                    var hexTx = binanceSmartChainApi.SignTransaction(keys, nonce, transfer.destination,
+                                                        UnitConversion.ToBigInteger(transfer.amount, 18), // Convert to WEI
+                                                        Settings.binanceSmartChainGasPriceGwei * 1000000000, // Converting to WEI
+                                                        Settings.binanceSmartChainTransferGasLimit);
+
+                                                    StartCoroutine(binanceSmartChainApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                    {
+                                                        callback(Hash.Null, msg);
+                                                    }));
+                                                },
+                                                (error, msg) =>
+                                                {
+                                                    callback(Hash.Null, msg);
+                                                }));
+                                            }
+                                            else
+                                            {
+                                                if (Tokens.GetToken(transfer.symbol, PlatformKind.BSC, out Token bscToken))
+                                                {
+                                                    StartCoroutine(binanceSmartChainApi.GetNonce(keys.Address,
+                                                    (nonce) =>
+                                                    {
+                                                        var gasLimit = Settings.binanceSmartChainTokenTransferGasLimit;
+                                                        if (SearchInteropMapForAddress(PlatformKind.BSC) == transfer.destination)
+                                                        {
+                                                            gasLimit = Settings.binanceSmartChainTokenTransferGasLimit;
+                                                        }
+
+                                                        var hexTx = binanceSmartChainApi.SignTokenTransaction(keys, nonce,
+                                                            Tokens.GetTokenHash(bscToken, PlatformKind.BSC),
+                                                            transfer.destination,
+                                                            UnitConversion.ToBigInteger(transfer.amount, bscToken.decimals),
+                                                            Settings.binanceSmartChainGasPriceGwei * 1000000000, // Converting to WEI
+                                                            gasLimit);
+
+                                                        StartCoroutine(binanceSmartChainApi.SendRawTransaction(hexTx, callback, (error, msg) =>
+                                                        {
+                                                            callback(Hash.Null, msg);
+                                                        }));
+                                                    },
+                                                    (error, msg) =>
+                                                    {
+                                                        callback(Hash.Null, msg);
+                                                    }));
+                                                }
+                                                else
+                                                {
+                                                    callback(Hash.Null, $"Token {transfer.symbol} not supported");
+                                                }
+                                            }
+
+                                            break;
+                                        }
+                                }
+                                return;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            callback(Hash.Null, e.ToString());
+                            return;
+                        }
+
+                        callback(Hash.Null, "something weird happened");
+                        break;
+                    }
+
                 default:
                     {
                         callback(Hash.Null, "not implemented for " + CurrentPlatform);
@@ -1254,6 +1380,25 @@ namespace Poltergeist
                         break;
                     }
             }
+        }
+
+        public void InvokeScriptPhantasma(string chain, byte[] script, Action<byte[], string> callback)
+        {
+            var account = this.CurrentAccount;
+
+            Log.Write("InvokeScriptPhantasma: " + System.Text.Encoding.UTF8.GetString(script), Log.Level.Debug1);
+            StartCoroutine(phantasmaApi.InvokeRawScript(chain, Base16.Encode(script), (x) =>
+            {
+                Log.Write("InvokeScriptPhantasma result: " + x.result, Log.Level.Debug1);
+                callback(Base16.Decode(x.result), null);
+            }, (error, log) =>
+            {
+                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                {
+                    ChangeFaultyRPCURL();
+                }
+                callback(null, log);
+            }));
         }
 
         public void GetArchive(Hash hash, Action<bool, Archive, string> callback)
@@ -1387,6 +1532,27 @@ namespace Poltergeist
                 SaveAccounts();
 
                 platforms.Add(PlatformKind.Ethereum);
+            }
+
+            // We should add BinanceSmartChain platform to old accounts.
+            if (!platforms.Contains(PlatformKind.BSC))
+            {
+                var account = Accounts[_selectedAccountIndex];
+                account.platforms |= PlatformKind.BSC;
+                Accounts[_selectedAccountIndex] = account;
+
+                _states[PlatformKind.BSC] = new AccountState()
+                {
+                    platform = PlatformKind.BSC,
+                    address = GetAddress(CurrentIndex, PlatformKind.BSC),
+                    balances = new Balance[0],
+                    flags = AccountFlags.None,
+                    name = ValidationUtils.ANONYMOUS_NAME,
+                };
+
+                SaveAccounts();
+
+                platforms.Add(PlatformKind.BSC);
             }
 
             CurrentPlatform = platforms.FirstOrDefault();
@@ -1560,6 +1726,7 @@ namespace Poltergeist
                     break;
 
                 case PlatformKind.Ethereum:
+                case PlatformKind.BSC:
                     // For Ethereum we should return immediately
                     // since it's unpredictable if we would be able to find tx in mempool
                     // or it will appear there after several minutes.
@@ -1689,7 +1856,8 @@ namespace Poltergeist
                                     }
                                 }
 
-                                RequestPendings(keys.Address.Text, (phaSwaps, phaError) =>
+                                // Swaps to Pha from Neo are reported here.
+                                RequestPendings(keys.Address.Text, PlatformKind.Phantasma, (phaSwaps, phaError) =>
                                 {
                                     if (phaSwaps != null)
                                     {
@@ -1700,50 +1868,64 @@ namespace Poltergeist
                                         Log.WriteWarning(phaError);
                                     }
 
-                                    RequestPendings(ethKeys.Address, (swaps, error) =>
+                                    // Swaps to Pha from ETH are reported here.
+                                    RequestPendings(ethKeys.Address, PlatformKind.Ethereum, (swapsFromEth, error) =>
                                     {
-                                        if (swaps != null)
+                                        if (swapsFromEth != null)
                                         {
-                                            MergeSwaps(PlatformKind.Phantasma, balanceMap, swaps);
+                                            MergeSwaps(PlatformKind.Phantasma, balanceMap, swapsFromEth);
                                         }
                                         else
                                         {
                                             Log.WriteWarning(error);
                                         }
 
-
-                                        var state = new AccountState()
+                                        // Swaps to Pha from BSC are reported here.
+                                        RequestPendings(ethKeys.Address, PlatformKind.BSC, (swapsFromBsc, error) =>
                                         {
-                                            platform = platform,
-                                            address = acc.address,
-                                            name = acc.name,
-                                            balances = balanceMap.Values.ToArray(),
-                                            flags = AccountFlags.None
-                                        };
+                                            if (swapsFromBsc != null)
+                                            {
+                                                MergeSwaps(PlatformKind.Phantasma, balanceMap, swapsFromBsc);
+                                            }
+                                            else
+                                            {
+                                                Log.WriteWarning(error);
+                                            }
+                                            var state = new AccountState()
+                                            {
+                                                platform = platform,
+                                                address = acc.address,
+                                                name = acc.name,
+                                                balances = balanceMap.Values.ToArray(),
+                                                flags = AccountFlags.None
+                                            };
 
-                                        if (stakedAmount >= SoulMasterStakeAmount)
-                                        {
-                                            state.flags |= AccountFlags.Master;
-                                        }
+                                            if (stakedAmount >= SoulMasterStakeAmount)
+                                            {
+                                                state.flags |= AccountFlags.Master;
+                                            }
 
-                                        if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
-                                        {
-                                            state.flags |= AccountFlags.Validator;
-                                        }
+                                            if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
+                                            {
+                                                state.flags |= AccountFlags.Validator;
+                                            }
 
-                                        state.stakeTime = stakeTimestamp;
+                                            state.stakeTime = stakeTimestamp;
 
-                                        state.usedStorage = acc.storage.used;
-                                        state.availableStorage = acc.storage.available;
-                                        state.archives = acc.storage.archives;
-                                        state.avatarData = acc.storage.avatar;
+                                            state.usedStorage = acc.storage.used;
+                                            state.availableStorage = acc.storage.available;
+                                            state.archives = acc.storage.archives;
+                                            state.avatarData = acc.storage.avatar;
 
-                                        ReportWalletBalance(platform, state);
+                                            ReportWalletBalance(platform, state);
+                                        });
                                     });
                                 });
                             },
                             (error, msg) =>
                             {
+                                Log.WriteWarning($"RefreshBalances[PHA] {error}: {msg}");
+
                                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                                 {
                                     ChangeFaultyRPCURL();
@@ -1800,7 +1982,7 @@ namespace Poltergeist
 
                                 CoroutineUtils.StartThrowingCoroutine(this, neoApi.GetUnclaimed(keys.Address, (amount) =>
                                 {
-                                    RequestPendings(keys.Address, (swaps, error) =>
+                                    RequestPendings(keys.Address, PlatformKind.Neo, (swaps, error) =>
                                     {
                                         var balanceMap = new Dictionary<string, Balance>();
 
@@ -1862,6 +2044,7 @@ namespace Poltergeist
                                 {
                                     if (ex != null)
                                     {
+                                        Log.WriteWarning($"RefreshBalances[NEO] {ex}");
                                         ReportWalletBalance(platform, null);
                                     }
                                 });
@@ -1879,7 +2062,7 @@ namespace Poltergeist
 
                             Action onLoadFinish = new Action(() =>
                             {
-                                RequestPendings(keys.Address, (swaps, error) =>
+                                RequestPendings(keys.Address, PlatformKind.Ethereum, (swaps, error) =>
                                 {
                                     var balanceMap = new Dictionary<string, Balance>();
                                     foreach (var ethToken in ethTokens)
@@ -1927,6 +2110,7 @@ namespace Poltergeist
                                     },
                                     (error, msg) =>
                                     {
+                                        Log.WriteWarning($"RefreshBalances[ETH/1] {error}: {msg}");
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
@@ -1945,6 +2129,91 @@ namespace Poltergeist
                                     },
                                     (error, msg) =>
                                     {
+                                        Log.WriteWarning($"RefreshBalances[ETH/2] {error}: {msg}");
+                                        ReportWalletBalance(platform, null);
+                                    }));
+                                }
+                            }
+                        }
+                        break;
+
+                    case PlatformKind.BSC:
+                        {
+                            var keys = EthereumKey.FromWIF(wif);
+
+                            var bscTokens = Tokens.GetTokens(PlatformKind.BSC);
+                            var balances = new List<Balance>();
+
+                            Action onLoadFinish = new Action(() =>
+                            {
+                                RequestPendings(keys.Address, PlatformKind.BSC, (swaps, error) =>
+                                {
+                                    var balanceMap = new Dictionary<string, Balance>();
+                                    foreach (var bscToken in bscTokens)
+                                    {
+                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == bscToken.symbol.ToUpper()).SingleOrDefault();
+                                        if (tokenBalance != null)
+                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
+                                    }
+
+                                    if (swaps != null)
+                                    {
+                                        MergeSwaps(PlatformKind.BSC, balanceMap, swaps);
+                                    }
+                                    else
+                                    {
+                                        Log.WriteWarning(error);
+                                    }
+
+                                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
+                                    var state = new AccountState()
+                                    {
+                                        platform = platform,
+                                        address = ethereumAddressUtil.ConvertToChecksumAddress(keys.Address),
+                                        name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
+                                        balances = balanceMap.Values.ToArray(),
+                                        flags = AccountFlags.None
+                                    };
+                                    ReportWalletBalance(platform, state);
+                                });
+                            });
+
+                            foreach (var bscToken in bscTokens)
+                            {
+                                if (bscToken.symbol == "BNB")
+                                {
+                                    StartCoroutine(binanceSmartChainApi.GetBalance(keys.Address, bscToken.symbol, bscToken.decimals, (balance) =>
+                                    {
+                                        balances.Add(balance);
+
+                                        if (balances.Count() == bscTokens.Count())
+                                        {
+                                            onLoadFinish();
+                                        }
+                                    },
+                                    (error, msg) =>
+                                    {
+                                        Log.WriteWarning($"RefreshBalances[BSC/1] {error}: {msg}");
+                                        ReportWalletBalance(platform, null);
+                                    }));
+                                }
+                                else
+                                {
+                                    StartCoroutine(binanceSmartChainApi.GetTokenBalance(keys.Address,
+                                        Tokens.GetTokenHash(bscToken, PlatformKind.BSC),
+                                        bscToken.symbol, bscToken.decimals, (balanceSoul) =>
+                                        {
+                                            balances.Add(balanceSoul);
+
+                                            if (balances.Count() == bscTokens.Count())
+                                            {
+                                                onLoadFinish();
+                                            }
+                                        },
+                                    (error, msg) =>
+                                    {
+                                        Log.WriteWarning($"RefreshBalances[BSC/2] {error}: {msg}");
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
@@ -2408,6 +2677,75 @@ namespace Poltergeist
                         }
                         break;
 
+                    case PlatformKind.BSC:
+                        {
+                            var keys = EthereumKey.FromWIF(wif);
+                            var urlBsc = GetBscExplorerAPIUrl($"module=account&action=txlist&address={keys.Address}&sort=desc");
+
+                            StartCoroutine(WebClient.RESTRequest(urlBsc, WebClient.DefaultTimeout, (error, msg) =>
+                            {
+                                ReportWalletHistory(platform, null);
+                            },
+                            (responseBsc) =>
+                            {
+                                var urlBep20 = GetBscExplorerAPIUrl($"module=account&action=tokentx&address={keys.Address}&sort=desc");
+                                StartCoroutine(WebClient.RESTRequest(urlBep20, WebClient.DefaultTimeout, (error, msg) =>
+                                {
+                                    ReportWalletHistory(platform, null);
+                                },
+                                (responseBep20) =>
+                                {
+                                    var bscHistory = new Dictionary<string, DateTime>();
+
+                                    // Adding BSC transactions to the dict.
+                                    if (responseBsc != null)
+                                    {
+                                        var entries = responseBsc.GetNode("result");
+                                        foreach (var entry in entries.Children)
+                                        {
+                                            var hash = entry.GetString("hash");
+                                            if (!bscHistory.Any(x => x.Key == hash))
+                                            {
+                                                bscHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
+                                        }
+                                    }
+
+                                    // Adding BEP20 transactions to the dict.
+                                    if (responseBep20 != null)
+                                    {
+                                        var entries = responseBep20.GetNode("result");
+                                        foreach (var entry in entries.Children)
+                                        {
+                                            var hash = entry.GetString("hash");
+                                            if (!bscHistory.Any(x => x.Key == hash))
+                                            {
+                                                bscHistory.Add(hash, new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(entry.GetUInt32("timeStamp")).ToLocalTime());
+                                            }
+                                        }
+                                    }
+
+                                    // Sorting tx-es by date.
+                                    var orderedBscHistory = bscHistory.OrderByDescending(x => x.Value);
+
+                                    var history = new List<HistoryEntry>();
+
+                                    foreach (var entry in orderedBscHistory)
+                                    {
+                                        history.Add(new HistoryEntry()
+                                        {
+                                            hash = entry.Key,
+                                            date = entry.Value,
+                                            url = GetBscTransactionURL(entry.Key),
+                                        });
+                                    }
+
+                                    ReportWalletHistory(platform, history);
+                                }));
+                            }));
+                        }
+                        break;
+
                     default:
                         ReportWalletHistory(platform, null);
                         break;
@@ -2459,9 +2797,9 @@ namespace Poltergeist
             return $"{url}{symbol.ToLower()}/{tokenId}";
         }
 
-        private void RequestPendings(string address, Action<Swap[], string> callback)
+        private void RequestPendings(string address, PlatformKind platform, Action<Swap[], string> callback)
         {
-            StartCoroutine(phantasmaApi.GetSwapsForAddress(address, (swaps) =>
+            StartCoroutine(phantasmaApi.GetSwapsForAddress(address, platform.ToString().ToLower(), (swaps) =>
             {
                 callback(swaps, null);
             }, (error, msg) =>
@@ -2530,6 +2868,57 @@ namespace Poltergeist
             }
         }
 
+        public string GetBscTransactionURL(string hash)
+        {
+            if (!hash.StartsWith("0x"))
+                hash = "0x" + hash;
+
+            switch (Settings.binanceSmartChainNetwork)
+            {
+                case BinanceSmartChainNetwork.Main_Net:
+                    return $"https://bscscan.com/tx/{hash}";
+
+                case BinanceSmartChainNetwork.Test_Net:
+                    return $"https://testnet.bscscan.com/tx/{hash}";
+
+                default:
+                    return null;
+            }
+        }
+
+        public string GetBscAddressURL(string address)
+        {
+            if (!address.StartsWith("0x"))
+                address = "0x" + address;
+
+            switch (Settings.binanceSmartChainNetwork)
+            {
+                case BinanceSmartChainNetwork.Main_Net:
+                    return $"https://bscscan.com/address/{address}";
+
+                case BinanceSmartChainNetwork.Test_Net:
+                    return $"https://testnet.bscscan.com/address/{address}";
+
+                default:
+                    return null;
+            }
+        }
+
+        private string GetBscExplorerAPIUrl(string request)
+        {
+            switch (Settings.binanceSmartChainNetwork)
+            {
+                case BinanceSmartChainNetwork.Main_Net:
+                    return $"https://bscscan.com/api?{request}";
+
+                case BinanceSmartChainNetwork.Test_Net:
+                    return $"https://testnet.bscscan.com/api?{request}";
+
+                default:
+                    return null;
+            }
+        }
+
         public string GetNeoscanTransactionURL(string hash)
         {
             var url = Settings.neoscanURL;
@@ -2568,7 +2957,7 @@ namespace Poltergeist
             return symbol == "SOUL" || symbol == "NEO" || symbol == "GAS";
         }
 
-        public int AddWallet(string name, PlatformKind platforms, string wif, string password)
+        public int AddWallet(string name, string wif, string password, bool legacySeed)
         {
             if (string.IsNullOrEmpty(name) || name.Length < 3)
             {
@@ -2588,7 +2977,7 @@ namespace Poltergeist
                 }
             }
 
-            var account = new Account() { name = name, platforms = platforms, misc = "" };
+            var account = new Account() { name = name, platforms = AccountManager.MergeAvailablePlatforms(), misc = "" };
 
             // Initializing public addresses.
             var phaKeys = PhantasmaKeys.FromWIF(wif);
@@ -2621,6 +3010,8 @@ namespace Poltergeist
                 account.passwordProtected = false;
                 account.WIF = wif;
             }
+
+            account.misc = legacySeed ? "legacy-seed" : "";
 
             Accounts.Add(account);
 
@@ -2655,6 +3046,24 @@ namespace Poltergeist
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
 
             return Address.FromInterop(2/*Ethereum*/, pubKey);
+        }
+        public static Address EncodeBinanceSmartChainAddress(string addressText)
+        {
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
+            Throw.If(!ethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
+
+            if (addressText.StartsWith("0x"))
+            {
+                addressText = addressText.Substring(2);
+            }
+
+            var scriptHash = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
+
+            var pubKey = new byte[33];
+            ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
+
+            return Address.FromInterop(3/*BinanceSmartChain*/, pubKey);
         }
 
         public static string DecodeNeoInteropAddress(Address address)
@@ -2731,30 +3140,109 @@ namespace Poltergeist
 
         internal void SettleSwap(string sourcePlatform, string destPlatform, string symbol, string pendingHash, Action<Hash, string> callback)
         {
+            var accountManager = AccountManager.Instance;
+
             if (sourcePlatform.ToLower() == PlatformKind.Ethereum.ToString().ToLower())
             {
                 var wif = this.CurrentWif;
                 var ethKeys = EthereumKey.FromWIF(wif);
                 var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+                var address = phantasmaKeys.Address;
 
                 Hash ethTxHash = Hash.Parse(pendingHash);
                 var transcodedAddress = Address.FromKey(ethKeys);
 
-                var script = ScriptUtils.BeginScript()
-                    .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
-                    .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                    .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
-                    .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                    .SpendGas(transcodedAddress)
-                    .EndScript();
+                var kcalBalance = accountManager._states[PlatformKind.Phantasma].GetAvailableAmount("KCAL");
 
-                SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                byte[] script;
+                if (kcalBalance < 0.1m)
                 {
-                    callback(hash, error);
-                }, (message, prikey, pubkey) =>
+                    // We swap some tokens into KCAL
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
+                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                        .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(transcodedAddress)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
+                else
                 {
-                    return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
-                });
+                    // We use KCAL that is available on this account already
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
+                        .AllowGas(address, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(address)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, phantasmaKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, null, ethKeys, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
+            }
+            else if (sourcePlatform.ToLower() == PlatformKind.BSC.ToString().ToLower())
+            {
+                var wif = this.CurrentWif;
+                var ethKeys = EthereumKey.FromWIF(wif);
+                var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+                var address = phantasmaKeys.Address;
+
+                Hash ethTxHash = Hash.Parse(pendingHash);
+                var transcodedAddress = Address.FromKey(ethKeys);
+
+                var kcalBalance = accountManager._states[PlatformKind.Phantasma].GetAvailableAmount("KCAL");
+
+                byte[] script;
+                if (kcalBalance < 0.1m)
+                {
+                    // We swap some tokens into KCAL
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
+                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                        .AllowGas(transcodedAddress, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(transcodedAddress)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
+                else
+                {
+                    // We use KCAL that is available on this account already
+                    script = ScriptUtils.BeginScript()
+                        .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
+                        .AllowGas(address, Address.Null, Settings.feePrice, Settings.feeLimit)
+                        .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
+                        .SpendGas(address)
+                        .EndScript();
+
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, phantasmaKeys, (hash, error) =>
+                    {
+                        callback(hash, error);
+                    }, null, ethKeys, (message, prikey, pubkey) =>
+                    {
+                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                    });
+                }
             }
             else
             {
@@ -2784,16 +3272,50 @@ namespace Poltergeist
             SaveAccounts();
         }
 
-        internal void ReplaceAccountWIF(int currentIndex, string wif)
+        internal void ReplaceAccountWIF(int currentIndex, string wif, string passwordHash, out string deletedDuplicateWallet)
         {
+            deletedDuplicateWallet = null;
+
             if (currentIndex < 0 || currentIndex >= Accounts.Count())
             {
                 return;
             }
 
             var account = Accounts[currentIndex];
-            account.WIF = wif;
+            if (string.IsNullOrEmpty(passwordHash))
+            {
+                account.WIF = wif;
+            }
+            else
+            {
+                account.WIF = EncryptString(wif, passwordHash, out string iv);
+                account.iv = iv;
+            }
+            account.misc = ""; // Migration does not guarantee that new account have current seed, but that's all that we can do with it.
+            
+            // Initializing new public addresses.
+            wif = account.GetWif(passwordHash); // Recreating to be sure all is good.
+            var phaKeys = PhantasmaKeys.FromWIF(wif);
+            account.phaAddress = phaKeys.Address.ToString();
+
+            var neoKeys = NeoKeys.FromWIF(wif);
+            account.neoAddress = neoKeys.Address.ToString();
+
+            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
+
             Accounts[currentIndex] = account;
+
+            for(var i = 0; i < Accounts.Count; i++)
+            {
+                if(i != currentIndex && Accounts[i].phaAddress == account.phaAddress)
+                {
+                    deletedDuplicateWallet = Accounts[i].name;
+                    Accounts.RemoveAt(i);
+                    break;
+                }
+            }
+
             SaveAccounts();
         }
 
@@ -2856,6 +3378,9 @@ namespace Poltergeist
                     return Accounts[index].neoAddress;
 
                 case PlatformKind.Ethereum:
+                    return Accounts[index].ethAddress;
+
+                case PlatformKind.BSC:
                     return Accounts[index].ethAddress;
             }
 
@@ -2961,6 +3486,220 @@ namespace Poltergeist
         public TokenData GetNft(string id)
         {
             return _nfts[CurrentPlatform].Where(x => x.ID == id).FirstOrDefault();
+        }
+
+        public void GetPhantasmaAddressInfo(Action<string, string> callback)
+        {
+            GetPhantasmaAddressInfo(_states[PlatformKind.Phantasma].address, callback);
+        }
+        public void GetPhantasmaAddressInfo(string addressString, Action<string, string> callback)
+        {
+            byte[] scriptUnclaimed;
+            byte[] scriptStake;
+            byte[] scriptStorageStake;
+            byte[] scriptVotingPower;
+            byte[] scriptStakeTimestamp;
+            byte[] scriptTimeBeforeUnstake;
+            byte[] scriptMasterDate;
+            byte[] scriptIsMaster;
+            try
+            {
+                var address = Address.FromText(addressString);
+
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetUnclaimed", address);
+                    scriptUnclaimed = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetStake", address);
+                    scriptStake = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetStorageStake", address);
+                    scriptStorageStake = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetAddressVotingPower", address);
+                    scriptVotingPower = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetStakeTimestamp", address);
+                    scriptStakeTimestamp = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetTimeBeforeUnstake", address);
+                    scriptTimeBeforeUnstake = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "GetMasterDate", address);
+                    scriptMasterDate = sb.EndScript();
+                }
+                {
+                    var sb = new ScriptBuilder();
+                    sb.CallContract("stake", "IsMaster", address);
+                    scriptIsMaster = sb.EndScript();
+                }
+            }
+            catch (Exception e)
+            {
+                callback(null, e.ToString());
+                return;
+            }
+
+            InvokeScriptPhantasma("main", scriptUnclaimed, (unclaimedResult, unclaimedInvokeError) =>
+            {
+                if (!string.IsNullOrEmpty(unclaimedInvokeError))
+                {
+                    callback(null, "Script invokation error!\n\n" + unclaimedInvokeError);
+                    return;
+                }
+                else
+                {
+                    InvokeScriptPhantasma("main", scriptStake, (stakeResult, stakeInvokeError) =>
+                    {
+                        if (!string.IsNullOrEmpty(stakeInvokeError))
+                        {
+                            callback(null, "Script invokation error!\n\n" + stakeInvokeError);
+                            return;
+                        }
+                        else
+                        {
+                            InvokeScriptPhantasma("main", scriptStorageStake, (storageStakeResult, storageStakeInvokeError) =>
+                            {
+                                if (!string.IsNullOrEmpty(storageStakeInvokeError))
+                                {
+                                    callback(null, "Script invokation error!\n\n" + storageStakeInvokeError);
+                                    return;
+                                }
+                                else
+                                {
+                                    InvokeScriptPhantasma("main", scriptVotingPower, (votingPowerResult, votingPowerInvokeError) =>
+                                    {
+                                        if (!string.IsNullOrEmpty(votingPowerInvokeError))
+                                        {
+                                            callback(null, "Script invokation error!\n\n" + votingPowerInvokeError);
+                                            return;
+                                        }
+                                        else
+                                        {
+                                            InvokeScriptPhantasma("main", scriptStakeTimestamp, (stakeTimestampResult, stakeTimestampInvokeError) =>
+                                            {
+                                                if (!string.IsNullOrEmpty(stakeTimestampInvokeError))
+                                                {
+                                                    callback(null, "Script invokation error!\n\n" + stakeTimestampInvokeError);
+                                                    return;
+                                                }
+                                                else
+                                                {
+                                                    InvokeScriptPhantasma("main", scriptTimeBeforeUnstake, (timeBeforeUnstakeResult, timeBeforeUnstakeInvokeError) =>
+                                                    {
+                                                        if (!string.IsNullOrEmpty(timeBeforeUnstakeInvokeError))
+                                                        {
+                                                            callback(null, "Script invokation error!\n\n" + timeBeforeUnstakeInvokeError);
+                                                            return;
+                                                        }
+                                                        else
+                                                        {
+                                                            InvokeScriptPhantasma("main", scriptMasterDate, (masterDateResult, masterDateInvokeError) =>
+                                                            {
+                                                                if (!string.IsNullOrEmpty(masterDateInvokeError))
+                                                                {
+                                                                    callback(null, "Script invokation error!\n\n" + masterDateInvokeError);
+                                                                    return;
+                                                                }
+                                                                else
+                                                                {
+                                                                    InvokeScriptPhantasma("main", scriptIsMaster, (isMasterResult, isMasterInvokeError) =>
+                                                                    {
+                                                                    if (!string.IsNullOrEmpty(isMasterInvokeError))
+                                                                    {
+                                                                        callback(null, "Script invokation error!\n\n" + isMasterInvokeError);
+                                                                        return;
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                            StartCoroutine(phantasmaApi.GetAllAddressTransactions(addressString, (x) =>
+                                                                            {
+                                                                                var stakingHistory = new List<string>();
+                                                                                var calculatedStakedAmount = 0m;
+                                                                                foreach (var tx in x.txs.Reverse().Where(t => t.events.Any(e => (e.address == addressString && (e.kind.ToUpper() == "TOKENSTAKE" || e.kind.ToUpper() == "TOKENCLAIM") && e.contract.ToUpper() == "STAKE") && !t.events.Any(e => e.kind.ToUpper() == "TOKENMINT" && e.address == "S3dP2jjf1jUG9nethZBWbnu9a6dFqB7KveTWU7znis6jpDy")) || t.events.Any(e => e.kind.ToUpper() == "ADDRESSMIGRATION")))
+                                                                                {
+                                                                                    var stakeEvent = tx.events.Where(e => (e.address == addressString && (e.kind.ToUpper() == "TOKENSTAKE" || e.kind.ToUpper() == "TOKENCLAIM") && e.contract.ToUpper() == "STAKE") || e.kind.ToUpper() == "ADDRESSMIGRATION").First();
+
+                                                                                    var kind = (EventKind)Enum.Parse(typeof(EventKind), stakeEvent.kind);
+                                                                                    if (kind == EventKind.AddressMigration)
+                                                                                    {
+                                                                                        Log.Write(new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(tx.timestamp).ToLocalTime() +
+                                                                                            ": " + stakeEvent.kind + ": " + " address: " + stakeEvent.address + " data: " + stakeEvent.data + " tx: " + tx.hash);
+
+                                                                                        stakingHistory.Add(new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(tx.timestamp).ToLocalTime() +
+                                                                                            ": Account migration to address: " + stakeEvent.address);
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        var evnt = new Phantasma.Domain.Event(kind, Address.FromText(stakeEvent.address), stakeEvent.contract, Base16.Decode(stakeEvent.data));
+
+                                                                                        var tokenEventData = evnt.GetContent<TokenEventData>();
+                                                                                        Log.Write(new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(tx.timestamp).ToLocalTime() +
+                                                                                            ": " + stakeEvent.kind + ": " + UnitConversion.ToDecimal(tokenEventData.Value, 8) + " " + tokenEventData.Symbol + " address: " + stakeEvent.address + " data: " + stakeEvent.data + " tx: " + tx.hash);
+
+                                                                                        var soulAmount = UnitConversion.ToDecimal(tokenEventData.Value, 8);
+                                                                                        if (kind == EventKind.TokenStake)
+                                                                                            calculatedStakedAmount += soulAmount;
+                                                                                        else
+                                                                                            calculatedStakedAmount -= soulAmount;
+
+                                                                                        stakingHistory.Add(new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(tx.timestamp).ToLocalTime() +
+                                                                                            ": " + (kind == EventKind.TokenStake ? "Stake" : "Claim") + ": " + soulAmount + " " + tokenEventData.Symbol + $" [Staked: {calculatedStakedAmount} SOUL]");
+                                                                                    }
+                                                                                }
+
+                                                                                var unclaimed = UnitConversion.ToDecimal(VMObject.FromBytes(unclaimedResult).AsNumber(), 10);
+                                                                                var stake = UnitConversion.ToDecimal(VMObject.FromBytes(stakeResult).AsNumber(), 8);
+                                                                                var storageStake = UnitConversion.ToDecimal(VMObject.FromBytes(storageStakeResult).AsNumber(), 8);
+                                                                                var votingPower = VMObject.FromBytes(votingPowerResult).AsNumber();
+                                                                                var stakeTimestamp = VMObject.FromBytes(stakeTimestampResult).AsTimestamp();
+                                                                                var timeBeforeUnstake = VMObject.FromBytes(timeBeforeUnstakeResult).AsNumber();
+                                                                                var masterDate = VMObject.FromBytes(masterDateResult).AsTimestamp();
+                                                                                var isMaster = VMObject.FromBytes(isMasterResult).AsBool();
+
+                                                                                stakingHistory.Reverse();
+
+                                                                                callback($"{addressString} account information:\n\n" +
+                                                                                    $"Unclaimed: {unclaimed} KCAL\n" +
+                                                                                    $"Stake: {stake} SOUL\n" +
+                                                                                    $"Is SM: {isMaster}\n" +
+                                                                                    $"SM since: {masterDate}\n" +
+                                                                                    $"Stake timestamp: {stakeTimestamp}\n" +
+                                                                                    $"Next staking period starts in: {TimeSpan.FromSeconds((double)timeBeforeUnstake):hh\\:mm\\:ss}\n" +
+                                                                                    $"Storage stake: {storageStake} SOUL\n" +
+                                                                                    $"Voting power: {votingPower}\n\n" +
+                                                                                    $"Staking history (calculated current stake: {calculatedStakedAmount} SOUL):\n{string.Join("\n", stakingHistory)}", null);
+                                                                            }));
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+            });
         }
     }
 }

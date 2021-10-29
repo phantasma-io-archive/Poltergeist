@@ -43,10 +43,26 @@ public static class Tokens
             var hash = externalToken.GetString("hash");
             var coinGeckoId = externalToken.GetString("coinGeckoId");
 
-            var token = Tokens.GetToken(symbol);
+            var token = Tokens.GetToken(symbol, platform);
             if (token != null)
             {
-                Log.WriteWarning($"Tokens.LoadFromText(): {platform} symbols: Token '{symbol}' already exists.");
+                if (token.name == name && token.decimals == decimals)
+                {
+                    var tokenList = token.external.ToList();
+                    if (tokenList.Any(x => x.platform == platform.ToString().ToLower()))
+                    {
+                        Log.WriteWarning($"Tokens.LoadFromText(): {platform} symbols: Token '{symbol}' already exists for platform.");
+                    }
+                    else
+                    {
+                        tokenList.Add(new TokenPlatform { platform = platform.ToString().ToLower(), hash = hash });
+                        token.external = tokenList.ToArray();
+                    }
+                }
+                else
+                {
+                    Log.WriteWarning($"Tokens.LoadFromText(): {platform} symbols: Token '{symbol}' already exists and is not compatible.");
+                }
             }
             else
             {
@@ -71,7 +87,12 @@ public static class Tokens
     }
     public static void Load(PlatformKind platform)
     {
-        var resource = Resources.Load<TextAsset>($"Tokens.{platform.ToString().ToUpper()}");
+        // Currently will only work after restart.
+        string testnet = "";
+        if (platform == PlatformKind.BSC && AccountManager.Instance.Settings.binanceSmartChainNetwork == BinanceSmartChainNetwork.Test_Net)
+            testnet = ".Testnet";
+        
+        var resource = Resources.Load<TextAsset>($"Tokens.{platform.ToString().ToUpper()}{testnet}");
 
         if (resource == null || string.IsNullOrEmpty(resource.text))
         {
@@ -107,13 +128,16 @@ public static class Tokens
         {
             var symbol = tokenApiSymbol.GetString("symbol");
             var apiSymbol = tokenApiSymbol.GetString("apiSymbol");
-            var token = Tokens.GetToken(symbol);
-            if (token != null)
+            var tokens = Tokens.GetTokens(symbol);
+            if (tokens.Length > 0)
             {
-                if (apiSymbol == "-") // Means token has no CoinGecko API ID.
-                    token.apiSymbol = "";
-                else
-                    token.apiSymbol = apiSymbol;
+                for (var i = 0; i < tokens.Length; i++)
+                {
+                    if (apiSymbol == "-") // Means token has no CoinGecko API ID.
+                        tokens[i].apiSymbol = "";
+                    else
+                        tokens[i].apiSymbol = apiSymbol;
+                }
             }
             else
             {
@@ -132,16 +156,32 @@ public static class Tokens
             // TODO remove after mainnet fix.
             // Fix for incorrect hash returned by BP.
             var neoToken = Tokens.GetToken("NEO", PlatformKind.Neo);
-            neoToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b";
+            try
+            {
+                neoToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b";
+            }
+            catch(Exception e)
+            {
+                Log.Write($"NEO token hash registration exception: {e}");
+            }
             var gasToken = Tokens.GetToken("GAS", PlatformKind.Neo);
-            gasToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7";
+            try
+            {
+                gasToken.external.Where(x => x.platform.ToUpper() == "NEO").Single().hash = "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7";
+            }
+            catch (Exception e)
+            {
+                Log.Write($"GAS token hash registration exception: {e}");
+            }
 
             Tokens.Load(PlatformKind.Ethereum);
             Tokens.Load(PlatformKind.Neo);
+            Tokens.Load(PlatformKind.BSC);
 
             var accountManager = AccountManager.Instance;
             Tokens.LoadFromText(accountManager.Settings.ethereumUserTokens, PlatformKind.Ethereum);
             Tokens.LoadFromText(accountManager.Settings.neoUserTokens, PlatformKind.Neo);
+            Tokens.LoadFromText(accountManager.Settings.binanceSmartChainUserTokens, PlatformKind.BSC);
 
             Tokens.LoadCoinGeckoSymbols();
 
@@ -151,10 +191,10 @@ public static class Tokens
         }
     }
 
-    public static Token GetToken(string symbol)
+    public static Token[] GetTokens(string symbol)
     {
         return SupportedTokens.Where(x => x.symbol.ToUpper() == symbol.ToUpper())
-            .SingleOrDefault();
+            .ToArray();
     }
     public static Token GetToken(string symbol, PlatformKind platform)
     {
@@ -163,11 +203,11 @@ public static class Tokens
             (platform != PlatformKind.Phantasma && x.external != null && x.external.Any(y => y.platform.ToUpper() == platform.ToString().ToUpper()))))
             .SingleOrDefault();
     }
-    public static bool HasToken(string symbol, PlatformKind platform)
+    public static bool HasSwappableToken(string symbol, PlatformKind platform)
     {
         return SupportedTokens.Any(x => x.symbol.ToUpper() == symbol.ToUpper() &&
-            ((platform == PlatformKind.Phantasma && x.mainnetToken == true) ||
-            (platform != PlatformKind.Phantasma && x.external != null && x.external.Any(y => y.platform.ToUpper() == platform.ToString().ToUpper()))));
+            ((platform == PlatformKind.Phantasma && x.IsSwappable() && x.mainnetToken == true) ||
+            (platform != PlatformKind.Phantasma && x.IsSwappable() && x.external != null && x.external.Any(y => y.platform.ToUpper() == platform.ToString().ToUpper()))));
     }
     public static bool GetToken(string symbol, PlatformKind platform, out Token token)
     {

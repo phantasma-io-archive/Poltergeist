@@ -380,6 +380,7 @@ namespace Phantasma.SDK
     {
         public string address; //
         public string kind; //
+        public string contract; //
         public string data; //
 
         public static Event FromNode(DataNode node)
@@ -388,6 +389,7 @@ namespace Phantasma.SDK
 
             result.address = node.GetString("address");
             result.kind = node.GetString("kind");
+            result.contract = node.GetString("contract");
             result.data = node.GetString("data");
 
             return result;
@@ -1269,7 +1271,15 @@ namespace Phantasma.SDK
             }, addressText, page, pageSize);
         }
 
-
+        public IEnumerator GetAllAddressTransactions(string addressText, Action<AccountTransactions> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        {
+            yield return WebClient.RPCRequest(Host, "getAddressTransactions", WebClient.NoTimeout, 0, errorHandlingCallback, (node) =>
+            {
+                node = node.GetNode("result");
+                var result = AccountTransactions.FromNode(node);
+                callback(result);
+            }, addressText);
+        }
         //Get number of transactions in a specific address and chain
         public IEnumerator GetAddressTransactionCount(string addressText, string chainInput, Action<int> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
@@ -1344,7 +1354,7 @@ namespace Phantasma.SDK
         //Returns an array of tokens deployed in Phantasma.
         public IEnumerator GetTokens(Action<Token[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "getTokens", WebClient.NoTimeout, 0, errorHandlingCallback, (node) =>
+            yield return WebClient.RPCRequest(Host, "getTokens", WebClient.NoTimeout, 5, errorHandlingCallback, (node) =>
             {
                 var result = new Token[node.ChildCount];
                 for (int i = 0; i < result.Length; i++)
@@ -1586,7 +1596,7 @@ namespace Phantasma.SDK
 
 
         //Returns platform swaps for a specific address.
-        public IEnumerator GetSwapsForAddress(string accountInput, Action<Swap[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator GetSwapsForAddress(string accountInput, string platform, Action<Swap[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
             yield return WebClient.RPCRequest(Host, "getSwapsForAddress", WebClient.NoTimeout, 0, (error, msg) =>
             {
@@ -1600,7 +1610,7 @@ namespace Phantasma.SDK
                     result[i] = Swap.FromNode(child);
                 }
                 callback(result);
-            }, accountInput);
+            }, accountInput, platform);
         }
 
 
@@ -1647,7 +1657,7 @@ namespace Phantasma.SDK
             return SignAndSendTransactionWithPayload(keys, nexus, script, chain, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
         }
 
-        public IEnumerator SignAndSendTransactionWithPayload(IKeyPair keys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public IEnumerator SignAndSendTransactionWithPayload(IKeyPair keys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null, IKeyPair keys2 = null, Func<byte[], byte[], byte[], byte[]> customSignFunction2 = null)
         {
             Log.Write("Sending transaction...");
 
@@ -1659,6 +1669,10 @@ namespace Phantasma.SDK
             }
 
             tx.Sign(keys, customSignFunction);
+            if (keys2 != null)
+            {
+                tx.Sign(keys2, customSignFunction2);
+            }
 
             yield return SendRawTransaction(Base16.Encode(tx.ToByteArray(true)), callback, errorHandlingCallback);
         }

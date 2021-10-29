@@ -23,10 +23,37 @@ namespace Poltergeist
         Local_Net
     }
 
+    public enum BinanceSmartChainNetwork
+    {
+        Unknown,
+        Main_Net,
+        Test_Net,
+        Local_Net
+    }
+
     public enum UiThemes
     {
         Classic,
         Phantasia
+    }
+
+    public enum MnemonicPhraseLength
+    {
+        Twelve_Words,
+        Twenty_Four_Words
+    }
+
+    public enum PasswordMode
+    {
+        Ask_Always,
+        Ask_Only_On_Login,
+        Master_Password
+    }
+
+    public enum MnemonicPhraseVerificationMode
+    {
+        Full,
+        Simplified
     }
 
     public static class SettingsExtension
@@ -71,6 +98,13 @@ namespace Poltergeist
         public const string EthereumTokenTransferGasLimitTag = "settings.ethereum.token.transfer.gas.limit";
         public const string EthereumUserTokensTag = "settings.ethereum.user.tokens";
 
+        public const string BinanceSmartChainNetworkTag = "settings.binancesmartchain.network";
+        public const string BinanceSmartChainRPCTag = "settings.binancesmartchain.rpc.url";
+        public const string BinanceSmartChainGasPriceGweiTag = "settings.binancesmartchain.gas.price.gwei";
+        public const string BinanceSmartChainTransferGasLimitTag = "settings.binancesmartchain.transfer.gas.limit";
+        public const string BinanceSmartChainTokenTransferGasLimitTag = "settings.binancesmartchain.token.transfer.gas.limit";
+        public const string BinanceSmartChainUserTokensTag = "settings.binancesmartchain.user.tokens";
+
         public const string SFXTag = "settings.sfx";
 
         public const string LogLevelTag = "log.level";
@@ -83,6 +117,11 @@ namespace Poltergeist
         public const string NftSortDirectionTag = "nft.sort.direction";
 
         public const string LastVisitedFolderTag = "last.visited.folder";
+
+        public const string MnemonicPhraseLengthTag = "mnemonic.phrase.length";
+        public const string MnemonicPhraseVerificationModeTag = "mnemonic.phrase.verification.mode";
+
+        public const string PasswordModeTag = "password.mode";
 
         public string phantasmaRPCURL;
         public string phantasmaExplorer;
@@ -101,6 +140,12 @@ namespace Poltergeist
         public BigInteger ethereumTransferGasLimit;
         public BigInteger ethereumTokenTransferGasLimit;
         public string ethereumUserTokens;
+        public BinanceSmartChainNetwork binanceSmartChainNetwork;
+        public string binanceSmartChainRPCURL;
+        public BigInteger binanceSmartChainGasPriceGwei;
+        public BigInteger binanceSmartChainTransferGasLimit;
+        public BigInteger binanceSmartChainTokenTransferGasLimit;
+        public string binanceSmartChainUserTokens;
         public NexusKind nexusKind;
         public bool sfx;
         public Log.Level logLevel;
@@ -110,6 +155,9 @@ namespace Poltergeist
         public int nftSortMode;
         public int nftSortDirection;
         public string lastVisitedFolder;
+        public MnemonicPhraseLength mnemonicPhraseLength;
+        public MnemonicPhraseVerificationMode mnemonicPhraseVerificationMode;
+        public PasswordMode passwordMode;
 
         public override string ToString()
         {
@@ -129,6 +177,12 @@ namespace Poltergeist
                 "Ethereum transfer gas limit: " + this.ethereumTransferGasLimit + "\n" +
                 "Ethereum token transfer gas limit: " + this.ethereumTokenTransferGasLimit + "\n" +
                 "Ethereum user tokens: " + this.ethereumUserTokens + "\n" +
+                "BinanceSmartChain network: " + this.binanceSmartChainNetwork + "\n" +
+                "BinanceSmartChain RPC: " + this.binanceSmartChainRPCURL + "\n" +
+                "BinanceSmartChain gas price (Gwei): " + this.binanceSmartChainGasPriceGwei + "\n" +
+                "BinanceSmartChain transfer gas limit: " + this.binanceSmartChainTransferGasLimit + "\n" +
+                "BinanceSmartChain token transfer gas limit: " + this.binanceSmartChainTokenTransferGasLimit + "\n" +
+                "BinanceSmartChain user tokens: " + this.binanceSmartChainUserTokens + "\n" +
                 "Nexus name: " + this.nexusName + "\n" +
                 "Currency: " + this.currency + "\n" +
                 "Sfx: " + this.sfx + "\n" +
@@ -137,7 +191,10 @@ namespace Poltergeist
                 "Log overwrite: " + this.logOverwriteMode + "\n" +
                 "TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
                 "NFT sort mode: " + this.nftSortMode + "\n" +
-                "NFT sort direction: " + this.nftSortDirection;
+                "NFT sort direction: " + this.nftSortDirection + "\n" +
+                "Mnemonic phrase length: " + this.mnemonicPhraseLength + "\n" +
+                "Mnemonic phrase verification mode: " + this.mnemonicPhraseVerificationMode + "\n" +
+                "Password mode: " + this.passwordMode;
         }
 
         public void LoadLogSettings()
@@ -165,7 +222,16 @@ namespace Poltergeist
             {
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
-                this.phantasmaRPCURL = GetDefaultValue(PhantasmaRPCTag);
+                if (this.nexusKind == NexusKind.Main_Net)
+                {
+                    this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
+                }
+                else
+                {
+                    // We cannot do it for mainnet, because for mainnet we store best RPC here.
+                    // For testnets we should update with default value.
+                    this.phantasmaRPCURL = GetDefaultValue(PhantasmaRPCTag);
+                }
                 this.phantasmaExplorer = GetDefaultValue(PhantasmaExplorerTag);
                 this.phantasmaNftExplorer = GetDefaultValue(PhantasmaNftExplorerTag);
                 this.neoRPCURL = GetDefaultValue(NeoRPCTag);
@@ -244,6 +310,39 @@ namespace Poltergeist
 
             ethereumUserTokens = PlayerPrefs.GetString(EthereumUserTokensTag, null);
 
+            // BinanceSmartChain
+            var binanceSmartChainNetwork = PlayerPrefs.GetString(BinanceSmartChainNetworkTag, BinanceSmartChainNetwork.Main_Net.ToString());
+            if (!Enum.TryParse<BinanceSmartChainNetwork>(binanceSmartChainNetwork, true, out this.binanceSmartChainNetwork))
+            {
+                this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Unknown;
+            }
+
+            if (this.binanceSmartChainNetwork == BinanceSmartChainNetwork.Main_Net || this.binanceSmartChainNetwork == BinanceSmartChainNetwork.Test_Net)
+            {
+                // For mainnet/testnet we always load defaults for hidden settings,
+                // to avoid dealing with "stuck" values from old PG version that had different defaults.
+                this.binanceSmartChainRPCURL = GetDefaultValue(BinanceSmartChainRPCTag);
+            }
+            else
+            {
+                this.binanceSmartChainRPCURL = PlayerPrefs.GetString(BinanceSmartChainRPCTag, GetDefaultValue(BinanceSmartChainRPCTag));
+            }
+
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(BinanceSmartChainGasPriceGweiTag, "100"), out binanceSmartChainGasPriceGwei))
+            {
+                this.binanceSmartChainGasPriceGwei = 100;
+            }
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(BinanceSmartChainTransferGasLimitTag, "21000"), out binanceSmartChainTransferGasLimit))
+            {
+                this.binanceSmartChainTransferGasLimit = 21000;
+            }
+            if (!BigInteger.TryParse(PlayerPrefs.GetString(BinanceSmartChainTokenTransferGasLimitTag, "100000"), out binanceSmartChainTokenTransferGasLimit))
+            {
+                this.binanceSmartChainTokenTransferGasLimit = 100000;
+            }
+
+            binanceSmartChainUserTokens = PlayerPrefs.GetString(BinanceSmartChainUserTokensTag, null);
+
             this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
 
             LoadLogSettings();
@@ -256,6 +355,24 @@ namespace Poltergeist
             this.lastVisitedFolder = PlayerPrefs.GetString(LastVisitedFolderTag, documentFolderPath);
             if (!System.IO.Directory.Exists(this.lastVisitedFolder))
                 this.lastVisitedFolder = documentFolderPath;
+
+            var mnemonicPhraseLength = PlayerPrefs.GetString(MnemonicPhraseLengthTag, MnemonicPhraseLength.Twelve_Words.ToString());
+            if (!Enum.TryParse<MnemonicPhraseLength>(mnemonicPhraseLength, true, out this.mnemonicPhraseLength))
+            {
+                this.mnemonicPhraseLength = MnemonicPhraseLength.Twelve_Words;
+            }
+
+            var mnemonicPhraseVerificationMode = PlayerPrefs.GetString(MnemonicPhraseVerificationModeTag, MnemonicPhraseVerificationMode.Full.ToString());
+            if (!Enum.TryParse<MnemonicPhraseVerificationMode>(mnemonicPhraseVerificationMode, true, out this.mnemonicPhraseVerificationMode))
+            {
+                this.mnemonicPhraseVerificationMode = MnemonicPhraseVerificationMode.Full;
+            }
+
+            var passwordMode = PlayerPrefs.GetString(PasswordModeTag, PasswordMode.Ask_Always.ToString());
+            if (!Enum.TryParse<PasswordMode>(passwordMode, true, out this.passwordMode))
+            {
+                this.passwordMode = PasswordMode.Ask_Always;
+            }
 
             Log.Write("Settings: Load: " + ToString());
         }
@@ -400,6 +517,27 @@ namespace Poltergeist
                     }
                     break;
 
+                case BinanceSmartChainRPCTag:
+                    switch (binanceSmartChainNetwork)
+                    {
+                        case BinanceSmartChainNetwork.Main_Net:
+                            _return_value = "https://bsc-dataseed.binance.org/";
+                            break;
+
+                        case BinanceSmartChainNetwork.Test_Net:
+                            _return_value = "https://data-seed-prebsc-1-s1.binance.org:8545/";
+                            break;
+
+                        case BinanceSmartChainNetwork.Local_Net:
+                            _return_value = "";
+                            break;
+
+                        default:
+                            _return_value = "";
+                            break;
+                    }
+                    break;
+
                 case NeoscanAPITag:
                     switch (nexusKind)
                     {
@@ -471,12 +609,22 @@ namespace Poltergeist
             PlayerPrefs.SetString(EthereumTokenTransferGasLimitTag, this.ethereumTokenTransferGasLimit.ToString());
             PlayerPrefs.SetString(EthereumUserTokensTag, this.ethereumUserTokens);
 
+            PlayerPrefs.SetString(BinanceSmartChainNetworkTag, this.binanceSmartChainNetwork.ToString());
+            PlayerPrefs.SetString(BinanceSmartChainRPCTag, this.binanceSmartChainRPCURL);
+            PlayerPrefs.SetString(BinanceSmartChainGasPriceGweiTag, this.binanceSmartChainGasPriceGwei.ToString());
+            PlayerPrefs.SetString(BinanceSmartChainTransferGasLimitTag, this.binanceSmartChainTransferGasLimit.ToString());
+            PlayerPrefs.SetString(BinanceSmartChainTokenTransferGasLimitTag, this.binanceSmartChainTokenTransferGasLimit.ToString());
+            PlayerPrefs.SetString(BinanceSmartChainUserTokensTag, this.binanceSmartChainUserTokens);
+
             PlayerPrefs.SetString(NexusNameTag, this.nexusName);
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
             PlayerPrefs.SetString(UiThemeNameTag, this.uiThemeName);
             PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
+            PlayerPrefs.SetString(MnemonicPhraseLengthTag, this.mnemonicPhraseLength.ToString());
+            PlayerPrefs.SetString(MnemonicPhraseVerificationModeTag, this.mnemonicPhraseVerificationMode.ToString());
+            PlayerPrefs.SetString(PasswordModeTag, this.passwordMode.ToString());
             PlayerPrefs.Save();
 
             Log.Write("Settings: Save: " + ToString());
@@ -489,6 +637,7 @@ namespace Poltergeist
             PlayerPrefs.SetInt(NftSortDirectionTag, this.nftSortDirection);
             PlayerPrefs.SetString(PhantasmaRPCTag, this.phantasmaRPCURL);
             PlayerPrefs.SetString(EthereumGasPriceGweiTag, this.ethereumGasPriceGwei.ToString());
+            PlayerPrefs.SetString(BinanceSmartChainGasPriceGweiTag, this.binanceSmartChainGasPriceGwei.ToString());
             PlayerPrefs.SetString(LastVisitedFolderTag, this.lastVisitedFolder);
             PlayerPrefs.Save();
 
@@ -496,7 +645,8 @@ namespace Poltergeist
                       "                        NFT sort mode: " + nftSortMode + "\n" +
                       "                        NFT sort direction: " + nftSortDirection + "\n" +
                       "                        Phantasma RPC: " + phantasmaRPCURL + "\n" +
-                      "                        Ethereum gas price (Gwei): " + ethereumGasPriceGwei,
+                      "                        Ethereum gas price (Gwei): " + ethereumGasPriceGwei + "\n" +
+                      "                        BinanceSmartChain gas price (Gwei): " + binanceSmartChainGasPriceGwei,
                       Log.Level.Debug1);
         }
 
@@ -509,25 +659,30 @@ namespace Poltergeist
             this.neoRPCURL = this.GetDefaultValue(NeoRPCTag);
             this.neoscanURL = this.GetDefaultValue(NeoscanAPITag);
             this.ethereumRPCURL = this.GetDefaultValue(EthereumRPCTag);
+            this.binanceSmartChainRPCURL = this.GetDefaultValue(BinanceSmartChainRPCTag);
 
             if (restoreName)
             {
                 this.nexusName = this.GetDefaultValue(NexusNameTag);
 
-                // Reset ethereum network on nexus change (except custom nexus).
+                // Reset Ethereum/BinanceSmartChain network on nexus change (except custom nexus).
                 switch (this.nexusKind)
                 {
                     case NexusKind.Main_Net:
                         this.ethereumNetwork = EthereumNetwork.Main_Net;
+                        this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Main_Net;
                         break;
                     case NexusKind.Test_Net:
                         this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                     case NexusKind.Mankini_Test_Net:
                         this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                     case NexusKind.Local_Net:
                         this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                 }
             }
@@ -539,6 +694,7 @@ namespace Poltergeist
                       "                             Neo RPC: " + this.neoRPCURL + "\n" +
                       "                             Neoscan: " + this.neoscanURL + "\n" +
                       "                             Ethereum RPC: " + this.ethereumRPCURL + "\n" +
+                      "                             BinanceSmartChain RPC: " + this.binanceSmartChainRPCURL + "\n" +
                       "                             Nexus name: " + this.nexusName,
                       Log.Level.Debug1);
         }
@@ -549,6 +705,15 @@ namespace Poltergeist
 
             Log.Write("Settings: Restore ethereum endpoint:\n" +
                       "                             Ethereum RPC: " + this.ethereumRPCURL,
+                      Log.Level.Debug1);
+        }
+
+        public void RestoreBinanceSmartChainEndpoint()
+        {
+            this.binanceSmartChainRPCURL = this.GetDefaultValue(BinanceSmartChainRPCTag);
+
+            Log.Write("Settings: Restore BinanceSmartChain endpoint:\n" +
+                      "                             BinanceSmartChain RPC: " + this.binanceSmartChainRPCURL,
                       Log.Level.Debug1);
         }
 
