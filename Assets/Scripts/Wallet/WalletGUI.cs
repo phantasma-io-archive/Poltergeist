@@ -5819,13 +5819,10 @@ namespace Poltergeist
             var feeIncrease = 40;
             var url1 = "https://gasprice.poa.network";
             var feeKey1 = "instant";
-            var url2 = "https://www.etherchain.org/api/gasPriceOracle";
-            var feeKey2 = "fastest";
             var url3 = "https://api.anyblock.tools/latest-minimum-gasprice";
             var feeKey3 = "instant";
 
             decimal fee1 = 0;
-            decimal fee2 = 0;
             decimal fee3 = 0;
 
             var urlCoroutine1 = StartCoroutine(WebClient.RESTRequest(url1, WebClient.DefaultTimeout, (error, msg) =>
@@ -5836,16 +5833,6 @@ namespace Poltergeist
             {
                 fee1 = response1.GetDecimal(feeKey1, 0);
                 Log.Write("EthRequestSwapFeesAsBP(): Fee 1 retrieved: " + fee1);
-            }));
-
-            var urlCoroutine2 = StartCoroutine(WebClient.RESTRequest(url2, WebClient.DefaultTimeout, (error, msg) =>
-            {
-                Log.Write("EthRequestSwapFeesAsBP(): URL2 error: " + error);
-            },
-            (response) =>
-            {
-                fee2 = response.GetDecimal(feeKey2, 0);
-                Log.Write("EthRequestSwapFeesAsBP(): Fee 2 retrieved: " + fee2);
             }));
 
             var urlCoroutine3 = StartCoroutine(WebClient.RESTRequest(url3, WebClient.DefaultTimeout, (error, msg) =>
@@ -5859,7 +5846,6 @@ namespace Poltergeist
             }));
 
             yield return urlCoroutine1;
-            yield return urlCoroutine2;
             yield return urlCoroutine3;
 
             // Excluding 0 values. BP is not doing it yet,
@@ -5867,8 +5853,6 @@ namespace Poltergeist
             var fees = new List<decimal>();
             if (fee1 != 0)
                 fees.Add(fee1);
-            if (fee2 != 0)
-                fees.Add(fee2);
             if (fee3 != 0)
                 fees.Add(fee3);
 
