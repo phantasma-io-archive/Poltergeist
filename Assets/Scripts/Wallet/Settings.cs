@@ -456,7 +456,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "https://testnet.ghostmarket.io/asset/pha";
+                            _return_value = "https://testnet.ghostmarket.io/asset/phat";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
