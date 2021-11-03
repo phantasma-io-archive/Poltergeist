@@ -103,7 +103,15 @@ namespace Phantasma.SDK
 
                 try
                 {
-                    root = JSONReader.ReadFromString(request.downloadHandler.text);
+                    var stringResponse = request.downloadHandler.text;
+                    if (method.ToUpper() == "GETNFT" && parameters.Length > 0 && ((string)parameters[0]).ToUpper() == "GAME")
+                    {
+                        // TODO remove later: Temporary HACK for binary data inside JSON
+                        var cutFrom = stringResponse.IndexOf(",{\"Key\" : \"OriginalMetadata\"");
+                        stringResponse = stringResponse.Substring(0, cutFrom) + "]}";
+                    }
+
+                    root = JSONReader.ReadFromString(stringResponse);
                 }
                 catch (Exception e)
                 {
