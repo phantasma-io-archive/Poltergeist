@@ -3709,6 +3709,7 @@ namespace Poltergeist
                                                                                 var storageStake = UnitConversion.ToDecimal(VMObject.FromBytes(storageStakeResult).AsNumber(), 8);
                                                                                 var votingPower = VMObject.FromBytes(votingPowerResult).AsNumber();
                                                                                 var stakeTimestamp = VMObject.FromBytes(stakeTimestampResult).AsTimestamp();
+                                                                                var stakeTimestampLocal = ((DateTime)stakeTimestamp).ToLocalTime();
                                                                                 var timeBeforeUnstake = VMObject.FromBytes(timeBeforeUnstakeResult).AsNumber();
                                                                                 var masterDate = VMObject.FromBytes(masterDateResult).AsTimestamp();
                                                                                 var isMaster = VMObject.FromBytes(isMasterResult).AsBool();
@@ -3720,7 +3721,7 @@ namespace Poltergeist
                                                                                     $"Stake: {stake} SOUL\n" +
                                                                                     $"Is SM: {isMaster}\n" +
                                                                                     $"SM since: {masterDate}\n" +
-                                                                                    $"Stake timestamp: {stakeTimestamp}\n" +
+                                                                                    $"Stake timestamp: {stakeTimestampLocal} ({stakeTimestamp} UTC)\n" +
                                                                                     $"Next staking period starts in: {TimeSpan.FromSeconds((double)timeBeforeUnstake):hh\\:mm\\:ss}\n" +
                                                                                     $"Storage stake: {storageStake} SOUL\n" +
                                                                                     $"Voting power: {votingPower}\n\n" +
