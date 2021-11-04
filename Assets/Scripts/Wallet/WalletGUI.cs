@@ -3151,6 +3151,22 @@ namespace Poltergeist
                             nftFilteredList.Add(x);
                         }
                     }
+                    else if (transferSymbol == "GAME")
+                    {
+                        var item = GameStore.GetNft(x.ID);
+
+                        if ((String.IsNullOrEmpty(nftFilterName) || item.name_english.ToUpper().Contains(nftFilterName.ToUpper())) &&
+                            (nftFilterMinted == (int)nftMinted.All ||
+                             (nftFilterMinted == (int)nftMinted.Last_15_Mins && DateTime.Compare(item.timestampDT, DateTime.Now.AddMinutes(-15)) >= 0) ||
+                             (nftFilterMinted == (int)nftMinted.Last_Hour && DateTime.Compare(item.timestampDT, DateTime.Now.AddHours(-1)) >= 0) ||
+                             (nftFilterMinted == (int)nftMinted.Last_24_Hours && DateTime.Compare(item.timestampDT, DateTime.Now.AddDays(-1)) >= 0) ||
+                             (nftFilterMinted == (int)nftMinted.Last_Week && DateTime.Compare(item.timestampDT, DateTime.Now.AddDays(-7)) >= 0) ||
+                             (nftFilterMinted == (int)nftMinted.Last_Month && DateTime.Compare(item.timestampDT, DateTime.Now.AddMonths(-1)) >= 0)
+                            ))
+                        {
+                            nftFilteredList.Add(x);
+                        }
+                    }
                     else
                     {
                         var item = accountManager.GetNft(x.ID);
@@ -3271,6 +3287,25 @@ namespace Poltergeist
 
                 nftDescription = item.Mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.Mint + " " + (VerticalLayout ? item.Timestamp.ToString("dd.MM.yy") : item.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")) + (VerticalLayout ? " " : " / ") + nftType + rarity;
             }
+            else if (transferSymbol == "GAME")
+            {
+                var item = GameStore.GetNft(entryId);
+
+                if (!String.IsNullOrEmpty(item.name_english))
+                {
+                    var image = NftImages.GetImage(item.img_url);
+
+                    if (!String.IsNullOrEmpty(image.Url))
+                    {
+                        var textureDisplayedHeight = VerticalLayout ? Units(3) : Units(3) - 8;
+                        GUI.DrawTexture(new Rect(Units(2), VerticalLayout ? curY + Units(1) : curY + 12, (float)textureDisplayedHeight * ((float)image.Texture.width / (float)image.Texture.height), textureDisplayedHeight), image.Texture);
+                    }
+                }
+
+                nftName = item.name_english;
+
+                nftDescription = item.mint == 0 ? "" : (VerticalLayout ? "#" : "Mint #") + item.mint + " " + (VerticalLayout ? item.timestampDT.ToString("dd.MM.yy") : item.timestampDT.ToString("dd.MM.yyyy HH:mm:ss")) + (VerticalLayout ? " " : " / " + item.description_english);
+            }
             else
             {
                 var item = accountManager.GetNft(entryId);
@@ -3389,7 +3424,7 @@ namespace Poltergeist
             else if (nftName.Length > 50)
                 nftName = nftName.Substring(0, 47) + "...";
 
-            if (transferSymbol == "TTRS")
+            if (transferSymbol == "TTRS" || transferSymbol == "GAME")
             {
                 // Old drawing mode for TTRS
 

@@ -1580,6 +1580,7 @@ namespace Poltergeist
             _states.Clear();
             _nfts.Clear();
             TtrsStore.Clear();
+            GameStore.Clear();
             NftImages.Clear();
         }
 
@@ -2339,6 +2340,8 @@ namespace Poltergeist
                 // On force refresh we clear NFT symbol's cache.
                 if (symbol.ToUpper() == "TTRS")
                     TtrsStore.Clear();
+                else if (symbol.ToUpper() == "GAME")
+                    GameStore.Clear();
                 else
                     Cache.ClearDataNode("tokens-" + symbol.ToLower(), Cache.FileType.JSON, CurrentState.address);
 
@@ -2493,6 +2496,17 @@ namespace Poltergeist
                                                 {
                                                     // Downloading NFT images.
                                                     StartCoroutine(NftImages.DownloadImage(symbol, item.ImageUrl, item.Id));
+                                                }, () =>
+                                                {
+                                                    nftDescriptionsAreFullyLoaded = true;
+                                                }));
+                                            }
+                                            else if (symbol == "GAME")
+                                            {
+                                                StartCoroutine(GameStore.LoadStoreNft(balanceEntry.Ids, (item) =>
+                                                {
+                                                    // Downloading NFT images.
+                                                    StartCoroutine(NftImages.DownloadImage(symbol, item.img_url, item.ID));
                                                 }, () =>
                                                 {
                                                     nftDescriptionsAreFullyLoaded = true;
@@ -3442,6 +3456,35 @@ namespace Poltergeist
                 }
 
                 currentTtrsNftsSortMode = (TtrsNftSortMode)Settings.ttrsNftSortMode;
+            }
+            else if (symbol == "GAME")
+            {
+                if (currentNftsSortMode == (NftSortMode)Settings.nftSortMode && (int)currentNftsSortDirection == Settings.nftSortDirection)
+                    return; // Nothing changed, no need to sort again.
+
+                switch ((NftSortMode)Settings.nftSortMode)
+                {
+                    case NftSortMode.Name:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => GameStore.GetNft(x.ID).name_english).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => GameStore.GetNft(x.ID).name_english).ToList();
+                        break;
+                    case NftSortMode.Number_Date:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => GameStore.GetNft(x.ID).mint).ThenBy(x => GameStore.GetNft(x.ID).timestampDT).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => GameStore.GetNft(x.ID).mint).ThenByDescending(x => GameStore.GetNft(x.ID).timestampDT).ToList();
+                        break;
+                    case NftSortMode.Date_Number:
+                        if (Settings.nftSortDirection == (int)SortDirection.Ascending)
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderBy(x => GameStore.GetNft(x.ID).timestampDT).ThenBy(x => GameStore.GetNft(x.ID).mint).ToList();
+                        else
+                            _nfts[CurrentPlatform] = _nfts[CurrentPlatform].OrderByDescending(x => GameStore.GetNft(x.ID).timestampDT).ThenByDescending(x => GameStore.GetNft(x.ID).mint).ToList();
+                        break;
+                }
+
+                currentNftsSortMode = (NftSortMode)Settings.nftSortMode;
             }
             else
             {
