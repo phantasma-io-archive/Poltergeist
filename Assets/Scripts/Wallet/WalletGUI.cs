@@ -5562,7 +5562,7 @@ namespace Poltergeist
                 StartCoroutine(BscRequestSwapFeesAsBP((fastest) =>
                 {
                     Log.Write("BSC fastest swap fee (estimated): " + fastest);
-                    var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "BSC" ? accountManager.Settings.binanceSmartChainTransferGasLimit : accountManager.Settings.binanceSmartChainTokenTransferGasLimit) * fastest, 9); // 9 because we convert from Gwei, not Wei
+                    var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "BNB" ? accountManager.Settings.binanceSmartChainTransferGasLimit : accountManager.Settings.binanceSmartChainTokenTransferGasLimit) * fastest, 9); // 9 because we convert from Gwei, not Wei
 
                     proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
                 }));
@@ -5901,8 +5901,8 @@ namespace Poltergeist
 
         private IEnumerator BscRequestSwapFeesAsBP(Action<BigInteger> callback)
         {
-            var feeIncrease = 40;
-            callback(new BigInteger((long)(25 + feeIncrease)));
+            var feeIncrease = 20;
+            callback(new BigInteger((long)(15 + feeIncrease)));
             
             yield return new WaitForSeconds(.001f);
         }
