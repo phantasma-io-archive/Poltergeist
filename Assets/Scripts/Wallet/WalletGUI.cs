@@ -2549,7 +2549,7 @@ namespace Poltergeist
                                         else
                                         {
                                             ShowModal("Account information", result,
-                                                ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
+                                                ModalState.Message, 0, 0, ModalOkCopy, 0, (_, input) => { });
                                             return;
                                         }
                                     });
@@ -3819,7 +3819,7 @@ namespace Poltergeist
 
                                                         ShowModal("Message",
                                                             $"The account was migrated.\n{(string.IsNullOrEmpty(deletedDuplicateWallet) ? "" : $"\nDuplicate account '{deletedDuplicateWallet}' was deleted.\n")}If you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
-                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (result, input) => { });
+                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (_, input) => { });
                                                     }
                                                     else
                                                     {

@@ -1882,7 +1882,7 @@ namespace Poltergeist
                                         }
 
                                         // Swaps to Pha from BSC are reported here.
-                                        RequestPendings(ethKeys.Address, PlatformKind.BSC, (swapsFromBsc, error) =>
+                                        RequestPendings(ethKeys.Address, PlatformKind.BSC, (swapsFromBsc, error2) =>
                                         {
                                             if (swapsFromBsc != null)
                                             {
@@ -1890,7 +1890,7 @@ namespace Poltergeist
                                             }
                                             else
                                             {
-                                                Log.WriteWarning(error);
+                                                Log.WriteWarning(error2);
                                             }
                                             var state = new AccountState()
                                             {
@@ -3672,7 +3672,7 @@ namespace Poltergeist
                                                                             {
                                                                                 var stakingHistory = new List<string>();
                                                                                 var calculatedStakedAmount = 0m;
-                                                                                foreach (var tx in x.txs.Reverse().Where(t => t.events.Any(e => (e.address == addressString && (e.kind.ToUpper() == "TOKENSTAKE" || e.kind.ToUpper() == "TOKENCLAIM") && e.contract.ToUpper() == "STAKE") && !t.events.Any(e => e.kind.ToUpper() == "TOKENMINT" && e.address == "S3dP2jjf1jUG9nethZBWbnu9a6dFqB7KveTWU7znis6jpDy")) || t.events.Any(e => e.kind.ToUpper() == "ADDRESSMIGRATION")))
+                                                                                foreach (var tx in x.txs.Reverse().Where(t => t.events.Any(e => (e.address == addressString && (e.kind.ToUpper() == "TOKENSTAKE" || e.kind.ToUpper() == "TOKENCLAIM") && e.contract.ToUpper() == "STAKE") && !t.events.Any(e2 => e2.kind.ToUpper() == "TOKENMINT" && e2.address == "S3dP2jjf1jUG9nethZBWbnu9a6dFqB7KveTWU7znis6jpDy")) || t.events.Any(e => e.kind.ToUpper() == "ADDRESSMIGRATION")))
                                                                                 {
                                                                                     var stakeEvent = tx.events.Where(e => (e.address == addressString && (e.kind.ToUpper() == "TOKENSTAKE" || e.kind.ToUpper() == "TOKENCLAIM") && e.contract.ToUpper() == "STAKE") || e.kind.ToUpper() == "ADDRESSMIGRATION").First();
 
