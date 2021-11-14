@@ -543,6 +543,16 @@ namespace Poltergeist
                             break;
                         }
 
+                    case "pharming.claim":
+                        {
+                            var address = GetStringArg(entry, 0);
+                            var symbol1 = GetStringArg(entry, 1);
+                            var symbol2 = GetStringArg(entry, 2);
+
+                            sb.AppendLine($"\u2605 Claiming {symbol1}/{symbol2} Pool rewards");
+                            break;
+                        }
+
                     default:
                         sb.AppendLine(entry.ToString());
                         break;
