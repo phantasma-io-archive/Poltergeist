@@ -2598,8 +2598,8 @@ namespace Poltergeist
                                         (amount) =>
                                         {
                                             var line = amount == balance.Staked ? "You won't be able to claim KCAL anymore." : "The amount of KCAL that will be able to claim later will be reduced.";
-                                            
-                                            if (amount == balance.Staked  && accountManager.CurrentState.name != ValidationUtils.ANONYMOUS_NAME)
+
+                                            if (amount == balance.Staked && accountManager.CurrentState.name != ValidationUtils.ANONYMOUS_NAME)
                                             {
                                                 line += "\nYour account will also lose the current registed name.";
                                             }
@@ -2832,7 +2832,7 @@ namespace Poltergeist
                         }
                 }
 
-            int btnY = VerticalLayout ? Units(4) + 8: Units(2);
+            int btnY = VerticalLayout ? Units(4) + 8 : Units(2);
 
             if (!string.IsNullOrEmpty(tertiaryAction))
             {
@@ -2853,20 +2853,28 @@ namespace Poltergeist
             }
 
             string mainAction;
+            var mainActionEnabled = balance.Available > 0;
             if (accountManager.CurrentPlatform == PlatformKind.Phantasma &&
                 balance.Burnable &&
                 balance.Fungible &&
                 Input.GetKey(KeyCode.LeftShift))
+            {
                 mainAction = "Burn";
-            else if(accountManager.CurrentPlatform == PlatformKind.Phantasma &&
+            }
+            else if (accountManager.CurrentPlatform == PlatformKind.Phantasma &&
                 balance.Symbol.ToUpper() == "SOUL" &&
                 balance.Staked >= 50000 &&
                 Input.GetKey(KeyCode.LeftShift))
+            {
                 mainAction = "SM reward";
+                mainActionEnabled = true; // This one should be always enabled
+            }
             else
+            {
                 mainAction = "Send";
+            }
 
-            DoButton(balance.Available > 0, new Rect(rect.x + rect.width - (Units(6) + 8), curY + btnY, Units(4) + 8, Units(2)), mainAction, () =>
+            DoButton(mainActionEnabled, new Rect(rect.x + rect.width - (Units(6) + 8), curY + btnY, Units(4) + 8, Units(2)), mainAction, () =>
             {
                 AudioManager.Instance.PlaySFX("click");
 
