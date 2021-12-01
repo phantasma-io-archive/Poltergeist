@@ -5557,7 +5557,15 @@ namespace Poltergeist
                             accountManager.Settings.binanceSmartChainGasPriceGwei = gasPrice;
                             accountManager.Settings.SaveOnExit();
 
-                            var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "BNB" ? accountManager.Settings.binanceSmartChainTransferGasLimit : accountManager.Settings.binanceSmartChainTokenTransferGasLimit) * fast, 9); // 9 because we convert from Gwei, not Wei
+                            BigInteger bscGasLimit = 0;
+                            if (swappedSymbol == "BNB")
+                                bscGasLimit = accountManager.Settings.binanceSmartChainTransferGasLimit;
+                            else if (swappedSymbol == "SPE")
+                                bscGasLimit = 600000; // Hack for SPE token swaps
+                            else
+                                bscGasLimit = accountManager.Settings.binanceSmartChainTokenTransferGasLimit;
+
+                            var decimalFee = UnitConversion.ToDecimal(bscGasLimit * fast, 9); // 9 because we convert from Gwei, not Wei
 
                             proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
                         }
