@@ -50,4 +50,5 @@
 {"symbol": "DENT", "apiSymbol": "dent"},
 {"symbol": "LEO", "apiSymbol": "leo-token"},
 {"symbol": "BAT", "apiSymbol": "basic-attention-token"},
-{"symbol": "ADB", "apiSymbol": "adbank"}]
+{"symbol": "ADB", "apiSymbol": "adbank"},
+{"symbol": "SPE", "apiSymbol": "saveplanetearth"}]
