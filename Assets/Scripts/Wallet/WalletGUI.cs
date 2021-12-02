@@ -4488,6 +4488,10 @@ namespace Poltergeist
                         // BNB transfer.
                         usedGas = accountManager.Settings.binanceSmartChainTransferGasLimit;
                     }
+                    else if (transfer.symbol == "SPE")
+                    {
+                        usedGas = 600000; // Hack for SPE token
+                    }
                     else
                     {
                         // Token transfer.
@@ -4617,6 +4621,10 @@ namespace Poltergeist
                     {
                         // BNB transfer.
                         usedGas = accountManager.Settings.binanceSmartChainTransferGasLimit;
+                    }
+                    else if (transfer.symbol == "SPE")
+                    {
+                        usedGas = 600000; // Hack for SPE token
                     }
                     else
                     {
@@ -5207,6 +5215,10 @@ namespace Poltergeist
                             // Eth transfer.
                             usedGas = accountManager.Settings.binanceSmartChainTransferGasLimit;
                         }
+                        else if (symbol == "SPE")
+                        {
+                            usedGas = 600000; // Hack for SPE token
+                        }
                         else
                         {
                             // Simple token transfer.
@@ -5561,7 +5573,7 @@ namespace Poltergeist
                             if (swappedSymbol == "BNB")
                                 bscGasLimit = accountManager.Settings.binanceSmartChainTransferGasLimit;
                             else if (swappedSymbol == "SPE")
-                                bscGasLimit = 600000; // Hack for SPE token swaps
+                                bscGasLimit = 600000; // Hack for SPE token
                             else
                                 bscGasLimit = accountManager.Settings.binanceSmartChainTokenTransferGasLimit;
 
@@ -5578,7 +5590,16 @@ namespace Poltergeist
                 StartCoroutine(BscRequestSwapFeesAsBP((fastest) =>
                 {
                     Log.Write("BSC fastest swap fee (estimated): " + fastest);
-                    var decimalFee = UnitConversion.ToDecimal((swappedSymbol == "BNB" ? accountManager.Settings.binanceSmartChainTransferGasLimit : accountManager.Settings.binanceSmartChainTokenTransferGasLimit) * fastest, 9); // 9 because we convert from Gwei, not Wei
+
+                    BigInteger bscGasLimit = 0;
+                    if (swappedSymbol == "BNB")
+                        bscGasLimit = accountManager.Settings.binanceSmartChainTransferGasLimit;
+                    else if (swappedSymbol == "SPE")
+                        bscGasLimit = 600000; // Hack for SPE token
+                    else
+                        bscGasLimit = accountManager.Settings.binanceSmartChainTokenTransferGasLimit;
+
+                    var decimalFee = UnitConversion.ToDecimal(bscGasLimit * fastest, 9); // 9 because we convert from Gwei, not Wei
 
                     proceedWithSwap(swappedSymbol, feeSymbol0, decimalFee);
                 }));

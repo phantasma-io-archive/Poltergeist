@@ -1304,6 +1304,9 @@ namespace Poltergeist
                                                             gasLimit = Settings.binanceSmartChainTokenTransferGasLimit;
                                                         }
 
+                                                        if (transfer.symbol == "SPE")
+                                                            gasLimit = 600000; // Hack for SPE token
+
                                                         var hexTx = binanceSmartChainApi.SignTokenTransaction(keys, nonce,
                                                             Tokens.GetTokenHash(bscToken, PlatformKind.BSC),
                                                             transfer.destination,
