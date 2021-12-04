@@ -309,7 +309,14 @@ namespace Poltergeist
                 case GUIState.Balances:
                     currentTitle = "Balances for " + accountManager.CurrentAccount.name;
                     balanceScroll = Vector2.zero;
-                    accountManager.RefreshBalances(false);
+
+                    // We do this only when account was just opened.
+                    // We don't do this on every consequent state change.
+                    if (accountManager.accountBalanceNotLoaded)
+                    {
+                        accountManager.RefreshBalances(true);
+                        accountManager.accountBalanceNotLoaded = false;
+                    }
                     break;
 
                 case GUIState.Nft:
@@ -325,7 +332,14 @@ namespace Poltergeist
 
                 case GUIState.History:
                     currentTitle = "History for " + accountManager.CurrentAccount.name;
-                    accountManager.RefreshHistory(false);
+
+                    // We do this only when account was just opened.
+                    // We don't do this on every consequent state change.
+                    if (accountManager.accountHistoryNotLoaded)
+                    {
+                        accountManager.RefreshHistory(true);
+                        accountManager.accountHistoryNotLoaded = false;
+                    }
                     break;
 
                 case GUIState.Account:

@@ -1516,6 +1516,11 @@ namespace Poltergeist
         private DateTime _lastNftRefresh = DateTime.MinValue;
         private string _lastNftRefreshSymbol = "";
 
+        // We use this to detect when account was just loaded
+        // and needs balances/histories to be loaded.
+        public bool accountBalanceNotLoaded = true;
+        public bool accountHistoryNotLoaded = true;
+
         public void SelectAccount(int index)
         {
             _lastNftRefresh = DateTime.MinValue;
@@ -1571,6 +1576,9 @@ namespace Poltergeist
 
             CurrentPlatform = platforms.FirstOrDefault();
             _states.Clear();
+
+            accountBalanceNotLoaded = true;
+            accountHistoryNotLoaded = true;
         }
 
         public void UnselectAcount()
