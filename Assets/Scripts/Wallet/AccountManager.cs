@@ -3054,7 +3054,7 @@ namespace Poltergeist
             switch (Settings.binanceSmartChainNetwork)
             {
                 case BinanceSmartChainNetwork.Main_Net:
-                    return $"https://bscscan.com/api?{request}";
+                    return $"https://api.bscscan.com/api?{request}";
 
                 case BinanceSmartChainNetwork.Test_Net:
                     return $"https://testnet.bscscan.com/api?{request}";
