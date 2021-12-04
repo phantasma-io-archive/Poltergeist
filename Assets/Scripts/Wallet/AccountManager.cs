@@ -231,6 +231,22 @@ namespace Poltergeist
         public decimal Total => Available + Staked + Pending + Claimable;
     }
 
+    public class RefreshStatus
+    {
+        // Balance
+        public bool BalanceRefreshing;
+        public DateTime LastBalanceRefresh;
+        public Action BalanceRefreshCallback;
+        // History
+        public bool HistoryRefreshing;
+        public DateTime LastHistoryRefresh;
+
+        public override string ToString()
+        {
+            return $"BalanceRefreshing: {BalanceRefreshing}, LastBalanceRefresh: {LastBalanceRefresh}, HistoryRefreshing: {HistoryRefreshing}, LastHistoryRefresh: {LastHistoryRefresh}";
+        }
+    }
+
     public class AccountManager : MonoBehaviour
     {
         public static readonly int MinPasswordLength = 6;
@@ -258,6 +274,7 @@ namespace Poltergeist
         private Dictionary<PlatformKind, AccountState> _states = new Dictionary<PlatformKind, AccountState>();
         private Dictionary<PlatformKind, List<TokenData>> _nfts = new Dictionary<PlatformKind, List<TokenData>>();
         private Dictionary<PlatformKind, HistoryEntry[]> _history = new Dictionary<PlatformKind, HistoryEntry[]>();
+        public Dictionary<PlatformKind, RefreshStatus> _refreshStatus = new Dictionary<PlatformKind, RefreshStatus>();
 
         public PlatformKind CurrentPlatform { get; set; }
         public AccountState CurrentState => _states.ContainsKey(CurrentPlatform) ? _states[CurrentPlatform] : null;
@@ -275,7 +292,8 @@ namespace Poltergeist
 
         public string Status { get; private set; }
         public bool Ready => Status == "ok";
-        public bool Refreshing => _pendingRequestCount > 0;
+        public bool BalanceRefreshing => _refreshStatus.ContainsKey(CurrentPlatform) ? _refreshStatus[CurrentPlatform].BalanceRefreshing : false;
+        public bool HistoryRefreshing => _refreshStatus.ContainsKey(CurrentPlatform) ? _refreshStatus[CurrentPlatform].HistoryRefreshing : false;
 
         public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
         public Phantasma.SDK.EthereumAPI ethereumApi { get; private set; }
@@ -299,8 +317,6 @@ namespace Poltergeist
         public static readonly int SoulMasterStakeAmount = 50000;
 
         private DateTime _lastPriceUpdate = DateTime.MinValue;
-
-        private int _pendingRequestCount;
 
         private bool _accountInitialized;
 
@@ -1497,18 +1513,13 @@ namespace Poltergeist
             }
         }
 
-        private Action _refreshCallback;
-        private DateTime _lastBalanceRefresh = DateTime.MinValue;
         private DateTime _lastNftRefresh = DateTime.MinValue;
         private string _lastNftRefreshSymbol = "";
-        private DateTime _lastHistoryRefresh = DateTime.MinValue;
 
         public void SelectAccount(int index)
         {
-            _lastBalanceRefresh = DateTime.MinValue;
             _lastNftRefresh = DateTime.MinValue;
             _lastNftRefreshSymbol = "";
-            _lastHistoryRefresh = DateTime.MinValue;
             _selectedAccountIndex = index;
             CurrentPasswordHash = "";
 
@@ -1585,11 +1596,18 @@ namespace Poltergeist
             TtrsStore.Clear();
             GameStore.Clear();
             NftImages.Clear();
+            _refreshStatus.Clear();
         }
 
         private void ReportWalletBalance(PlatformKind platform, AccountState state)
         {
-            _pendingRequestCount--;
+            RefreshStatus refreshStatus;
+            lock (_refreshStatus)
+            {
+                refreshStatus = _refreshStatus[platform];
+                refreshStatus.BalanceRefreshing = false;
+                _refreshStatus[platform] = refreshStatus;
+            }
 
             if (state != null)
             {
@@ -1602,11 +1620,15 @@ namespace Poltergeist
                 }
             }
 
-            if (_pendingRequestCount == 0)
+            _accountInitialized = true;
+            
+            var temp = refreshStatus.BalanceRefreshCallback;
+            lock (_refreshStatus)
             {
-                _accountInitialized = true;
-                InvokeRefreshCallback();
+                refreshStatus.BalanceRefreshCallback = null;
+                _refreshStatus[platform] = refreshStatus;
             }
+            temp?.Invoke();
         }
 
         private decimal GetWorthOfPlatform(PlatformKind platform)
@@ -1627,8 +1649,6 @@ namespace Poltergeist
 
         private void ReportWalletNft(PlatformKind platform, string symbol)
         {
-            _pendingRequestCount--;
-
             if (_nfts.ContainsKey(platform) && _nfts[platform] != null)
             {
                 Log.Write($"Received {_nfts[platform].Count()} new {symbol} NFTs for {platform}");
@@ -1638,16 +1658,16 @@ namespace Poltergeist
                     CurrentPlatform = platform;
                 }
             }
-
-            if (_pendingRequestCount == 0)
-            {
-                InvokeRefreshCallback();
-            }
         }
 
         private void ReportWalletHistory(PlatformKind platform, List<HistoryEntry> history)
         {
-            _pendingRequestCount--;
+            lock (_refreshStatus)
+            {
+                var refreshStatus = _refreshStatus[platform];
+                refreshStatus.HistoryRefreshing = false;
+                _refreshStatus[platform] = refreshStatus;
+            }
 
             if (history != null)
             {
@@ -1658,11 +1678,6 @@ namespace Poltergeist
                 {
                     CurrentPlatform = platform;
                 }
-            }
-
-            if (_pendingRequestCount == 0)
-            {
-                InvokeRefreshCallback();
             }
         }
 
@@ -1745,29 +1760,51 @@ namespace Poltergeist
 
         }
 
-        private void InvokeRefreshCallback()
-        {
-            var temp = _refreshCallback;
-            _refreshCallback = null;
-            temp?.Invoke();
-        }
-
         public void RefreshBalances(bool force, Action callback = null)
         {
-            var now = DateTime.UtcNow;
-            var diff = now - _lastBalanceRefresh;
-
-            if (!force && diff.TotalSeconds < 30)
-            {
-                InvokeRefreshCallback();
-                return;
-            }
-
-            _lastBalanceRefresh = now;
-            _refreshCallback = callback;
-
             var platforms = CurrentAccount.platforms.Split();
-            _pendingRequestCount = platforms.Count;
+
+            lock (_refreshStatus)
+            {
+                foreach (var platform in platforms)
+                {
+                    RefreshStatus refreshStatus;
+                    var now = DateTime.UtcNow;
+                    if (_refreshStatus.ContainsKey(platform))
+                    {
+                        refreshStatus = _refreshStatus[platform];
+
+                        var diff = now - refreshStatus.LastBalanceRefresh;
+
+                        if (!force && diff.TotalSeconds < 30)
+                        {
+                            var temp = refreshStatus.BalanceRefreshCallback;
+                            refreshStatus.BalanceRefreshCallback = null;
+                            _refreshStatus[platform] = refreshStatus;
+                            temp?.Invoke();
+                            return;
+                        }
+
+                        refreshStatus.BalanceRefreshing = true;
+                        refreshStatus.LastBalanceRefresh = now;
+                        refreshStatus.BalanceRefreshCallback = callback;
+
+                        _refreshStatus[platform] = refreshStatus;
+                    }
+                    else
+                    {
+                        _refreshStatus.Add(platform,
+                            new RefreshStatus
+                            {
+                                BalanceRefreshing = true,
+                                LastBalanceRefresh = now,
+                                BalanceRefreshCallback = callback,
+                                HistoryRefreshing = false,
+                                LastHistoryRefresh = DateTime.MinValue
+                            });
+                    }
+                }
+            }
 
             var wif = CurrentWif;
 
@@ -2327,14 +2364,13 @@ namespace Poltergeist
             this.Accounts = new List<Account>();
         }
 
-        public void RefreshNft(bool force, string symbol, Action callback = null)
+        public void RefreshNft(bool force, string symbol)
         {
             var now = DateTime.UtcNow;
             var diff = now - _lastNftRefresh;
 
             if (!force && diff.TotalSeconds < 30 && _lastNftRefreshSymbol == symbol)
             {
-                InvokeRefreshCallback();
                 return;
             }
 
@@ -2353,10 +2389,8 @@ namespace Poltergeist
 
             _lastNftRefresh = now;
             _lastNftRefreshSymbol = symbol;
-            _refreshCallback = callback;
 
             var platforms = CurrentAccount.platforms.Split();
-            _pendingRequestCount = platforms.Count;
 
             var wif = this.CurrentWif;
 
@@ -2533,22 +2567,46 @@ namespace Poltergeist
             }
         }
 
-        public void RefreshHistory(bool force, Action callback = null)
+        public void RefreshHistory(bool force)
         {
-            var now = DateTime.UtcNow;
-            var diff = now - _lastHistoryRefresh;
-
-            if (!force && diff.TotalSeconds < 30)
-            {
-                InvokeRefreshCallback();
-                return;
-            }
-
-            _lastBalanceRefresh = now;
-            _refreshCallback = callback;
-
             var platforms = CurrentAccount.platforms.Split();
-            _pendingRequestCount = platforms.Count;
+
+            lock (_refreshStatus)
+            {
+                foreach (var platform in platforms)
+                {
+                    RefreshStatus refreshStatus;
+                    var now = DateTime.UtcNow;
+                    if (_refreshStatus.ContainsKey(platform))
+                    {
+                        refreshStatus = _refreshStatus[platform];
+
+                        var diff = now - refreshStatus.LastHistoryRefresh;
+
+                        if (!force && diff.TotalSeconds < 30)
+                        {
+                            return;
+                        }
+
+                        refreshStatus.HistoryRefreshing = true;
+                        refreshStatus.LastHistoryRefresh = now;
+
+                        _refreshStatus[platform] = refreshStatus;
+                    }
+                    else
+                    {
+                        _refreshStatus.Add(platform,
+                            new RefreshStatus
+                            {
+                                BalanceRefreshing = false,
+                                LastBalanceRefresh = DateTime.MinValue,
+                                BalanceRefreshCallback = null,
+                                HistoryRefreshing = true,
+                                LastHistoryRefresh = now
+                            });
+                    }
+                }
+            }
 
             var wif = this.CurrentWif;
 

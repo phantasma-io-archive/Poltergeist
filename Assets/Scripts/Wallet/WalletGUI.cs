@@ -836,7 +836,7 @@ namespace Poltergeist
 
             var accountManager = AccountManager.Instance;
 
-            if (currentTitle != null && this.currentAnimation == AnimationDirection.None && !accountManager.Refreshing)
+            if (currentTitle != null && this.currentAnimation == AnimationDirection.None && !accountManager.BalanceRefreshing)
             {
                 int curY = Units(3);
 
@@ -2360,12 +2360,6 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
-            if (accountManager.Refreshing)
-            {
-                DrawCenteredText("Fetching balances...");
-                return;
-            }
-
             var state = accountManager.CurrentState;
 
             if (state != null && state.flags.HasFlag(AccountFlags.Master) && soulMasterLogo != null)
@@ -2385,6 +2379,12 @@ namespace Poltergeist
                 accountManager.RefreshBalances(true);
             });
             var endY = DoBottomMenu();
+
+            if (accountManager.BalanceRefreshing)
+            {
+                DrawCenteredText("Fetching balances...");
+                return;
+            }
 
             if (state == null)
             {
@@ -3115,7 +3115,7 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
 
             var nfts = accountManager.CurrentNfts;
-            if (accountManager.Refreshing)
+            if (accountManager.BalanceRefreshing)
             {
                 DrawCenteredText((nfts != null) ? $"Fetching NFTs ({nfts.Count})..." : "Fetching NFTs...");
                 return;
@@ -3548,17 +3548,17 @@ namespace Poltergeist
         {
             var accountManager = AccountManager.Instance;
 
-            if (accountManager.Refreshing)
-            {
-                DrawCenteredText("Fetching history...");
-                return;
-            }
-
             var startY = DrawPlatformTopMenu(() =>
             {
                 accountManager.RefreshHistory(true);
             });
             var endY = DoBottomMenu();
+
+            if (accountManager.HistoryRefreshing)
+            {
+                DrawCenteredText("Fetching history...");
+                return;
+            }
 
             var history = accountManager.CurrentHistory;
 
