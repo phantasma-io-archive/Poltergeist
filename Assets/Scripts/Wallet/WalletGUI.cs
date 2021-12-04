@@ -2390,7 +2390,7 @@ namespace Poltergeist
 
             var startY = DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshBalances(true, accountManager.CurrentPlatform);
+                accountManager.RefreshBalances(false, accountManager.CurrentPlatform);
             });
             var endY = DoBottomMenu();
 
@@ -3236,8 +3236,8 @@ namespace Poltergeist
 
             DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshBalances(true, accountManager.CurrentPlatform);
-                accountManager.RefreshNft(true, transferSymbol);
+                accountManager.RefreshBalances(false, accountManager.CurrentPlatform);
+                accountManager.RefreshNft(false, transferSymbol);
                 accountManager.ResetNftsSorting();
             }, false);
         }
@@ -3564,7 +3564,7 @@ namespace Poltergeist
 
             var startY = DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshHistory(true, accountManager.CurrentPlatform);
+                accountManager.RefreshHistory(false, accountManager.CurrentPlatform);
             });
             var endY = DoBottomMenu();
 
