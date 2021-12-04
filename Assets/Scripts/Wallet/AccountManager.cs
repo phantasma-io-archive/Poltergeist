@@ -1614,10 +1614,10 @@ namespace Poltergeist
                 Log.Write("Received new state for " + platform);
                 _states[platform] = state;
 
-                if (!_accountInitialized && GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
-                {
-                    CurrentPlatform = platform;
-                }
+                //if (!_accountInitialized && GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
+                //{
+                //    CurrentPlatform = platform;
+                //}
             }
 
             _accountInitialized = true;
