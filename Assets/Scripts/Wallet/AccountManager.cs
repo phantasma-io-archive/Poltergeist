@@ -1768,13 +1768,17 @@ namespace Poltergeist
 
         }
 
-        public void RefreshBalances(bool force, Action callback = null)
+        public void RefreshBalances(bool force, PlatformKind platforms = PlatformKind.None, Action callback = null)
         {
-            var platforms = CurrentAccount.platforms.Split();
+            List<PlatformKind> platformsList;
+            if(platforms == PlatformKind.None)
+                platformsList = CurrentAccount.platforms.Split();
+            else
+                platformsList = platforms.Split();
 
             lock (_refreshStatus)
             {
-                foreach (var platform in platforms)
+                foreach (var platform in platformsList)
                 {
                     RefreshStatus refreshStatus;
                     var now = DateTime.UtcNow;
@@ -1816,7 +1820,7 @@ namespace Poltergeist
 
             var wif = CurrentWif;
 
-            foreach (var platform in platforms)
+            foreach (var platform in platformsList)
             {
                 switch (platform)
                 {
@@ -2637,13 +2641,17 @@ namespace Poltergeist
             }
         }
 
-        public void RefreshHistory(bool force)
+        public void RefreshHistory(bool force, PlatformKind platforms = PlatformKind.None)
         {
-            var platforms = CurrentAccount.platforms.Split();
+            List<PlatformKind> platformsList;
+            if (platforms == PlatformKind.None)
+                platformsList = CurrentAccount.platforms.Split();
+            else
+                platformsList = platforms.Split();
 
             lock (_refreshStatus)
             {
-                foreach (var platform in platforms)
+                foreach (var platform in platformsList)
                 {
                     RefreshStatus refreshStatus;
                     var now = DateTime.UtcNow;
@@ -2680,7 +2688,7 @@ namespace Poltergeist
 
             var wif = this.CurrentWif;
 
-            foreach (var platform in platforms)
+            foreach (var platform in platformsList)
             {
                 switch (platform)
                 {

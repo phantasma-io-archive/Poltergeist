@@ -1000,7 +1000,7 @@ namespace Poltergeist
 
                             if (refreshBalanceAfterConfirmation)
                             {
-                                accountManager.RefreshBalances(true, () =>
+                                accountManager.RefreshBalances(true, PlatformKind.None, () =>
                                 {
                                     InvokeTransactionCallback(transactionHash);
                                 });
@@ -2390,7 +2390,7 @@ namespace Poltergeist
 
             var startY = DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshBalances(true);
+                accountManager.RefreshBalances(true, accountManager.CurrentPlatform);
             });
             var endY = DoBottomMenu();
 
@@ -3236,7 +3236,7 @@ namespace Poltergeist
 
             DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshBalances(true);
+                accountManager.RefreshBalances(true, accountManager.CurrentPlatform);
                 accountManager.RefreshNft(true, transferSymbol);
                 accountManager.ResetNftsSorting();
             }, false);
@@ -3564,7 +3564,7 @@ namespace Poltergeist
 
             var startY = DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshHistory(true);
+                accountManager.RefreshHistory(true, accountManager.CurrentPlatform);
             });
             var endY = DoBottomMenu();
 
@@ -5740,7 +5740,7 @@ namespace Poltergeist
                                          Log.Write($"Balance is not refreshed properly, #1. {swapSymbol}: {swapSymbolBalanceNew}, {feeSymbol}: {feeSymbolBalanceNew}");
                                          // Balance is not refreshed properly, retrying.
                                          Thread.Sleep(2000);
-                                         accountManager.RefreshBalances(true, () =>
+                                         accountManager.RefreshBalances(true, PlatformKind.None, () =>
                                          {
                                              swapSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
                                              feeSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
@@ -5750,7 +5750,7 @@ namespace Poltergeist
                                                  Log.Write($"Balance is not refreshed properly, #2. {swapSymbol}: {swapSymbolBalanceNew}, {feeSymbol}: {feeSymbolBalanceNew}");
                                                  // Still not updated, waiting another 4 seconds.
                                                  Thread.Sleep(4000);
-                                                 accountManager.RefreshBalances(true, () =>
+                                                 accountManager.RefreshBalances(true, PlatformKind.None, () =>
                                                  {
                                                      swapSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
                                                      feeSymbolBalanceNew = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
