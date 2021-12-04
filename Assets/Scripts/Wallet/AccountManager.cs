@@ -1897,6 +1897,35 @@ namespace Poltergeist
                                     }
                                 }
 
+                                // State without swaps
+                                var state = new AccountState()
+                                {
+                                    platform = platform,
+                                    address = acc.address,
+                                    name = acc.name,
+                                    balances = balanceMap.Values.ToArray(),
+                                    flags = AccountFlags.None
+                                };
+
+                                if (stakedAmount >= SoulMasterStakeAmount)
+                                {
+                                    state.flags |= AccountFlags.Master;
+                                }
+
+                                if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
+                                {
+                                    state.flags |= AccountFlags.Validator;
+                                }
+
+                                state.stakeTime = stakeTimestamp;
+
+                                state.usedStorage = acc.storage.used;
+                                state.availableStorage = acc.storage.available;
+                                state.archives = acc.storage.archives;
+                                state.avatarData = acc.storage.avatar;
+
+                                ReportWalletBalance(platform, state);
+
                                 // Swaps to Pha from Neo are reported here.
                                 RequestPendings(keys.Address.Text, PlatformKind.Phantasma, (phaSwaps, phaError) =>
                                 {
@@ -2023,45 +2052,56 @@ namespace Poltergeist
 
                                 CoroutineUtils.StartThrowingCoroutine(this, neoApi.GetUnclaimed(keys.Address, (amount) =>
                                 {
-                                    RequestPendings(keys.Address, PlatformKind.Neo, (swaps, error) =>
+                                    var balanceMap = new Dictionary<string, Balance>();
+
+                                    foreach (var neoToken in neoTokens)
                                     {
-                                        var balanceMap = new Dictionary<string, Balance>();
+                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
 
-                                        foreach (var neoToken in neoTokens)
+                                        if (tokenBalance != null)
                                         {
-                                            var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
+                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
 
-                                            if (tokenBalance != null)
+                                            if (tokenBalance.Symbol.ToUpper() == "GAS")
                                             {
-                                                balanceMap[tokenBalance.Symbol] = tokenBalance;
-
-                                                if (tokenBalance.Symbol.ToUpper() == "GAS")
-                                                {
-                                                    tokenBalance.Claimable += amount;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                if (neoToken.symbol.ToUpper() == "GAS" && amount > 0)
-                                                {
-                                                    // We should show GAS even if its balance is 0
-                                                    // if there's some GAS to be claimed.
-                                                    balanceMap[neoToken.symbol] = new Balance()
-                                                    {
-                                                        Symbol = neoToken.symbol,
-                                                        Available = 0,
-                                                        Pending = 0,
-                                                        Claimable = amount,
-                                                        Staked = 0,
-                                                        Chain = "main",
-                                                        Decimals = neoToken.decimals,
-                                                        Burnable = neoToken.IsBurnable(),
-                                                        Fungible = neoToken.IsFungible()
-                                                    };
-                                                }
+                                                tokenBalance.Claimable += amount;
                                             }
                                         }
+                                        else
+                                        {
+                                            if (neoToken.symbol.ToUpper() == "GAS" && amount > 0)
+                                            {
+                                                // We should show GAS even if its balance is 0
+                                                // if there's some GAS to be claimed.
+                                                balanceMap[neoToken.symbol] = new Balance()
+                                                {
+                                                    Symbol = neoToken.symbol,
+                                                    Available = 0,
+                                                    Pending = 0,
+                                                    Claimable = amount,
+                                                    Staked = 0,
+                                                    Chain = "main",
+                                                    Decimals = neoToken.decimals,
+                                                    Burnable = neoToken.IsBurnable(),
+                                                    Fungible = neoToken.IsFungible()
+                                                };
+                                            }
+                                        }
+                                    }
 
+                                    // State before swaps
+                                    var state = new AccountState()
+                                    {
+                                        platform = platform,
+                                        address = keys.Address,
+                                        name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
+                                        balances = balanceMap.Values.ToArray(),
+                                        flags = AccountFlags.None
+                                    };
+                                    ReportWalletBalance(platform, state);
+
+                                    RequestPendings(keys.Address, PlatformKind.Neo, (swaps, error) =>
+                                    {
                                         if (swaps != null)
                                         {
                                             MergeSwaps(PlatformKind.Neo, balanceMap, swaps);
@@ -2103,16 +2143,29 @@ namespace Poltergeist
 
                             Action onLoadFinish = new Action(() =>
                             {
+                                var balanceMap = new Dictionary<string, Balance>();
+                                foreach (var ethToken in ethTokens)
+                                {
+                                    var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == ethToken.symbol.ToUpper()).SingleOrDefault();
+                                    if (tokenBalance != null)
+                                        balanceMap[tokenBalance.Symbol] = tokenBalance;
+                                }
+
+                                var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
+                                // State without swaps
+                                var state = new AccountState()
+                                {
+                                    platform = platform,
+                                    address = ethereumAddressUtil.ConvertToChecksumAddress(keys.Address),
+                                    name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
+                                    balances = balanceMap.Values.ToArray(),
+                                    flags = AccountFlags.None
+                                };
+                                ReportWalletBalance(platform, state);
+
                                 RequestPendings(keys.Address, PlatformKind.Ethereum, (swaps, error) =>
                                 {
-                                    var balanceMap = new Dictionary<string, Balance>();
-                                    foreach (var ethToken in ethTokens)
-                                    {
-                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == ethToken.symbol.ToUpper()).SingleOrDefault();
-                                        if (tokenBalance != null)
-                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
-                                    }
-
                                     if (swaps != null)
                                     {
                                         MergeSwaps(PlatformKind.Ethereum, balanceMap, swaps);
@@ -2121,8 +2174,6 @@ namespace Poltergeist
                                     {
                                         Log.WriteWarning(error);
                                     }
-
-                                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
 
                                     var state = new AccountState()
                                     {
@@ -2187,16 +2238,29 @@ namespace Poltergeist
 
                             Action onLoadFinish = new Action(() =>
                             {
+                                var balanceMap = new Dictionary<string, Balance>();
+                                foreach (var bscToken in bscTokens)
+                                {
+                                    var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == bscToken.symbol.ToUpper()).SingleOrDefault();
+                                    if (tokenBalance != null)
+                                        balanceMap[tokenBalance.Symbol] = tokenBalance;
+                                }
+
+                                var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+
+                                // State without swaps
+                                var state = new AccountState()
+                                {
+                                    platform = platform,
+                                    address = ethereumAddressUtil.ConvertToChecksumAddress(keys.Address),
+                                    name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
+                                    balances = balanceMap.Values.ToArray(),
+                                    flags = AccountFlags.None
+                                };
+                                ReportWalletBalance(platform, state);
+
                                 RequestPendings(keys.Address, PlatformKind.BSC, (swaps, error) =>
                                 {
-                                    var balanceMap = new Dictionary<string, Balance>();
-                                    foreach (var bscToken in bscTokens)
-                                    {
-                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == bscToken.symbol.ToUpper()).SingleOrDefault();
-                                        if (tokenBalance != null)
-                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
-                                    }
-
                                     if (swaps != null)
                                     {
                                         MergeSwaps(PlatformKind.BSC, balanceMap, swaps);
@@ -2205,8 +2269,6 @@ namespace Poltergeist
                                     {
                                         Log.WriteWarning(error);
                                     }
-
-                                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
 
                                     var state = new AccountState()
                                     {
