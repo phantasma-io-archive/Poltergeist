@@ -425,10 +425,13 @@ namespace Poltergeist
 
         private int rpcNumberPhantasma; // Total number of Phantasma RPCs, received from getpeers.json.
         private int rpcNumberNeo; // Total number of Neo RPCs.
+        private int rpcNumberBsc; // Total number of Bsc RPCs.
         private int rpcBenchmarkedPhantasma; // Number of Phantasma RPCs which speed already measured.
         private int rpcBenchmarkedNeo; // Number of Neo RPCs which speed already measured.
+        private int rpcBenchmarkedBsc; // Number of Bsc RPCs which speed already measured.
         public int rpcAvailablePhantasma = 0;
         public int rpcAvailableNeo = 0;
+        public int rpcAvailableBsc = 0;
         private class RpcBenchmarkData
         {
             public string Url;
@@ -444,6 +447,7 @@ namespace Poltergeist
         }
         private List<RpcBenchmarkData> rpcResponseTimesPhantasma;
         private List<RpcBenchmarkData> rpcResponseTimesNeo;
+        private List<RpcBenchmarkData> rpcResponseTimesBsc;
 
         private string GetFastestWorkingRPCURL(PlatformKind platformKind, out TimeSpan responseTime)
         {
@@ -454,6 +458,8 @@ namespace Poltergeist
                 platformRpcs = rpcResponseTimesPhantasma;
             else if (platformKind == PlatformKind.Neo)
                 platformRpcs = rpcResponseTimesNeo;
+            else if (platformKind == PlatformKind.BSC)
+                platformRpcs = rpcResponseTimesBsc;
 
             foreach (var rpcResponseTime in platformRpcs)
             {
@@ -475,10 +481,12 @@ namespace Poltergeist
 
         public void UpdateRPCURL(PlatformKind platformKind)
         {
-            if (Settings.nexusKind != NexusKind.Main_Net)
+            if (Settings.nexusKind != NexusKind.Main_Net ||
+                (platformKind == PlatformKind.BSC && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
             {
                 rpcAvailablePhantasma = 1;
                 rpcAvailableNeo = 1;
+                rpcAvailableBsc = 1;
                 return; // No need to change RPC, it is set by custom settings.
             }
 
@@ -695,12 +703,101 @@ namespace Poltergeist
                     );
                 }
             }
+            else if (platformKind == PlatformKind.BSC)
+            {
+                rpcBenchmarkedBsc = 0;
+                rpcResponseTimesBsc = new List<RpcBenchmarkData>();
+
+                var bscRpcList = Phantasma.Bsc.Utils.BscRpcs.GetList(Settings.nexusKind == NexusKind.Main_Net);
+                rpcNumberBsc = bscRpcList.Count;
+
+                if (String.IsNullOrEmpty(Settings.binanceSmartChainRPCURL))
+                {
+                    // If we have no previously used RPC, we select random one at first.
+                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberBsc;
+                    var result = bscRpcList[index];
+                    Settings.binanceSmartChainRPCURL = result;
+                    Log.Write($"Changed BSC RPC url {index} => {result}");
+                }
+
+                UpdateAPIs();
+
+                // Benchmarking RPCs.
+                foreach (var rpcUrl in bscRpcList)
+                {
+                    StartCoroutine(
+                        WebClient.Ping(rpcUrl, (error, msg) =>
+                        {
+                            Log.Write("Ping error: " + error);
+
+                            rpcBenchmarkedBsc++;
+
+                            lock (rpcResponseTimesBsc)
+                            {
+                                rpcResponseTimesBsc.Add(new RpcBenchmarkData(rpcUrl, true, new TimeSpan()));
+                            }
+
+                            if (rpcBenchmarkedBsc == rpcNumberBsc)
+                            {
+                                // We finished benchmarking, time to select best RPC server.
+                                TimeSpan bestTime;
+                                string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.BSC, out bestTime);
+
+                                if (String.IsNullOrEmpty(bestRpcUrl))
+                                {
+                                    Log.WriteWarning("All BSC RPC servers are unavailable. Please check your network connection.");
+                                }
+                                else
+                                {
+                                    Log.Write($"Fastest BSC RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                    Settings.binanceSmartChainRPCURL = bestRpcUrl;
+                                    UpdateAPIs();
+                                    Settings.SaveOnExit();
+                                }
+                            }
+                        },
+                        (responseTime) =>
+                        {
+                            rpcBenchmarkedBsc++;
+
+                            rpcAvailableBsc++;
+
+                            lock (rpcResponseTimesBsc)
+                            {
+                                rpcResponseTimesBsc.Add(new RpcBenchmarkData(rpcUrl, false, responseTime));
+                            }
+
+                            if (rpcBenchmarkedBsc == rpcNumberBsc)
+                            {
+                                // We finished benchmarking, time to select best RPC server.
+                                TimeSpan bestTime;
+                                string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.BSC, out bestTime);
+
+                                if (String.IsNullOrEmpty(bestRpcUrl))
+                                {
+                                    Log.WriteWarning("All BSC RPC servers are unavailable. Please check your network connection.");
+                                }
+                                else
+                                {
+                                    Log.Write($"Fastest BSC RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                    Settings.binanceSmartChainRPCURL = bestRpcUrl;
+                                    UpdateAPIs();
+                                    Settings.SaveOnExit();
+                                }
+                            }
+                        })
+                    );
+                }
+            }
         }
 
         public void ChangeFaultyRPCURL(PlatformKind platformKind = PlatformKind.Phantasma)
         {
-            if (Settings.nexusKind != NexusKind.Main_Net)
-                return; // Fallback works only for mainnet.
+            if (Settings.nexusKind != NexusKind.Main_Net ||
+                (platformKind == PlatformKind.BSC && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
+            {
+                return; // Fallback works only for mainnet or BSC testnet.
+            }
 
             if (platformKind == PlatformKind.Phantasma)
             {
@@ -757,6 +854,34 @@ namespace Poltergeist
                 {
                     Log.Write($"Next fastest Neo RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
                     Settings.neoRPCURL = bestRpcUrl;
+                    UpdateAPIs();
+                }
+            }
+            else if (platformKind == PlatformKind.BSC)
+            {
+                Log.Write($"Changing faulty BSC RPC {Settings.binanceSmartChainRPCURL}.");
+
+                // Now we have one less working RPC.
+                if (rpcAvailableBsc > 0)
+                    rpcAvailableBsc--;
+
+                // Marking faulty RPC.
+                var currentRpc = rpcResponseTimesBsc.Find(x => x.Url == Settings.binanceSmartChainRPCURL);
+                if (currentRpc != null)
+                    currentRpc.ConnectionError = true;
+
+                // Switching to working RPC.
+                TimeSpan bestTime;
+                string bestRpcUrl = GetFastestWorkingRPCURL(platformKind, out bestTime);
+
+                if (String.IsNullOrEmpty(bestRpcUrl))
+                {
+                    Log.WriteWarning("All BSC RPC servers are unavailable. Please check your network connection.");
+                }
+                else
+                {
+                    Log.Write($"Next fastest BSC RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                    Settings.binanceSmartChainRPCURL = bestRpcUrl;
                     UpdateAPIs();
                 }
             }
@@ -831,6 +956,7 @@ namespace Poltergeist
 
             UpdateRPCURL(PlatformKind.Phantasma);
             UpdateRPCURL(PlatformKind.Neo);
+            UpdateRPCURL(PlatformKind.BSC);
 
             LoadNexus();
 

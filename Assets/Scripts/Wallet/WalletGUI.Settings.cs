@@ -786,6 +786,7 @@ namespace Poltergeist
                         // Finding fastest Phantasma and Neo RPCs.
                         accountManager.UpdateRPCURL(PlatformKind.Phantasma);
                         accountManager.UpdateRPCURL(PlatformKind.Neo);
+                        accountManager.UpdateRPCURL(PlatformKind.BSC);
 
                         // Restoring combos' selected items.
                         // If they are not restored, following calls of DoSettingsScreen() will change them again.
@@ -985,6 +986,7 @@ namespace Poltergeist
 
             accountManager.UpdateRPCURL(PlatformKind.Phantasma);
             accountManager.UpdateRPCURL(PlatformKind.Neo);
+            accountManager.UpdateRPCURL(PlatformKind.BSC);
 
             accountManager.UpdateAPIs(true);
             accountManager.RefreshTokenPrices();

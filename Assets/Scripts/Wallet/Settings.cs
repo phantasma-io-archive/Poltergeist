@@ -521,12 +521,20 @@ namespace Poltergeist
                     switch (binanceSmartChainNetwork)
                     {
                         case BinanceSmartChainNetwork.Main_Net:
-                            _return_value = "https://bsc-dataseed.binance.org/";
-                            break;
+                            {
+                                var bscRpcList = Phantasma.Bsc.Utils.BscRpcs.GetList(true);
+                                int index = (int)(DateTime.UtcNow.Ticks % bscRpcList.Count);
+                                _return_value = bscRpcList[index];
+                                break;
+                            }
 
                         case BinanceSmartChainNetwork.Test_Net:
-                            _return_value = "https://data-seed-prebsc-1-s1.binance.org:8545/";
-                            break;
+                            {
+                                var bscRpcList = Phantasma.Bsc.Utils.BscRpcs.GetList(false);
+                                int index = (int)(DateTime.UtcNow.Ticks % bscRpcList.Count);
+                                _return_value = bscRpcList[index];
+                                break;
+                            }
 
                         case BinanceSmartChainNetwork.Local_Net:
                             _return_value = "";
