@@ -6,8 +6,6 @@ using UnityEngine;
 
 public class ComboBox
 {
-    private static bool forceToUnShow = false;
-    private static int useControlID = -1;
     private bool isClickedComboButton = false;
     private int selectedItemIndex = 0;
 
@@ -68,14 +66,7 @@ public class ComboBox
             listStyle.padding.bottom = WalletGUI.Units(1);
         }
 
-        if (forceToUnShow)
-        {
-            forceToUnShow = false;
-            isClickedComboButton = false;
-        }
-
         bool done = false;
-        int controlID = GUIUtility.GetControlID(FocusType.Passive);
 
         var buttonContent = caption == null ? listContent[selectedItemIndex] : new GUIContent(caption);
         if (GUI.Button(rect, buttonContent, buttonStyle))
@@ -83,17 +74,6 @@ public class ComboBox
             if (isClickedComboButton)
                 done = true;
 
-            if (useControlID == -1)
-            {
-                useControlID = controlID;
-                isClickedComboButton = false;
-            }
-
-            if (useControlID != controlID)
-            {
-                forceToUnShow = true;
-                useControlID = controlID;
-            }
             isClickedComboButton = true;
         }
 
@@ -163,7 +143,6 @@ public class ComboBox
 
     public void ResetState()
     {
-        forceToUnShow = false;
         isClickedComboButton = false;
     }
 }
