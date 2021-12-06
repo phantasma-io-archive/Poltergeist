@@ -445,9 +445,9 @@ namespace Poltergeist
                 ResponseTime = responseTime;
             }
         }
-        private List<RpcBenchmarkData> rpcResponseTimesPhantasma;
-        private List<RpcBenchmarkData> rpcResponseTimesNeo;
-        private List<RpcBenchmarkData> rpcResponseTimesBsc;
+        private List<RpcBenchmarkData> rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
+        private List<RpcBenchmarkData> rpcResponseTimesNeo = new List<RpcBenchmarkData>();
+        private List<RpcBenchmarkData> rpcResponseTimesBsc = new List<RpcBenchmarkData>();
 
         private string GetFastestWorkingRPCURL(PlatformKind platformKind, out TimeSpan responseTime)
         {
