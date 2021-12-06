@@ -791,7 +791,7 @@ namespace Poltergeist
             }
         }
 
-        public void ChangeFaultyRPCURL(PlatformKind platformKind = PlatformKind.Phantasma)
+        public void ChangeFaultyRPCURL(PlatformKind platformKind)
         {
             if (Settings.nexusKind != NexusKind.Main_Net ||
                 (platformKind == PlatformKind.BSC && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
@@ -1079,7 +1079,7 @@ namespace Poltergeist
             {
                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                 {
-                    ChangeFaultyRPCURL();
+                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
                 }
 
                 Log.WriteWarning("Tokens initialization error: " + msg);
@@ -1201,7 +1201,7 @@ namespace Poltergeist
                         {
                             if(error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                             {
-                                ChangeFaultyRPCURL();
+                                ChangeFaultyRPCURL(PlatformKind.Phantasma);
                             }
                             callback(Hash.Null, msg);
                         }, customSignFunction, customKeys2, customSignFunction2));
@@ -1227,7 +1227,8 @@ namespace Poltergeist
                                         {
                                             var keys = NeoKeys.FromWIF(transfer.key);
 
-                                            StartCoroutine(neoApi.GetUnspent(keys.Address, (unspent) =>
+                                            StartCoroutine(neoApi.GetUnspent(keys.Address,
+                                            (unspent) =>
                                             {
                                                 Log.Write("Got unspents for " + keys.Address);
 
@@ -1244,6 +1245,14 @@ namespace Poltergeist
                                                         {
                                                             callback(Hash.Null, error);
                                                         }
+                                                    },
+                                                    (error, msg) =>
+                                                    {
+                                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                        {
+                                                            ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                        }
+                                                        callback(Hash.Null, msg);
                                                     }, unspent, keys, transfer.destination, transfer.symbol, transfer.amount, transfer.interop, Settings.neoGasFee), ex => {
                                                         if (ex != null)
                                                         {
@@ -1272,6 +1281,13 @@ namespace Poltergeist
                                                             {
                                                                 callback(Hash.Null, error);
                                                             }
+                                                        }, (error, msg) =>
+                                                        {
+                                                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                            {
+                                                                ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                            }
+                                                            callback(Hash.Null, msg);
                                                         }), ex => {
                                                             if (ex != null)
                                                             {
@@ -1285,6 +1301,13 @@ namespace Poltergeist
                                                     }
                                                 }
 
+                                            }, (error, msg) =>
+                                            {
+                                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                {
+                                                    ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                }
+                                                callback(Hash.Null, msg);
                                             }));
 
                                             break;
@@ -1513,7 +1536,7 @@ namespace Poltergeist
                         {
                             if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                             {
-                                ChangeFaultyRPCURL();
+                                ChangeFaultyRPCURL(PlatformKind.Phantasma);
                             }
                             callback(null, log);
                         }));
@@ -1540,7 +1563,7 @@ namespace Poltergeist
             {
                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                 {
-                    ChangeFaultyRPCURL();
+                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
                 }
                 callback(null, log);
             }));
@@ -1563,7 +1586,7 @@ namespace Poltergeist
                         {
                             if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                             {
-                                ChangeFaultyRPCURL();
+                                ChangeFaultyRPCURL(PlatformKind.Phantasma);
                             }
                             callback(false, new Archive(), log);
                         }));
@@ -1594,7 +1617,7 @@ namespace Poltergeist
                         {
                             if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                             {
-                                ChangeFaultyRPCURL();
+                                ChangeFaultyRPCURL(PlatformKind.Phantasma);
                             }
                             callback(false, null, log);
                         }));
@@ -1625,7 +1648,7 @@ namespace Poltergeist
                         {
                             if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                             {
-                                ChangeFaultyRPCURL();
+                                ChangeFaultyRPCURL(PlatformKind.Phantasma);
                             }
                             callback(false, log);
                         }));
@@ -1830,7 +1853,7 @@ namespace Poltergeist
                     {
                         if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                         {
-                            ChangeFaultyRPCURL();
+                            ChangeFaultyRPCURL(PlatformKind.Phantasma);
                         }
 
                         if (checkCount <= maxChecks)
@@ -2136,7 +2159,7 @@ namespace Poltergeist
 
                                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                                 {
-                                    ChangeFaultyRPCURL();
+                                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
                                 }
                                 ReportWalletBalance(platform, null);
                             }));
@@ -2188,7 +2211,8 @@ namespace Poltergeist
                                     }
                                 }
 
-                                CoroutineUtils.StartThrowingCoroutine(this, neoApi.GetUnclaimed(keys.Address, (amount) =>
+                                CoroutineUtils.StartThrowingCoroutine(this, neoApi.GetUnclaimed(keys.Address,
+                                (amount) =>
                                 {
                                     var balanceMap = new Dictionary<string, Balance>();
 
@@ -2259,6 +2283,14 @@ namespace Poltergeist
                                         };
                                         ReportWalletBalance(platform, state);
                                     });
+                                },
+                                (error, msg) =>
+                                {
+                                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                    {
+                                        ChangeFaultyRPCURL(PlatformKind.Neo);
+                                    }
+                                    ReportWalletBalance(platform, null);
                                 }), ex =>
                                 {
                                     if (ex != null)
@@ -2841,7 +2873,7 @@ namespace Poltergeist
                             {
                                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                                 {
-                                    ChangeFaultyRPCURL();
+                                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
                                 }
                                 ReportWalletHistory(platform, null);
                             }));
@@ -3085,7 +3117,7 @@ namespace Poltergeist
             {
                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                 {
-                    ChangeFaultyRPCURL();
+                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
                 }
                 callback(null, msg);
             }));
@@ -3396,7 +3428,7 @@ namespace Poltergeist
             {
                 if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                 {
-                    ChangeFaultyRPCURL();
+                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
                 }
                 callback(null);
             }));
@@ -3532,7 +3564,7 @@ namespace Poltergeist
                 {
                     if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                     {
-                        ChangeFaultyRPCURL();
+                        ChangeFaultyRPCURL(PlatformKind.Phantasma);
                     }
                     Log.WriteWarning(msg);
                     callback(Hash.Null, msg);
@@ -3626,7 +3658,7 @@ namespace Poltergeist
                 {
                     if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
                     {
-                        ChangeFaultyRPCURL();
+                        ChangeFaultyRPCURL(PlatformKind.Phantasma);
                     }
                     callback(null);
                 })

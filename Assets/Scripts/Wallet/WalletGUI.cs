@@ -2724,14 +2724,34 @@ namespace Poltergeist
                                             var claimGas = new Action<NeoKeys, List<UnspentEntry>, decimal, bool>((neoKeys, claimableTransactions, claimableGasAmount, fullyClaimable) =>
                                             {
                                                 // We get fresh unspents for claim transaction.
-                                                StartCoroutine(accountManager.neoApi.GetUnspent(neoKeys.Address, (unspent) =>
+                                                StartCoroutine(accountManager.neoApi.GetUnspent(neoKeys.Address,
+                                                (unspent) =>
                                                 {
                                                     // Claiming GAS finally.
-                                                    StartCoroutine(accountManager.neoApi.ClaimGas(unspent, neoKeys, claimableTransactions, claimableGasAmount, (tx, error) =>
+                                                    StartCoroutine(accountManager.neoApi.ClaimGas(unspent, neoKeys, claimableTransactions, claimableGasAmount,
+                                                    (tx, error) =>
                                                     {
                                                         PopState();
                                                         MessageBox(MessageKind.Success, $"You claimed {claimableGasAmount} GAS{(fullyClaimable ? "" : ". Not all GAS was claimed, please try later")}!\nTransaction hash: {tx.Hash}");
+                                                    },
+                                                    (error, msg) =>
+                                                    {
+                                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                        {
+                                                            accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                        }
+                                                        MessageBox(MessageKind.Error, msg);
+                                                        return;
                                                     }));
+                                                },
+                                                (error, msg) =>
+                                                {
+                                                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                    {
+                                                        accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                    }
+                                                    MessageBox(MessageKind.Error, msg);
+                                                    return;
                                                 }));
                                             });
 
@@ -2740,10 +2760,12 @@ namespace Poltergeist
                                             PushState(GUIState.Sending);
 
                                             // Getting currenly available claimable transactions and count them.
-                                            StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimableOriginal, amountOriginal) =>
+                                            StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address,
+                                            (claimableOriginal, amountOriginal) =>
                                             {
                                                 // Getting unspents, needed for sending NEO to yourself.
-                                                StartCoroutine(accountManager.neoApi.GetUnspent(keys.Address, (unspent) =>
+                                                StartCoroutine(accountManager.neoApi.GetUnspent(keys.Address,
+                                                (unspent) =>
                                                 {
                                                     // Sending NEO to yourself - needed for claimable transactions update,
                                                     // to claim all generated GAS.
@@ -2751,7 +2773,8 @@ namespace Poltergeist
                                                     {
                                                         // Waiting for 2 seconds before checking if new claimable appeared in this list.
                                                         Thread.Sleep(2000);
-                                                        StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimable, amount) =>
+                                                        StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address,
+                                                        (claimable, amount) =>
                                                         {
                                                             // Checking if our new transaction appeared in claimables.
                                                             if (claimable.Count() > claimableOriginal.Count())
@@ -2763,7 +2786,8 @@ namespace Poltergeist
                                                                 // We should wait more.
                                                                 Log.Write("GAS claim: Claimable list not updated yet (1)...");
                                                                 Thread.Sleep(4000);
-                                                                StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimable2, amount2) =>
+                                                                StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address,
+                                                                (claimable2, amount2) =>
                                                                 {
                                                                     // Checking if our new transaction appeared in claimables.
                                                                     if (claimable2.Count() > claimableOriginal.Count())
@@ -2775,7 +2799,8 @@ namespace Poltergeist
                                                                         // We should wait more.
                                                                         Log.Write("GAS claim: Claimable list not updated yet (2)...");
                                                                         Thread.Sleep(10000);
-                                                                        StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address, (claimable3, amount3) =>
+                                                                        StartCoroutine(accountManager.neoApi.GetClaimable(keys.Address,
+                                                                        (claimable3, amount3) =>
                                                                         {
                                                                             // Checking if our new transaction appeared in claimables.
                                                                             if (claimable3.Count() > claimableOriginal.Count())
@@ -2795,13 +2820,67 @@ namespace Poltergeist
                                                                                     MessageBox(MessageKind.Success, $"Cannot claim GAS, please try later.");
                                                                                 }
                                                                             }
+                                                                        },
+                                                                        (error, msg) =>
+                                                                        {
+                                                                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                                            {
+                                                                                accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                                            }
+                                                                            MessageBox(MessageKind.Error, msg);
+                                                                            return;
                                                                         }));
                                                                     }
+                                                                },
+                                                                (error, msg) =>
+                                                                {
+                                                                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                                    {
+                                                                        accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                                    }
+                                                                    MessageBox(MessageKind.Error, msg);
+                                                                    return;
                                                                 }));
                                                             }
+                                                        },
+                                                        (error, msg) =>
+                                                        {
+                                                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                            {
+                                                                accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                            }
+                                                            MessageBox(MessageKind.Error, msg);
+                                                            return;
                                                         }));
+                                                    },
+                                                    (error, msg) =>
+                                                    {
+                                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                        {
+                                                            accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                        }
+                                                        MessageBox(MessageKind.Error, msg);
+                                                        return;
                                                     }, unspent, keys, keys.Address, "NEO", state.GetAvailableAmount("NEO"), null, 0, true));
+                                                },
+                                                (error, msg) =>
+                                                {
+                                                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                    {
+                                                        accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                    }
+                                                    MessageBox(MessageKind.Error, msg);
+                                                    return;
                                                 }));
+                                            },
+                                            (error, msg) =>
+                                            {
+                                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                {
+                                                    accountManager.ChangeFaultyRPCURL(PlatformKind.Neo);
+                                                }
+                                                MessageBox(MessageKind.Error, msg);
+                                                return;
                                             }));
                                         }
                                     });
