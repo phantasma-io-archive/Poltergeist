@@ -1774,34 +1774,38 @@ namespace Poltergeist
 
         private void ReportWalletBalance(PlatformKind platform, AccountState state)
         {
-            RefreshStatus refreshStatus;
-            lock (_refreshStatus)
+            try
             {
-                refreshStatus = _refreshStatus[platform];
-                refreshStatus.BalanceRefreshing = false;
-                _refreshStatus[platform] = refreshStatus;
-            }
+                RefreshStatus refreshStatus;
+                lock (_refreshStatus)
+                {
+                    refreshStatus = _refreshStatus[platform];
+                    refreshStatus.BalanceRefreshing = false;
+                    _refreshStatus[platform] = refreshStatus;
+                }
 
-            if (state != null)
-            {
-                Log.Write("Received new state for " + platform);
-                _states[platform] = state;
+                if (state != null)
+                {
+                    Log.Write("Received new state for " + platform);
+                    _states[platform] = state;
 
-                //if (!_accountInitialized && GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
-                //{
-                //    CurrentPlatform = platform;
-                //}
-            }
+                    //if (!_accountInitialized && GetWorthOfPlatform(platform) > GetWorthOfPlatform(CurrentPlatform))
+                    //{
+                    //    CurrentPlatform = platform;
+                    //}
+                }
 
-            _accountInitialized = true;
+                _accountInitialized = true;
             
-            var temp = refreshStatus.BalanceRefreshCallback;
-            lock (_refreshStatus)
-            {
-                refreshStatus.BalanceRefreshCallback = null;
-                _refreshStatus[platform] = refreshStatus;
+                var temp = refreshStatus.BalanceRefreshCallback;
+                lock (_refreshStatus)
+                {
+                    refreshStatus.BalanceRefreshCallback = null;
+                    _refreshStatus[platform] = refreshStatus;
+                }
+                temp?.Invoke();
             }
-            temp?.Invoke();
+            catch (Exception) { } // This fixes crash when user leaves account fast without waiting for balances to load
         }
 
         private decimal GetWorthOfPlatform(PlatformKind platform)
@@ -1835,23 +1839,27 @@ namespace Poltergeist
 
         private void ReportWalletHistory(PlatformKind platform, List<HistoryEntry> history)
         {
-            lock (_refreshStatus)
+            try
             {
-                var refreshStatus = _refreshStatus[platform];
-                refreshStatus.HistoryRefreshing = false;
-                _refreshStatus[platform] = refreshStatus;
-            }
-
-            if (history != null)
-            {
-                Log.Write("Received new history for " + platform);
-                _history[platform] = history.ToArray();
-
-                if (CurrentPlatform == PlatformKind.None)
+                lock (_refreshStatus)
                 {
-                    CurrentPlatform = platform;
+                    var refreshStatus = _refreshStatus[platform];
+                    refreshStatus.HistoryRefreshing = false;
+                    _refreshStatus[platform] = refreshStatus;
+                }
+
+                if (history != null)
+                {
+                    Log.Write("Received new history for " + platform);
+                    _history[platform] = history.ToArray();
+
+                    if (CurrentPlatform == PlatformKind.None)
+                    {
+                        CurrentPlatform = platform;
+                    }
                 }
             }
+            catch (Exception) { } // This fixes crash when user leaves account fast without waiting for balances to load
         }
 
 
