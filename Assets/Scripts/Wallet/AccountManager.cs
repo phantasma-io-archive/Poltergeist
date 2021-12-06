@@ -1448,11 +1448,19 @@ namespace Poltergeist
 
                                                     StartCoroutine(binanceSmartChainApi.SendRawTransaction(hexTx, callback, (error, msg) =>
                                                     {
+                                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                        {
+                                                            ChangeFaultyRPCURL(PlatformKind.BSC);
+                                                        }
                                                         callback(Hash.Null, msg);
                                                     }));
                                                 },
                                                 (error, msg) =>
                                                 {
+                                                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                    {
+                                                        ChangeFaultyRPCURL(PlatformKind.BSC);
+                                                    }
                                                     callback(Hash.Null, msg);
                                                 }));
                                             }
@@ -1481,11 +1489,19 @@ namespace Poltergeist
 
                                                         StartCoroutine(binanceSmartChainApi.SendRawTransaction(hexTx, callback, (error, msg) =>
                                                         {
+                                                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                            {
+                                                                ChangeFaultyRPCURL(PlatformKind.BSC);
+                                                            }
                                                             callback(Hash.Null, msg);
                                                         }));
                                                     },
                                                     (error, msg) =>
                                                     {
+                                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                                        {
+                                                            ChangeFaultyRPCURL(PlatformKind.BSC);
+                                                        }
                                                         callback(Hash.Null, msg);
                                                     }));
                                                 }
@@ -2468,6 +2484,10 @@ namespace Poltergeist
                                     (error, msg) =>
                                     {
                                         Log.WriteWarning($"RefreshBalances[BSC/1] {error}: {msg}");
+                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                        {
+                                            ChangeFaultyRPCURL(PlatformKind.BSC);
+                                        }
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
@@ -2487,6 +2507,10 @@ namespace Poltergeist
                                     (error, msg) =>
                                     {
                                         Log.WriteWarning($"RefreshBalances[BSC/2] {error}: {msg}");
+                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                        {
+                                            ChangeFaultyRPCURL(PlatformKind.BSC);
+                                        }
                                         ReportWalletBalance(platform, null);
                                     }));
                                 }
