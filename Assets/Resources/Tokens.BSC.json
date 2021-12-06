@@ -1,3 +1,4 @@
 [{"symbol": "BNB", "name": "Binance Coin", "decimals": 18, "hash": ""},
-{"symbol": "BUSD", "name": "Binance USD", "decimals": 18, "hash": "e9e7cea3dedca5984780bafc599bd69add087d56"}
+{"symbol": "BUSD", "name": "Binance USD", "decimals": 18, "hash": "e9e7cea3dedca5984780bafc599bd69add087d56"},
+{"symbol": "USDT", "name": "Binance-Peg BSC-USD", "decimals": 18, "hash": "55d398326f99059ff775485246999027b3197955"}
 ]
