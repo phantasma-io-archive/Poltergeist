@@ -1941,7 +1941,7 @@ namespace Poltergeist
 
         }
 
-        public void RefreshBalances(bool force, PlatformKind platforms = PlatformKind.None, Action callback = null)
+        public void RefreshBalances(bool force, PlatformKind platforms = PlatformKind.None, Action callback = null, bool allowOneUserRefreshAfterExecution = false)
         {
             List<PlatformKind> platformsList;
             if(platforms == PlatformKind.None)
@@ -1971,7 +1971,7 @@ namespace Poltergeist
                         }
 
                         refreshStatus.BalanceRefreshing = true;
-                        refreshStatus.LastBalanceRefresh = now;
+                        refreshStatus.LastBalanceRefresh = allowOneUserRefreshAfterExecution ? DateTime.MinValue : now;
                         refreshStatus.BalanceRefreshCallback = callback;
 
                         _refreshStatus[platform] = refreshStatus;
@@ -1982,7 +1982,7 @@ namespace Poltergeist
                             new RefreshStatus
                             {
                                 BalanceRefreshing = true,
-                                LastBalanceRefresh = now,
+                                LastBalanceRefresh = allowOneUserRefreshAfterExecution ? DateTime.MinValue : now,
                                 BalanceRefreshCallback = callback,
                                 HistoryRefreshing = false,
                                 LastHistoryRefresh = DateTime.MinValue
