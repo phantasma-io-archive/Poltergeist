@@ -211,7 +211,7 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
 
             var targetPlatform = RequestPlatform(platform);
-            if (targetPlatform == PlatformKind.None)
+            if (targetPlatform == PlatformKind.None || targetPlatform == PlatformKind.Neo)
             {
                 callback(null, null, "Unsupported platform: " + platform);
                 return;
@@ -224,31 +224,43 @@ namespace Poltergeist
                 return;
             }
 
-            if (kind != SignatureKind.Ed25519)
-            {
-                callback(null, null, kind + " signatures unsupported");
-                return;
-            }
-
             var account = AccountManager.Instance.CurrentAccount;
 
             WalletGUI.Instance.CallOnUIThread(() =>
             {
                 var description = System.Text.Encoding.UTF8.GetString(data);
 
-                WalletGUI.Instance.Prompt("The dapp wants to sign the following data. Accept?\n" + description, (success) =>
+                WalletGUI.Instance.Prompt($"The dapp wants to sign the following data with your {platform} keys. Accept?\n{description}", (success) =>
                 {
                     AppFocus.Instance.EndFocus();
 
                     if (success)
                     {
-                        var phantasmaKeys = PhantasmaKeys.FromWIF(account.GetWif(AccountManager.Instance.CurrentPasswordHash));
-
                         var randomValue = UnityEngine.Random.Range(0, int.MaxValue);
                         var randomBytes = BitConverter.GetBytes(randomValue);
 
                         var msg = ByteArrayUtils.ConcatBytes(randomBytes, data);
-                        var signature = phantasmaKeys.Sign(msg);
+
+                        Phantasma.Cryptography.Signature signature;
+
+                        var wif = account.GetWif(AccountManager.Instance.CurrentPasswordHash);
+
+                        switch (kind)
+                        {
+                            case SignatureKind.Ed25519:
+                                var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+                                signature = phantasmaKeys.Sign(msg);
+                                break;
+
+                            case SignatureKind.ECDSA:
+                                var ethKeys = Phantasma.Ethereum.EthereumKey.FromWIF(wif);
+                                signature = ethKeys.Sign(msg);
+                                break;
+
+                            default:
+                                callback(null, null, kind + " signatures unsupported");
+                                return;
+                        }
 
                         byte[] sigBytes = null;
 
