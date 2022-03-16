@@ -879,6 +879,7 @@ namespace Phantasma.SDK
     {
         public Event[] events; //
         public string result; //
+        public string[] results; //
         public Oracle[] oracles; //
 
         public static Script FromNode(DataNode node)
@@ -918,6 +919,21 @@ namespace Phantasma.SDK
                 result.oracles = new Oracle[0];
             }
 
+            var result_array = node.GetNode("results");
+            if (result_array != null)
+            {
+                result.results= new string[result_array.ChildCount];
+                int i = 0;
+                foreach (var child in result_array.Children)
+                {
+                    result.results[i] = child.Value;
+                    i++;
+                }
+            }
+            else
+            {
+                result.results = new string[] { result.result };
+            }
 
             return result;
         }

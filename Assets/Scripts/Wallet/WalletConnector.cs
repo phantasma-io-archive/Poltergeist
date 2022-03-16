@@ -99,15 +99,15 @@ namespace Poltergeist
             callback(new Account(), "not logged in, devs should implement this case!");
         }
 
-        protected override void InvokeScript(string chain, byte[] script, int id, Action<byte[], string> callback)
+        protected override void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback)
         {
             WalletGUI.Instance.CallOnUIThread(() =>
             {
                 try
                 {
-                    WalletGUI.Instance.InvokeScript(chain, script, (result, msg) =>
+                    WalletGUI.Instance.InvokeScript(chain, script, (results, msg) =>
                     {
-                        callback(result, msg);
+                        callback(results, msg);
                     });
                 }
                 catch (Exception e)

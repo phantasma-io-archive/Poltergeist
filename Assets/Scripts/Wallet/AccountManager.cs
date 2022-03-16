@@ -1535,7 +1535,7 @@ namespace Poltergeist
             }
         }
 
-        public void InvokeScript(string chain, byte[] script, Action<byte[], string> callback)
+        public void InvokeScript(string chain, byte[] script, Action<string[], string> callback)
         {
             var account = this.CurrentAccount;
 
@@ -1547,7 +1547,7 @@ namespace Poltergeist
                         StartCoroutine(phantasmaApi.InvokeRawScript(chain, Base16.Encode(script), (x) =>
                         {
                             Log.Write("InvokeScript result: " + x.result, Log.Level.Debug1);
-                            callback(Base16.Decode(x.result), null);
+                            callback(x.results, null);
                         }, (error, log) =>
                         {
                             if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
