@@ -1064,25 +1064,46 @@ namespace Poltergeist
             PlayerPrefs.Save();
         }
 
+        private IEnumerator GetTokens(Action<Token[]> callback)
+        {
+            while (Status != "ok")
+            {
+                var coroutine = StartCoroutine(phantasmaApi.GetTokens((tokens) =>
+                {
+                    callback(tokens);
+                }, (error, msg) =>
+                {
+                    if (rpcAvailablePhantasma > 0)
+                    {
+                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                        {
+                            ChangeFaultyRPCURL(PlatformKind.Phantasma);
+                        }
+                    }
+                    else
+                    {
+                        CurrentTokenCurrency = "";
+
+                        Status = "ok"; // We are launching with uninitialized tokens,
+                                       // to allow user to edit settings.
+                        
+                        Log.WriteWarning("Error: Launching with uninitialized tokens.");
+                    }
+
+                    Log.WriteWarning("Tokens initialization error: " + msg);
+                }));
+
+                yield return coroutine;
+            }
+        }
+
         private void TokensReinit()
         {
             Tokens.Reset();
 
-            StartCoroutine(phantasmaApi.GetTokens((tokens) =>
+            StartCoroutine(GetTokens((tokens) =>
             {
                 Tokens.Init(tokens);
-
-                CurrentTokenCurrency = "";
-
-                Status = "ok";
-            }, (error, msg) =>
-            {
-                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
-                {
-                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
-                }
-
-                Log.WriteWarning("Tokens initialization error: " + msg);
 
                 CurrentTokenCurrency = "";
 
