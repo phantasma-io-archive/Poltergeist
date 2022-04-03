@@ -1073,12 +1073,9 @@ namespace Poltergeist
                     callback(tokens);
                 }, (error, msg) =>
                 {
-                    if (rpcAvailablePhantasma > 0)
+                    if (rpcAvailablePhantasma > 0 && Settings.nexusKind == NexusKind.Main_Net)
                     {
-                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
-                        {
-                            ChangeFaultyRPCURL(PlatformKind.Phantasma);
-                        }
+                        ChangeFaultyRPCURL(PlatformKind.Phantasma);
                     }
                     else
                     {
