@@ -153,7 +153,7 @@ TextureImporter:
       213: 21300098
     second: Icon_Lock
   externalObjects: {}
-  serializedVersion: 10
+  serializedVersion: 11
   mipmaps:
     mipMapMode: 0
     enableMipMap: 0
@@ -173,6 +173,8 @@ TextureImporter:
   isReadable: 0
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMasterTextureLimit: 0
   grayScaleToAlpha: 0
   generateCubemap: 6
   cubemapConvolution: 0
@@ -183,7 +185,7 @@ TextureImporter:
     serializedVersion: 2
     filterMode: 1
     aniso: 1
-    mipBias: -100
+    mipBias: 0
     wrapU: 1
     wrapV: 1
     wrapW: 1
@@ -204,9 +206,13 @@ TextureImporter:
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
   maxTextureSizeSet: 0
   compressionQualitySet: 0
   textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 1
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
@@ -1283,6 +1289,57 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
+    nameFileIdTable:
+      Slider: 21300018
+      RadioButton: 21300008
+      RadioButton_Thumb: 21300010
+      SoundButton_Pressed: 21300036
+      PopupList_Normal: 21300084
+      PopupList_Hover: 21300086
+      Window: 21300080
+      PauseButton_Hover: 21300028
+      PlayButton_Pressed: 21300052
+      SoundButton_Hover: 21300030
+      TextField_Pressed: 21300012
+      RetryButton_Pressed: 21300070
+      SoundOffButton_Pressed: 21300054
+      Icon_Lock: 21300098
+      ProgressBar: 21300074
+      EmptyButton_Pressed: 21300092
+      OptionsButton_Hover: 21300062
+      TextField_Normal: 21300002
+      Slider_Filler: 21300082
+      SoundOffButton_Normal: 21300042
+      ProgressBar_Filler: 21300004
+      HelpButton_Normal: 21300060
+      PlayButton_Normal: 21300040
+      PopupList_BG: 21300022
+      PauseButton_Pressed: 21300034
+      MenuButton_Normal: 21300024
+      RetryButton_Normal: 21300058
+      CheckBox_Thumb: 21300016
+      NextButton_Normal: 21300038
+      OptionsButton_Normal: 21300056
+      Slider_Thumb: 21300020
+      OptionsButton_Pressed: 21300068
+      CheckBox: 21300014
+      NextButton_Pressed: 21300050
+      Window_Header: 21300000
+      MenuButton_Pressed: 21300032
+      HelpButton_Hover: 21300066
+      NextButton_Hover: 21300044
+      PauseButton_Normal: 21300076
+      SoundOffButton_Hover: 21300048
+      RetryButton_Hover: 21300064
+      TextField_Hover: 21300006
+      EmptyButton_Normal: 21300088
+      Slider_Vertical: 21300096
+      MenuButton_Hover: 21300026
+      PlayButton_Hover: 21300046
+      empty: 21300094
+      EmptyButton_Hover: 21300090
+      HelpButton_Pressed: 21300072
+      SoundButton_Normal: 21300078
   spritePackingTag: 
   pSDRemoveMatte: 0
   pSDShowRemoveMatteOption: 0
