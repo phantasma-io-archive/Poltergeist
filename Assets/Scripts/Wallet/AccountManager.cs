@@ -461,6 +461,8 @@ namespace Poltergeist
             else if (platformKind == PlatformKind.BSC)
                 platformRpcs = rpcResponseTimesBsc;
 
+            responseTime = TimeSpan.Zero;
+
             foreach (var rpcResponseTime in platformRpcs)
             {
                 if (!rpcResponseTime.ConnectionError && String.IsNullOrEmpty(fastestRpcUrl))
