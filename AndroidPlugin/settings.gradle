@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "PoltergeistPlugin"
+include ':app'
+include ':app:poltergeistmodule'
+include ':testmodule'
+include ':newtestmodule'
+include ':poltergeistmodule'
+include ':phantasmalinkclient'
