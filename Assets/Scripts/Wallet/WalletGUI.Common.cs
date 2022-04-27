@@ -1,4 +1,4 @@
-﻿namespace Poltergeist
+namespace Poltergeist
 {
     public enum MessageKind
     {

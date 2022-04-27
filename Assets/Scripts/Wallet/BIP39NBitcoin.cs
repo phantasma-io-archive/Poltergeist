@@ -1,4 +1,4 @@
-﻿using Org.BouncyCastle.Asn1.Sec;
+using Org.BouncyCastle.Asn1.Sec;
 using NBitcoin;
 using System;
 

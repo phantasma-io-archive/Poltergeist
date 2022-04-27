@@ -1,4 +1,4 @@
-﻿using Phantasma.Neo.Core;
+using Phantasma.Neo.Core;
 using Phantasma.Neo.Cryptography;
 using System;
 using System.IO;

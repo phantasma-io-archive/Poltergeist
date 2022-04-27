@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.IO;
 using Phantasma.Domain;
 using Phantasma.Cryptography;

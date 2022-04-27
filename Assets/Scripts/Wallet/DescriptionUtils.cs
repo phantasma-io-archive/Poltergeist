@@ -1,4 +1,4 @@
-﻿using Phantasma.Core.Types;
+using Phantasma.Core.Types;
 using Phantasma.Cryptography;
 using Phantasma.Numerics;
 using Phantasma.SDK;

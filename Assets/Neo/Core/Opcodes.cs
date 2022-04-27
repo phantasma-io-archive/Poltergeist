@@ -1,4 +1,4 @@
-﻿namespace Phantasma.Neo.Core
+namespace Phantasma.Neo.Core
 {
     public enum OpCode : byte
     {

@@ -1,4 +1,4 @@
-﻿using LunarLabs.Parser;
+using LunarLabs.Parser;
 using UnityEngine;
 using Phantasma.SDK;
 using Poltergeist;

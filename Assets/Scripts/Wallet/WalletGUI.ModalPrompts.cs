@@ -1,4 +1,4 @@
-﻿using Phantasma.SDK;
+using Phantasma.SDK;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
