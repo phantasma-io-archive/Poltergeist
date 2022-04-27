@@ -1,4 +1,4 @@
-﻿namespace Bitcoin.BIP39.Wordlists
+namespace Bitcoin.BIP39.Wordlists
 {
     /// <summary>
     /// The English wordlist, note the inheritance as all wordlists share functionality language dependent

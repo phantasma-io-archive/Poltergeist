@@ -1,4 +1,4 @@
-﻿using LunarLabs.Parser;
+using LunarLabs.Parser;
 using System;
 using System.Linq;
 using System.Numerics;

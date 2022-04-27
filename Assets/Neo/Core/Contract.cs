@@ -1,4 +1,4 @@
-﻿using Phantasma.Neo.Utils;
+using Phantasma.Neo.Utils;
 using System.IO;
 
 namespace Phantasma.Neo.Core

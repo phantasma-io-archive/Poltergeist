@@ -1,4 +1,4 @@
-﻿using Phantasma.Numerics;
+using Phantasma.Numerics;
 using Phantasma.SDK;
 using System;
 using UnityEngine;
