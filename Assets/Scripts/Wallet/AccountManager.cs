@@ -483,8 +483,8 @@ namespace Poltergeist
 
         public void UpdateRPCURL(PlatformKind platformKind)
         {
-            if (Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net ||
-                (platformKind == PlatformKind.BSC && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
+            if (Settings.nexusKind != NexusKind.Main_Net ||
+                ((platformKind == PlatformKind.Phantasma || platformKind == PlatformKind.BSC) && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
             {
                 rpcAvailablePhantasma = 1;
                 rpcAvailableNeo = 1;
