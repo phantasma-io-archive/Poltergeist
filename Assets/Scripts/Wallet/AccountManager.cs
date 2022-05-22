@@ -483,7 +483,7 @@ namespace Poltergeist
 
         public void UpdateRPCURL(PlatformKind platformKind)
         {
-            if (Settings.nexusKind != NexusKind.Main_Net ||
+            if (Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net ||
                 (platformKind == PlatformKind.BSC && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
             {
                 rpcAvailablePhantasma = 1;
@@ -494,7 +494,15 @@ namespace Poltergeist
 
             if (platformKind == PlatformKind.Phantasma)
             {
-                var url = $"https://ghostdevs.com/getpeers.json";
+                string url;
+                if(Settings.nexusKind == NexusKind.Main_Net)
+                {
+                    url = $"https://explorer.phantasma.io/mainnet-getpeers.json";
+                }
+                else
+                {
+                    url = $"https://explorer.phantasma.io/testnet-getpeers.json";
+                }
 
                 rpcBenchmarkedPhantasma = 0;
                 rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
