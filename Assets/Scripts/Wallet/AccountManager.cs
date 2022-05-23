@@ -497,11 +497,11 @@ namespace Poltergeist
                 string url;
                 if(Settings.nexusKind == NexusKind.Main_Net)
                 {
-                    url = $"https://explorer.phantasma.io/mainnet-getpeers.json";
+                    url = $"https://peers.phantasma.io/mainnet-getpeers.json";
                 }
                 else
                 {
-                    url = $"https://explorer.phantasma.io/testnet-getpeers.json";
+                    url = $"https://peers.phantasma.io/testnet-getpeers.json";
                 }
 
                 rpcBenchmarkedPhantasma = 0;
