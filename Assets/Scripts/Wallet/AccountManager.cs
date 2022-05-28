@@ -461,6 +461,8 @@ namespace Poltergeist
             else if (platformKind == PlatformKind.BSC)
                 platformRpcs = rpcResponseTimesBsc;
 
+            responseTime = TimeSpan.Zero;
+
             foreach (var rpcResponseTime in platformRpcs)
             {
                 if (!rpcResponseTime.ConnectionError && String.IsNullOrEmpty(fastestRpcUrl))
@@ -481,8 +483,8 @@ namespace Poltergeist
 
         public void UpdateRPCURL(PlatformKind platformKind)
         {
-            if (Settings.nexusKind != NexusKind.Main_Net ||
-                (platformKind == PlatformKind.BSC && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
+            if (Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net ||
+                (platformKind == PlatformKind.Neo && Settings.nexusKind != NexusKind.Main_Net))
             {
                 rpcAvailablePhantasma = 1;
                 rpcAvailableNeo = 1;
@@ -492,7 +494,15 @@ namespace Poltergeist
 
             if (platformKind == PlatformKind.Phantasma)
             {
-                var url = $"https://ghostdevs.com/getpeers.json";
+                string url;
+                if(Settings.nexusKind == NexusKind.Main_Net)
+                {
+                    url = $"https://peers.phantasma.io/mainnet-getpeers.json";
+                }
+                else
+                {
+                    url = $"https://peers.phantasma.io/testnet-getpeers.json";
+                }
 
                 rpcBenchmarkedPhantasma = 0;
                 rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
@@ -1064,25 +1074,43 @@ namespace Poltergeist
             PlayerPrefs.Save();
         }
 
+        private IEnumerator GetTokens(Action<Token[]> callback)
+        {
+            while (Status != "ok")
+            {
+                var coroutine = StartCoroutine(phantasmaApi.GetTokens((tokens) =>
+                {
+                    callback(tokens);
+                }, (error, msg) =>
+                {
+                    if (rpcAvailablePhantasma > 0 && Settings.nexusKind == NexusKind.Main_Net)
+                    {
+                        ChangeFaultyRPCURL(PlatformKind.Phantasma);
+                    }
+                    else
+                    {
+                        CurrentTokenCurrency = "";
+
+                        Status = "ok"; // We are launching with uninitialized tokens,
+                                       // to allow user to edit settings.
+                        
+                        Log.WriteWarning("Error: Launching with uninitialized tokens.");
+                    }
+
+                    Log.WriteWarning("Tokens initialization error: " + msg);
+                }));
+
+                yield return coroutine;
+            }
+        }
+
         private void TokensReinit()
         {
             Tokens.Reset();
 
-            StartCoroutine(phantasmaApi.GetTokens((tokens) =>
+            StartCoroutine(GetTokens((tokens) =>
             {
                 Tokens.Init(tokens);
-
-                CurrentTokenCurrency = "";
-
-                Status = "ok";
-            }, (error, msg) =>
-            {
-                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
-                {
-                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
-                }
-
-                Log.WriteWarning("Tokens initialization error: " + msg);
 
                 CurrentTokenCurrency = "";
 
@@ -1535,7 +1563,7 @@ namespace Poltergeist
             }
         }
 
-        public void InvokeScript(string chain, byte[] script, Action<byte[], string> callback)
+        public void InvokeScript(string chain, byte[] script, Action<string[], string> callback)
         {
             var account = this.CurrentAccount;
 
@@ -1547,7 +1575,7 @@ namespace Poltergeist
                         StartCoroutine(phantasmaApi.InvokeRawScript(chain, Base16.Encode(script), (x) =>
                         {
                             Log.Write("InvokeScript result: " + x.result, Log.Level.Debug1);
-                            callback(Base16.Decode(x.result), null);
+                            callback(x.results, null);
                         }, (error, log) =>
                         {
                             if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)

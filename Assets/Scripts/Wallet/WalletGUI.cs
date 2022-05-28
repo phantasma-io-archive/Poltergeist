@@ -6198,7 +6198,7 @@ namespace Poltergeist
             this.SendTransaction(description, script, null, chain, PoW, callback);
         }
 
-        public void InvokeScript(string chain, byte[] script, Action<byte[], string> callback)
+        public void InvokeScript(string chain, byte[] script, Action<string[], string> callback)
         {
             if (script == null || script.Length == 0)
             {
@@ -6207,11 +6207,11 @@ namespace Poltergeist
 
             var accountManager = AccountManager.Instance;
 
-            accountManager.InvokeScript(chain, script, (result, error) =>
+            accountManager.InvokeScript(chain, script, (results, error) =>
             {
                 if (String.IsNullOrEmpty(error))
                 {
-                    callback(result, null);
+                    callback(results, null);
                 }
                 else
                 {

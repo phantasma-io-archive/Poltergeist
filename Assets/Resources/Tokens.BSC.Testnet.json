@@ -1,3 +1,4 @@
 [{"symbol": "BNB", "name": "Binance Coin", "decimals": 18, "hash": ""},
-{"symbol": "BUSD", "name": "Binance USD", "decimals": 18, "hash": "ed24fc36d5ee211ea25a80239fb8c4cfd80f12ee"}
+{"symbol": "BUSD", "name": "Binance USD", "decimals": 18, "hash": "ed24fc36d5ee211ea25a80239fb8c4cfd80f12ee"},
+{"symbol": "GM", "name": "GhostMarket", "decimals": 8, "hash": "0xf3fd0f360ace3b0e83843221a763fec857291060"}
 ]

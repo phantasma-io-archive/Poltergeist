@@ -879,6 +879,7 @@ namespace Phantasma.SDK
     {
         public Event[] events; //
         public string result; //
+        public string[] results; //
         public Oracle[] oracles; //
 
         public static Script FromNode(DataNode node)
@@ -918,6 +919,21 @@ namespace Phantasma.SDK
                 result.oracles = new Oracle[0];
             }
 
+            var result_array = node.GetNode("results");
+            if (result_array != null)
+            {
+                result.results= new string[result_array.ChildCount];
+                int i = 0;
+                foreach (var child in result_array.Children)
+                {
+                    result.results[i] = child.Value;
+                    i++;
+                }
+            }
+            else
+            {
+                result.results = new string[] { result.result };
+            }
 
             return result;
         }
@@ -1354,7 +1370,7 @@ namespace Phantasma.SDK
         //Returns an array of tokens deployed in Phantasma.
         public IEnumerator GetTokens(Action<Token[]> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            yield return WebClient.RPCRequest(Host, "getTokens", WebClient.NoTimeout, 5, errorHandlingCallback, (node) =>
+            yield return WebClient.RPCRequest(Host, "getTokens", 5, 1, errorHandlingCallback, (node) =>
             {
                 var result = new Token[node.ChildCount];
                 for (int i = 0; i < result.Length; i++)

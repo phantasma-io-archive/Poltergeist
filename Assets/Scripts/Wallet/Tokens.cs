@@ -46,7 +46,7 @@ public static class Tokens
             var token = Tokens.GetToken(symbol, platform);
             if (token != null)
             {
-                if (token.name == name && token.decimals == decimals)
+                if (token.symbol == symbol && token.decimals == decimals)
                 {
                     var tokenList = token.external.ToList();
                     if (tokenList.Any(x => x.platform == platform.ToString().ToLower()))

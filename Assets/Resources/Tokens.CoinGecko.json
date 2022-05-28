@@ -51,4 +51,5 @@
 {"symbol": "LEO", "apiSymbol": "leo-token"},
 {"symbol": "BAT", "apiSymbol": "basic-attention-token"},
 {"symbol": "ADB", "apiSymbol": "adbank"},
-{"symbol": "SPE", "apiSymbol": "saveplanetearth"}]
+{"symbol": "SPE", "apiSymbol": "saveplanetearth"},
+{"symbol": "GM", "apiSymbol": "ghostmarket"}]
