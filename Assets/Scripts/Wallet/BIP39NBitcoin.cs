@@ -14,7 +14,7 @@ public static class BIP39NBitcoin
     {
         var mnemonic = new Mnemonic(mnemonicPhrase);
         var keyPathToDerive = KeyPath.Parse("m/44'/60'/0'/0");
-        var pk = new ExtKey(mnemonic.DeriveSeed(null)).Derive(keyPathToDerive);
+        var pk = mnemonic.DeriveExtKey(null).Derive(keyPathToDerive);
         var keyNew = pk.Derive(pkIndex);
         var pkeyBytes = keyNew.PrivateKey.PubKey.ToBytes();
         var ecParams = SecNamedCurves.GetByName("secp256k1");
