@@ -1,8 +1,7 @@
-using Phantasma.Core.Types;
-using Phantasma.Cryptography;
-using Phantasma.Numerics;
 using Phantasma.SDK;
-using Phantasma.VM.Utils;
+using Poltergeist.PhantasmaLegacy.Core.Types;
+using Poltergeist.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.VM.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;

@@ -1,10 +1,10 @@
 using System;
 using System.Collections;
 using LunarLabs.Parser;
-using Phantasma.Numerics;
-using Phantasma.Cryptography;
-using Phantasma.Ethereum;
-using Phantasma.Ethereum.Signer;
+using Poltergeist.PhantasmaLegacy.Cryptography;
+using Poltergeist.PhantasmaLegacy.Ethereum;
+using Poltergeist.PhantasmaLegacy.Ethereum.Signer;
+using Poltergeist.PhantasmaLegacy.Numerics;
 
 namespace Phantasma.SDK
 {
@@ -111,7 +111,7 @@ namespace Phantasma.SDK
             var realAmount = System.Numerics.BigInteger.Parse(amount.ToString());
 
             //Create a transaction from scratch
-            var tx = new Phantasma.Ethereum.Signer.Transaction(receiveAddress, realAmount, nonce, 
+            var tx = new Poltergeist.PhantasmaLegacy.Ethereum.Signer.Transaction(receiveAddress, realAmount, nonce, 
                 System.Numerics.BigInteger.Parse(gasPrice.ToString()),
                 System.Numerics.BigInteger.Parse(gasLimit.ToString()),
                 data);
@@ -129,7 +129,7 @@ namespace Phantasma.SDK
             var amountHex = amount.ToHex().PadLeft(64, '0');
 
             //Create a transaction from scratch
-            var tx = new Phantasma.Ethereum.Signer.Transaction(tokenContract,
+            var tx = new Poltergeist.PhantasmaLegacy.Ethereum.Signer.Transaction(tokenContract,
                 0, // Ammount of ETH to be transfered (0)
                 nonce,
                 System.Numerics.BigInteger.Parse(gasPrice.ToString()),

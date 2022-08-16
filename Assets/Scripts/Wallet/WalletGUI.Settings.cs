@@ -1,11 +1,10 @@
 using System;
 using System.Linq;
 using UnityEngine;
-using Phantasma.Numerics;
 using Phantasma.SDK;
-using Phantasma.Cryptography;
-using Phantasma.VM.Utils;
-using Phantasma.VM;
+using Poltergeist.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.VM.Utils;
+using Poltergeist.PhantasmaLegacy.VM;
 
 namespace Poltergeist
 {

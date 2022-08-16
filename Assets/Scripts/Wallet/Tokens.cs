@@ -4,8 +4,8 @@ using Phantasma.SDK;
 using Poltergeist;
 using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Domain;
 using System;
+using Poltergeist.PhantasmaLegacy.Domain;
 
 public static class Tokens
 {

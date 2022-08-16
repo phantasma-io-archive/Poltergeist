@@ -5,22 +5,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-using Phantasma.VM.Utils;
-using Phantasma.Cryptography;
-using Phantasma.Blockchain;
-using Phantasma.Numerics;
-using Phantasma.Storage;
-using Phantasma.Domain;
 using Phantasma.SDK;
 
 using ZXing;
 using ZXing.QrCode;
 using System.Globalization;
-using Phantasma.Core.Types;
 using System.Collections;
-using Phantasma.Ethereum;
 using System.Threading;
 using Poltergeist.Neo2.Core;
+using Poltergeist.PhantasmaLegacy.Cryptography;
+using Poltergeist.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Storage;
+using Poltergeist.PhantasmaLegacy.VM.Utils;
+using Poltergeist.PhantasmaLegacy.Blockchain;
+using Poltergeist.PhantasmaLegacy.Core.Types;
+using Poltergeist.PhantasmaLegacy.Domain;
+using Poltergeist.PhantasmaLegacy.Ethereum;
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
 using SFB;
 #elif UNITY_ANDROID
@@ -3015,7 +3015,7 @@ namespace Poltergeist
                             return; // user canceled
                         }
 
-                        var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                        var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
 
                         if (Address.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
                         {
@@ -3860,7 +3860,7 @@ namespace Poltergeist
                                     if (result == PromptResult.Success)
                                     {
                                         var keys = EthereumKey.FromWIF(accountManager.CurrentWif);
-                                        GUIUtility.systemCopyBuffer = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
+                                        GUIUtility.systemCopyBuffer = Poltergeist.PhantasmaLegacy.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.ToHex(keys.PrivateKey);
                                         MessageBox(MessageKind.Default, "Private key (HEX format) copied to the clipboard.");
                                     }
                                     else
@@ -4376,7 +4376,7 @@ namespace Poltergeist
                             sb.AllowGas(target, Address.Null, gasPrice, gasLimit * nftTransferList.Count);
                             foreach (var nftToBurn in nftTransferList)
                             {
-                                sb.CallInterop("Runtime.BurnToken", target, transferSymbol, Phantasma.Numerics.BigInteger.Parse(nftToBurn));
+                                sb.CallInterop("Runtime.BurnToken", target, transferSymbol, Poltergeist.PhantasmaLegacy.Numerics.BigInteger.Parse(nftToBurn));
                             }
                             sb.SpendGas(target);
                             script = sb.EndScript();
@@ -4451,7 +4451,7 @@ namespace Poltergeist
                         return; // user canceled
                     }
 
-                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                    var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
 
                     if (Address.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Phantasma))
                     {

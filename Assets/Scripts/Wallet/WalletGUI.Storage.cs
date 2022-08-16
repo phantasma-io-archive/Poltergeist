@@ -1,20 +1,20 @@
 using UnityEngine;
 using System.IO;
-using Phantasma.Domain;
-using Phantasma.Cryptography;
 using System;
-using Phantasma.VM.Utils;
 using Phantasma.SDK;
 using System.Linq;
-using Phantasma.Blockchain;
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
 using SFB;
 #elif UNITY_ANDROID
 using static NativeFilePicker;
 #endif
 using Archive = Phantasma.SDK.Archive;
-using Phantasma.Blockchain.Storage;
 using System.Text;
+using Poltergeist.PhantasmaLegacy.Domain;
+using Poltergeist.PhantasmaLegacy.Cryptography;
+using Poltergeist.PhantasmaLegacy.VM.Utils;
+using Poltergeist.PhantasmaLegacy.Blockchain;
+using Poltergeist.PhantasmaLegacy.Blockchain.Storage;
 
 namespace Poltergeist
 {

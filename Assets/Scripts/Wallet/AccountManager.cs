@@ -2,23 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-using Phantasma.Cryptography;
-using Phantasma.Storage;
-using Phantasma.Numerics;
 using System;
 using System.Linq;
 using Phantasma.SDK;
 using Poltergeist.Neo2.Core;
-using Phantasma.Domain;
-using Phantasma.Core;
-using Phantasma.Core.Utils;
-using Phantasma.Core.Types;
-using Phantasma.Ethereum;
 using LunarLabs.Parser;
-using Phantasma.VM.Utils;
-using Phantasma.Blockchain;
 using Archive = Phantasma.SDK.Archive;
-using Phantasma.VM;
+using Poltergeist.PhantasmaLegacy.Cryptography;
+using Poltergeist.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Domain;
+using Poltergeist.PhantasmaLegacy.Core.Types;
+using Poltergeist.PhantasmaLegacy.Storage;
+using Poltergeist.PhantasmaLegacy.Core;
+using Poltergeist.PhantasmaLegacy.VM.Utils;
+using Poltergeist.PhantasmaLegacy.Ethereum;
+using Poltergeist.PhantasmaLegacy.Blockchain;
+using Poltergeist.PhantasmaLegacy.VM;
 
 namespace Poltergeist
 {
@@ -1014,7 +1013,7 @@ namespace Poltergeist
                     var neoKeys = NeoKeys.FromWIF(account.WIF);
                     account.neoAddress = neoKeys.Address.ToString();
 
-                    var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                    var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
                     account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(account.WIF).Address);
 
                     if (!String.IsNullOrEmpty(Accounts[i].password))
@@ -2389,7 +2388,7 @@ namespace Poltergeist
                                         balanceMap[tokenBalance.Symbol] = tokenBalance;
                                 }
 
-                                var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                                var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
 
                                 // State without swaps
                                 var state = new AccountState()
@@ -2484,7 +2483,7 @@ namespace Poltergeist
                                         balanceMap[tokenBalance.Symbol] = tokenBalance;
                                 }
 
-                                var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+                                var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
 
                                 // State without swaps
                                 var state = new AccountState()
@@ -3373,7 +3372,7 @@ namespace Poltergeist
             var neoKeys = NeoKeys.FromWIF(wif);
             account.neoAddress = neoKeys.Address.ToString();
 
-            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
             account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
 
             if (!String.IsNullOrEmpty(password))
@@ -3418,7 +3417,7 @@ namespace Poltergeist
 
         public static Address EncodeEthereumAddress(string addressText)
         {
-            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
 
             Throw.If(!ethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
 
@@ -3427,7 +3426,7 @@ namespace Poltergeist
                 addressText = addressText.Substring(2);
             }
 
-            var scriptHash = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
+            var scriptHash = Poltergeist.PhantasmaLegacy.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
@@ -3436,7 +3435,7 @@ namespace Poltergeist
         }
         public static Address EncodeBinanceSmartChainAddress(string addressText)
         {
-            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
 
             Throw.If(!ethereumAddressUtil.IsValidEthereumAddressHexFormat(addressText), "invalid Ethereum address");
 
@@ -3445,7 +3444,7 @@ namespace Poltergeist
                 addressText = addressText.Substring(2);
             }
 
-            var scriptHash = Phantasma.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
+            var scriptHash = Poltergeist.PhantasmaLegacy.Ethereum.Hex.HexConvertors.Extensions.HexByteConvertorExtensions.HexToByteArray(addressText);
 
             var pubKey = new byte[33];
             ByteArrayUtils.CopyBytes(scriptHash, 0, pubKey, 0, scriptHash.Length);
@@ -3688,7 +3687,7 @@ namespace Poltergeist
             var neoKeys = NeoKeys.FromWIF(wif);
             account.neoAddress = neoKeys.Address.ToString();
 
-            var ethereumAddressUtil = new Phantasma.Ethereum.Util.AddressUtil();
+            var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
             account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
 
             Accounts[currentIndex] = account;
@@ -4060,7 +4059,7 @@ namespace Poltergeist
                                                                                     }
                                                                                     else
                                                                                     {
-                                                                                        var evnt = new Phantasma.Domain.Event(kind, Address.FromText(stakeEvent.address), stakeEvent.contract, Base16.Decode(stakeEvent.data));
+                                                                                        var evnt = new Poltergeist.PhantasmaLegacy.Domain.Event(kind, Address.FromText(stakeEvent.address), stakeEvent.contract, Base16.Decode(stakeEvent.data));
 
                                                                                         var tokenEventData = evnt.GetContent<TokenEventData>();
                                                                                         Log.Write(new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(tx.timestamp).ToLocalTime() +

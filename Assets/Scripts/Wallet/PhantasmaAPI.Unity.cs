@@ -6,15 +6,15 @@ using UnityEngine;
 
 using LunarLabs.Parser;
 
-using Phantasma.Numerics;
-using Phantasma.Cryptography;
 using System.Text;
-using Phantasma.Domain;
-using Phantasma.Blockchain.Storage;
 using System.Collections.Generic;
-using Phantasma.Storage.Utils;
-using Phantasma.VM;
 using System.Linq;
+using Poltergeist.PhantasmaLegacy.Cryptography;
+using Poltergeist.PhantasmaLegacy.Domain;
+using Poltergeist.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Blockchain.Storage;
+using Poltergeist.PhantasmaLegacy.VM;
+using Poltergeist.PhantasmaLegacy.Core.Types;
 
 namespace Phantasma.SDK
 {
@@ -736,7 +736,7 @@ namespace Phantasma.SDK
     {
         public string tokenId;
         public Address staker;
-        public Core.Types.Timestamp date;
+        public Timestamp date;
 
         public CrownRom(byte[] rom, string tokenId)
         {
@@ -758,7 +758,7 @@ namespace Phantasma.SDK
         private void UnserializeData(System.IO.BinaryReader reader)
         {
             this.staker = reader.ReadAddress();
-            this.date = new Core.Types.Timestamp(reader.ReadUInt32());
+            this.date = new Timestamp(reader.ReadUInt32());
         }
     }
     public class CustomRom : IRom
@@ -1677,7 +1677,7 @@ namespace Phantasma.SDK
         {
             Log.Write("Sending transaction...");
 
-            var tx = new Blockchain.Transaction(nexus, chain, script, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
+            var tx = new Poltergeist.PhantasmaLegacy.Blockchain.Transaction(nexus, chain, script, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
 
             if (PoW != ProofOfWork.None)
             {

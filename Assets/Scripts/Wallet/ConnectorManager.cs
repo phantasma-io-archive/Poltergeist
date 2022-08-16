@@ -10,9 +10,8 @@ using System.Net;
 using System.Text;
 using LunarLabs.WebServer.HTTP;
 using System.Security.Cryptography;
-using Phantasma.Domain;
 using Phantasma.SDK;
-
+using Poltergeist.PhantasmaLegacy.Domain;
 
 namespace Poltergeist
 {

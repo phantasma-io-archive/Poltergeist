@@ -4,12 +4,12 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.TestTools;
 using NUnit.Framework;
-using Phantasma.Numerics;
-using Phantasma.Cryptography;
-using Phantasma.Ethereum;
-using Phantasma.Cryptography.ECC;
-using Phantasma.Storage;
 using System.Collections;
+using Poltergeist.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Cryptography;
+using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
+using Poltergeist.PhantasmaLegacy.Ethereum;
+using Poltergeist.PhantasmaLegacy.Storage;
 
 namespace Phantasma.Tests
 {

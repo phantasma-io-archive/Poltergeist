@@ -1,6 +1,7 @@
 using Org.BouncyCastle.Asn1.Sec;
 using NBitcoin;
 using System;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 
 public static class BIP39NBitcoin
 {
@@ -34,7 +35,7 @@ public static class BIP39NBitcoin
     public static string MnemonicToWif(string mnemonicPhrase, uint pkIndex = 0)
     {
         var privKey = BIP39NBitcoin.MnemonicToPK(mnemonicPhrase, pkIndex);
-        var phaKeys = new Phantasma.Cryptography.PhantasmaKeys(privKey);
+        var phaKeys = new PhantasmaKeys(privKey);
         return phaKeys.ToWIF();
     }
 }

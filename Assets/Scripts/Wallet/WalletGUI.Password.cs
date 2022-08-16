@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 using Phantasma.SDK;
-using Phantasma.Cryptography;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 
 namespace Poltergeist
 {

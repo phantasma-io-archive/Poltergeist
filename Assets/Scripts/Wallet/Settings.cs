@@ -1,4 +1,4 @@
-using Phantasma.Numerics;
+using Poltergeist.PhantasmaLegacy.Numerics;
 using Phantasma.SDK;
 using System;
 using UnityEngine;
