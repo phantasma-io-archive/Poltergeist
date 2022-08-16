@@ -1,7 +1,7 @@
 using System.Linq;
-using Poltergeist.Neo2.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Numerics;
 
-namespace Poltergeist.Neo2.Cryptography.ECC
+namespace Poltergeist.PhantasmaLegacy.Cryptography.ECC
 {
     public enum ECDsaCurve
     {

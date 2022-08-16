@@ -1,7 +1,7 @@
 ﻿using System;
-using Poltergeist.Neo2.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Numerics;
 
-namespace Poltergeist.Neo2.Cryptography.ECC
+namespace Poltergeist.PhantasmaLegacy.Cryptography.ECC
 {
     internal class ECFieldElement : IComparable<ECFieldElement>, IEquatable<ECFieldElement>
     {

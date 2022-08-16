@@ -6,7 +6,7 @@ using System.Linq;
  * Author: Simão Pavlovich and Bernardo Pinho
  */
 
-namespace Poltergeist.Neo2.PhantasmaLegacy.Numerics
+namespace Poltergeist.PhantasmaLegacy.Numerics
 {
     public struct BigInteger : IEquatable<BigInteger>, IComparable<BigInteger>
     {

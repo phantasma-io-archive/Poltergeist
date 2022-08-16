@@ -4,7 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Collections;
 using System.Collections.Generic;
-using Poltergeist.Neo2.Cryptography;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.Neo2.Utils;
 using Poltergeist.Neo2.VM.Types;
 using Phantasma.SDK;

@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace Poltergeist.Neo2.PhantasmaLegacy.Numerics
+namespace Poltergeist.PhantasmaLegacy.Numerics
 {
     public static class Base58
     {

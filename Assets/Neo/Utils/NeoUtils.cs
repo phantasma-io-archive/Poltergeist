@@ -1,3 +1,4 @@
+using Poltergeist.PhantasmaLegacy.Cryptography;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -89,7 +90,7 @@ namespace Poltergeist.Neo2.Utils
             byte[] buffer;
             try
             {
-                buffer = Poltergeist.Neo2.PhantasmaLegacy.Numerics.Base58.Decode(address);
+                buffer = Poltergeist.PhantasmaLegacy.Numerics.Base58.Decode(address);
 
             }
             catch

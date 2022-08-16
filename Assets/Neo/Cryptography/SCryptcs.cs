@@ -1,7 +1,7 @@
 using System;
 using System.Security.Cryptography;
 
-namespace Poltergeist.Neo2.Cryptography
+namespace Poltergeist.PhantasmaLegacy.Cryptography
 {
     public static class SCrypt
     {

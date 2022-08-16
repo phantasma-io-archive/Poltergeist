@@ -3558,7 +3558,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
                 else
@@ -3576,7 +3576,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, null, ethKeys, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
             }
@@ -3609,7 +3609,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
                 else
@@ -3627,7 +3627,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, null, ethKeys, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
             }

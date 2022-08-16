@@ -1,5 +1,5 @@
 using Poltergeist.Neo2.Core;
-using Poltergeist.Neo2.Cryptography;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 using System;
 using System.IO;
 using System.Numerics;

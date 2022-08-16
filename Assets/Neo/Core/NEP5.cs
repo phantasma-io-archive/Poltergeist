@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Numerics;
 using Phantasma.SDK;
-using Poltergeist.Neo2.Cryptography;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.Neo2.Utils;
 
 namespace Poltergeist.Neo2.Core

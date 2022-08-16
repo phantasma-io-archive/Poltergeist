@@ -1,9 +1,8 @@
-using Poltergeist.Neo2.Cryptography.ECC;
+using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 using System;
 using System.Linq;
 using System.Text;
-using Poltergeist.Neo2.Cryptography;
-using Poltergeist.Neo2.Utils;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 
 namespace Poltergeist.Neo2.Core
 {
@@ -81,7 +80,7 @@ namespace Poltergeist.Neo2.Core
             byte[] addressHash = new byte[4];
             Buffer.BlockCopy(data, 3, addressHash, 0, 4);
             byte[] datapassphrase = Encoding.UTF8.GetBytes(passphrase);
-            byte[] derivedkey = Poltergeist.Neo2.Cryptography.SCrypt.DeriveKey(datapassphrase, addressHash, N, r, p, 64);
+            byte[] derivedkey = SCrypt.DeriveKey(datapassphrase, addressHash, N, r, p, 64);
             Array.Clear(datapassphrase, 0, datapassphrase.Length);
 
             byte[] derivedhalf1 = derivedkey.Take(32).ToArray();

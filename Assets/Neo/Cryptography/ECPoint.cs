@@ -2,9 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Poltergeist.Neo2.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Numerics;
 
-namespace Poltergeist.Neo2.Cryptography.ECC
+namespace Poltergeist.PhantasmaLegacy.Cryptography.ECC
 {
     public static class TempBI {
         private static int BitLen(int w)

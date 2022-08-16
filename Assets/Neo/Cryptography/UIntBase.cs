@@ -3,7 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 
-namespace Poltergeist.Neo2.Cryptography
+namespace Poltergeist.PhantasmaLegacy.Cryptography
 {
     public abstract class UIntBase : IEquatable<UIntBase>
     {

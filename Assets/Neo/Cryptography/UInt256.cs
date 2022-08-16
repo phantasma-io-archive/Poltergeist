@@ -3,7 +3,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 
-namespace Poltergeist.Neo2.Cryptography
+namespace Poltergeist.PhantasmaLegacy.Cryptography
 {
     public class UInt256 : UIntBase, IComparable<UInt256>, IEquatable<UInt256>
     {

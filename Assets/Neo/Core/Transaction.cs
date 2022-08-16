@@ -1,5 +1,5 @@
-using Poltergeist.Neo2.Cryptography.ECC;
-using Poltergeist.Neo2.Cryptography;
+using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.Neo2.Utils;
 using System;
 using System.Collections.Generic;
