@@ -52,11 +52,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
             return Address.FromHash(name);
         }
 
-        public static byte[] GetKeyForField(NativeContractKind nativeContract, string fieldName, bool isProtected)
-        {
-            return GetKeyForField(nativeContract.GetContractName(), fieldName, isProtected);
-        }
-
         public static byte[] GetKeyForField(string contractName, string fieldName, bool isProtected)
         {
             Throw.If(string.IsNullOrEmpty(contractName), "invalid contract name");
@@ -66,7 +61,5 @@ namespace Poltergeist.PhantasmaLegacy.Domain
 
             return Encoding.UTF8.GetBytes($"{prefix}{contractName}.{fieldName}");
         }
-
-
     }
 }

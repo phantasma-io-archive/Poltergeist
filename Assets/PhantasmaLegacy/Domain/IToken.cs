@@ -55,20 +55,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         ContractInterface ABI { get; }
     }
 
-    public struct PackedNFTData
-    {
-        public readonly string Symbol;
-        public readonly byte[] ROM;
-        public readonly byte[] RAM;
-
-        public PackedNFTData(string symbol, byte[] rom, byte[] ram)
-        {
-            Symbol = symbol;
-            ROM = rom;
-            RAM = ram;
-        }
-    }
-
     public interface ITokenSeries: ISerializable
     {
         BigInteger MintCount { get; }
@@ -195,62 +181,4 @@ namespace Poltergeist.PhantasmaLegacy.Domain
             this.ROM = newROM;
         }
     }
-
-
-    public static class TokenUtils
-    {
-        public static Address GetContractAddress(this IToken token)
-        {
-            return GetContractAddress(token.Symbol);
-        }
-
-        public static Address GetContractAddress(string symbol)
-        {
-            return SmartContract.GetAddressForName(symbol);
-        }
-
-        public static IEnumerable<ContractMethod> GetTriggersForABI(IEnumerable<TokenTrigger> triggers)
-        {
-            var entries = new Dictionary<TokenTrigger, int>();
-            foreach (var trigger in triggers)
-            {
-                entries[trigger] = 0;
-            }
-
-            return GetTriggersForABI(entries);
-        }
-
-        public static IEnumerable<ContractMethod> GetTriggersForABI(Dictionary<TokenTrigger, int> triggers)
-        {
-            var result = new List<ContractMethod>();
-
-            foreach (var entry in triggers)
-            {
-                var trigger = entry.Key;
-                var offset = entry.Value;
-
-                switch (trigger)
-                {
-                    case TokenTrigger.OnBurn:
-                    case TokenTrigger.OnMint:
-                    case TokenTrigger.OnReceive:
-                    case TokenTrigger.OnSend:
-                        result.Add(new ContractMethod(trigger.ToString(), VM.VMType.None, offset, new[] {
-                            new ContractParameter("from", VM.VMType.Object),
-                            new ContractParameter("to", VM.VMType.Object),
-                            new ContractParameter("symbol", VM.VMType.String),
-                            new ContractParameter("amount", VM.VMType.Number)
-                        }));
-                        break;
-
-                    default:
-                        throw new System.Exception("AddTriggerToABI: Unsupported trigger: " + trigger);
-                }
-            }
-
-            return result;
-        }
-
-    }
-
 }

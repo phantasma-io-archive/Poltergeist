@@ -10,14 +10,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         Blocks,
     }
 
-    public enum TaskResult
-    {
-        Running,
-        Halted,
-        Crashed,
-        Skipped,
-    }
-
     public interface ITask
     {
         BigInteger ID { get; }
@@ -31,7 +23,5 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         BigInteger GasLimit { get; }
         BigInteger Height { get; }
     }
-
-
 }
 

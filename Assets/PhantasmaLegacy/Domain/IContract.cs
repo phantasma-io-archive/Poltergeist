@@ -380,25 +380,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
                 }
             }
         }
-
-        /*
-        public T Invoke<T>(IContract contract, params object[] args)
-        {
-            return (T)Invoke(contract, args);
-        }
-
-        public object Invoke(IContract contract, params object[] args)
-        {
-            Throw.IfNull(contract, "null contract");
-            Throw.IfNull(args, "null args");
-            Throw.If(args.Length != this.parameters.Length, "invalid arg count");
-
-            var type = contract.GetType();
-            var method = type.GetMethod(this.name);
-            Throw.IfNull(method, "ABI mismatch");
-
-            return method.Invoke(contract, args);
-        }*/
     }
 
 }

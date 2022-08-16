@@ -49,39 +49,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
             "gamecenter", "pixgamecenter", "seal", "crosschain", "blacat",
             "bitladon", "bitcoinmeester" , "ico", "ieo", "sto", "kyc", };
 
-
-        //public static bool IsReservedIdentifier(string name)
-        //{
-        //    if (name == DomainSettings.InfusionName)
-        //    {
-        //        return true;
-        //    }
-        //
-        //    //System.Console.WriteLine("Trying to register: " + name);
-        //    bool isReserved = false;
-        //    for (int i = 0; i < prefixNames.Length; i++)
-        //    {
-        //        if (name.StartsWith(prefixNames[i]))
-        //        {
-        //            //System.Console.WriteLine("Starts with : " + prefixNames[i]+ " at index " +i);
-        //            isReserved = true;
-        //            break;
-        //        }
-        //    }
-        //
-        //    for (int i = 0; i < reservedNames.Length; i++)
-        //    {
-        //        if (name == reservedNames[i])
-        //        {
-        //            //System.Console.WriteLine("Reserved with : " + reservedNames[i]);
-        //            isReserved = true;
-        //            break;
-        //        }
-        //    }
-        //
-        //    return isReserved;
-        //}
-
         public static bool IsValidIdentifier(string name)
         {
             if (name == null)
@@ -114,59 +81,5 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         
             return true;
         }
-
-        public static bool IsValidTicker(string name)
-        {
-            if (name == null)
-            {
-                return false;
-            }
-
-            if (name.Length < 2 || name.Length > 5)
-            {
-                return false;
-            }
-
-
-            int index = 0;
-            while (index < name.Length)
-            {
-                var c = name[index];
-                index++;
-
-                if (c >= 65 && c <= 90) continue; // uppercase allowed
-
-                return false;
-            }
-
-            return true;
-        }
-
-        //public static bool IsValidMethod(string methodName, VMType returnType)
-        //{
-        //    if (string.IsNullOrEmpty(methodName) || methodName.Length < 3)
-        //    {
-        //        return false;
-        //    }
-        //
-        //    if (methodName.StartsWith("is") && char.IsUpper(methodName[2]))
-        //    {
-        //        return returnType == VMType.Bool;
-        //    }
-        //
-        //    // trigger
-        //    if (methodName.StartsWith("on") && char.IsUpper(methodName[2]))
-        //    {
-        //        return returnType == VMType.None;
-        //    }
-        //
-        //    // property
-        //    if (methodName.StartsWith("get") && char.IsUpper(methodName[3]))
-        //    {
-        //        return returnType != VMType.None;
-        //    }
-        //
-        //    return true;
-        //}
     }
 }

@@ -1,6 +1,5 @@
 ﻿using Poltergeist.PhantasmaLegacy.Core.Types;
 using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Domain
 {
@@ -9,16 +8,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         Failure,
         Missing,
         Success,
-    }
-
-    public enum AccountTrigger
-    {
-        OnMint, // address, symbol, amount
-        OnBurn, // address, symbol, amount
-        OnSend, // address, symbol, amount
-        OnReceive, // address, symbol, amount
-        OnWitness, // address
-        OnUpgrade, // address
     }
 
     public enum TokenTrigger
@@ -30,13 +19,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         OnInfuse, // address, symbol, amount
         OnUpgrade, // address
         OnSeries, // address
-    }
-
-    public enum OrganizationTrigger
-    {
-        OnAdd, // address
-        OnRemove, // address
-        OnUpgrade, // address
     }
 
     public struct StakeReward
