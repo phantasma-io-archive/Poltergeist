@@ -88,13 +88,13 @@ namespace Poltergeist.Neo2.Utils
             return concatSignature;
         }
 
-        public static byte[] Sign(byte[] message, byte[] prikey, byte[] pubkey, Phantasma.Cryptography.ECC.ECDsaCurve phaCurve = Phantasma.Cryptography.ECC.ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
+        public static byte[] Sign(byte[] message, byte[] prikey, byte[] pubkey, Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve phaCurve = Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
         {
             var signer = SignerUtilities.GetSigner("SHA256withECDSA");
             Org.BouncyCastle.Asn1.X9.X9ECParameters curve;
             switch (phaCurve)
             {
-                case Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1:
+                case Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256k1:
                     curve = Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetByName("secp256k1");
                     break;
                 default:
@@ -121,13 +121,13 @@ namespace Poltergeist.Neo2.Utils
             }
         }
 
-        public static bool Verify(byte[] message, byte[] signature, byte[] pubkey, Phantasma.Cryptography.ECC.ECDsaCurve phaCurve = Phantasma.Cryptography.ECC.ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
+        public static bool Verify(byte[] message, byte[] signature, byte[] pubkey, Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve phaCurve = Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
         {
             var signer = SignerUtilities.GetSigner("SHA256withECDSA");
             Org.BouncyCastle.Asn1.X9.X9ECParameters curve;
             switch (phaCurve)
             {
-                case Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1:
+                case Poltergeist.Neo2.Cryptography.ECC.ECDsaCurve.Secp256k1:
                     curve = Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetByName("secp256k1");
                     break;
                 default:
@@ -231,7 +231,7 @@ namespace Poltergeist.Neo2.Utils
 
         public static byte[] Base58CheckDecode(this string input)
         {
-            byte[] buffer = Phantasma.Numerics.Base58.Decode(input);
+            byte[] buffer = Poltergeist.Neo2.PhantasmaLegacy.Numerics.Base58.Decode(input);
             if (buffer.Length < 4) throw new FormatException();
             byte[] checksum = buffer.Sha256(0, buffer.Length - 4).Sha256();
             if (!buffer.Skip(buffer.Length - 4).SequenceEqual(checksum.Take(4)))
@@ -245,7 +245,7 @@ namespace Poltergeist.Neo2.Utils
             byte[] buffer = new byte[data.Length + 4];
             Buffer.BlockCopy(data, 0, buffer, 0, data.Length);
             Buffer.BlockCopy(checksum, 0, buffer, data.Length, 4);
-            return Phantasma.Numerics.Base58.Encode(buffer);
+            return Poltergeist.Neo2.PhantasmaLegacy.Numerics.Base58.Encode(buffer);
         }
 
         /// <summary>

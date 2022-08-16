@@ -1,4 +1,4 @@
-using Phantasma.Cryptography.ECC;
+using Poltergeist.Neo2.Cryptography.ECC;
 using Poltergeist.Neo2.Cryptography;
 using Poltergeist.Neo2.Utils;
 using System;

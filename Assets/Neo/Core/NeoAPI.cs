@@ -615,7 +615,7 @@ namespace Poltergeist.Neo2.Core
                 LogData(child, ident + 1);
         }
 
-        public IEnumerator ExecuteRequestRPC(Action<DataNode> callback, Action<Phantasma.SDK.EPHANTASMA_SDK_ERROR_TYPE, string> onError, string method, object[] _params)
+        public IEnumerator ExecuteRequestRPC(Action<DataNode> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> onError, string method, object[] _params)
         {
             return WebClient.RPCRequest(this.neoRPCUrl, method, WebClient.NoTimeout, 0, onError, (response) => callback(response), _params);
         }

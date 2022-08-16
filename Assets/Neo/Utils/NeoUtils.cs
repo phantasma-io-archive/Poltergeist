@@ -89,7 +89,7 @@ namespace Poltergeist.Neo2.Utils
             byte[] buffer;
             try
             {
-                buffer = Phantasma.Numerics.Base58.Decode(address);
+                buffer = Poltergeist.Neo2.PhantasmaLegacy.Numerics.Base58.Decode(address);
 
             }
             catch
