@@ -8,7 +8,6 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
 using System.Security.Cryptography;
-using System.Text;
 using System.Linq;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography
@@ -38,18 +37,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
                 var temp = agreement.CalculateAgreement(publicKeyParameters).ToByteArray();
                 return sha.ComputeHash(temp);
             }
-        }
-
-        public static byte[] Encrypt(byte[] input, byte[] localPrivateKeyBytes, byte[] remotePublicKeyBytes)
-        {
-            var secret = GetSharedSecret(localPrivateKeyBytes, remotePublicKeyBytes);
-            return Encrypt(input, secret);
-        }
-
-        public static byte[] Decrypt(byte[] input, byte[] localPrivateKeyBytes, byte[] remotePublicKeyBytes)
-        {
-            var secret = GetSharedSecret(localPrivateKeyBytes, remotePublicKeyBytes);
-            return Decrypt(input, secret);
         }
 
         public static byte[] Encrypt(byte[] input, byte[] key)
@@ -83,7 +70,5 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             cipher.DoFinal(outputBytes, length); //Do the final block       
             return outputBytes;
         }
-
     }
-
 }

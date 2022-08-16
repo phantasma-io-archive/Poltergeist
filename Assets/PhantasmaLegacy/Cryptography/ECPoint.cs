@@ -130,13 +130,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography.ECC
             return new ECPoint(x, beta, curve);
         }
 
-        void Deserialize(BinaryReader reader)
-        {
-            ECPoint p = DeserializeFrom(reader, Curve);
-            X = p.X;
-            Y = p.Y;
-        }
-
         public static ECPoint DeserializeFrom(BinaryReader reader, ECCurve curve)
         {
             int expectedLength = (curve.Q.GetBitLength() + 7) / 8;

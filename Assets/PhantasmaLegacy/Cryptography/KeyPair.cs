@@ -1,8 +1,6 @@
 ﻿using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Core;
 using Poltergeist.PhantasmaLegacy.Cryptography.EdDSA;
 using System;
-using System.Linq;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography
 {
@@ -44,13 +42,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             return Address.Text;
         }
 
-        public static PhantasmaKeys Generate()
-        {
-            var privateKey = Entropy.GetRandomBytes(PrivateKeyLength);
-            var pair = new PhantasmaKeys(privateKey);
-            return pair;
-        }
-
         public static PhantasmaKeys FromWIF(string wif)
         {
             Throw.If(wif == null, "WIF required");
@@ -73,12 +64,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             string wif = data.Base58CheckEncode();
             Array.Clear(data, 0, data.Length);
             return wif;
-        }
-
-        private static byte[] XOR(byte[] x, byte[] y)
-        {
-            if (x.Length != y.Length) throw new ArgumentException();
-            return x.Zip(y, (a, b) => (byte)(a ^ b)).ToArray();
         }
 
         public Signature Sign(byte[] msg, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)

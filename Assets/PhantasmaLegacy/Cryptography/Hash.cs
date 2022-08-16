@@ -242,30 +242,5 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             ByteArrayUtils.CopyBytes(B._data, 0, bytes, Hash.Length, Hash.Length);
             return Hash.FromBytes(bytes);
         }
-
-        public static Hash FromString(string str)
-        {
-            var bytes = CryptoExtensions.Sha256(str);
-            return new Hash(bytes);
-        }
-
-        public static Hash FromUnpaddedHex(string hash)
-        {
-            if (hash.StartsWith("0x"))
-            {
-                hash = hash.Substring(2);
-            }
-
-            var sb = new StringBuilder();
-            sb.Append(hash);
-            while (sb.Length < 64)
-            {
-                sb.Append('0');
-                sb.Append('0');
-            }
-
-            var temp = sb.ToString();
-            return Hash.Parse(temp);
-        }
     }
 }

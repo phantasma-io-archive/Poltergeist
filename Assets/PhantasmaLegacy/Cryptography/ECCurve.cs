@@ -3,12 +3,6 @@ using Poltergeist.PhantasmaLegacy.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography.ECC
 {
-/*    public enum ECDsaCurve
-    {
-        Secp256r1,
-        Secp256k1,
-    }*/
-
     public class ECCurve
     {
         internal readonly BigInteger Q;

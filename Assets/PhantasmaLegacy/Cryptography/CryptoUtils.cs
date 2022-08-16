@@ -187,48 +187,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             }
         }
 
-        public static byte[] AES256Encrypt(this byte[] block, byte[] key)
-        {
-            using (Aes aes = Aes.Create())
-            {
-                aes.Key = key;
-                aes.Mode = CipherMode.ECB;
-                aes.Padding = PaddingMode.None;
-                using (ICryptoTransform encryptor = aes.CreateEncryptor())
-                {
-                    return encryptor.TransformFinalBlock(block, 0, block.Length);
-                }
-            }
-        }
-
-        public static byte[] AesDecrypt(this byte[] data, byte[] key, byte[] iv)
-        {
-            if (data == null || key == null || iv == null) throw new ArgumentNullException();
-            if (data.Length % 16 != 0 || key.Length != 32 || iv.Length != 16) throw new ArgumentException();
-            using (Aes aes = Aes.Create())
-            {
-                aes.Padding = PaddingMode.None;
-                using (ICryptoTransform decryptor = aes.CreateDecryptor(key, iv))
-                {
-                    return decryptor.TransformFinalBlock(data, 0, data.Length);
-                }
-            }
-        }
-
-        public static byte[] AesEncrypt(this byte[] data, byte[] key, byte[] iv)
-        {
-            if (data == null || key == null || iv == null) throw new ArgumentNullException();
-            if (data.Length % 16 != 0 || key.Length != 32 || iv.Length != 16) throw new ArgumentException();
-            using (Aes aes = Aes.Create())
-            {
-                aes.Padding = PaddingMode.None;
-                using (ICryptoTransform encryptor = aes.CreateEncryptor(key, iv))
-                {
-                    return encryptor.TransformFinalBlock(data, 0, data.Length);
-                }
-            }
-        }
-
         public static byte[] Base58CheckDecode(this string input)
         {
             byte[] buffer = PhantasmaLegacy.Numerics.Base58.Decode(input);
@@ -248,49 +206,14 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             return PhantasmaLegacy.Numerics.Base58.Encode(buffer);
         }
 
-        /// <summary>
-        /// 求字节数组的ripemd160散列值
-        /// </summary>
-        /// <param name="value">字节数组</param>
-        /// <returns>返回该散列值</returns>
         public static byte[] RIPEMD160(this IEnumerable<byte> value)
         {
             return _ripemd160.Value.ComputeHash(value.ToArray());
         }
 
-        /// <summary>
-        /// 求字节数组的sha256散列值
-        /// </summary>
-        /// <param name="value">字节数组</param>
-        /// <returns>返回该散列值</returns>
-        public static byte[] Sha256(this IEnumerable<byte> value)
-        {
-            return _sha256.Value.ComputeHash(value.ToArray());
-        }
-
-        /// <summary>
-        /// 求字节数组的sha256散列值
-        /// </summary>
-        /// <param name="value">字节数组</param>
-        /// <param name="offset">偏移量，散列计算时从该偏移量处开始</param>
-        /// <param name="count">要计算散列值的字节数量</param>
-        /// <returns>返回该散列值</returns>
         public static byte[] Sha256(this byte[] value, int offset, int count)
         {
             return _sha256.Value.ComputeHash(value, offset, count);
-        }
-
-        internal static byte[] ToAesKey(this string password)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
-                byte[] passwordHash = sha256.ComputeHash(passwordBytes);
-                byte[] passwordHash2 = sha256.ComputeHash(passwordHash);
-                Array.Clear(passwordBytes, 0, passwordBytes.Length);
-                Array.Clear(passwordHash, 0, passwordHash.Length);
-                return passwordHash2;
-            }
         }
 
         public static byte[] AddressToScriptHash(this string s)
@@ -299,23 +222,5 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             var data = bytes.Skip(1).Take(20).ToArray();
             return data;
         }
-
-        public static string MD5(this byte[] inputBytes)
-        {
-            // step 1, calculate MD5 hash from input
-            MD5 md5 = System.Security.Cryptography.MD5.Create();
-
-            byte[] hash = md5.ComputeHash(inputBytes);
-
-            // step 2, convert byte array to hex string
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < hash.Length; i++)
-            {
-                sb.Append(hash[i].ToString("X2"));
-            }
-
-            return sb.ToString();
-        }
-
     }
 }
