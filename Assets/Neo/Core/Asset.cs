@@ -1,6 +1,6 @@
 using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.Neo2.Utils;
+using Poltergeist.PhantasmaLegacy.Neo2;
 using System;
 using System.IO;
 

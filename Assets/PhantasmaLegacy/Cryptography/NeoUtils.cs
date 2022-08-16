@@ -8,7 +8,7 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Poltergeist.Neo2.Utils
+namespace Poltergeist.PhantasmaLegacy.Neo2
 {
     public class ByteArrayComparer : IEqualityComparer<byte[]>
     {

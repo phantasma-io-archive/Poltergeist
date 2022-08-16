@@ -1,7 +1,8 @@
 ﻿{
     "name": "Tests",
     "references": [
-        "Neo"
+        "Neo",
+        "PhantasmaLegacy"
     ],
     "precompiledReferences": [
         "Phantasma.Blockchain.dll",

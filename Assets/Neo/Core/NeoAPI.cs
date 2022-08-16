@@ -5,8 +5,9 @@ using System.Numerics;
 using System.Collections;
 using System.Collections.Generic;
 using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.Neo2.Utils;
+using Poltergeist.PhantasmaLegacy.Neo2;
 using Poltergeist.Neo2.VM.Types;
+using Poltergeist.Neo2.Utils;
 using Phantasma.SDK;
 
 namespace Poltergeist.Neo2.Core

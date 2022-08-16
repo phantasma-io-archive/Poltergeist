@@ -3029,7 +3029,7 @@ namespace Poltergeist
                             }
                         }
                         else
-                        if (Poltergeist.Neo2.Utils.NeoUtils.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Neo))
+                        if (Poltergeist.PhantasmaLegacy.Neo2.NeoUtils.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Neo))
                         {
                             if (accountManager.CurrentPlatform == PlatformKind.Neo)
                             {
@@ -4465,7 +4465,7 @@ namespace Poltergeist
                         }
                     }
                     else
-                    if (Poltergeist.Neo2.Utils.NeoUtils.IsValidAddress(destAddress))
+                    if (Poltergeist.PhantasmaLegacy.Neo2.NeoUtils.IsValidAddress(destAddress))
                     {
                         MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to Neo address not supported.");
                     }

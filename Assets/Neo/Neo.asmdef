@@ -2,6 +2,7 @@
     "name": "Neo",
     "allowUnsafeCode" : true,
     "references": [
-        "Phantasma.SDK"
+        "Phantasma.SDK",
+        "PhantasmaLegacy"
     ]
 }

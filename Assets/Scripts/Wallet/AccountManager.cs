@@ -3407,7 +3407,7 @@ namespace Poltergeist
 
         public static Address EncodeNeoAddress(string addressText)
         {
-            Throw.If(!Poltergeist.Neo2.Utils.NeoUtils.IsValidAddress(addressText), "invalid neo address");
+            Throw.If(!Poltergeist.PhantasmaLegacy.Neo2.NeoUtils.IsValidAddress(addressText), "invalid neo address");
             var scriptHash = addressText.Base58CheckDecode();
 
             var pubKey = new byte[33];

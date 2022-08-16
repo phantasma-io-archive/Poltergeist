@@ -1,8 +1,8 @@
+using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 using System;
 using System.Linq;
 using System.Text;
-using Poltergeist.PhantasmaLegacy.Cryptography;
 
 namespace Poltergeist.Neo2.Core
 {

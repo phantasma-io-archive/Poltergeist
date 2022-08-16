@@ -8,6 +8,7 @@ using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
+using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography
 {
@@ -87,13 +88,13 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             return concatSignature;
         }
 
-        public static byte[] Sign(byte[] message, byte[] prikey, byte[] pubkey, ECC.ECDsaCurve phaCurve = ECC.ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
+        public static byte[] Sign(byte[] message, byte[] prikey, byte[] pubkey, ECDsaCurve phaCurve = ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
         {
             var signer = SignerUtilities.GetSigner("SHA256withECDSA");
             Org.BouncyCastle.Asn1.X9.X9ECParameters curve;
             switch (phaCurve)
             {
-                case ECC.ECDsaCurve.Secp256k1:
+                case ECDsaCurve.Secp256k1:
                     curve = Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetByName("secp256k1");
                     break;
                 default:
@@ -120,13 +121,13 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             }
         }
 
-        public static bool Verify(byte[] message, byte[] signature, byte[] pubkey, ECC.ECDsaCurve phaCurve = ECC.ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
+        public static bool Verify(byte[] message, byte[] signature, byte[] pubkey, ECDsaCurve phaCurve = ECDsaCurve.Secp256r1, SignatureFormat signatureFormat = SignatureFormat.Concatenated)
         {
             var signer = SignerUtilities.GetSigner("SHA256withECDSA");
             Org.BouncyCastle.Asn1.X9.X9ECParameters curve;
             switch (phaCurve)
             {
-                case ECC.ECDsaCurve.Secp256k1:
+                case ECDsaCurve.Secp256k1:
                     curve = Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetByName("secp256k1");
                     break;
                 default:
@@ -163,7 +164,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
         }
 
         private static ThreadLocal<SHA256> _sha256 = new ThreadLocal<SHA256>(() => SHA256.Create());
-        private static ThreadLocal<RIPEMD160> _ripemd160 = new ThreadLocal<RIPEMD160>(() => new RIPEMD160());
+        private static ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160> _ripemd160 = new ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160>(() => new PhantasmaLegacy.Cryptography.RIPEMD160());
 
         public static T[] SubArray<T>(this T[] data, int index, int length)
         {
@@ -230,7 +231,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
         public static byte[] Base58CheckDecode(this string input)
         {
-            byte[] buffer = Numerics.Base58.Decode(input);
+            byte[] buffer = PhantasmaLegacy.Numerics.Base58.Decode(input);
             if (buffer.Length < 4) throw new FormatException();
             byte[] checksum = buffer.Sha256(0, buffer.Length - 4).Sha256();
             if (!buffer.Skip(buffer.Length - 4).SequenceEqual(checksum.Take(4)))
@@ -244,7 +245,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             byte[] buffer = new byte[data.Length + 4];
             Buffer.BlockCopy(data, 0, buffer, 0, data.Length);
             Buffer.BlockCopy(checksum, 0, buffer, data.Length, 4);
-            return Numerics.Base58.Encode(buffer);
+            return PhantasmaLegacy.Numerics.Base58.Encode(buffer);
         }
 
         /// <summary>

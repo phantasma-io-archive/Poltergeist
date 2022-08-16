@@ -1,6 +1,5 @@
-using Poltergeist.Neo2.Utils;
+using Poltergeist.PhantasmaLegacy.Neo2;
 using System;
-using System.IO;
 using System.Linq;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography

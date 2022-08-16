@@ -1,4 +1,4 @@
-using Poltergeist.Neo2.Utils;
+using Poltergeist.PhantasmaLegacy.Neo2;
 using System.IO;
 
 namespace Poltergeist.Neo2.Core
