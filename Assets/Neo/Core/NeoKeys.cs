@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using Poltergeist.Neo2.Cryptography;
 using Poltergeist.Neo2.Utils;
-using Phantasma.Core;
 
 namespace Poltergeist.Neo2.Core
 {
@@ -66,8 +65,14 @@ namespace Poltergeist.Neo2.Core
 
         public static NeoKeys FromNEP2(string nep2, string passphrase, int N = 16384, int r = 8, int p = 8)
         {
-            Throw.IfNull(nep2, nameof(nep2));
-            Throw.IfNull(passphrase, nameof(passphrase));
+            if (nep2 == null)
+            {
+                throw new ArgumentNullException(nameof(nep2));
+            }
+            if (passphrase == null)
+            {
+                throw new ArgumentNullException(nameof(passphrase));
+            }
 
             byte[] data = nep2.Base58CheckDecode();
             if (data.Length != 39 || data[0] != 0x01 || data[1] != 0x42 || data[2] != 0xe0)
