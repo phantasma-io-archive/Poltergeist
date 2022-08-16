@@ -1,13 +1,13 @@
 using Phantasma.Cryptography.ECC;
-using Phantasma.Neo.Cryptography;
-using Phantasma.Neo.Utils;
+using Poltergeist.Neo2.Cryptography;
+using Poltergeist.Neo2.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Phantasma.Neo.Core
+namespace Poltergeist.Neo2.Core
 {
     public enum TransactionAttributeUsage
     {

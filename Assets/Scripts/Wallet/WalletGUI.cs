@@ -20,7 +20,7 @@ using Phantasma.Core.Types;
 using System.Collections;
 using Phantasma.Ethereum;
 using System.Threading;
-using Phantasma.Neo.Core;
+using Poltergeist.Neo2.Core;
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
 using SFB;
 #elif UNITY_ANDROID
@@ -1404,7 +1404,7 @@ namespace Poltergeist
                                             {
                                                 try
                                                 {
-                                                    var decryptedKeys = Phantasma.Neo.Core.NeoKeys.FromNEP2(key, passphrase);
+                                                    var decryptedKeys = Poltergeist.Neo2.Core.NeoKeys.FromNEP2(key, passphrase);
                                                     ImportWallet(decryptedKeys.WIF, -1, 1, passphrase, true, null);
                                                 }
                                                 catch (Exception e)
@@ -3029,7 +3029,7 @@ namespace Poltergeist
                             }
                         }
                         else
-                        if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Neo))
+                        if (Poltergeist.Neo2.Utils.NeoUtils.IsValidAddress(destAddress) && accountManager.CurrentPlatform.ValidateTransferTarget(transferToken, PlatformKind.Neo))
                         {
                             if (accountManager.CurrentPlatform == PlatformKind.Neo)
                             {
@@ -4465,7 +4465,7 @@ namespace Poltergeist
                         }
                     }
                     else
-                    if (Phantasma.Neo.Utils.NeoUtils.IsValidAddress(destAddress))
+                    if (Poltergeist.Neo2.Utils.NeoUtils.IsValidAddress(destAddress))
                     {
                         MessageBox(MessageKind.Error, $"Direct transfers from {accountManager.CurrentPlatform} to Neo address not supported.");
                     }

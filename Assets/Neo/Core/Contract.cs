@@ -1,7 +1,7 @@
-using Phantasma.Neo.Utils;
+using Poltergeist.Neo2.Utils;
 using System.IO;
 
-namespace Phantasma.Neo.Core
+namespace Poltergeist.Neo2.Core
 {
     public enum ContractProperties : byte
     {

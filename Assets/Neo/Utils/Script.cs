@@ -1,11 +1,11 @@
-using Phantasma.Neo.Core;
-using Phantasma.Neo.Cryptography;
+using Poltergeist.Neo2.Core;
+using Poltergeist.Neo2.Cryptography;
 using System;
 using System.IO;
 using System.Numerics;
 using System.Text;
 
-namespace Phantasma.Neo.Utils
+namespace Poltergeist.Neo2.Utils
 {
     public class ScriptBuilder : IDisposable
     {

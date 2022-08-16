@@ -254,7 +254,7 @@ namespace Poltergeist
 
                             case SignatureKind.ECDSA:
                                 var ethKeys = Phantasma.Ethereum.EthereumKey.FromWIF(wif);
-                                var signatureBytes = Phantasma.Neo.Utils.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                                var signatureBytes = Poltergeist.Neo2.Utils.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
                                 signature = new Phantasma.Cryptography.ECC.ECDsaSignature(signatureBytes, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
                                 break;
 

@@ -1,12 +1,12 @@
-using Phantasma.Core;
 using Phantasma.Cryptography.ECC;
-using Phantasma.Neo.Cryptography;
-using Phantasma.Neo.Utils;
 using System;
 using System.Linq;
 using System.Text;
+using Poltergeist.Neo2.Cryptography;
+using Poltergeist.Neo2.Utils;
+using Phantasma.Core;
 
-namespace Phantasma.Neo.Core
+namespace Poltergeist.Neo2.Core
 {
     public class NeoKeys 
     {

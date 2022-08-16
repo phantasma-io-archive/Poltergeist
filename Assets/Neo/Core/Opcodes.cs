@@ -1,4 +1,4 @@
-namespace Phantasma.Neo.Core
+namespace Poltergeist.Neo2.Core
 {
     public enum OpCode : byte
     {

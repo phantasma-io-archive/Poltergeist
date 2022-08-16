@@ -1,9 +1,10 @@
-using Phantasma.Neo.Cryptography;
-using Phantasma.Neo.Utils;
+using Poltergeist.Neo2.Core;
+using Poltergeist.Neo2.Cryptography;
+using Poltergeist.Neo2.Utils;
 using System;
 using System.IO;
 
-namespace Phantasma.Neo.Core
+namespace Poltergeist.Neo2
 {
     public class Block 
     {

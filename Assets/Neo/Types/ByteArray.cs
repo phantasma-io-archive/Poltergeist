@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Phantasma.Neo.VM.Types
+namespace Poltergeist.Neo2.VM.Types
 {
     public class ByteArray : StackItem
     {

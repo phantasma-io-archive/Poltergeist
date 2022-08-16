@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Numerics;
 
-namespace Phantasma.Neo.VM.Types
+namespace Poltergeist.Neo2.VM.Types
 {
     public class Boolean : StackItem
     {

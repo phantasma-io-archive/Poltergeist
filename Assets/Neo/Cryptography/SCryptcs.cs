@@ -1,7 +1,7 @@
 using System;
 using System.Security.Cryptography;
 
-namespace Phantasma.Cryptography
+namespace Poltergeist.Cryptography
 {
     public static class SCrypt
     {

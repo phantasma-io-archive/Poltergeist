@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Phantasma.Neo.VM.Types
+namespace Poltergeist.Neo2.VM.Types
 {
     public class Map : StackItem, ICollection, IDictionary<StackItem, StackItem>
     {

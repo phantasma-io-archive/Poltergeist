@@ -4,13 +4,13 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using Phantasma.Neo.Cryptography;
+using Poltergeist.Neo2.Cryptography;
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
 
-namespace Phantasma.Neo.Utils
+namespace Poltergeist.Neo2.Utils
 {
     public static class CryptoUtils
     {
@@ -164,7 +164,7 @@ namespace Phantasma.Neo.Utils
         }
 
         private static ThreadLocal<SHA256> _sha256 = new ThreadLocal<SHA256>(() => SHA256.Create());
-        private static ThreadLocal<Phantasma.Neo.Cryptography.RIPEMD160> _ripemd160 = new ThreadLocal<Phantasma.Neo.Cryptography.RIPEMD160>(() => new Phantasma.Neo.Cryptography.RIPEMD160());
+        private static ThreadLocal<Poltergeist.Neo2.Cryptography.RIPEMD160> _ripemd160 = new ThreadLocal<Poltergeist.Neo2.Cryptography.RIPEMD160>(() => new Poltergeist.Neo2.Cryptography.RIPEMD160());
 
         public static T[] SubArray<T>(this T[] data, int index, int length)
         {

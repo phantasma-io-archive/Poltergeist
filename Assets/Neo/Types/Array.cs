@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Phantasma.Neo.VM.Types
+namespace Poltergeist.Neo2.VM.Types
 {
     public class Array : StackItem, ICollection, IList<StackItem>
     {

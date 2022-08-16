@@ -1,9 +1,9 @@
-using Phantasma.Neo.Utils;
+using Poltergeist.Neo2.Utils;
 using System;
 using System.Globalization;
 using System.Linq;
 
-namespace Phantasma.Neo.Cryptography
+namespace Poltergeist.Neo2.Cryptography
 {
     public class UInt160 : UIntBase, IComparable<UInt160>, IEquatable<UInt160>
     {

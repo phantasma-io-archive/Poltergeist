@@ -2,7 +2,7 @@ using System;
 using System.Security;
 using System.Security.Cryptography;
 
-namespace Phantasma.Neo.Cryptography
+namespace Poltergeist.Neo2.Cryptography
 {
     public class RIPEMD160 : HashAlgorithm
     {

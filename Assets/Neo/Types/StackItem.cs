@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using Array = Phantasma.Neo.VM.Types.Array;
-using Boolean = Phantasma.Neo.VM.Types.Boolean;
+using Array = Poltergeist.Neo2.VM.Types.Array;
+using Boolean = Poltergeist.Neo2.VM.Types.Boolean;
 
-namespace Phantasma.Neo.VM.Types
+namespace Poltergeist.Neo2.VM.Types
 {
     public abstract class StackItem : IEquatable<StackItem>
     {

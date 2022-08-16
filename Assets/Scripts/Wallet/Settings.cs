@@ -477,7 +477,7 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
+                            var neoRpcList = Poltergeist.Neo2.Utils.NeoRpcs.GetList();
                             int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
                             _return_value = neoRpcList[index];
                             break;

@@ -4,12 +4,12 @@ using System.Linq;
 using System.Numerics;
 using System.Collections;
 using System.Collections.Generic;
-using Phantasma.Neo.Cryptography;
-using Phantasma.Neo.Utils;
-using Phantasma.Neo.VM.Types;
+using Poltergeist.Neo2.Cryptography;
+using Poltergeist.Neo2.Utils;
+using Poltergeist.Neo2.VM.Types;
 using Phantasma.SDK;
 
-namespace Phantasma.Neo.Core
+namespace Poltergeist.Neo2.Core
 {
     public class NeoException : Exception
     {
@@ -660,7 +660,7 @@ namespace Phantasma.Neo.Core
         }
 
         // Note: This current implementation requires NeoScan running at port 4000
-        public IEnumerator GetClaimable(string address, Action<List<UnspentEntry>, decimal> callback, Action<SDK.EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
+        public IEnumerator GetClaimable(string address, Action<List<UnspentEntry>, decimal> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
         {
             var url = this.neoscanUrl + "/api/main_net/v1/get_claimable/" + address;
             return WebClient.RESTRequest(url, WebClient.NoTimeout,
@@ -686,7 +686,7 @@ namespace Phantasma.Neo.Core
                 });
         }
 
-        public IEnumerator GetUnclaimed(string address, Action<decimal> callback, Action<SDK.EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
+        public IEnumerator GetUnclaimed(string address, Action<decimal> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
         {
             var url = this.neoscanUrl + "/api/main_net/v1/get_unclaimed/" + address;
             return WebClient.RESTRequest(url, WebClient.NoTimeout,

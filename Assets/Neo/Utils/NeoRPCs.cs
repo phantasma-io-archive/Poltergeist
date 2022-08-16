@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Phantasma.Neo.Utils
+namespace Poltergeist.Neo2.Utils
 {
     public static class NeoRpcs
     {

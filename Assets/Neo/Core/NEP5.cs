@@ -1,10 +1,11 @@
 using System;
 using System.Collections;
 using System.Numerics;
-using Phantasma.Neo.Cryptography;
-using Phantasma.Neo.Utils;
+using Phantasma.SDK;
+using Poltergeist.Neo2.Cryptography;
+using Poltergeist.Neo2.Utils;
 
-namespace Phantasma.Neo.Core
+namespace Poltergeist.Neo2.Core
 {
     public class NEP5
     {
@@ -27,11 +28,11 @@ namespace Phantasma.Neo.Core
             this.ScriptHash = contractHash;
         }
 
-        public IEnumerator Transfer(UnspentEntries unspent, NeoKeys from_key, string to_address, BigInteger amount, string interop, decimal fee, Action<Transaction, string> callback, Action<SDK.EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
+        public IEnumerator Transfer(UnspentEntries unspent, NeoKeys from_key, string to_address, BigInteger amount, string interop, decimal fee, Action<Transaction, string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
         {
             return Transfer(unspent, from_key, to_address.GetScriptHashFromAddress(), amount, interop, fee, callback, errorHandlingCallback);
         }
-        public IEnumerator Transfer(UnspentEntries unspent, NeoKeys from_key, byte[] to_address_hash, BigInteger amount, string interop, decimal fee, Action<Transaction, string> callback, Action<SDK.EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
+        public IEnumerator Transfer(UnspentEntries unspent, NeoKeys from_key, byte[] to_address_hash, BigInteger amount, string interop, decimal fee, Action<Transaction, string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback)
         {
             var sender_address_hash = from_key.Address.GetScriptHashFromAddress();
             return api.CallContract(callback, errorHandlingCallback, unspent, from_key, ScriptHash, "transfer", new object[] { sender_address_hash, to_address_hash, amount}, interop, fee);

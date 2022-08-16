@@ -8,7 +8,7 @@ using Phantasma.Numerics;
 using System;
 using System.Linq;
 using Phantasma.SDK;
-using Phantasma.Neo.Core;
+using Poltergeist.Neo2.Core;
 using Phantasma.Domain;
 using Phantasma.Core;
 using Phantasma.Core.Utils;
@@ -298,7 +298,7 @@ namespace Poltergeist
         public Phantasma.SDK.PhantasmaAPI phantasmaApi { get; private set; }
         public Phantasma.SDK.EthereumAPI ethereumApi { get; private set; }
         public Phantasma.SDK.EthereumAPI binanceSmartChainApi { get; private set; }
-        public Phantasma.Neo.Core.NeoAPI neoApi;
+        public Poltergeist.Neo2.Core.NeoAPI neoApi;
 
         public static PlatformKind[] AvailablePlatforms { get; private set; }
         public static PlatformKind MergeAvailablePlatforms()
@@ -620,7 +620,7 @@ namespace Poltergeist
                 rpcBenchmarkedNeo = 0;
                 rpcResponseTimesNeo = new List<RpcBenchmarkData>();
 
-                var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
+                var neoRpcList = Poltergeist.Neo2.Utils.NeoRpcs.GetList();
                 rpcNumberNeo = neoRpcList.Count;
 
                 if (String.IsNullOrEmpty(Settings.neoRPCURL))
@@ -3407,7 +3407,7 @@ namespace Poltergeist
 
         public static Address EncodeNeoAddress(string addressText)
         {
-            Throw.If(!Phantasma.Neo.Utils.NeoUtils.IsValidAddress(addressText), "invalid neo address");
+            Throw.If(!Poltergeist.Neo2.Utils.NeoUtils.IsValidAddress(addressText), "invalid neo address");
             var scriptHash = addressText.Base58CheckDecode();
 
             var pubKey = new byte[33];
@@ -3558,7 +3558,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
                 else
@@ -3576,7 +3576,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, null, ethKeys, (message, prikey, pubkey) =>
                     {
-                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
             }
@@ -3609,7 +3609,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
                 else
@@ -3627,7 +3627,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, null, ethKeys, (message, prikey, pubkey) =>
                     {
-                        return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
                 }
             }

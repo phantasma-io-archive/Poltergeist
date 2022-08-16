@@ -38,7 +38,7 @@ namespace Phantasma.Tests
             var msgBytes = Encoding.ASCII.GetBytes("Phantasma");
             var signature = ethKeys.Sign(msgBytes, (message, prikey, pubkey) =>
             {
-                return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
             });
 
             var ecdsaSignature = (ECDsaSignature)signature;
@@ -51,7 +51,7 @@ namespace Phantasma.Tests
 
             var signatureDEREncoded = ethKeys.Sign(msgBytes, (message, prikey, pubkey) =>
             {
-                return Phantasma.Neo.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1, Neo.Utils.CryptoUtils.SignatureFormat.DEREncoded);
+                return Poltergeist.Neo2.Utils.CryptoUtils.Sign(message, prikey, pubkey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1, Poltergeist.Neo2.Utils.CryptoUtils.SignatureFormat.DEREncoded);
             });
 
             var ecdsaSignatureDEREncoded = (ECDsaSignature)signatureDEREncoded;
@@ -62,14 +62,14 @@ namespace Phantasma.Tests
             // Since ECDsaSignature class not working for us,
             // we use signature .Bytes directly to verify it with Bouncy Castle.
             // Verifying concatenated signature / compressed Eth public key.
-            Assert.IsTrue(Phantasma.Neo.Utils.CryptoUtils.Verify(msgBytes, ecdsaSignature.Bytes, ethPublicKeyCompressed, ECDsaCurve.Secp256k1));
+            Assert.IsTrue(Poltergeist.Neo2.Utils.CryptoUtils.Verify(msgBytes, ecdsaSignature.Bytes, ethPublicKeyCompressed, ECDsaCurve.Secp256k1));
 
             // Verifying concatenated signature / uncompressed Eth public key.
             // Not working with Bouncy Castle.
             // Assert.IsTrue(Phantasma.Neo.Utils.CryptoUtils.Verify(msgBytes, ecdsaSignature.Bytes, ethPublicKeyUncompressed, ECDsaCurve.Secp256k1));
 
             // Verifying DER signature.
-            Assert.IsTrue(Phantasma.Neo.Utils.CryptoUtils.Verify(msgBytes, ecdsaSignatureDEREncoded.Bytes, ethPublicKeyCompressed, ECDsaCurve.Secp256k1, Neo.Utils.CryptoUtils.SignatureFormat.DEREncoded));
+            Assert.IsTrue(Poltergeist.Neo2.Utils.CryptoUtils.Verify(msgBytes, ecdsaSignatureDEREncoded.Bytes, ethPublicKeyCompressed, ECDsaCurve.Secp256k1, Poltergeist.Neo2.Utils.CryptoUtils.SignatureFormat.DEREncoded));
 
             // This method we cannot use, it gives "System.NotImplementedException : The method or operation is not implemented."
             // exception in Unity, because Unity does not fully support .NET cryptography.

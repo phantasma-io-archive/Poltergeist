@@ -7,7 +7,7 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Phantasma.Neo.Utils
+namespace Poltergeist.Neo2.Utils
 {
     public class ByteArrayComparer : IEqualityComparer<byte[]>
     {
@@ -89,7 +89,7 @@ namespace Phantasma.Neo.Utils
             byte[] buffer;
             try
             {
-                buffer = Numerics.Base58.Decode(address);
+                buffer = Phantasma.Numerics.Base58.Decode(address);
 
             }
             catch
