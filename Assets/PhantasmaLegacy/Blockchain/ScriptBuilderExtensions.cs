@@ -1,5 +1,4 @@
-﻿using Poltergeist.PhantasmaLegacy.Blockchain.Contracts;
-using Poltergeist.PhantasmaLegacy.Cryptography;
+﻿using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Domain;
 using Poltergeist.PhantasmaLegacy.Numerics;
 using Poltergeist.PhantasmaLegacy.VM.Utils;
@@ -10,12 +9,12 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
     {
         public static ScriptBuilder AllowGas(this ScriptBuilder sb, Address from, Address to, BigInteger gasPrice, BigInteger gasLimit)
         {
-            return sb.CallContract(NativeContractKind.Gas, nameof(GasContract.AllowGas), from, to, gasPrice, gasLimit);
+            return sb.CallContract(NativeContractKind.Gas, "AllowGas", from, to, gasPrice, gasLimit);
         }
 
         public static ScriptBuilder SpendGas(this ScriptBuilder sb, Address address)
         {
-            return sb.CallContract(NativeContractKind.Gas, nameof(GasContract.SpendGas), address);
+            return sb.CallContract(NativeContractKind.Gas, "SpendGas", address);
         }
 
         public static ScriptBuilder MintTokens(this ScriptBuilder sb, string tokenSymbol, Address from, Address target, BigInteger amount)

@@ -80,20 +80,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         }
     }
 
-    public struct GasEventData
-    {
-        public readonly Address address;
-        public readonly BigInteger price;
-        public readonly BigInteger amount;
-
-        public GasEventData(Address address, BigInteger price, BigInteger amount)
-        {
-            this.address = address;
-            this.price = price;
-            this.amount = amount;
-        }
-    }
-
     public struct Event
     {
         public EventKind Kind { get; private set; }
