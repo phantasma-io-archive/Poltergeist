@@ -200,32 +200,9 @@ namespace Poltergeist.Neo2.Core
         }
         #endregion
 
-        public byte[] GetMessage()
-        {
-            return this.Serialize(false);
-        }
-
         public override string ToString()
         {
             return Hash.ToString();
-        }
-
-        public bool HasOutput(string address)
-        {
-            return HasOutput(new UInt160(address.AddressToScriptHash()));
-        }
-
-        public bool HasOutput(UInt160 addressHash)
-        {
-            foreach (var output in this.outputs)
-            {
-                if (output.scriptHash.Equals(addressHash))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         public byte[] Serialize(bool signed = true)
@@ -533,17 +510,6 @@ namespace Poltergeist.Neo2.Core
             }
 
             return tx;
-        }
-
-        public static Transaction Unserialize(byte[] bytes)
-        {
-            using (var stream = new MemoryStream(bytes))
-            {
-                using (var reader = new BinaryReader(stream))
-                {
-                    return Unserialize(reader);
-                }
-            }
         }
     }
 

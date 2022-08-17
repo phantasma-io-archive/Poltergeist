@@ -129,29 +129,6 @@ namespace Poltergeist.Neo2.Core
             return hash.HexToBytes().Reverse().ToArray();
         }
 
-        protected static StackItem ParseStack(DataNode stack)
-        {
-            if (stack != null)
-            {
-                //var items = new List<StackItem>();
-
-                if (stack.Children.Count() > 0 && stack.Name == "stack")
-                {
-                    foreach (var child in stack.Children)
-                    {
-                        var item = ParseStackItems(child);
-                        return item;
-                        //items.Add(item);
-                    }
-                }
-
-                return null;
-                //return items.ToArray();
-            }
-
-            return null;
-        }
-
         protected static StackItem ParseStackItems(DataNode stackItem)
         {
             var type = stackItem.GetString("type");
@@ -735,5 +712,4 @@ namespace Poltergeist.Neo2.Core
             return SendRawTransaction(hexTx, callback, errorHandlingCallback);
         }
     }
-
 }

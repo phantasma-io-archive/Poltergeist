@@ -12,12 +12,6 @@ namespace Poltergeist.Neo2.Core
         Payable = 1 << 2
     }
 
-    public enum TriggerType : byte
-    {
-        Verification = 0x00,
-        Application = 0x10
-    }
-
     public class Contract
     {
         public byte[] script;

@@ -105,18 +105,6 @@ namespace Poltergeist.Neo2.Core
             return keys;
         }
 
-        private static System.Security.Cryptography.RandomNumberGenerator rnd = System.Security.Cryptography.RandomNumberGenerator.Create();
-
-        public static NeoKeys Generate()
-        {
-            var bytes = new byte[32];
-            lock (rnd)
-            {
-                rnd.GetBytes(bytes);
-            }
-            return new NeoKeys(bytes);
-        }
-
         public static byte[] CreateSignatureScript(byte[] bytes)
         {
             var script = new byte[bytes.Length + 2];
@@ -143,13 +131,6 @@ namespace Poltergeist.Neo2.Core
         {
             if (x.Length != y.Length) throw new ArgumentException();
             return x.Zip(y, (a, b) => (byte)(a ^ b)).ToArray();
-        }
-
-        public static byte[] GetScriptHashFromAddress(string address)
-        {
-            var temp = address.Base58CheckDecode();
-            temp = temp.SubArray(1, 20);
-            return temp;
         }
 
         public override string ToString()
