@@ -1223,7 +1223,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null, IKeyPair customKeys2 = null, Func<byte[], byte[], byte[], byte[]> customSignFunction2 = null)
+        public void SignAndSendTransaction(string chain, byte[] script, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             if (payload == null)
             {
@@ -1234,9 +1234,7 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     {
-                        var keys = (customKeys != null) ? customKeys : PhantasmaKeys.FromWIF(CurrentWif);
-
-                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(keys, Settings.nexusName, script, chain, payload, PoW, (hashText) =>
+                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(PhantasmaKeys.FromWIF(CurrentWif), customKeys, Settings.nexusName, script, chain, payload, PoW, (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
                             callback(hash, null);
@@ -1247,7 +1245,7 @@ namespace Poltergeist
                                 ChangeFaultyRPCURL(PlatformKind.Phantasma);
                             }
                             callback(Hash.Null, msg);
-                        }, customSignFunction, customKeys2, customSignFunction2));
+                        }, customSignFunction));
                         break;
                     }
 
@@ -3570,10 +3568,10 @@ namespace Poltergeist
                         .SpendGas(address)
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, phantasmaKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
-                    }, null, ethKeys, (message, prikey, pubkey) =>
+                    }, (message, prikey, pubkey) =>
                     {
                         return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });
@@ -3621,10 +3619,10 @@ namespace Poltergeist
                         .SpendGas(address)
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, phantasmaKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
-                    }, null, ethKeys, (message, prikey, pubkey) =>
+                    }, (message, prikey, pubkey) =>
                     {
                         return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
                     });

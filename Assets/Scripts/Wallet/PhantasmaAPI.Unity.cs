@@ -1665,15 +1665,15 @@ namespace Phantasma.SDK
 
         public IEnumerator SignAndSendTransaction(PhantasmaKeys keys, string nexus, byte[] script, string chain, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            return SignAndSendTransactionWithPayload(keys, nexus, script, chain, new byte[0], PoW, callback, errorHandlingCallback);
+            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, new byte[0], PoW, callback, errorHandlingCallback);
         }
 
         public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, string nexus, byte[] script, string chain, string payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            return SignAndSendTransactionWithPayload(keys, nexus, script, chain, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
+            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
         }
 
-        public IEnumerator SignAndSendTransactionWithPayload(IKeyPair keys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null, IKeyPair keys2 = null, Func<byte[], byte[], byte[], byte[]> customSignFunction2 = null)
+        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, IKeyPair otherKeys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             Log.Write("Sending transaction...");
 
@@ -1684,10 +1684,10 @@ namespace Phantasma.SDK
                 tx.Mine(PoW);
             }
 
-            tx.Sign(keys, customSignFunction);
-            if (keys2 != null)
+            tx.Sign(keys, null);
+            if (otherKeys != null)
             {
-                tx.Sign(keys2, customSignFunction2);
+                tx.Sign(otherKeys, customSignFunction);
             }
 
             yield return SendRawTransaction(Base16.Encode(tx.ToByteArray(true)), callback, errorHandlingCallback);
