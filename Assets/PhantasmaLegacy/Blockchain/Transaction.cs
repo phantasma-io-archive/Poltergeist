@@ -19,6 +19,8 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
         public string NexusName { get; private set; }
         public string ChainName { get; private set; }
 
+        public Address Sender { get; private set; }
+
         public Timestamp Expiration { get; private set; }
 
         public byte[] Payload { get; private set; }
@@ -49,12 +51,13 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
             writer.WriteVarString(this.NexusName);
             writer.WriteVarString(this.ChainName);
             writer.WriteByteArray(this.Script);
+            writer.WriteAddress(this.Sender);
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
             if (withSignature)
             {
-                writer.WriteVarInt(Signatures.Length);
+                writer.WriteVarInt(this.Signatures.Length);
                 foreach (var signature in this.Signatures)
                 {
                     writer.WriteSignature(signature);
@@ -73,20 +76,21 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
 
         }
 
-        public Transaction(string nexusName, string chainName, byte[] script, Timestamp expiration, string payload) : this(nexusName, chainName, script, expiration, Encoding.UTF8.GetBytes(payload))
+        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, string payload) : this(nexusName, chainName, script, sender, expiration, Encoding.UTF8.GetBytes(payload))
         {
         }
 
         // transactions are always created unsigned, call Sign() to generate signatures
-        public Transaction(string nexusName, string chainName, byte[] script, Timestamp expiration, byte[] payload = null)
+        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, byte[] payload = null)
         {
             Throw.IfNull(script, nameof(script));
 
             this.NexusName = nexusName;
             this.ChainName = chainName;
             this.Script = script;
+            this.Sender = sender;
             this.Expiration = expiration;
-            this.Payload = payload != null ? payload :new byte[0];
+            this.Payload = payload != null ? payload : new byte[0];
 
             this.Signatures = new Signature[0];
 
@@ -152,15 +156,10 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
             return false;
         }
 
-        //public bool IsValid(Chain chain)
-        //{
-        //    return (chain.Name == this.ChainName && chain.Nexus.Name == this.NexusName);
-        //}
-
         private void UpdateHash()
         {
             var data = this.ToByteArray(false);
-            var hash = CryptoExtensions.SHA256(data);
+            var hash = CryptoExtensions.Sha256(data);
             this.Hash = new Hash(hash);
         }
 
@@ -174,6 +173,7 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
             this.NexusName = reader.ReadVarString();
             this.ChainName = reader.ReadVarString();
             this.Script = reader.ReadByteArray();
+            this.Sender = reader.ReadAddress();
             this.Expiration = reader.ReadUInt32();
             this.Payload = reader.ReadByteArray();
 
@@ -227,7 +227,7 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
                 nonce++;
                 if (nonce == 0)
                 {
-                    throw new Exception("Transaction mining failed");
+                    throw new ChainException("Transaction mining failed");
                 }
 
                 Payload[0] = (byte)((nonce >> 0) & 0xFF);

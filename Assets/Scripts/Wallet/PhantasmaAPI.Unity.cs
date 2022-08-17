@@ -1677,7 +1677,7 @@ namespace Phantasma.SDK
         {
             Log.Write("Sending transaction...");
 
-            var tx = new Poltergeist.PhantasmaLegacy.Blockchain.Transaction(nexus, chain, script, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
+            var tx = new Poltergeist.PhantasmaLegacy.Blockchain.Transaction(nexus, chain, script, keys.Address, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
 
             if (PoW != ProofOfWork.None)
             {
