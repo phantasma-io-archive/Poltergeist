@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Poltergeist.PhantasmaLegacy.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography
 {
@@ -37,32 +34,9 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             return cipher.DoFinal(data);
         }
 
-        internal static BigInteger NextBigInteger(int sizeInBits)
-        {
-            if (sizeInBits < 0)
-                throw new ArgumentException("sizeInBits must be non-negative");
-            if (sizeInBits == 0)
-                return 0;
-
-            var b = Entropy.GetRandomBytes(sizeInBits / 8 + 1);
-
-            if (sizeInBits % 8 == 0)
-                b[b.Length - 1] = 0;
-            else
-                b[b.Length - 1] &= (byte)((1 << sizeInBits % 8) - 1);
-
-            return BigInteger.FromUnsignedArray(b, isPositive: true);
-        }
-
         public static byte[] SHA256(this IEnumerable<byte> value)
         {
             return new Hashing.SHA256().ComputeHash(value.ToArray());
-        }
-
-        public static byte[] Sha256(this string value)
-        {
-            var bytes = Encoding.UTF8.GetBytes(value);
-            return bytes.SHA256();
         }
 
         public static byte[] Sha256(this byte[] value)
