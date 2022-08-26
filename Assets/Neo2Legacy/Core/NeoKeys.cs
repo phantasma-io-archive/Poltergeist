@@ -25,26 +25,14 @@ namespace Poltergeist.Neo2.Core
             this.PrivateKey = new byte[32];
             Buffer.BlockCopy(privateKey, privateKey.Length - 32, PrivateKey, 0, 32);
 
-            ECPoint pKey;
+            this.CompressedPublicKey = ECDsa.GetPublicKey(privateKey, true, ECDsaCurve.Secp256r1);
 
-            if (privateKey.Length == 32)
-            {
-                pKey = ECCurve.Secp256r1.G * privateKey;
-            }
-            else
-            {
-                pKey = ECPoint.FromBytes(privateKey, ECCurve.Secp256r1);
-            }
+            this.PublicKeyHash = CryptoUtils.ToScriptHash(this.CompressedPublicKey);
 
-            var bytes = pKey.EncodePoint(true).ToArray();
-            this.CompressedPublicKey = bytes;
-
-            this.PublicKeyHash = CryptoUtils.ToScriptHash(bytes);
-
-            this.signatureScript = CreateSignatureScript(bytes);
+            this.signatureScript = CreateSignatureScript(this.CompressedPublicKey);
             signatureHash = CryptoUtils.ToScriptHash(signatureScript);
 
-            this.PublicKey = pKey.EncodePoint(false).Skip(1).ToArray();
+            this.PublicKey = ECDsa.GetPublicKey(privateKey, false, ECDsaCurve.Secp256r1).Skip(1).ToArray();
 
             this.Address = CryptoUtils.ToAddress(signatureHash);
             this.WIF = GetWIF();
@@ -95,7 +83,6 @@ namespace Poltergeist.Neo2.Core
             Array.Clear(derivedhalf1, 0, derivedhalf1.Length);
             Array.Clear(derivedhalf2, 0, derivedhalf2.Length);
 
-            ECPoint pubkey = ECCurve.Secp256r1.G * prikey;
             var keys = new NeoKeys(prikey);
             var temp = Encoding.ASCII.GetBytes(keys.Address).Sha256().Sha256().Take(4).ToArray();
             if (!temp.SequenceEqual(addressHash))
