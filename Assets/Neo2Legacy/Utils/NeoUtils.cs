@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace Poltergeist.PhantasmaLegacy.Neo2
 {
@@ -171,6 +173,66 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
         public static uint ToTimestamp(this DateTime time)
         {
             return (uint)(time.ToUniversalTime() - unixEpoch).TotalSeconds;
+        }
+
+        public static string ToAddress(this UInt160 scriptHash)
+        {
+            byte[] data = new byte[21];
+            data[0] = 23;
+            Buffer.BlockCopy(scriptHash.ToArray(), 0, data, 1, 20);
+            return data.Base58CheckEncode();
+        }
+
+        public static UInt160 ToScriptHash(this byte[] script)
+        {
+            return new UInt160(Hash160(script));
+        }
+
+        public static byte[] Hash160(byte[] message)
+        {
+            return message.Sha256().RIPEMD160();
+        }
+
+        public static byte[] Hash256(byte[] message)
+        {
+            return message.Sha256().Sha256();
+        }
+
+
+        private static ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160> _ripemd160 = new ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160>(() => new PhantasmaLegacy.Cryptography.RIPEMD160());
+
+        public static T[] SubArray<T>(this T[] data, int index, int length)
+        {
+            T[] result = new T[length];
+            Array.Copy(data, index, result, 0, length);
+            return result;
+        }
+
+        public static byte[] AES256Decrypt(this byte[] block, byte[] key)
+        {
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = key;
+                aes.Mode = CipherMode.ECB;
+                aes.Padding = PaddingMode.None;
+                using (ICryptoTransform decryptor = aes.CreateDecryptor())
+                {
+                    return decryptor.TransformFinalBlock(block, 0, block.Length);
+                }
+            }
+        }
+
+
+        public static byte[] RIPEMD160(this IEnumerable<byte> value)
+        {
+            return _ripemd160.Value.ComputeHash(value.ToArray());
+        }
+
+        public static byte[] AddressToScriptHash(this string s)
+        {
+            var bytes = s.Base58CheckDecode();
+            var data = bytes.Skip(1).Take(20).ToArray();
+            return data;
         }
     }
 

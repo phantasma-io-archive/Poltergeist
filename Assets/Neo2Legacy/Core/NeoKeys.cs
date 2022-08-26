@@ -1,5 +1,6 @@
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
+using Poltergeist.PhantasmaLegacy.Neo2;
 using System;
 using System.Linq;
 using System.Text;
@@ -27,14 +28,14 @@ namespace Poltergeist.Neo2.Core
 
             this.CompressedPublicKey = ECDsa.GetPublicKey(privateKey, true, ECDsaCurve.Secp256r1);
 
-            this.PublicKeyHash = CryptoUtils.ToScriptHash(this.CompressedPublicKey);
+            this.PublicKeyHash = NeoUtils.ToScriptHash(this.CompressedPublicKey);
 
             this.signatureScript = CreateSignatureScript(this.CompressedPublicKey);
-            signatureHash = CryptoUtils.ToScriptHash(signatureScript);
+            signatureHash = NeoUtils.ToScriptHash(signatureScript);
 
             this.PublicKey = ECDsa.GetPublicKey(privateKey, false, ECDsaCurve.Secp256r1).Skip(1).ToArray();
 
-            this.Address = CryptoUtils.ToAddress(signatureHash);
+            this.Address = NeoUtils.ToAddress(signatureHash);
             this.WIF = GetWIF();
         }
 

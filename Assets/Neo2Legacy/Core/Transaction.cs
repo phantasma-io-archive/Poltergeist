@@ -297,7 +297,7 @@ namespace Poltergeist.Neo2.Core
                 {
                     var rawTx = this.Serialize(false);
                     var hex = rawTx.ByteToHex();
-                    _hash = new UInt256(CryptoUtils.Hash256(rawTx));
+                    _hash = new UInt256(NeoUtils.Hash256(rawTx));
                 }
 
                 return _hash;
