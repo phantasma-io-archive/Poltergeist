@@ -29,10 +29,9 @@ namespace Phantasma.Tests
             var ethKeys = EthereumKey.FromWIF(wif);
             Debug.Log("Eth address: " + ethKeys);
 
-            var pKey = ECCurve.Secp256k1.G * privBytes;
-            var ethPublicKeyCompressed = pKey.EncodePoint(true).ToArray();
+            var ethPublicKeyCompressed = ECDsa.GetPublicKey(privBytes, true, ECDsaCurve.Secp256k1);
             Debug.Log("Eth compressed public key: " + Base16.Encode(ethPublicKeyCompressed));
-            var ethPublicKeyUncompressed = pKey.EncodePoint(false).Skip(1).ToArray();
+            var ethPublicKeyUncompressed = ECDsa.GetPublicKey(privBytes, false, ECDsaCurve.Secp256k1).Skip(1).ToArray();
             Debug.Log("Eth uncompressed public key: " + Base16.Encode(ethPublicKeyUncompressed));
 
             var msgBytes = Encoding.ASCII.GetBytes("Phantasma");
