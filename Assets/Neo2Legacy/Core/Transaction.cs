@@ -1,7 +1,6 @@
 using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Neo2;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -64,28 +63,6 @@ namespace Poltergeist.Neo2.Core
             Data = data;
         }
 
-        public static TransactionAttribute Unserialize(BinaryReader reader)
-        {
-            var Usage = (TransactionAttributeUsage)reader.ReadByte();
-
-            byte[] Data;
-
-            if (Usage == TransactionAttributeUsage.ContractHash || Usage == TransactionAttributeUsage.Vote || (Usage >= TransactionAttributeUsage.Hash1 && Usage <= TransactionAttributeUsage.Hash15))
-                Data = reader.ReadBytes(32);
-            else if (Usage == TransactionAttributeUsage.ECDH02 || Usage == TransactionAttributeUsage.ECDH03)
-                Data = new[] { (byte)Usage }.Concat(reader.ReadBytes(32)).ToArray();
-            else if (Usage == TransactionAttributeUsage.Script)
-                Data = reader.ReadBytes(20);
-            else if (Usage == TransactionAttributeUsage.DescriptionUrl)
-                Data = reader.ReadBytes(reader.ReadByte());
-            else if (Usage == TransactionAttributeUsage.Description || Usage >= TransactionAttributeUsage.Remark)
-                Data = reader.ReadVarBytes(ushort.MaxValue);
-            else
-                throw new NotImplementedException();
-
-            return new TransactionAttribute() { Usage = Usage, Data = Data };
-        }
-
         internal void Serialize(BinaryWriter writer)
         {
             writer.Write((byte)Usage);
@@ -109,13 +86,6 @@ namespace Poltergeist.Neo2.Core
         {
             writer.WriteVarBytes(this.invocationScript);
             writer.WriteVarBytes(this.verificationScript);
-        }
-
-        public static Witness Unserialize(BinaryReader reader)
-        {
-            var invocationScript = reader.ReadVarBytes(65536);
-            var verificationScript = reader.ReadVarBytes(65536);
-            return new Witness() { invocationScript = invocationScript, verificationScript = verificationScript };
         }
     }
 
@@ -153,8 +123,6 @@ namespace Poltergeist.Neo2.Core
         public Input[] claimReferences;
         public TransactionAttribute[] attributes;
 
-        public ECPoint enrollmentPublicKey;
-
         public string interop;
 
         public uint nonce;
@@ -171,21 +139,6 @@ namespace Poltergeist.Neo2.Core
             writer.Write(output.assetID);
             writer.WriteFixed(output.value);
             writer.Write(output.scriptHash.ToArray());
-        }
-
-        protected static Input UnserializeTransactionInput(BinaryReader reader)
-        {
-            var prevHash = reader.ReadBytes(32);
-            var prevIndex = reader.ReadUInt16();
-            return new Input() { prevHash = new UInt256(prevHash), prevIndex = prevIndex };
-        }
-
-        protected static Output UnserializeTransactionOutput(BinaryReader reader)
-        {
-            var assetID = reader.ReadBytes(32);
-            var value = reader.ReadFixed();
-            var scriptHash = reader.ReadBytes(20);
-            return new Output() { assetID = assetID, value = value, scriptHash = new UInt160(scriptHash) };
         }
         #endregion
 
