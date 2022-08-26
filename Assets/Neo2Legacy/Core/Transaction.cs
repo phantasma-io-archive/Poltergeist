@@ -121,14 +121,8 @@ namespace Poltergeist.Neo2.Core
 
     public enum TransactionType : byte
     {
-        MinerTransaction = 0x00,
-        IssueTransaction = 0x01,
         ClaimTransaction = 0x02,
-        EnrollmentTransaction = 0x20,
-        RegisterTransaction = 0x40,
         ContractTransaction = 0x80,
-        StateTransaction = 0x90,
-        PublishTransaction = 0xd0,
         InvocationTransaction = 0xd1
     }
 
@@ -152,17 +146,12 @@ namespace Poltergeist.Neo2.Core
         public byte[] script;
         public decimal gas;
 
-        public Block block;
-
         public Input[] inputs;
         public Output[] outputs;
         public Witness[] witnesses;
 
         public Input[] claimReferences;
         public TransactionAttribute[] attributes;
-
-        public AssetRegistration assetRegistration;
-        public Contract contractRegistration;
 
         public ECPoint enrollmentPublicKey;
 
@@ -228,12 +217,6 @@ namespace Poltergeist.Neo2.Core
                                 break;
                             }
 
-                        case TransactionType.MinerTransaction:
-                            {
-                                writer.Write((uint)this.nonce);
-                                break;
-                            }
-
                         case TransactionType.ClaimTransaction:
                             {
                                 writer.WriteVarInt(this.claimReferences.Length);
@@ -243,25 +226,6 @@ namespace Poltergeist.Neo2.Core
                                 }
                                 break;
                             }
-
-                        case TransactionType.RegisterTransaction:
-                            {
-                                this.assetRegistration.Serialize(writer);
-                                break;
-                            }
-
-                        case TransactionType.PublishTransaction:
-                            {
-                                this.contractRegistration.Serialize(writer, this.version);
-                                break;
-                            }
-
-                        case TransactionType.EnrollmentTransaction:
-                            {
-                                writer.Write(this.enrollmentPublicKey.EncodePoint(true));
-                                break;
-                            }
-
                     }
 
                     // Don't need any attributes
@@ -385,131 +349,6 @@ namespace Poltergeist.Neo2.Core
 
                 return _hash;
             }
-        }
-
-        public static Transaction Unserialize(BinaryReader reader)
-        {
-            var tx = new Transaction();
-
-            tx.type = (TransactionType)reader.ReadByte();
-            tx.version = reader.ReadByte();
-
-            switch (tx.type)
-            {
-                case TransactionType.InvocationTransaction:
-                    {
-                        var scriptLength = reader.ReadVarInt();
-                        tx.script = reader.ReadBytes((int)scriptLength);
-
-                        if (tx.version >= 1)
-                        {
-                            tx.gas = reader.ReadFixed();
-                        }
-                        else
-                        {
-                            tx.gas = 0;
-                        }
-
-                        break;
-                    }
-
-                case TransactionType.MinerTransaction:
-                    {
-                        tx.nonce = reader.ReadUInt32();
-                        break;
-                    }
-
-                case TransactionType.ClaimTransaction:
-                    {
-                        var len = (int)reader.ReadVarInt((ulong)0x10000000);
-                        tx.claimReferences = new Input[len];
-                        for (int i = 0; i < len; i++)
-                        {
-                            tx.claimReferences[i] = Transaction.UnserializeTransactionInput(reader);
-                        }
-
-                        break;
-                    }
-
-                case TransactionType.ContractTransaction:
-                    {
-                        break;
-                    }
-
-                case TransactionType.StateTransaction:
-                    {
-                        int descCount = (int)reader.ReadVarInt(16);
-                        for (int i = 0; i < descCount; i++)
-                        {
-                            var Type = /*(StateType)*/reader.ReadByte();
-                            var Key = reader.ReadVarBytes(100);
-                            var Field = reader.ReadVarString();
-                            var Value = reader.ReadVarBytes(65535);
-                        }
-                        break;
-                    }
-
-                case TransactionType.PublishTransaction:
-                    {
-                        tx.contractRegistration = Contract.Unserialize(reader, tx.version);
-                        break;
-                    }
-
-                case TransactionType.EnrollmentTransaction:
-                    {
-                        tx.enrollmentPublicKey = ECPoint.DeserializeFrom(reader, ECCurve.Secp256r1);
-                        break;
-                    }
-
-                case TransactionType.RegisterTransaction:
-                    {
-                        tx.assetRegistration = AssetRegistration.Unserialize(reader);
-                        break;
-                    }
-
-                case TransactionType.IssueTransaction:
-                    {
-                        break;
-                    }
-
-                default:
-                    {
-                        throw new NotImplementedException();
-                    }
-            }
-
-            var attrCount = (int)reader.ReadVarInt(16);
-            if (attrCount != 0)
-            {
-                tx.attributes = new TransactionAttribute[attrCount];
-                for (int i = 0; i < attrCount; i++)
-                {
-                    tx.attributes[i] = TransactionAttribute.Unserialize(reader);
-                }
-            }
-
-            var inputCount = (int)reader.ReadVarInt();
-            tx.inputs = new Input[inputCount];
-            for (int i = 0; i < inputCount; i++)
-            {
-                tx.inputs[i] = UnserializeTransactionInput(reader);
-            }
-
-            var outputCount = (int)reader.ReadVarInt();
-            tx.outputs = new Output[outputCount];
-            for (int i = 0; i < outputCount; i++)
-            {
-                tx.outputs[i] = UnserializeTransactionOutput(reader);
-            }
-
-            var witnessCount = (int)reader.ReadVarInt();
-            tx.witnesses = new Witness[witnessCount];
-            for (int i = 0; i < witnessCount; i++)
-            {
-                tx.witnesses[i] = Witness.Unserialize(reader);
-            }
-
-            return tx;
         }
     }
 
