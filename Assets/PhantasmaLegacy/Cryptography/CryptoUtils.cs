@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -163,7 +162,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             return signer.VerifySignature(signature);
         }
 
-        private static ThreadLocal<SHA256> _sha256 = new ThreadLocal<SHA256>(() => SHA256.Create());
         private static ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160> _ripemd160 = new ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160>(() => new PhantasmaLegacy.Cryptography.RIPEMD160());
 
         public static T[] SubArray<T>(this T[] data, int index, int length)
@@ -191,7 +189,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
         {
             byte[] buffer = PhantasmaLegacy.Numerics.Base58.Decode(input);
             if (buffer.Length < 4) throw new FormatException();
-            byte[] checksum = buffer.Sha256(0, buffer.Length - 4).Sha256();
+            byte[] checksum = buffer.Sha256(0, (uint)buffer.Length - 4).Sha256();
             if (!buffer.Skip(buffer.Length - 4).SequenceEqual(checksum.Take(4)))
                 throw new FormatException();
             return buffer.Take(buffer.Length - 4).ToArray();
@@ -209,11 +207,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
         public static byte[] RIPEMD160(this IEnumerable<byte> value)
         {
             return _ripemd160.Value.ComputeHash(value.ToArray());
-        }
-
-        public static byte[] Sha256(this byte[] value, int offset, int count)
-        {
-            return _sha256.Value.ComputeHash(value, offset, count);
         }
 
         public static byte[] AddressToScriptHash(this string s)

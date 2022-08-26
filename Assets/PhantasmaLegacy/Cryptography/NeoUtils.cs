@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Poltergeist.PhantasmaLegacy.Neo2
@@ -59,7 +57,7 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
 
             if (buffer.Length < 4) return false;
 
-            byte[] checksum = buffer.Sha256(0, buffer.Length - 4).Sha256();
+            byte[] checksum = buffer.Sha256(0, (uint)buffer.Length - 4).Sha256();
             return buffer.Skip(buffer.Length - 4).SequenceEqual(checksum.Take(4));
         }
 
@@ -84,11 +82,6 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
                 value = fb;
             if (value > max) throw new FormatException();
             return value;
-        }
-
-        public static string ReadVarString(this BinaryReader reader)
-        {
-            return Encoding.UTF8.GetString(reader.ReadVarBytes());
         }
 
         public static void WriteVarBytes(this BinaryWriter writer, byte[] value)
@@ -127,25 +120,11 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
             }
         }
 
-        public static void WriteVarString(this BinaryWriter writer, string value)
-        {
-            writer.WriteVarBytes(value != null ? Encoding.UTF8.GetBytes(value) : null);
-        }
-
         public static void WriteFixed(this BinaryWriter writer, decimal value)
         {
             long D = 100000000;
             value *= D;
             writer.Write((long)value);
-        }
-
-        public static decimal ReadFixed(this BinaryReader reader)
-        {
-            var val = reader.ReadInt64();
-            long D = 100000000;
-            decimal r = val;
-            r /= (decimal)D;
-            return r;
         }
 
         public static byte[] GetScriptHashFromAddress(this string address)
@@ -188,11 +167,6 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
         }
 
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        public static DateTime ToDateTime(this uint timestamp)
-        {
-            return unixEpoch.AddSeconds(timestamp);
-        }
 
         public static uint ToTimestamp(this DateTime time)
         {
