@@ -5,6 +5,7 @@ using Poltergeist.PhantasmaLegacy.Storage;
 using Poltergeist.PhantasmaLegacy.Storage.Utils;
 using System;
 using System.IO;
+using System.Numerics;
 using System.Text;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography
@@ -199,7 +200,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
         // If necessary pads the number to 32 bytes with zeros 
         public static implicit operator Hash(BigInteger val)
         {
-            //var src = val.ToSignedByteArray();
             var src = val.ToUnsignedByteArray();
             Throw.If(src.Length > Length, "number is too large");
 
@@ -230,9 +230,9 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
         public static implicit operator BigInteger(Hash val)
         {
-            var unsignedByteArray = val.ToByteArray();
-
-            return BigInteger.FromUnsignedArray(unsignedByteArray, isPositive: true);
+            var result = new byte[Hash.Length];
+            ByteArrayUtils.CopyBytes(val.ToByteArray(), 0, result, 0, Hash.Length);
+            return new BigInteger(val.ToByteArray(), true);
         }
 
         public static Hash MerkleCombine(Hash A, Hash B)

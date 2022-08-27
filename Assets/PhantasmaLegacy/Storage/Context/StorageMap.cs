@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Numerics;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Storage.Context
 {

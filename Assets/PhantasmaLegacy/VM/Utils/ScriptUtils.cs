@@ -1,7 +1,7 @@
 using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Numerics;
 using Poltergeist.PhantasmaLegacy.Storage;
 using System;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.VM.Utils
 {

@@ -1,4 +1,5 @@
 using Poltergeist.PhantasmaLegacy.Numerics;
+using System.Numerics;
 using System.Text;
 
 namespace Poltergeist.PhantasmaLegacy.VM
@@ -95,8 +96,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
                                 break;
 
                             case VMType.Number:
-                                //TODO should not matter anymore with C# BigInteger 
-                                sb.Append(BigInteger.FromUnsignedArray(bytes, true));
+                                sb.Append(new BigInteger(bytes));
                                 break;
 
                             default:

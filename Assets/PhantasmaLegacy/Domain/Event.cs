@@ -1,5 +1,5 @@
 ﻿using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Numerics;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Domain
 {

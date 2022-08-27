@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
+using System.Numerics;
 using LunarLabs.Parser;
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Ethereum;
 using Poltergeist.PhantasmaLegacy.Ethereum.Signer;
 using Poltergeist.PhantasmaLegacy.Numerics;
+using Poltergeist.PhantasmaLegacy.Ethereum.Hex.HexConvertors.Extensions;
 
 namespace Phantasma.SDK
 {
@@ -20,7 +22,7 @@ namespace Phantasma.SDK
         {
             yield return WebClient.RPCRequest(Host, "eth_getBalance", WebClient.DefaultTimeout, 5, errorHandlingCallback, (node) => {
                 var availableHex = node.Value;
-                var available = BigInteger.FromHex(availableHex.Substring(2));
+                var available = availableHex.HexToBigInteger(false);
 
                 var balance = new Poltergeist.Balance()
                 {
@@ -75,7 +77,7 @@ namespace Phantasma.SDK
                 var availableHex = node.Value;
                 BigInteger available = 0;
                 if (!String.IsNullOrEmpty(availableHex) && availableHex != "0x")
-                    available = BigInteger.FromHex(availableHex.Substring(2));
+                    available = availableHex.HexToBigInteger(false);
 
                 var balance = new Poltergeist.Balance()
                 {
@@ -108,10 +110,8 @@ namespace Phantasma.SDK
         }
         public string SignTransaction(EthereumKey keys, int nonce, string receiveAddress, BigInteger amount, BigInteger gasPrice, BigInteger gasLimit, string data = null)
         {
-            var realAmount = System.Numerics.BigInteger.Parse(amount.ToString());
-
             //Create a transaction from scratch
-            var tx = new Poltergeist.PhantasmaLegacy.Ethereum.Signer.Transaction(receiveAddress, realAmount, nonce, 
+            var tx = new Poltergeist.PhantasmaLegacy.Ethereum.Signer.Transaction(receiveAddress, amount, nonce, 
                 System.Numerics.BigInteger.Parse(gasPrice.ToString()),
                 System.Numerics.BigInteger.Parse(gasLimit.ToString()),
                 data);
@@ -126,14 +126,14 @@ namespace Phantasma.SDK
         {
             var transferMethodHash = "a9059cbb";
             var to = receiveAddress.Substring(2).PadLeft(64, '0');
-            var amountHex = amount.ToHex().PadLeft(64, '0');
+            var amountHex = amount.ToHex(false, false, false).PadLeft(64, '0');
 
             //Create a transaction from scratch
             var tx = new Poltergeist.PhantasmaLegacy.Ethereum.Signer.Transaction(tokenContract,
                 0, // Ammount of ETH to be transfered (0)
                 nonce,
-                System.Numerics.BigInteger.Parse(gasPrice.ToString()),
-                System.Numerics.BigInteger.Parse(gasLimit.ToString()),
+                gasPrice,
+                gasLimit,
                 transferMethodHash + to + amountHex);
 
             tx.Sign(new EthECKey(keys.PrivateKey, true));

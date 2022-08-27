@@ -1,7 +1,7 @@
-﻿using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.VM;
+﻿using Poltergeist.PhantasmaLegacy.VM;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Domain
 {

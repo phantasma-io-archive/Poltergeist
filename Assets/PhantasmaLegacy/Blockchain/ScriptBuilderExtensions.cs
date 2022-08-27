@@ -1,7 +1,7 @@
 ﻿using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Domain;
-using Poltergeist.PhantasmaLegacy.Numerics;
 using Poltergeist.PhantasmaLegacy.VM.Utils;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Blockchain
 {

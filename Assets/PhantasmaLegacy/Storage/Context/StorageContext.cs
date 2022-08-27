@@ -1,5 +1,5 @@
-﻿using Poltergeist.PhantasmaLegacy.Numerics;
-using System;
+﻿using System;
+using System.Numerics;
 using System.Text;
 
 namespace Poltergeist.PhantasmaLegacy.Storage.Context

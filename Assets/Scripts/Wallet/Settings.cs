@@ -2,6 +2,7 @@ using Poltergeist.PhantasmaLegacy.Numerics;
 using Phantasma.SDK;
 using System;
 using UnityEngine;
+using System.Numerics;
 
 namespace Poltergeist
 {

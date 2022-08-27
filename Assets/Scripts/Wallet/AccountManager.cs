@@ -18,6 +18,7 @@ using Poltergeist.PhantasmaLegacy.VM.Utils;
 using Poltergeist.PhantasmaLegacy.Ethereum;
 using Poltergeist.PhantasmaLegacy.Blockchain;
 using Poltergeist.PhantasmaLegacy.VM;
+using System.Numerics;
 
 namespace Poltergeist
 {

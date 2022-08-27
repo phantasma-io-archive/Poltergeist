@@ -21,6 +21,7 @@ using Poltergeist.PhantasmaLegacy.Blockchain;
 using Poltergeist.PhantasmaLegacy.Core.Types;
 using Poltergeist.PhantasmaLegacy.Domain;
 using Poltergeist.PhantasmaLegacy.Ethereum;
+using BigInteger = System.Numerics.BigInteger;
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
 using SFB;
 #elif UNITY_ANDROID
@@ -4376,7 +4377,7 @@ namespace Poltergeist
                             sb.AllowGas(target, Address.Null, gasPrice, gasLimit * nftTransferList.Count);
                             foreach (var nftToBurn in nftTransferList)
                             {
-                                sb.CallInterop("Runtime.BurnToken", target, transferSymbol, Poltergeist.PhantasmaLegacy.Numerics.BigInteger.Parse(nftToBurn));
+                                sb.CallInterop("Runtime.BurnToken", target, transferSymbol, BigInteger.Parse(nftToBurn));
                             }
                             sb.SpendGas(target);
                             script = sb.EndScript();
@@ -5888,7 +5889,7 @@ namespace Poltergeist
                     {
                         if (!String.IsNullOrEmpty(input) && input.All(char.IsDigit))
                         {
-                            fee = new BigInteger(input, 10);
+                            fee = BigInteger.Parse(input, NumberStyles.Integer);
                             if (fee < safeLow)
                             {
                                 PromptBox($"You set fee lower than safe low ({fee} < {safeLow}), transfer might take too long or fail.\nAre you sure you want to continue?", ModalYesNo, (wantToContinue) =>

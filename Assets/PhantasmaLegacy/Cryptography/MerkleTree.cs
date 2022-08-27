@@ -1,10 +1,8 @@
 using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Numerics;
 using Poltergeist.PhantasmaLegacy.Storage;
 using Poltergeist.PhantasmaLegacy.Storage.Utils;
-using System;
 using System.IO;
-using System.Linq;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography
 {

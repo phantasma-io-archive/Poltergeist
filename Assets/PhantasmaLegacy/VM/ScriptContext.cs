@@ -1,10 +1,9 @@
 ﻿using Poltergeist.PhantasmaLegacy.Core;
 using Poltergeist.PhantasmaLegacy.Core.Performance;
-using Poltergeist.PhantasmaLegacy.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.VM
 {
@@ -817,7 +816,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
                                     case Opcode.SHL: result = a << (int)b; break;
                                     case Opcode.MIN: result = a < b ? a : b; break;
                                     case Opcode.MAX: result = a > b ? a : b; break;
-                                    case Opcode.POW: result = BigInteger.Pow(a, b); break;
+                                    case Opcode.POW: result = BigInteger.Pow(a, (int)b); break;
                                     default:
                                         {
                                             SetState(ExecutionState.Fault);

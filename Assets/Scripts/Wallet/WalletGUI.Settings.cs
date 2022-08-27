@@ -5,6 +5,7 @@ using Phantasma.SDK;
 using Poltergeist.PhantasmaLegacy.Numerics;
 using Poltergeist.PhantasmaLegacy.VM.Utils;
 using Poltergeist.PhantasmaLegacy.VM;
+using System.Numerics;
 
 namespace Poltergeist
 {

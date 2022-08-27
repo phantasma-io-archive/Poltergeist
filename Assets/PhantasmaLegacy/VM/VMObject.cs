@@ -9,6 +9,7 @@ using Poltergeist.PhantasmaLegacy.Numerics;
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Core;
 using Poltergeist.PhantasmaLegacy.Storage.Utils;
+using System.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.VM
 {
@@ -91,7 +92,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 case VMType.Bytes:
                     {
                         var bytes = (byte[])Data;
-                        var num = BigInteger.FromSignedArray(bytes);
+                        var num = new BigInteger(bytes);
                         return num;
                     }
 
@@ -371,7 +372,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
                 case VMType.Number:
                     {
-                        this.Data = (val == null || val.Length == 0) ? new BigInteger(0) : BigInteger.FromSignedArray(val);
+                        this.Data = (val == null || val.Length == 0) ? new BigInteger(0) : new BigInteger(val);
                         break;
                     }
 

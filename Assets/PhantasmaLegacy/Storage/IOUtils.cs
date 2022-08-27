@@ -1,6 +1,6 @@
-using Poltergeist.PhantasmaLegacy.Numerics;
 using System;
 using System.IO;
+using System.Numerics;
 using System.Text;
 
 namespace Poltergeist.PhantasmaLegacy.Storage.Utils
@@ -83,7 +83,7 @@ namespace Poltergeist.PhantasmaLegacy.Storage.Utils
         {
             var length = reader.ReadByte();
             var bytes = reader.ReadBytes(length);
-            return BigInteger.FromSignedArray(bytes);
+            return new BigInteger(bytes);
         }
 
         public static byte[] ReadByteArray(this BinaryReader reader)
