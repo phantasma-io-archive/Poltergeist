@@ -1,6 +1,4 @@
-﻿using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.VM;
+﻿using Poltergeist.PhantasmaLegacy.VM;
 
 namespace Poltergeist.PhantasmaLegacy.Domain
 {
@@ -10,13 +8,6 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         Proposed,
         Primary,
         Secondary, // aka StandBy
-    }
-
-    public struct ValidatorEntry
-    {
-        public Address address;
-        public Timestamp election;
-        public ValidatorType type;
     }
 
     public static class ValidationUtils

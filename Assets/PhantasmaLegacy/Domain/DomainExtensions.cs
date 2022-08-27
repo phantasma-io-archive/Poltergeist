@@ -8,10 +8,5 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         {
             return Serialization.Unserialize<T>(evt.Data);
         }
-
-        public static string GetContractName(this NativeContractKind nativeContract)
-        {
-            return nativeContract.ToString().ToLower();
-        }
     }
 }

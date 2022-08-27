@@ -1,38 +1,7 @@
-﻿using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Cryptography;
+﻿using Poltergeist.PhantasmaLegacy.Cryptography;
 
 namespace Poltergeist.PhantasmaLegacy.Domain
 {
-    public enum TriggerResult
-    {
-        Failure,
-        Missing,
-        Success,
-    }
-
-    public enum TokenTrigger
-    {
-        OnMint, // address, symbol, amount
-        OnBurn, // address, symbol, amount
-        OnSend, // address, symbol, amount
-        OnReceive, // address, symbol, amount
-        OnInfuse, // address, symbol, amount
-        OnUpgrade, // address
-        OnSeries, // address
-    }
-
-    public struct StakeReward
-    {
-        public readonly Address staker;
-        public readonly Timestamp date;
-
-        public StakeReward(Address staker, Timestamp date)
-        {
-            this.staker = staker;
-            this.date = date;
-        }
-    }       
-
     public static class DomainSettings
     {
         public const int LatestKnownProtocol = 5;
