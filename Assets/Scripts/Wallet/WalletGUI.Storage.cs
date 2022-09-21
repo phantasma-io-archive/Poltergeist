@@ -3,8 +3,8 @@ using System.IO;
 using System;
 using Phantasma.SDK;
 using System.Linq;
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-using SFB;
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+using Crosstales.FB;
 #elif UNITY_ANDROID
 using static NativeFilePicker;
 #endif
@@ -111,8 +111,8 @@ namespace Poltergeist
                 {
                     case 0:
                         {
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-                            UploadSelectedFile(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), "", false).FirstOrDefault());
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+                            UploadSelectedFile(FileBrowser.Instance.OpenSingleFile("Open File", accountManager.Settings.GetLastVisitedFolder(), null, new string[] { "*" }));
 #elif UNITY_ANDROID
                             var extensionFilter = new string[] {"audio/*", "video/*", "image/*", "text/*", "application/*"};
 //#else // iOS
@@ -157,8 +157,8 @@ namespace Poltergeist
 
             DoButton(true, btnRect, "Download", () =>
             {
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-                var outputFolderPath = StandaloneFileBrowser.OpenFolderPanel("Select output folder", accountManager.Settings.GetLastVisitedFolder(), false).FirstOrDefault();
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+                var outputFolderPath = FileBrowser.Instance.OpenSingleFolder("Select output folder", accountManager.Settings.GetLastVisitedFolder());
 
                 if (!string.IsNullOrEmpty(outputFolderPath))
                 {

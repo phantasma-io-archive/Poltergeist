@@ -22,8 +22,8 @@ using Poltergeist.PhantasmaLegacy.Core.Types;
 using Poltergeist.PhantasmaLegacy.Domain;
 using Poltergeist.PhantasmaLegacy.Ethereum;
 using BigInteger = System.Numerics.BigInteger;
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-using SFB;
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+using Crosstales.FB;
 #elif UNITY_ANDROID
 using static NativeFilePicker;
 #endif
@@ -4104,12 +4104,10 @@ namespace Poltergeist
                     case 1:
                         {
                             // Open file with filter
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-                            var extensions = new[] {
-                                new ExtensionFilter("Image Files", "png", "jpg", "jpeg" ),
-                            };
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+                            var extensions = new[] { "Image Files", "png", "jpg", "jpeg" };
 
-                            UploadSelectedAvatar(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), extensions, false).FirstOrDefault());
+                            UploadSelectedAvatar(FileBrowser.Instance.OpenSingleFile("Open File", accountManager.Settings.GetLastVisitedFolder(), null, extensions));
 #elif UNITY_ANDROID
                             var extensionFilter = new string[] {"image/*"};
 //#else
