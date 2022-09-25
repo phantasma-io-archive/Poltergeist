@@ -3184,7 +3184,9 @@ namespace Poltergeist
 
         private void RequestPendings(string address, PlatformKind platform, Action<Swap[], string> callback)
         {
-            StartCoroutine(phantasmaApi.GetSwapsForAddress(address, platform.ToString().ToLower(), (swaps) =>
+            callback(Array.Empty<Swap>(), null);
+            
+            /*StartCoroutine(phantasmaApi.GetSwapsForAddress(address, platform.ToString().ToLower(), (swaps) =>
             {
                 callback(swaps, null);
             }, (error, msg) =>
@@ -3194,7 +3196,7 @@ namespace Poltergeist
                     ChangeFaultyRPCURL(PlatformKind.Phantasma);
                 }
                 callback(null, msg);
-            }));
+            }));*/
         }
 
         public string GetEtherscanTransactionURL(string hash)
