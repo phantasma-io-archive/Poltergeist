@@ -1235,7 +1235,7 @@ namespace Poltergeist
             {
                 case PlatformKind.Phantasma:
                     {
-                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(PhantasmaKeys.FromWIF(CurrentWif), customKeys, Settings.nexusName, script, chain, payload, PoW, (hashText) =>
+                        StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(PhantasmaKeys.FromWIF(CurrentWif), customKeys, Settings.nexusName, script, chain, Settings.feePrice, Settings.feeLimit, payload, PoW, (hashText) =>
                         {
                             var hash = Hash.Parse(hashText);
                             callback(hash, null);

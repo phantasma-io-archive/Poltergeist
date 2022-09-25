@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System;
+using System.Numerics;
 using Poltergeist.PhantasmaLegacy.Domain;
 using Poltergeist.PhantasmaLegacy.Core.Types;
 using Poltergeist.PhantasmaLegacy.Storage.Utils;
@@ -14,18 +15,32 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
 {
     public sealed class Transaction : ITransaction, ISerializable
     {
+        public readonly static Transaction Null = null;
+
         public byte[] Script { get; private set; }
 
         public string NexusName { get; private set; }
-        public string ChainName { get; private set; }
 
+        public string ChainName { get; private set; }
+        
         public Address Sender { get; private set; }
 
+        public Address GasPayer { get; private set; }
+
+        public Address GasTarget { get; private set; }
+
+        public BigInteger GasPrice { get; private set; }
+
+        public BigInteger GasLimit { get; private set; }
+
         public Timestamp Expiration { get; private set; }
+
+        public long Version { get; private set; }
 
         public byte[] Payload { get; private set; }
 
         public Signature[] Signatures { get; private set; }
+
         public Hash Hash { get; private set; }
 
         public static Transaction Unserialize(byte[] bytes)
@@ -50,8 +65,13 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
         {
             writer.WriteVarString(this.NexusName);
             writer.WriteVarString(this.ChainName);
+            writer.WriteVarInt(this.Version);
             writer.WriteByteArray(this.Script);
             writer.WriteAddress(this.Sender);
+            writer.WriteAddress(this.GasPayer);
+            writer.WriteAddress(this.GasTarget);
+            writer.WriteBigInteger(this.GasPrice);
+            writer.WriteBigInteger(this.GasLimit);
             writer.Write(this.Expiration.Value);
             writer.WriteByteArray(this.Payload);
 
@@ -76,21 +96,57 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
 
         }
 
-        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, string payload) : this(nexusName, chainName, script, sender, expiration, Encoding.UTF8.GetBytes(payload))
+        public Transaction(
+                string nexusName,
+                string chainName,
+                byte[] script,
+                Address sender,
+                Address gasPayer,
+                BigInteger gasPrice,
+                BigInteger gasLimit,
+                Timestamp expiration,
+                string payload)
+            : this(nexusName,
+                    chainName,
+                    0L,
+                    script,
+                    sender,
+                    sender,
+                    Address.Null,
+                    gasPrice,
+                    gasLimit,
+                    expiration,
+                    Encoding.UTF8.GetBytes(payload))
         {
         }
 
         // transactions are always created unsigned, call Sign() to generate signatures
-        public Transaction(string nexusName, string chainName, byte[] script, Address sender, Timestamp expiration, byte[] payload = null)
+        public Transaction(
+                string nexusName,
+                string chainName,
+                long version,
+                byte[] script,
+                Address sender,
+                Address gasPayer,
+                Address gasTarget,
+                BigInteger gasPrice,
+                BigInteger gasLimit,
+                Timestamp expiration,
+                byte[] payload = null)
         {
             Throw.IfNull(script, nameof(script));
 
             this.NexusName = nexusName;
             this.ChainName = chainName;
+            this.Version = version;
             this.Script = script;
             this.Sender = sender;
+            this.GasPayer = gasPayer;
+            this.GasTarget = gasTarget;
+            this.GasPrice = gasPrice;
+            this.GasLimit = gasLimit;
             this.Expiration = expiration;
-            this.Payload = payload != null ? payload : new byte[0];
+            this.Payload = payload != null ? payload :new byte[0];
 
             this.Signatures = new Signature[0];
 
@@ -172,8 +228,13 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
         {
             this.NexusName = reader.ReadVarString();
             this.ChainName = reader.ReadVarString();
+            this.Version = (long)reader.ReadVarInt();
             this.Script = reader.ReadByteArray();
             this.Sender = reader.ReadAddress();
+            this.GasPayer = reader.ReadAddress();
+            this.GasTarget = reader.ReadAddress();
+            this.GasPrice = reader.ReadBigInteger();
+            this.GasLimit = reader.ReadBigInteger();
             this.Expiration = reader.ReadUInt32();
             this.Payload = reader.ReadByteArray();
 

@@ -9,6 +9,7 @@ using LunarLabs.Parser;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Domain;
 using Poltergeist.PhantasmaLegacy.Numerics;
@@ -1663,21 +1664,21 @@ namespace Phantasma.SDK
         }
 
 
-        public IEnumerator SignAndSendTransaction(PhantasmaKeys keys, string nexus, byte[] script, string chain, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator SignAndSendTransaction(PhantasmaKeys keys, string nexus, byte[] script, string chain, BigInteger gasPrice, BigInteger gasLimit, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, new byte[0], PoW, callback, errorHandlingCallback);
+            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, gasPrice, gasLimit, new byte[0], PoW, callback, errorHandlingCallback);
         }
 
-        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, string nexus, byte[] script, string chain, string payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, string nexus, byte[] script, string chain, BigInteger gasPrice, BigInteger gasLimit, string payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
+            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, gasPrice, gasLimit, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
         }
 
-        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, IKeyPair otherKeys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, IKeyPair otherKeys, string nexus, byte[] script, string chain, BigInteger gasPrice, BigInteger gasLimit, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             Log.Write("Sending transaction...");
 
-            var tx = new Poltergeist.PhantasmaLegacy.Blockchain.Transaction(nexus, chain, script, keys.Address, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
+            var tx = new Poltergeist.PhantasmaLegacy.Blockchain.Transaction(nexus, chain, 0L, script, keys.Address, keys.Address, Address.Null, 10, 10, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
 
             if (PoW != ProofOfWork.None)
             {
