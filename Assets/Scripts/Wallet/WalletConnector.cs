@@ -150,15 +150,15 @@ namespace Poltergeist
                 return;
             }
 
-            var state = AccountManager.Instance.CurrentState;
+            var state = accountManager.CurrentState;
             if (state == null)
             {
                 callback(Hash.Null, "not logged in");
                 return;
             }
 
-            var nexus = AccountManager.Instance.Settings.nexusName;
-            var account = AccountManager.Instance.CurrentAccount;
+            var nexus = accountManager.Settings.nexusName;
+            var account = accountManager.CurrentAccount;
 
             WalletGUI.Instance.CallOnUIThread(() =>
             {
@@ -176,7 +176,7 @@ namespace Poltergeist
                         {
                             if (success)
                             {
-                                WalletGUI.Instance.SendTransaction(description, script, payload, chain, ProofOfWork.None, (hash) =>
+                                WalletGUI.Instance.SendTransaction(description, script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, payload, chain, ProofOfWork.None, (hash) =>
                                 {
                                     AppFocus.Instance.EndFocus();
 

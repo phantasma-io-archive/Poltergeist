@@ -7,9 +7,9 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain
 {
     public static class ScriptBuilderExtensions
     {
-        public static ScriptBuilder AllowGas(this ScriptBuilder sb, Address from, Address to, BigInteger gasPrice, BigInteger gasLimit)
+        public static ScriptBuilder AllowGas(this ScriptBuilder sb, Address from, Address to)
         {
-            return sb.CallContract(NativeContractKind.Gas, "AllowGas", from, to, gasPrice, gasLimit);
+            return sb.CallContract(NativeContractKind.Gas, "AllowGas", from, to);
         }
 
         public static ScriptBuilder SpendGas(this ScriptBuilder sb, Address address)

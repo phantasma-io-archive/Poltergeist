@@ -205,11 +205,8 @@ namespace Poltergeist
 
             try
             {
-                var gasPrice = accountManager.Settings.feePrice;
-                var gasLimit = accountManager.Settings.feeLimit;
-
                 var sb = new ScriptBuilder();
-                sb.AllowGas(source, Address.Null, gasPrice, gasLimit);
+                sb.AllowGas(source, Address.Null);
                 sb.CallContract(NativeContractKind.Storage, "DeleteFile", source, fileHash);
                 sb.SpendGas(source);
                 script = sb.EndScript();
@@ -220,7 +217,7 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
             {
                 if (hash != Hash.Null)
                 {
@@ -261,11 +258,8 @@ namespace Poltergeist
             byte[] script;
             try
             {
-                var gasPrice = accountManager.Settings.feePrice;
-                var gasLimit = accountManager.Settings.feeLimit;
-
                 var sb = new ScriptBuilder();
-                sb.AllowGas(target, Address.Null, gasPrice, gasLimit);
+                sb.AllowGas(target, Address.Null);
                 sb.CallInterop("Runtime.DeployContract", target, contractName, contractBytes, abiBytes);
                 sb.SpendGas(target);
                 script = sb.EndScript();
@@ -276,11 +270,11 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading contract '{contractName}'.", script, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash) =>
+            SendTransaction($"Uploading contract '{contractName}'.", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash) =>
             {
                 if (hash != Hash.Null)
                 {
-                    MessageBox(MessageKind.Success, $"{contractName} was deployed succesfully!");
+                    MessageBox(MessageKind.Success, $"{contractName} was deployed successfully!");
                 }
             });
 
@@ -327,11 +321,8 @@ namespace Poltergeist
             byte[] script;
             try
             {
-                var gasPrice = accountManager.Settings.feePrice;
-                var gasLimit = accountManager.Settings.feeLimit;
-
                 var sb = new ScriptBuilder();
-                sb.AllowGas(target, Address.Null, gasPrice, gasLimit);
+                sb.AllowGas(target, Address.Null);
                 sb.CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, archiveEncryption);
                 sb.SpendGas(target);
                 script = sb.EndScript();
@@ -342,7 +333,7 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
             {
                 if (hash != Hash.Null)
                 {

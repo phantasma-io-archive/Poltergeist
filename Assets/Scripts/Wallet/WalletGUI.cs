@@ -2496,7 +2496,7 @@ namespace Poltergeist
                             Action claim = () =>
                             {
                                 BeginWaitingModal("Preparing swap transaction...");
-                                accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.Symbol, balance.PendingHash, (settleHash, error) =>
+                                accountManager.SettleSwap(balance.PendingPlatform, accountManager.CurrentPlatform.ToString().ToLower(), balance.Symbol, balance.PendingHash, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, (settleHash, error) =>
                                 {
                                     EndWaitingModal();
                                     if (settleHash != Hash.Null)
@@ -2634,15 +2634,13 @@ namespace Poltergeist
                                                         var address = Address.FromText(state.address);
 
                                                         var sb = new ScriptBuilder();
-                                                        var gasPrice = accountManager.Settings.feePrice;
-                                                        var gasLimit = accountManager.Settings.feeLimit;
 
-                                                        sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                                                        sb.AllowGas(address, Address.Null);
                                                         sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(amount, balance.Decimals));
                                                         sb.SpendGas(address);
                                                         var script = sb.EndScript();
 
-                                                        SendTransaction($"Unstake {amount} SOUL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                                        SendTransaction($"Unstake {amount} SOUL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                                         {
                                                             if (hash != Hash.Null)
                                                             {
@@ -2675,26 +2673,24 @@ namespace Poltergeist
                                             if (feeResult == PromptResult.Success)
                                             {
                                                 var address = Address.FromText(state.address);
-                                                var gasPrice = accountManager.Settings.feePrice;
-                                                var gasLimit = accountManager.Settings.feeLimit;
 
                                                 var sb = new ScriptBuilder();
 
                                                 if (balance.Available > 0)
                                                 {
-                                                    sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                                                    sb.AllowGas(address, Address.Null);
                                                     sb.CallContract("stake", "Claim", address, address);
                                                 }
                                                 else
                                                 {
                                                     sb.CallContract("stake", "Claim", address, address);
-                                                    sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                                                    sb.AllowGas(address, Address.Null);
                                                 }
 
                                                 sb.SpendGas(address);
                                                 var script = sb.EndScript();
 
-                                                SendTransaction($"Claim {balance.Claimable} KCAL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                                SendTransaction($"Claim {balance.Claimable} KCAL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                                 {
                                                     if (hash != Hash.Null)
                                                     {
@@ -3121,12 +3117,10 @@ namespace Poltergeist
                     try
                     {
                         var address = Address.FromText(state.address);
-                        var gasPrice = accountManager.Settings.feePrice;
-                        var gasLimit = accountManager.Settings.feeLimit;
 
                         var sb = new ScriptBuilder();
 
-                        sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                        sb.AllowGas(address, Address.Null);
                         sb.CallContract("stake", "MasterClaim", address);
                         sb.SpendGas(address);
                         script = sb.EndScript();
@@ -3137,7 +3131,7 @@ namespace Poltergeist
                         return;
                     }
 
-                    SendTransaction($"Claim SM reward", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                    SendTransaction($"Claim SM reward", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                     {
                         if (hash != Hash.Null)
                         {
@@ -3155,7 +3149,7 @@ namespace Poltergeist
                         }
                     });
 
-                    accountManager.SignAndSendTransaction("main", script, System.Text.Encoding.UTF8.GetBytes(accountManager.WalletIdentifier), ProofOfWork.None, null, (hash, error) =>
+                    accountManager.SignAndSendTransaction("main", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, System.Text.Encoding.UTF8.GetBytes(accountManager.WalletIdentifier), ProofOfWork.None, null, (hash, error) =>
                     {
                     });
                 }
@@ -3171,11 +3165,9 @@ namespace Poltergeist
                                 try
                                 {
                                     var target = Address.FromText(state.address);
-                                    var gasPrice = accountManager.Settings.feePrice;
-                                    var gasLimit = accountManager.Settings.feeLimit;
 
                                     var sb = new ScriptBuilder();
-                                    sb.AllowGas(target, Address.Null, gasPrice, gasLimit);
+                                    sb.AllowGas(target, Address.Null);
                                     sb.CallInterop("Runtime.BurnTokens", target, balance.Symbol, UnitConversion.ToBigInteger(amountToBurn, balance.Decimals));
                                     sb.SpendGas(target);
                                     script = sb.EndScript();
@@ -3186,7 +3178,7 @@ namespace Poltergeist
                                     return;
                                 }
 
-                                SendTransaction($"Burn {amountToBurn} {balance.Symbol} tokens", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                SendTransaction($"Burn {amountToBurn} {balance.Symbol} tokens", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
@@ -3909,15 +3901,13 @@ namespace Poltergeist
                                                 var address = Address.FromText(accountManager.CurrentState.address);
 
                                                 var sb = new ScriptBuilder();
-                                                var gasPrice = accountManager.Settings.feePrice;
-                                                var gasLimit = accountManager.Settings.feeLimit;
 
-                                                sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                                                sb.AllowGas(address, Address.Null);
                                                 sb.CallContract("account", "Migrate", address, newKeys.Address);
                                                 sb.SpendGas(address);
                                                 var script = sb.EndScript();
 
-                                                SendTransaction("Migrate account", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                                SendTransaction("Migrate account", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                                 {
                                                     if (hash != Hash.Null)
                                                     {
@@ -4043,13 +4033,10 @@ namespace Poltergeist
 
                                                     try
                                                     {
-                                                        var gasPrice = accountManager.Settings.feePrice;
-                                                        var gasLimit = accountManager.Settings.feeLimit;
-
                                                         var source = Address.FromText(accountManager.CurrentState.address);
 
                                                         var sb = new ScriptBuilder();
-                                                        sb.AllowGas(source, Address.Null, gasPrice, gasLimit);
+                                                        sb.AllowGas(source, Address.Null);
                                                         sb.CallContract("account", "RegisterName", source, name);
                                                         sb.SpendGas(source);
                                                         script = sb.EndScript();
@@ -4060,7 +4047,7 @@ namespace Poltergeist
                                                         return;
                                                     }
 
-                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                                     {
                                                         if (hash != Hash.Null)
                                                         {
@@ -4156,16 +4143,14 @@ namespace Poltergeist
                             var address = Address.FromText(state.address);
 
                             var sb = new ScriptBuilder();
-                            var gasPrice = accountManager.Settings.feePrice;
-                            var gasLimit = accountManager.Settings.feeLimit;
 
-                            sb.AllowGas(address, Address.Null, gasPrice, gasLimit);
+                            sb.AllowGas(address, Address.Null);
                             sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(selectedAmount, balance.Decimals));
                             sb.SpendGas(address);
 
                             var script = sb.EndScript();
 
-                            SendTransaction($"Stake {selectedAmount} SOUL", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                            SendTransaction($"Stake {selectedAmount} SOUL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                             {
                                 callback(hash);
                             });
@@ -4369,16 +4354,17 @@ namespace Poltergeist
                     {
                         var accountManager = AccountManager.Instance;
                         var state = accountManager.CurrentState;
+                        
+                        var gasPrice = accountManager.Settings.feePrice;
+                        var gasLimit = accountManager.Settings.feeLimit;
 
                         byte[] script;
                         try
                         {
                             var target = Address.FromText(state.address);
-                            var gasPrice = accountManager.Settings.feePrice;
-                            var gasLimit = accountManager.Settings.feeLimit;
 
                             var sb = new ScriptBuilder();
-                            sb.AllowGas(target, Address.Null, gasPrice, gasLimit * nftTransferList.Count);
+                            sb.AllowGas(target, Address.Null);
                             foreach (var nftToBurn in nftTransferList)
                             {
                                 sb.CallInterop("Runtime.BurnToken", target, transferSymbol, BigInteger.Parse(nftToBurn));
@@ -4392,7 +4378,7 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                        SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, gasPrice, gasLimit * nftTransferList.Count, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                         {
                             if (hash != Hash.Null)
                             {
@@ -4518,7 +4504,7 @@ namespace Poltergeist
             temp?.Invoke(hash);
         }
 
-        public void SendTransaction(string description, byte[] script, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
+        public void SendTransaction(string description, byte[] script, BigInteger phaGasPrice, BigInteger phaGasLimit, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
         {
             if (script == null)
             {
@@ -4544,7 +4530,7 @@ namespace Poltergeist
                     usedGas = 400;
                 }
 
-                var estimatedFee = usedGas * accountManager.Settings.feePrice;
+                var estimatedFee = usedGas * phaGasPrice;
                 var feeDecimals = Tokens.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
                 description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
             }
@@ -4615,7 +4601,7 @@ namespace Poltergeist
                                 {
                                     PushState(GUIState.Sending);
 
-                                    accountManager.SignAndSendTransaction(chain, script, payload, PoW, null, (hash, error) =>
+                                    accountManager.SignAndSendTransaction(chain, script, phaGasPrice, phaGasLimit, payload, PoW, null, (hash, error) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
@@ -4651,7 +4637,7 @@ namespace Poltergeist
             });
         }
 
-        public void SendTransactions(string description, List<byte[]> scripts, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
+        public void SendTransactions(string description, List<byte[]> scripts, BigInteger gasPrice, BigInteger gasLimit, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
         {
             if (scripts.Count() == 0)
             {
@@ -4678,7 +4664,7 @@ namespace Poltergeist
                     usedGas += 400;
                 }
 
-                var estimatedFee = usedGas * accountManager.Settings.feePrice;
+                var estimatedFee = usedGas * gasPrice;
                 var feeDecimals = Tokens.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
                 description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
             }
@@ -4688,49 +4674,19 @@ namespace Poltergeist
             }
             else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
             {
-                BigInteger usedGas;
-
                 var transfer = Serialization.Unserialize<TransferRequest>(scripts[0]);
                 if (transfer.platform == PlatformKind.Ethereum)
                 {
-                    if (transfer.symbol == "ETH")
-                    {
-                        // Eth transfer.
-                        usedGas = accountManager.Settings.ethereumTransferGasLimit;
-                    }
-                    else
-                    {
-                        // Token transfer.
-                        usedGas = accountManager.Settings.ethereumTokenTransferGasLimit;
-                    }
-
-                    var estimatedFee = usedGas * accountManager.Settings.ethereumGasPriceGwei * scripts.Count();
+                    var estimatedFee = gasLimit * gasPrice * scripts.Count();
                     description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} ETH"; // 9 because we convert from Gwei, not Wei
                 }
             }
             else if (accountManager.CurrentPlatform == PlatformKind.BSC)
             {
-                BigInteger usedGas;
-
                 var transfer = Serialization.Unserialize<TransferRequest>(scripts[0]);
                 if (transfer.platform == PlatformKind.BSC)
                 {
-                    if (transfer.symbol == "BNB")
-                    {
-                        // BNB transfer.
-                        usedGas = accountManager.Settings.binanceSmartChainTransferGasLimit;
-                    }
-                    else if (transfer.symbol == "SPE")
-                    {
-                        usedGas = 600000; // Hack for SPE token
-                    }
-                    else
-                    {
-                        // Token transfer.
-                        usedGas = accountManager.Settings.binanceSmartChainTokenTransferGasLimit;
-                    }
-
-                    var estimatedFee = usedGas * accountManager.Settings.binanceSmartChainGasPriceGwei * scripts.Count();
+                    var estimatedFee = gasLimit * gasPrice * scripts.Count();
                     description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} BNB"; // 9 because we convert from Gwei, not Wei
                 }
             }
@@ -4747,7 +4703,7 @@ namespace Poltergeist
                             {
                                 if (result == PromptResult.Success)
                                 {
-                                    SendTransactionsInternal(accountManager, description, scripts, payload, chain, PoW, callback);
+                                    SendTransactionsInternal(accountManager, description, scripts, gasPrice, gasLimit, payload, chain, PoW, callback);
                                 }
                                 else
                                 {
@@ -4768,11 +4724,11 @@ namespace Poltergeist
             });
         }
 
-        private void SendTransactionsInternal(AccountManager accountManager, string description, List<byte[]> scripts, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
+        private void SendTransactionsInternal(AccountManager accountManager, string description, List<byte[]> scripts, BigInteger gasPrice, BigInteger gasLimit, byte[] payload, string chain, ProofOfWork PoW, Action<Hash> callback)
         {
             PushState(GUIState.Sending);
 
-            accountManager.SignAndSendTransaction(chain, scripts[0], payload, PoW, null, (hash, error) =>
+            accountManager.SignAndSendTransaction(chain, scripts[0], gasPrice, gasLimit, payload, PoW, null, (hash, error) =>
             {
                 if (hash != Hash.Null)
                 {
@@ -4780,7 +4736,7 @@ namespace Poltergeist
                     {
                         ShowConfirmationScreen(hash, false, (txHash) =>
                         {
-                            SendTransactionsInternal(accountManager, description, scripts.Skip(1).ToList(), payload, chain, PoW, callback);
+                            SendTransactionsInternal(accountManager, description, scripts.Skip(1).ToList(), gasPrice, gasLimit, payload, chain, PoW, callback);
                         });
                     }
                     else
@@ -4861,11 +4817,8 @@ namespace Poltergeist
                         {
                             var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
-                            var gasPrice = accountManager.Settings.feePrice;
-                            var gasLimit = accountManager.Settings.feeLimit;
-
                             var sb = new ScriptBuilder();
-                            sb.AllowGas(source, Address.Null, gasPrice, gasLimit);
+                            sb.AllowGas(source, Address.Null);
 
                             if (symbol == "KCAL" && amount == balance)
                             {
@@ -4885,7 +4838,7 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                        SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                         {
                             if (hash != Hash.Null)
                             {
@@ -4948,6 +4901,9 @@ namespace Poltergeist
                     var scripts = new List<byte[]>();
                     string description;
 
+                    var gasPrice = accountManager.Settings.feePrice;
+                    var gasLimit = accountManager.Settings.feeLimit;
+                    
                     try
                     {
                         var nftTransferLimit = 100;
@@ -4959,11 +4915,8 @@ namespace Poltergeist
                         {
                             var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
-                            var gasPrice = accountManager.Settings.feePrice;
-                            var gasLimit = accountManager.Settings.feeLimit;
-
                             var sb = new ScriptBuilder();
-                            sb.AllowGas(source, Address.Null, gasPrice, gasLimit * nftSublist.Count);
+                            sb.AllowGas(source, Address.Null);
 
                             foreach (var nft in nftSublist)
                             {
@@ -4983,6 +4936,8 @@ namespace Poltergeist
                                 description += $"#{nft.Substring(0, 5) + "..." + nft.Substring(nft.Length - 5)}{nftDescription}\n";
                             }
 
+                            gasLimit *= nftSublist.Count;
+
                             sb.SpendGas(source);
                             scripts.Add(sb.EndScript());
                         }
@@ -4995,7 +4950,7 @@ namespace Poltergeist
                         return;
                     }
 
-                    SendTransactions(description, scripts, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                    SendTransactions(description, scripts, gasPrice, gasLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                     {
                         if (hash != Hash.Null)
                         {
@@ -5150,7 +5105,7 @@ namespace Poltergeist
 
                     byte[] script = Serialization.Serialize(transfer);
 
-                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
+                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
                     {
                         if (hash != Hash.Null)
                         {
@@ -5247,7 +5202,7 @@ namespace Poltergeist
 
                                 byte[] script = Serialization.Serialize(transfer);
 
-                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
+                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
@@ -5351,7 +5306,7 @@ namespace Poltergeist
 
                                 byte[] script = Serialization.Serialize(transfer);
 
-                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
+                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
                                 {
                                     if (hash != Hash.Null)
                                     {
@@ -5518,11 +5473,8 @@ namespace Poltergeist
                                     {
                                         var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
-                                        var gasPrice = accountManager.Settings.feePrice;
-                                        var gasLimit = accountManager.Settings.feeLimit;
-
                                         var sb = new ScriptBuilder();
-                                        sb.AllowGas(source, Address.Null, gasPrice, gasLimit);
+                                        sb.AllowGas(source, Address.Null);
                                         sb.TransferTokens(symbol, source, destAddress, UnitConversion.ToBigInteger(amount, decimals));
                                         sb.SpendGas(source);
                                         script = sb.EndScript();
@@ -5533,7 +5485,7 @@ namespace Poltergeist
                                         return;
                                     }
 
-                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}\nEstimated swap fee: {min} {feeSymbol}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}\nEstimated swap fee: {min} {feeSymbol}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
@@ -5580,7 +5532,7 @@ namespace Poltergeist
 
                                     byte[] script = Serialization.Serialize(transfer);
 
-                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash) =>
                                     {
                                         if (hash != Hash.Null)
                                         {
@@ -5779,9 +5731,6 @@ namespace Poltergeist
                              {
                                  var source = Address.FromText(state.address);
 
-                                 var gasPrice = accountManager.Settings.feePrice;
-                                 var gasLimit = accountManager.Settings.feeLimit;
-
                                  var decimals = Tokens.GetTokenDecimals(feeSymbol, accountManager.CurrentPlatform);
 
                                  var sb = new ScriptBuilder();
@@ -5793,7 +5742,7 @@ namespace Poltergeist
                                  {
                                      sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.1m, decimals));
                                  }
-                                 sb.AllowGas(source, Address.Null, gasPrice, gasLimit);
+                                 sb.AllowGas(source, Address.Null);
                                  sb.SpendGas(source);
                                  script = sb.EndScript();
                              }
@@ -5806,7 +5755,7 @@ namespace Poltergeist
                              var swapSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
                              var feeSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
                              Log.Write($"Balance before swap: {swapSymbol}: {swapSymbolBalance}, {feeSymbol}: {feeSymbolBalance}.");
-                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
                              {
                                  if (hash == Hash.Null)
                                  {
@@ -6196,11 +6145,6 @@ namespace Poltergeist
         public Dictionary<string, decimal>  GetBalances(string chain)
         {
             throw new NotImplementedException();
-        }
-
-        public void ExecuteTransaction(string description, byte[] script, string chain, ProofOfWork PoW, Action<Hash> callback)
-        {
-            this.SendTransaction(description, script, null, chain, PoW, callback);
         }
 
         public void InvokeScript(string chain, byte[] script, Action<string[], string> callback)
