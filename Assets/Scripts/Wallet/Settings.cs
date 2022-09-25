@@ -112,6 +112,7 @@ namespace Poltergeist
         public const string LogOverwriteModeTag = "log.overwrite.mode";
 
         public const string UiThemeNameTag = "ui.theme.name";
+        public const string UiFramerateTag = "ui.framerate";
 
         public const string TtrsNftSortModeTag = "ttrs.nft.sort.mode";
         public const string NftSortModeTag = "nft.sort.mode";
@@ -152,6 +153,7 @@ namespace Poltergeist
         public Log.Level logLevel;
         public bool logOverwriteMode;
         public string uiThemeName;
+        public int uiFramerate;
         public int ttrsNftSortMode;
         public int nftSortMode;
         public int nftSortDirection;
@@ -188,6 +190,7 @@ namespace Poltergeist
                 "Currency: " + this.currency + "\n" +
                 "Sfx: " + this.sfx + "\n" +
                 "UI theme: " + this.uiThemeName + "\n" +
+                "UI framerate: " + this.uiFramerate + "\n" +
                 "Log level: " + this.logLevel + "\n" +
                 "Log overwrite: " + this.logOverwriteMode + "\n" +
                 "TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
@@ -345,6 +348,7 @@ namespace Poltergeist
             binanceSmartChainUserTokens = PlayerPrefs.GetString(BinanceSmartChainUserTokensTag, null);
 
             this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
+            this.uiFramerate = PlayerPrefs.GetInt(UiFramerateTag, -1);
 
             LoadLogSettings();
 
@@ -629,6 +633,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
             PlayerPrefs.SetString(UiThemeNameTag, this.uiThemeName);
+            PlayerPrefs.SetInt(UiFramerateTag, this.uiFramerate);
             PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.SetString(MnemonicPhraseLengthTag, this.mnemonicPhraseLength.ToString());

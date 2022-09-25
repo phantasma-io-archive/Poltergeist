@@ -753,6 +753,12 @@ namespace Poltergeist
             var scaleY = Screen.height / (float)virtualHeight;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleX, scaleY, 1.0f));
 
+            if (AccountManager.Instance.Settings.uiFramerate > 0)
+            {
+                QualitySettings.vSyncCount = 0;
+                Application.targetFrameRate = AccountManager.Instance.Settings.uiFramerate;
+            }
+            
             var uiThemeName = AccountManager.Instance.Settings.uiThemeName;
             if (uiThemeName == UiThemes.Classic.ToString())
             {
