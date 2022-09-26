@@ -2036,20 +2036,21 @@ namespace Poltergeist
 
             foreach (var platform in platformsList)
             {
-                switch (platform)
+                lock (Tokens.__lockObj)
                 {
-                    case PlatformKind.Phantasma:
+                    switch (platform)
+                    {
+                        case PlatformKind.Phantasma:
                         {
                             var keys = PhantasmaKeys.FromWIF(wif);
                             var ethKeys = EthereumKey.FromWIF(wif);
                             StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
-                            {
-                                var balanceMap = new Dictionary<string, Balance>();
-
-                                foreach (var entry in acc.balances)
                                 {
-                                    lock (Tokens.__lockObj)
+                                    var balanceMap = new Dictionary<string, Balance>();
+
+                                    foreach (var entry in acc.balances)
                                     {
+
                                         var token = Tokens.GetToken(entry.symbol, PlatformKind.Phantasma);
                                         if (token != null)
                                             balanceMap[entry.symbol] = new Balance()
@@ -2079,316 +2080,322 @@ namespace Poltergeist
                                                 Fungible = true,
                                                 Ids = entry.ids
                                             };
+
+
                                     }
 
-                                }
+                                    var stakedAmount = AmountFromString(acc.stake.amount,
+                                        Tokens.GetTokenDecimals("SOUL", PlatformKind.Phantasma));
+                                    var claimableAmount = AmountFromString(acc.stake.unclaimed,
+                                        Tokens.GetTokenDecimals("KCAL", PlatformKind.Phantasma));
 
-                                var stakedAmount = AmountFromString(acc.stake.amount, Tokens.GetTokenDecimals("SOUL", PlatformKind.Phantasma));
-                                var claimableAmount = AmountFromString(acc.stake.unclaimed, Tokens.GetTokenDecimals("KCAL", PlatformKind.Phantasma));
+                                    var stakeTimestamp = new Timestamp(acc.stake.time);
 
-                                var stakeTimestamp = new Timestamp(acc.stake.time);
-
-                                if (stakedAmount > 0)
-                                {
-                                    var symbol = "SOUL";
-                                    if (balanceMap.ContainsKey(symbol))
+                                    if (stakedAmount > 0)
                                     {
-                                        var entry = balanceMap[symbol];
-                                        entry.Staked = stakedAmount;
-                                    }
-                                    else
-                                    {
-                                        var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
-                                        var entry = new Balance()
+                                        var symbol = "SOUL";
+                                        if (balanceMap.ContainsKey(symbol))
                                         {
-                                            Symbol = symbol,
-                                            Chain = "main",
-                                            Available = 0,
-                                            Staked = stakedAmount,
-                                            Claimable = 0,
-                                            Pending = 0,
-                                            Decimals = token.decimals,
-                                            Burnable = token.IsBurnable(),
-                                            Fungible = token.IsFungible()
-                                        };
-                                        balanceMap[symbol] = entry;
-                                    }
-                                }
-
-                                if (claimableAmount > 0)
-                                {
-                                    var symbol = "KCAL";
-                                    if (balanceMap.ContainsKey(symbol))
-                                    {
-                                        var entry = balanceMap[symbol];
-                                        entry.Claimable = claimableAmount;
-                                    }
-                                    else
-                                    {
-                                        var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
-                                        var entry = new Balance()
-                                        {
-                                            Symbol = symbol,
-                                            Chain = "main",
-                                            Available = 0,
-                                            Staked = 0,
-                                            Claimable = claimableAmount,
-                                            Pending = 0,
-                                            Decimals = token.decimals,
-                                            Burnable = token.IsBurnable(),
-                                            Fungible = token.IsFungible()
-                                        };
-                                        balanceMap[symbol] = entry;
-                                    }
-                                }
-
-                                // State without swaps
-                                var state = new AccountState()
-                                {
-                                    platform = platform,
-                                    address = acc.address,
-                                    name = acc.name,
-                                    balances = balanceMap.Values.ToArray(),
-                                    flags = AccountFlags.None
-                                };
-
-                                if (stakedAmount >= SoulMasterStakeAmount)
-                                {
-                                    state.flags |= AccountFlags.Master;
-                                }
-
-                                if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
-                                {
-                                    state.flags |= AccountFlags.Validator;
-                                }
-
-                                state.stakeTime = stakeTimestamp;
-
-                                state.usedStorage = acc.storage.used;
-                                state.availableStorage = acc.storage.available;
-                                state.archives = acc.storage.archives;
-                                state.avatarData = acc.storage.avatar;
-
-                                ReportWalletBalance(platform, state);
-
-                                // Swaps to Pha from Neo are reported here.
-                                RequestPendings(keys.Address.Text, PlatformKind.Phantasma, (phaSwaps, phaError) =>
-                                {
-                                    if (phaSwaps != null)
-                                    {
-                                        MergeSwaps(PlatformKind.Phantasma, balanceMap, phaSwaps);
-                                    }
-                                    else
-                                    {
-                                        Log.WriteWarning(phaError);
-                                    }
-
-                                    // Swaps to Pha from ETH are reported here.
-                                    RequestPendings(ethKeys.Address, PlatformKind.Ethereum, (swapsFromEth, error) =>
-                                    {
-                                        if (swapsFromEth != null)
-                                        {
-                                            MergeSwaps(PlatformKind.Phantasma, balanceMap, swapsFromEth);
+                                            var entry = balanceMap[symbol];
+                                            entry.Staked = stakedAmount;
                                         }
                                         else
                                         {
-                                            Log.WriteWarning(error);
+                                            var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
+                                            var entry = new Balance()
+                                            {
+                                                Symbol = symbol,
+                                                Chain = "main",
+                                                Available = 0,
+                                                Staked = stakedAmount,
+                                                Claimable = 0,
+                                                Pending = 0,
+                                                Decimals = token.decimals,
+                                                Burnable = token.IsBurnable(),
+                                                Fungible = token.IsFungible()
+                                            };
+                                            balanceMap[symbol] = entry;
+                                        }
+                                    }
+
+                                    if (claimableAmount > 0)
+                                    {
+                                        var symbol = "KCAL";
+                                        if (balanceMap.ContainsKey(symbol))
+                                        {
+                                            var entry = balanceMap[symbol];
+                                            entry.Claimable = claimableAmount;
+                                        }
+                                        else
+                                        {
+                                            var token = Tokens.GetToken(symbol, PlatformKind.Phantasma);
+                                            var entry = new Balance()
+                                            {
+                                                Symbol = symbol,
+                                                Chain = "main",
+                                                Available = 0,
+                                                Staked = 0,
+                                                Claimable = claimableAmount,
+                                                Pending = 0,
+                                                Decimals = token.decimals,
+                                                Burnable = token.IsBurnable(),
+                                                Fungible = token.IsFungible()
+                                            };
+                                            balanceMap[symbol] = entry;
+                                        }
+                                    }
+
+                                    // State without swaps
+                                    var state = new AccountState()
+                                    {
+                                        platform = platform,
+                                        address = acc.address,
+                                        name = acc.name,
+                                        balances = balanceMap.Values.ToArray(),
+                                        flags = AccountFlags.None
+                                    };
+
+                                    if (stakedAmount >= SoulMasterStakeAmount)
+                                    {
+                                        state.flags |= AccountFlags.Master;
+                                    }
+
+                                    if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
+                                    {
+                                        state.flags |= AccountFlags.Validator;
+                                    }
+
+                                    state.stakeTime = stakeTimestamp;
+
+                                    state.usedStorage = acc.storage.used;
+                                    state.availableStorage = acc.storage.available;
+                                    state.archives = acc.storage.archives;
+                                    state.avatarData = acc.storage.avatar;
+
+                                    ReportWalletBalance(platform, state);
+
+                                    // Swaps to Pha from Neo are reported here.
+                                    RequestPendings(keys.Address.Text, PlatformKind.Phantasma, (phaSwaps, phaError) =>
+                                    {
+                                        if (phaSwaps != null)
+                                        {
+                                            MergeSwaps(PlatformKind.Phantasma, balanceMap, phaSwaps);
+                                        }
+                                        else
+                                        {
+                                            Log.WriteWarning(phaError);
                                         }
 
-                                        // Swaps to Pha from BSC are reported here.
-                                        RequestPendings(ethKeys.Address, PlatformKind.BSC, (swapsFromBsc, error2) =>
+                                        // Swaps to Pha from ETH are reported here.
+                                        RequestPendings(ethKeys.Address, PlatformKind.Ethereum, (swapsFromEth, error) =>
                                         {
-                                            if (swapsFromBsc != null)
+                                            if (swapsFromEth != null)
                                             {
-                                                MergeSwaps(PlatformKind.Phantasma, balanceMap, swapsFromBsc);
+                                                MergeSwaps(PlatformKind.Phantasma, balanceMap, swapsFromEth);
                                             }
                                             else
                                             {
-                                                Log.WriteWarning(error2);
-                                            }
-                                            var state = new AccountState()
-                                            {
-                                                platform = platform,
-                                                address = acc.address,
-                                                name = acc.name,
-                                                balances = balanceMap.Values.ToArray(),
-                                                flags = AccountFlags.None
-                                            };
-
-                                            if (stakedAmount >= SoulMasterStakeAmount)
-                                            {
-                                                state.flags |= AccountFlags.Master;
+                                                Log.WriteWarning(error);
                                             }
 
-                                            if (acc.validator.Equals("Primary") || acc.validator.Equals("Secondary"))
+                                            // Swaps to Pha from BSC are reported here.
+                                            RequestPendings(ethKeys.Address, PlatformKind.BSC, (swapsFromBsc, error2) =>
                                             {
-                                                state.flags |= AccountFlags.Validator;
-                                            }
+                                                if (swapsFromBsc != null)
+                                                {
+                                                    MergeSwaps(PlatformKind.Phantasma, balanceMap, swapsFromBsc);
+                                                }
+                                                else
+                                                {
+                                                    Log.WriteWarning(error2);
+                                                }
 
-                                            state.stakeTime = stakeTimestamp;
+                                                var state = new AccountState()
+                                                {
+                                                    platform = platform,
+                                                    address = acc.address,
+                                                    name = acc.name,
+                                                    balances = balanceMap.Values.ToArray(),
+                                                    flags = AccountFlags.None
+                                                };
 
-                                            state.usedStorage = acc.storage.used;
-                                            state.availableStorage = acc.storage.available;
-                                            state.archives = acc.storage.archives;
-                                            state.avatarData = acc.storage.avatar;
+                                                if (stakedAmount >= SoulMasterStakeAmount)
+                                                {
+                                                    state.flags |= AccountFlags.Master;
+                                                }
 
-                                            ReportWalletBalance(platform, state);
+                                                if (acc.validator.Equals("Primary") ||
+                                                    acc.validator.Equals("Secondary"))
+                                                {
+                                                    state.flags |= AccountFlags.Validator;
+                                                }
+
+                                                state.stakeTime = stakeTimestamp;
+
+                                                state.usedStorage = acc.storage.used;
+                                                state.availableStorage = acc.storage.available;
+                                                state.archives = acc.storage.archives;
+                                                state.avatarData = acc.storage.avatar;
+
+                                                ReportWalletBalance(platform, state);
+                                            });
                                         });
                                     });
-                                });
-                            },
-                            (error, msg) =>
-                            {
-                                Log.WriteWarning($"RefreshBalances[PHA] {error}: {msg}");
-
-                                if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                },
+                                (error, msg) =>
                                 {
-                                    ChangeFaultyRPCURL(PlatformKind.Phantasma);
-                                }
-                                ReportWalletBalance(platform, null);
-                            }));
-                        }
-                        break;
+                                    Log.WriteWarning($"RefreshBalances[PHA] {error}: {msg}");
 
-                    case PlatformKind.Neo:
+                                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                    {
+                                        ChangeFaultyRPCURL(PlatformKind.Phantasma);
+                                    }
+
+                                    ReportWalletBalance(platform, null);
+                                }));
+                        }
+                            break;
+
+                        case PlatformKind.Neo:
                         {
                             var keys = NeoKeys.FromWIF(wif);
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
-                            StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
-                            {
-                                ReportWalletBalance(platform, null);
-                            },
-                            (response) =>
-                            {
-                                var balances = new List<Balance>();
-
-                                var neoTokens = Tokens.GetTokens(PlatformKind.Neo);
-
-                                var balance = response.GetNode("balance");
-                                foreach (var entry in balance.Children)
+                            StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout,
+                                (error, msg) => { ReportWalletBalance(platform, null); },
+                                (response) =>
                                 {
-                                    var hash = entry.GetString("asset_hash");
-                                    var symbol = entry.GetString("asset_symbol");
-                                    var amount = entry.GetDecimal("amount");
+                                    var balances = new List<Balance>();
 
-                                    Token token;
+                                    var neoTokens = Tokens.GetTokens(PlatformKind.Neo);
 
-                                    if (Tokens.GetToken(symbol, PlatformKind.Neo, out token))
+                                    var balance = response.GetNode("balance");
+                                    foreach (var entry in balance.Children)
                                     {
-                                        if (hash.ToUpper() == Tokens.GetTokenHash(token, PlatformKind.Neo).ToUpper())
+                                        var hash = entry.GetString("asset_hash");
+                                        var symbol = entry.GetString("asset_symbol");
+                                        var amount = entry.GetDecimal("amount");
+
+                                        Token token;
+
+                                        if (Tokens.GetToken(symbol, PlatformKind.Neo, out token))
                                         {
-                                            balances.Add(new Balance()
+                                            if (hash.ToUpper() ==
+                                                Tokens.GetTokenHash(token, PlatformKind.Neo).ToUpper())
                                             {
-                                                Symbol = symbol,
-                                                Available = amount,
-                                                Pending = 0,
-                                                Claimable = 0, // TODO support claimable GAS
-                                                Staked = 0,
-                                                Chain = "main",
-                                                Decimals = token.decimals,
-                                                Burnable = token.IsBurnable(),
-                                                Fungible = token.IsFungible()
-                                            });
-                                        }
-                                    }
-                                }
-
-                                CoroutineUtils.StartThrowingCoroutine(this, neoApi.GetUnclaimed(keys.Address,
-                                (amount) =>
-                                {
-                                    var balanceMap = new Dictionary<string, Balance>();
-
-                                    foreach (var neoToken in neoTokens)
-                                    {
-                                        var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
-
-                                        if (tokenBalance != null)
-                                        {
-                                            balanceMap[tokenBalance.Symbol] = tokenBalance;
-
-                                            if (tokenBalance.Symbol.ToUpper() == "GAS")
-                                            {
-                                                tokenBalance.Claimable += amount;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (neoToken.symbol.ToUpper() == "GAS" && amount > 0)
-                                            {
-                                                // We should show GAS even if its balance is 0
-                                                // if there's some GAS to be claimed.
-                                                balanceMap[neoToken.symbol] = new Balance()
+                                                balances.Add(new Balance()
                                                 {
-                                                    Symbol = neoToken.symbol,
-                                                    Available = 0,
+                                                    Symbol = symbol,
+                                                    Available = amount,
                                                     Pending = 0,
-                                                    Claimable = amount,
+                                                    Claimable = 0, // TODO support claimable GAS
                                                     Staked = 0,
                                                     Chain = "main",
-                                                    Decimals = neoToken.decimals,
-                                                    Burnable = neoToken.IsBurnable(),
-                                                    Fungible = neoToken.IsFungible()
-                                                };
+                                                    Decimals = token.decimals,
+                                                    Burnable = token.IsBurnable(),
+                                                    Fungible = token.IsFungible()
+                                                });
                                             }
                                         }
                                     }
 
-                                    // State before swaps
-                                    var state = new AccountState()
-                                    {
-                                        platform = platform,
-                                        address = keys.Address,
-                                        name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
-                                        balances = balanceMap.Values.ToArray(),
-                                        flags = AccountFlags.None
-                                    };
-                                    ReportWalletBalance(platform, state);
+                                    CoroutineUtils.StartThrowingCoroutine(this, neoApi.GetUnclaimed(keys.Address,
+                                        (amount) =>
+                                        {
+                                            var balanceMap = new Dictionary<string, Balance>();
 
-                                    RequestPendings(keys.Address, PlatformKind.Neo, (swaps, error) =>
-                                    {
-                                        if (swaps != null)
-                                        {
-                                            MergeSwaps(PlatformKind.Neo, balanceMap, swaps);
-                                        }
-                                        else
-                                        {
-                                            Log.WriteWarning(error);
-                                        }
+                                            foreach (var neoToken in neoTokens)
+                                            {
+                                                var tokenBalance = balances.Where(x =>
+                                                    x.Symbol.ToUpper() == neoToken.symbol.ToUpper()).SingleOrDefault();
 
-                                        var state = new AccountState()
+                                                if (tokenBalance != null)
+                                                {
+                                                    balanceMap[tokenBalance.Symbol] = tokenBalance;
+
+                                                    if (tokenBalance.Symbol.ToUpper() == "GAS")
+                                                    {
+                                                        tokenBalance.Claimable += amount;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (neoToken.symbol.ToUpper() == "GAS" && amount > 0)
+                                                    {
+                                                        // We should show GAS even if its balance is 0
+                                                        // if there's some GAS to be claimed.
+                                                        balanceMap[neoToken.symbol] = new Balance()
+                                                        {
+                                                            Symbol = neoToken.symbol,
+                                                            Available = 0,
+                                                            Pending = 0,
+                                                            Claimable = amount,
+                                                            Staked = 0,
+                                                            Chain = "main",
+                                                            Decimals = neoToken.decimals,
+                                                            Burnable = neoToken.IsBurnable(),
+                                                            Fungible = neoToken.IsFungible()
+                                                        };
+                                                    }
+                                                }
+                                            }
+
+                                            // State before swaps
+                                            var state = new AccountState()
+                                            {
+                                                platform = platform,
+                                                address = keys.Address,
+                                                name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
+                                                balances = balanceMap.Values.ToArray(),
+                                                flags = AccountFlags.None
+                                            };
+                                            ReportWalletBalance(platform, state);
+
+                                            RequestPendings(keys.Address, PlatformKind.Neo, (swaps, error) =>
+                                            {
+                                                if (swaps != null)
+                                                {
+                                                    MergeSwaps(PlatformKind.Neo, balanceMap, swaps);
+                                                }
+                                                else
+                                                {
+                                                    Log.WriteWarning(error);
+                                                }
+
+                                                var state = new AccountState()
+                                                {
+                                                    platform = platform,
+                                                    address = keys.Address,
+                                                    name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
+                                                    balances = balanceMap.Values.ToArray(),
+                                                    flags = AccountFlags.None
+                                                };
+                                                ReportWalletBalance(platform, state);
+                                            });
+                                        },
+                                        (error, msg) =>
                                         {
-                                            platform = platform,
-                                            address = keys.Address,
-                                            name = ValidationUtils.ANONYMOUS_NAME, // TODO support NNS
-                                            balances = balanceMap.Values.ToArray(),
-                                            flags = AccountFlags.None
-                                        };
-                                        ReportWalletBalance(platform, state);
+                                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                            {
+                                                ChangeFaultyRPCURL(PlatformKind.Neo);
+                                            }
+
+                                            ReportWalletBalance(platform, null);
+                                        }), ex =>
+                                    {
+                                        if (ex != null)
+                                        {
+                                            Log.WriteWarning($"RefreshBalances[NEO] {ex}");
+                                            ReportWalletBalance(platform, null);
+                                        }
                                     });
-                                },
-                                (error, msg) =>
-                                {
-                                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
-                                    {
-                                        ChangeFaultyRPCURL(PlatformKind.Neo);
-                                    }
-                                    ReportWalletBalance(platform, null);
-                                }), ex =>
-                                {
-                                    if (ex != null)
-                                    {
-                                        Log.WriteWarning($"RefreshBalances[NEO] {ex}");
-                                        ReportWalletBalance(platform, null);
-                                    }
-                                });
 
-                            }));
+                                }));
                         }
-                        break;
+                            break;
 
-                    case PlatformKind.Ethereum:
+                        case PlatformKind.Ethereum:
                         {
                             var keys = EthereumKey.FromWIF(wif);
 
@@ -2400,7 +2407,8 @@ namespace Poltergeist
                                 var balanceMap = new Dictionary<string, Balance>();
                                 foreach (var ethToken in ethTokens)
                                 {
-                                    var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == ethToken.symbol.ToUpper()).SingleOrDefault();
+                                    var tokenBalance = balances
+                                        .Where(x => x.Symbol.ToUpper() == ethToken.symbol.ToUpper()).SingleOrDefault();
                                     if (tokenBalance != null)
                                         balanceMap[tokenBalance.Symbol] = tokenBalance;
                                 }
@@ -2445,45 +2453,46 @@ namespace Poltergeist
                             {
                                 if (ethToken.symbol == "ETH")
                                 {
-                                    StartCoroutine(ethereumApi.GetBalance(keys.Address, ethToken.symbol, ethToken.decimals, (balance) =>
-                                    {
-                                        balances.Add(balance);
-
-                                        if (balances.Count() == ethTokens.Count())
+                                    StartCoroutine(ethereumApi.GetBalance(keys.Address, ethToken.symbol,
+                                        ethToken.decimals, (balance) =>
                                         {
-                                            onLoadFinish();
-                                        }
-                                    },
-                                    (error, msg) =>
-                                    {
-                                        Log.WriteWarning($"RefreshBalances[ETH/1] {error}: {msg}");
-                                        ReportWalletBalance(platform, null);
-                                    }));
+                                            balances.Add(balance);
+
+                                            if (balances.Count() == ethTokens.Count())
+                                            {
+                                                onLoadFinish();
+                                            }
+                                        },
+                                        (error, msg) =>
+                                        {
+                                            Log.WriteWarning($"RefreshBalances[ETH/1] {error}: {msg}");
+                                            ReportWalletBalance(platform, null);
+                                        }));
                                 }
                                 else
                                 {
                                     StartCoroutine(ethereumApi.GetTokenBalance(keys.Address,
                                         Tokens.GetTokenHash(ethToken, PlatformKind.Ethereum),
                                         ethToken.symbol, ethToken.decimals, (balanceSoul) =>
-                                    {
-                                        balances.Add(balanceSoul);
-
-                                        if (balances.Count() == ethTokens.Count())
                                         {
-                                            onLoadFinish();
-                                        }
-                                    },
-                                    (error, msg) =>
-                                    {
-                                        Log.WriteWarning($"RefreshBalances[ETH/2] {error}: {msg}");
-                                        ReportWalletBalance(platform, null);
-                                    }));
+                                            balances.Add(balanceSoul);
+
+                                            if (balances.Count() == ethTokens.Count())
+                                            {
+                                                onLoadFinish();
+                                            }
+                                        },
+                                        (error, msg) =>
+                                        {
+                                            Log.WriteWarning($"RefreshBalances[ETH/2] {error}: {msg}");
+                                            ReportWalletBalance(platform, null);
+                                        }));
                                 }
                             }
                         }
-                        break;
+                            break;
 
-                    case PlatformKind.BSC:
+                        case PlatformKind.BSC:
                         {
                             var keys = EthereumKey.FromWIF(wif);
 
@@ -2495,7 +2504,8 @@ namespace Poltergeist
                                 var balanceMap = new Dictionary<string, Balance>();
                                 foreach (var bscToken in bscTokens)
                                 {
-                                    var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == bscToken.symbol.ToUpper()).SingleOrDefault();
+                                    var tokenBalance = balances
+                                        .Where(x => x.Symbol.ToUpper() == bscToken.symbol.ToUpper()).SingleOrDefault();
                                     if (tokenBalance != null)
                                         balanceMap[tokenBalance.Symbol] = tokenBalance;
                                 }
@@ -2540,24 +2550,26 @@ namespace Poltergeist
                             {
                                 if (bscToken.symbol == "BNB")
                                 {
-                                    StartCoroutine(binanceSmartChainApi.GetBalance(keys.Address, bscToken.symbol, bscToken.decimals, (balance) =>
-                                    {
-                                        balances.Add(balance);
+                                    StartCoroutine(binanceSmartChainApi.GetBalance(keys.Address, bscToken.symbol,
+                                        bscToken.decimals, (balance) =>
+                                        {
+                                            balances.Add(balance);
 
-                                        if (balances.Count() == bscTokens.Count())
+                                            if (balances.Count() == bscTokens.Count())
+                                            {
+                                                onLoadFinish();
+                                            }
+                                        },
+                                        (error, msg) =>
                                         {
-                                            onLoadFinish();
-                                        }
-                                    },
-                                    (error, msg) =>
-                                    {
-                                        Log.WriteWarning($"RefreshBalances[BSC/1] {error}: {msg}");
-                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
-                                        {
-                                            ChangeFaultyRPCURL(PlatformKind.BSC);
-                                        }
-                                        ReportWalletBalance(platform, null);
-                                    }));
+                                            Log.WriteWarning($"RefreshBalances[BSC/1] {error}: {msg}");
+                                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                            {
+                                                ChangeFaultyRPCURL(PlatformKind.BSC);
+                                            }
+
+                                            ReportWalletBalance(platform, null);
+                                        }));
                                 }
                                 else
                                 {
@@ -2572,23 +2584,25 @@ namespace Poltergeist
                                                 onLoadFinish();
                                             }
                                         },
-                                    (error, msg) =>
-                                    {
-                                        Log.WriteWarning($"RefreshBalances[BSC/2] {error}: {msg}");
-                                        if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                        (error, msg) =>
                                         {
-                                            ChangeFaultyRPCURL(PlatformKind.BSC);
-                                        }
-                                        ReportWalletBalance(platform, null);
-                                    }));
+                                            Log.WriteWarning($"RefreshBalances[BSC/2] {error}: {msg}");
+                                            if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                                            {
+                                                ChangeFaultyRPCURL(PlatformKind.BSC);
+                                            }
+
+                                            ReportWalletBalance(platform, null);
+                                        }));
                                 }
                             }
                         }
-                        break;
+                            break;
 
-                    default:
-                        ReportWalletBalance(platform, null);
-                        break;
+                        default:
+                            ReportWalletBalance(platform, null);
+                            break;
+                    }
                 }
             }
         }
