@@ -483,8 +483,8 @@ namespace Poltergeist
 
         public void UpdateRPCURL(PlatformKind platformKind)
         {
-            if (Settings.nexusKind != NexusKind.Main_Net ||
-                (platformKind == PlatformKind.BSC && Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net))
+            if (Settings.nexusKind != NexusKind.Main_Net && Settings.nexusKind != NexusKind.Test_Net ||
+                (platformKind == PlatformKind.Neo && Settings.nexusKind != NexusKind.Main_Net))
             {
                 rpcAvailablePhantasma = 1;
                 rpcAvailableNeo = 1;
@@ -494,7 +494,15 @@ namespace Poltergeist
 
             if (platformKind == PlatformKind.Phantasma)
             {
-                var url = $"https://ghostdevs.com/getpeers.json";
+                string url;
+                if(Settings.nexusKind == NexusKind.Main_Net)
+                {
+                    url = $"https://peers.phantasma.io/mainnet-getpeers.json";
+                }
+                else
+                {
+                    url = $"https://peers.phantasma.io/testnet-getpeers.json";
+                }
 
                 rpcBenchmarkedPhantasma = 0;
                 rpcResponseTimesPhantasma = new List<RpcBenchmarkData>();
@@ -1107,6 +1115,22 @@ namespace Poltergeist
                 CurrentTokenCurrency = "";
 
                 Status = "ok";
+
+                StartCoroutine(phantasmaApi.GetPlatforms((platforms) =>
+                {
+                    foreach (var entry in platforms)
+                    {
+                        string interopAddress = entry.interop[0].external;
+                        Log.Write($"{entry.platform} interop address: {interopAddress}");
+                    }
+                }, (error, msg) =>
+                {
+                    if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
+                    {
+                        ChangeFaultyRPCURL(PlatformKind.Phantasma);
+                    }
+                    Log.Write("Cannot get platforms for interop addresses logging");
+                }));
             }));
         }
 
