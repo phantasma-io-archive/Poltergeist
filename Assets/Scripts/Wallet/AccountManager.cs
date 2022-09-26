@@ -1106,7 +1106,6 @@ namespace Poltergeist
 
         private void TokensReinit()
         {
-            Tokens.Reset();
 
             StartCoroutine(GetTokens((tokens) =>
             {
@@ -2049,20 +2048,39 @@ namespace Poltergeist
 
                                 foreach (var entry in acc.balances)
                                 {
-                                    var token = Tokens.GetToken(entry.symbol, PlatformKind.Phantasma);
-                                    balanceMap[entry.symbol] = new Balance()
+                                    lock (Tokens.__lockObj)
                                     {
-                                        Symbol = entry.symbol,
-                                        Available = AmountFromString(entry.amount, token.decimals),
-                                        Pending = 0,
-                                        Staked = 0,
-                                        Claimable = 0,
-                                        Chain = entry.chain,
-                                        Decimals = token.decimals,
-                                        Burnable = token.IsBurnable(),
-                                        Fungible = token.IsFungible(),
-                                        Ids = entry.ids
-                                    };
+                                        var token = Tokens.GetToken(entry.symbol, PlatformKind.Phantasma);
+                                        if (token != null)
+                                            balanceMap[entry.symbol] = new Balance()
+                                            {
+                                                Symbol = entry.symbol,
+                                                Available = AmountFromString(entry.amount, token.decimals),
+                                                Pending = 0,
+                                                Staked = 0,
+                                                Claimable = 0,
+                                                Chain = entry.chain,
+                                                Decimals = token.decimals,
+                                                Burnable = token.IsBurnable(),
+                                                Fungible = token.IsFungible(),
+                                                Ids = entry.ids
+                                            };
+                                        else
+                                            balanceMap[entry.symbol] = new Balance()
+                                            {
+                                                Symbol = entry.symbol,
+                                                Available = AmountFromString(entry.amount, 8),
+                                                Pending = 0,
+                                                Staked = 0,
+                                                Claimable = 0,
+                                                Chain = entry.chain,
+                                                Decimals = 8,
+                                                Burnable = true,
+                                                Fungible = true,
+                                                Ids = entry.ids
+                                            };
+                                    }
+
                                 }
 
                                 var stakedAmount = AmountFromString(acc.stake.amount, Tokens.GetTokenDecimals("SOUL", PlatformKind.Phantasma));
