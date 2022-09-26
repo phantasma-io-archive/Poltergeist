@@ -1,7 +1,9 @@
+using System;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 
-namespace System.Numerics
+namespace Phantasma.Core.Numerics
 {
     public static class BigIntegerExtension
     {

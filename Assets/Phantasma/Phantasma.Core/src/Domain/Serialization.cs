@@ -1,19 +1,20 @@
-﻿using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Storage.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Text;
+using Phantasma.Core.Utils;
+using Phantasma.Shared;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.Storage
+namespace Phantasma.Core.Domain
 {
     public interface ISerializable
     {
-        void SerializeData(BinaryWriter writer);
-        void UnserializeData(BinaryReader reader);
+        public void SerializeData(BinaryWriter writer);
+        public void UnserializeData(BinaryReader reader);
     }
 
     public delegate void CustomWriter(BinaryWriter writer, object obj);
@@ -89,74 +90,56 @@ namespace Poltergeist.PhantasmaLegacy.Storage
             {
                 writer.Write((byte)(((bool)obj) ? 1 : 0));
             }
-            else
-            if (type == typeof(byte))
+            else if (type == typeof(byte))
             {
                 writer.Write((byte)obj);
             }
-            else
-            if (type == typeof(long))
+            else if (type == typeof(long))
             {
                 writer.Write((long)obj);
             }
-            else
-            if (type == typeof(int))
+            else if (type == typeof(int))
             {
                 writer.Write((int)obj);
             }
-            else
-            if (type == typeof(ushort))
+            else if (type == typeof(ushort))
             {
                 writer.Write((ushort)obj);
             }
-            else
-            if (type == typeof(sbyte))
+            else if (type == typeof(sbyte))
             {
                 writer.Write((sbyte)obj);
             }
-            else
-            if (type == typeof(ulong))
+            else if (type == typeof(ulong))
             {
                 writer.Write((ulong)obj);
             }
-            else
-            if (type == typeof(uint))
+            else if (type == typeof(uint))
             {
                 writer.Write((uint)obj);
             }
-            else
-            if (type == typeof(ushort))
-            {
-                writer.Write((ushort)obj);
-            }
-            else
-            if (type == typeof(string))
+            else if (type == typeof(string))
             {
                 writer.WriteVarString((string)obj);
             }
-            else
-            if (type == typeof(decimal))
+            else if (type == typeof(decimal))
             {
                 writer.Write((decimal)obj);
             }
-            else
-            if (type == typeof(BigInteger))
+            else if (type == typeof(BigInteger))
             {
                 writer.WriteBigInteger((BigInteger)obj);
             }
-            else
-            if (type == typeof(Timestamp))
+            else if (type == typeof(Timestamp))
             {
                 writer.Write(((Timestamp)obj).Value);
             }
-            else
-            if (typeof(ISerializable).IsAssignableFrom(type))
+            else if (typeof(ISerializable).IsAssignableFrom(type))
             {
                 var serializable = (ISerializable)obj;
                 serializable.SerializeData(writer);
             }
-            else
-            if (type.IsArray)
+            else if (type.IsArray)
             {
                 var array = (Array)obj;
                 if (array == null)
@@ -175,14 +158,12 @@ namespace Poltergeist.PhantasmaLegacy.Storage
                     }
                 }
             }
-            else
-            if (type.IsEnum)
+            else if (type.IsEnum)
             {
                 uint val = (uint)Convert.ChangeType(obj, typeof(uint));
                 writer.WriteVarInt(val);
             }
-            else
-            if (type.IsStructOrClass()) // check if struct or class
+            else if (type.IsStructOrClass()) // check if struct or class
             {
                 var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
 
@@ -208,7 +189,7 @@ namespace Poltergeist.PhantasmaLegacy.Storage
 
         public static T Unserialize<T>(byte[] bytes)
         {
-            if (bytes.Length == 0)
+            if (bytes == null || bytes.Length == 0)
             {
                 return default(T);
             }
@@ -375,33 +356,42 @@ namespace Poltergeist.PhantasmaLegacy.Storage
             throw new Exception("Unknown type");
         }
 
-        // only works in structs and classes
-        public static void Copy(this object target, object source)
+        public static ISerializable AsSerializable(this byte[] value, Type type)
         {
-            var type = target.GetType();
-
-            Throw.IfNot(type.IsStructOrClass(), "invalid type");
-
-            var fields = type.GetFields();
-
-            foreach (var field in fields)
-            {
-                var fieldType = field.FieldType;
-
-                object val;
-                if (fieldType.IsStructOrClass())
-                {
-                    val = Activator.CreateInstance(fieldType);
-                    val.Copy(field.GetValue(source));
-                }
-                else
-                {
-                    val = field.GetValue(source);
-                }
-                field.SetValue(target, val);
-            }
+            if (!typeof(ISerializable).GetTypeInfo().IsAssignableFrom(type))
+                throw new InvalidCastException();
+            ISerializable serializable = (ISerializable)Activator.CreateInstance(type);
+            using MemoryStream ms = new MemoryStream(value, false);
+            using BinaryReader reader = new BinaryReader(ms, Encoding.UTF8, true);
+            serializable.UnserializeData(reader);
+            return serializable;
         }
 
+        //// only works in structs and classes
+        //public static void Copy(this object target, object source)
+        //{
+        //    var type = target.GetType();
 
+        //    Throw.IfNot(type.IsStructOrClass(), "invalid type");
+
+        //    var fields = type.GetFields();
+
+        //    foreach (var field in fields)
+        //    {
+        //        var fieldType = field.FieldType;
+
+        //        object val;
+        //        if (fieldType.IsStructOrClass())
+        //        {
+        //            val = Activator.CreateInstance(fieldType);
+        //            val.Copy(field.GetValue(source));
+        //        }
+        //        else
+        //        {
+        //            val = field.GetValue(source);
+        //        }
+        //        field.SetValue(target, val);
+        //    }
+        //}
     }
 }

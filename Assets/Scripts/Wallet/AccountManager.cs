@@ -9,16 +9,16 @@ using Poltergeist.Neo2.Core;
 using LunarLabs.Parser;
 using Archive = Phantasma.SDK.Archive;
 using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.Domain;
-using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Storage;
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.VM.Utils;
-using Poltergeist.PhantasmaLegacy.Ethereum;
-using Poltergeist.PhantasmaLegacy.Blockchain;
-using Poltergeist.PhantasmaLegacy.VM;
 using System.Numerics;
+using Poltergeist.PhantasmaLegacy.Ethereum;
+using Phantasma.Shared.Types;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Shared.Utils;
+using Phantasma.Shared;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Cryptography.ECDsa;
 
 namespace Poltergeist
 {
@@ -3558,7 +3558,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, ECDsaCurve.Secp256k1);
                     });
                 }
                 else
@@ -3576,7 +3576,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, ECDsaCurve.Secp256k1);
                     });
                 }
             }
@@ -3609,7 +3609,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, ECDsaCurve.Secp256k1);
                     });
                 }
                 else
@@ -3627,7 +3627,7 @@ namespace Poltergeist
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
                     {
-                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                        return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, ECDsaCurve.Secp256k1);
                     });
                 }
             }
@@ -4060,7 +4060,7 @@ namespace Poltergeist
                                                                                     }
                                                                                     else
                                                                                     {
-                                                                                        var evnt = new Poltergeist.PhantasmaLegacy.Domain.Event(kind, Address.FromText(stakeEvent.address), stakeEvent.contract, Base16.Decode(stakeEvent.data));
+                                                                                        var evnt = new Phantasma.Core.Domain.Event(kind, Address.FromText(stakeEvent.address), stakeEvent.contract, Base16.Decode(stakeEvent.data));
 
                                                                                         var tokenEventData = evnt.GetContent<TokenEventData>();
                                                                                         Log.Write(new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc).AddSeconds(tx.timestamp).ToLocalTime() +

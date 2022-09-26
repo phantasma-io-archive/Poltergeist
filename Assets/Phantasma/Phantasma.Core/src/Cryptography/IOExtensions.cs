@@ -1,12 +1,18 @@
-﻿using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
-using Poltergeist.PhantasmaLegacy.Cryptography.EdDSA;
-using System;
+﻿using System;
 using System.IO;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Core.Utils;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     public static class IOExtensions
     {
+        public static void WritePublicKey(this BinaryWriter writer, byte[] publicKey)
+        {
+            writer.WriteByteArray(publicKey);
+        }
+
         public static void WriteAddress(this BinaryWriter writer, Address address)
         {
             address.SerializeData(writer);
@@ -27,6 +33,12 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
             writer.Write((byte)signature.Kind);
             signature.SerializeData(writer);
+        }
+
+        public static byte[] ReadPublicKey(this BinaryReader reader)
+        {
+            var bytes = reader.ReadByteArray();
+            return bytes;
         }
 
         public static Address ReadAddress(this BinaryReader reader)

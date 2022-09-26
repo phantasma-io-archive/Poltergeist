@@ -1,4 +1,10 @@
-﻿namespace Poltergeist.PhantasmaLegacy.Domain
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Phantasma.Core.Utils;
+
+namespace Phantasma.Core.Domain
 {
     public enum NativeContractKind
     {
@@ -14,6 +20,7 @@
         Validator,
         Interop,
         Exchange,
+        Privacy,
         Relay,
         Ranking,
         Market,

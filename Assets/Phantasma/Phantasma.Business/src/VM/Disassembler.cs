@@ -1,15 +1,17 @@
-﻿using Poltergeist.PhantasmaLegacy.Core;
+﻿using System;
 using System.Collections.Generic;
+using Phantasma.Core.Domain;
+using Phantasma.Shared;
 
-namespace Poltergeist.PhantasmaLegacy.VM
+namespace Phantasma.Business.VM
 {
     public class Disassembler
     {
         private uint _instructionPointer;
-        private byte[] _script;
+        private readonly byte[] _script;
+        private readonly List<Instruction> _instructions;
 
-        private List<Instruction> _instructions;
-        public IEnumerable<Instruction> Instructions => _instructions;
+        public IEnumerable<Instruction> Instructions => _instructions.AsReadOnly();
 
         public Disassembler(byte[] script)
         {
@@ -26,22 +28,29 @@ namespace Poltergeist.PhantasmaLegacy.VM
             {
                 var temp = new Instruction();
                 temp.Offset = _instructionPointer;
-                temp.Opcode = (Opcode)Read8();
-
-                //System.Console.WriteLine("disasm => " + temp.Opcode);
+                var opByte = Read8();
+                temp.Opcode = (Opcode)opByte;
 
                 switch (temp.Opcode)
                 {
+                    case Opcode.RET:
+                        {
+                            temp.Args = Array.Empty<object>();
+                            result.Add(temp);
+                            return result;
+                        }
                     // args: byte src_reg, byte dest_reg
                     case Opcode.CTX:
                     case Opcode.MOVE:
                     case Opcode.COPY:
                     case Opcode.SWAP:
                     case Opcode.SIZE:
+                    case Opcode.COUNT:
                     case Opcode.SIGN:
                     case Opcode.NOT:
                     case Opcode.NEGATE:
                     case Opcode.ABS:
+                    case Opcode.UNPACK:
                         {
                             var src = Read8();
                             var dst = Read8();
@@ -64,11 +73,23 @@ namespace Poltergeist.PhantasmaLegacy.VM
                             break;
                         }
 
+                    case Opcode.CAST:
+                        {
+                            var src = Read8();
+                            var dst = Read8();
+                            var type = (VMType)Read8();
+
+                            temp.Args = new object[] { src, dst, type };
+
+                            break;
+                        }
+
                     // args: byte src_reg
                     case Opcode.POP:
                     case Opcode.PUSH:
                     case Opcode.EXTCALL:
                     case Opcode.THROW:
+                    case Opcode.CLEAR:
                         {
                             var src = Read8();
                             temp.Args = new object[] { src };
@@ -104,7 +125,6 @@ namespace Poltergeist.PhantasmaLegacy.VM
                             break;
                         }
 
-
                     // args: byte src_a_reg, byte src_b_reg, byte dest_reg
                     case Opcode.AND:
                     case Opcode.OR:
@@ -130,9 +150,21 @@ namespace Poltergeist.PhantasmaLegacy.VM
                         {
                             var src = Read8();
                             var dst = Read8();
-                            var len = (int)ReadVar(0xFFFF);
+                            var len = (ushort)ReadVar(0xFFFF);
 
                             temp.Args = new object[] { src, dst, len};
+                            break;
+                        }
+
+                    // args: byte src_reg, byte dest_reg, var index, var length
+                    case Opcode.RANGE:
+                        {
+                            var src = Read8();
+                            var dst = Read8();
+                            var index = (int)ReadVar(0xFFFF);
+                            var len = (int)ReadVar(0xFFFF);
+
+                            temp.Args = new object[] { src, dst, index, len};
                             break;
                         }
 
@@ -169,7 +201,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
                     default:
                         {
-                            temp.Args = new object[0];
+                            temp.Args = Array.Empty<object>();
                             break;
                         }
                 }
@@ -178,6 +210,11 @@ namespace Poltergeist.PhantasmaLegacy.VM
             }
 
             return result;
+        }
+
+        public override string ToString()
+        {
+            return string.Join(Environment.NewLine, Instructions);
         }
 
         #region IO 
@@ -252,8 +289,5 @@ namespace Poltergeist.PhantasmaLegacy.VM
             return result;
         }
         #endregion
-
     }
-
-
 }

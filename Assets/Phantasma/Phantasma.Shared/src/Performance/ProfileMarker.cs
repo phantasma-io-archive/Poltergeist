@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Diagnostics;
 using System.Threading;
 
-namespace Poltergeist.PhantasmaLegacy.Core.Performance
+namespace Phantasma.Shared.Performance
 {
     public class ProfileSession : IDisposable
     {
@@ -16,12 +14,10 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             output = o;
             CurrentSession = this;
         }
+
         void IDisposable.Dispose()
         {
-            new Thread(() =>
-            {
-                Stop();
-            }).Start();
+            new Thread(Stop).Start();
         }
 
         public void Stop()
@@ -39,48 +35,60 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             //convert to microseconds
             double scale = 1000000.0 / System.Diagnostics.Stopwatch.Frequency;
 
-            BeginDocument();
-            var stack = new List<int>();
-            for (int i = 0, end = events.Count; i != end; ++i)
+            try
             {
+                BeginDocument();
+                var stack = new List<int>();
+                for (int i = 0, end = events.Count; i != end; ++i)
+                {
+                    for (int j = stack.Count; j-- > 0;)
+                    {
+                        var p = events[stack[j]];
+                        if (p.parentIdx == i)
+                            break;
+                        EndEvent(p.name, p.end * scale);
+                    }
+
+                    var e = events[i];
+                    BeginEvent(e.name, e.start * scale, first);
+                    first = false;
+
+                    if (i + 1 < end && events[i + 1].parentIdx == i)
+                    {
+                        stack.Add(i);
+                    }
+                    else
+                    {
+                        EndEvent(e.name, e.end * scale);
+                    }
+                }
+
                 for (int j = stack.Count; j-- > 0;)
                 {
                     var p = events[stack[j]];
-                    if (p.parentIdx == i)
-                        break;
                     EndEvent(p.name, p.end * scale);
                 }
-                var e = events[i];
-                BeginEvent(e.name, e.start * scale, first);
-                first = false;
 
-                if (i + 1 < end && events[i + 1].parentIdx == i)
-                {
-                    stack.Add(i);
-                }
-                else
-                {
-                    EndEvent(e.name, e.end * scale);
-                }
+                EndDocument();
             }
-            for (int j = stack.Count; j-- > 0;)
+            catch (Exception)
             {
-                var p = events[stack[j]];
-                EndEvent(p.name, p.end * scale);
+                // Ignored
             }
-            EndDocument();
-
-            writer.Flush();
-            writer.Dispose();
-            output.Close();
-            output.Dispose();
-            output = null;
+            finally
+            {
+                writer.Flush();
+                writer.Dispose();
+                output.Dispose();
+                output = null;
+            }
         }
 
         private void BeginDocument()
         {
             writer.Write("{\"traceEvents\":[");
         }
+
         private void BeginEvent(string name, double time, bool first)
         {
             if (first)
@@ -94,6 +102,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             writer.Write("\"pid\":0,\"tid\":0");
             writer.Write("}");
         }
+
         private void EndEvent(string name, double time)
         {
             writer.Write(",{");
@@ -104,6 +113,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             writer.Write("\"pid\":0,\"tid\":0");
             writer.Write("}");
         }
+
         private void EndDocument()
         {
             writer.Write("], \"otherData\":{} }");
@@ -116,6 +126,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             events.Add(new Event { name=name, start = time, end=0, parentIdx=top });
             top = newIdx;
         }
+
         public void Pop(string name)
         {
             long time = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -132,6 +143,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             public long end;
             public int parentIdx;
         }
+
         private List<Event> events = new List<Event>();
         private int top = -1;
         private System.IO.Stream output;
@@ -142,6 +154,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
     {
         private readonly string Name;
         private readonly ProfileSession Session;
+
         public ProfileMarker(string name)
         {
             Session = ProfileSession.CurrentSession;
@@ -153,6 +166,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             else
                 Name = null;
         }
+
         public ProfileMarker(string name, ProfileMarker parent)
         {
             Session = parent.Session;
@@ -164,6 +178,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Performance
             else
                 Name = null;
         }
+
         void IDisposable.Dispose()
         {
             if (Session != null)

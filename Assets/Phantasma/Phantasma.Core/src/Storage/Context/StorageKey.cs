@@ -1,8 +1,9 @@
-using Poltergeist.PhantasmaLegacy.Numerics;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using Phantasma.Core.Numerics;
 
-namespace Poltergeist.PhantasmaLegacy.Storage.Context
+namespace Phantasma.Core.Storage.Context
 {
     public class StorageKeyComparer : IEqualityComparer<StorageKey>
     {

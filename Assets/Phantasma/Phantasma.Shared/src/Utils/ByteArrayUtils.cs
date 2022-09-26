@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Poltergeist.PhantasmaLegacy.Core
+namespace Phantasma.Shared.Utils
 {
     public static class ByteArrayUtils
     {

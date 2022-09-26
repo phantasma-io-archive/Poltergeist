@@ -1,9 +1,8 @@
-﻿using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Domain;
-using Poltergeist.PhantasmaLegacy.VM.Utils;
-using System.Numerics;
+﻿using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 
-namespace Poltergeist.PhantasmaLegacy.Blockchain
+namespace Phantasma.Business.VM.Utils
 {
     public static class ScriptBuilderExtensions
     {

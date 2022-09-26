@@ -1,17 +1,14 @@
-﻿using System.IO;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
-using System;
 using System.Numerics;
-using Poltergeist.PhantasmaLegacy.Domain;
-using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Storage.Utils;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Storage;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Utils;
+using Phantasma.Shared;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.Blockchain
+namespace Phantasma.Core.Domain
 {
     public sealed class Transaction : ITransaction, ISerializable
     {

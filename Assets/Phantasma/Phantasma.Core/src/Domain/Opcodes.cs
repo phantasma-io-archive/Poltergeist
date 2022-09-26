@@ -1,4 +1,4 @@
-namespace Poltergeist.PhantasmaLegacy.VM
+namespace Phantasma.Core.Domain
 {
     public enum Opcode
     {
@@ -24,7 +24,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
         LOAD,
         CAST,
         CAT,
-        SUBSTR, //TODO: needs to be implemented
+        RANGE,
         LEFT,
         RIGHT,
         SIZE,
@@ -70,6 +70,9 @@ namespace Poltergeist.PhantasmaLegacy.VM
         PACK, // unused for now
 
         //  debugger
-        DEBUG
+        DEBUG,
+
+        // add
+        SUBSTR
     }
 }

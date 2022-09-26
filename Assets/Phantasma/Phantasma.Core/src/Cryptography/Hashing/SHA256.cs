@@ -1,6 +1,6 @@
 using Org.BouncyCastle.Crypto.Digests;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography.Hashing
+namespace Phantasma.Core.Cryptography.Hashing
 {
     public class SHA256
     {

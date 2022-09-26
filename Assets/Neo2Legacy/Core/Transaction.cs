@@ -1,4 +1,3 @@
-using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Neo2;
 using System.Collections.Generic;

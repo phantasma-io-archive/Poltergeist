@@ -1,7 +1,7 @@
 using Org.BouncyCastle.Asn1.Sec;
 using NBitcoin;
 using System;
-using Poltergeist.PhantasmaLegacy.Cryptography;
+using Phantasma.Core.Cryptography;
 
 public static class BIP39NBitcoin
 {

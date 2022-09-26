@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Poltergeist.PhantasmaLegacy.Core
+namespace Phantasma.Shared
 {
     /// <summary>
     /// Provides methods to do argument validations.
@@ -129,8 +129,10 @@ namespace Poltergeist.PhantasmaLegacy.Core
 
         public static void If(bool constraint, string constraintName)
         {
+            //System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
             if (constraint)
             {
+                //Console.WriteLine(t);
                 throw new Exception("Constraint failed: " + constraintName);
             }
         }
@@ -222,7 +224,7 @@ namespace Poltergeist.PhantasmaLegacy.Core
                     break;
             }
 
-            while (ex.InnerException != null)
+            while (ex?.InnerException != null)
             {
                 safeguard++;
                 ex = ex.InnerException;

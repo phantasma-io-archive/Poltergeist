@@ -1,9 +1,9 @@
 using System;
-using System.Text;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 
-namespace Poltergeist.PhantasmaLegacy.Numerics
+namespace Phantasma.Core.Numerics
 {
     public static class Base58
     {

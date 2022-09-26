@@ -1,17 +1,17 @@
 using System;
-using System.IO;
-using System.Text;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using Poltergeist.PhantasmaLegacy.Storage;
-using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Storage.Utils;
 using System.Numerics;
+using System.Reflection;
+using System.Text;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using Phantasma.Shared;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.VM
+namespace Phantasma.Core.Domain
 {
     public enum VMType
     {
@@ -189,6 +189,37 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
                         return "Interop:" + Data.GetType().Name;
                     }
+                case VMType.Struct:
+                    VMType arrayType = GetArrayType(); 
+                    if (arrayType == VMType.Number) // convert array of unicode numbers into a string
+                    {                        
+                        var children = GetChildren();
+                        var sb = new StringBuilder();
+
+                        for (int i = 0; i < children.Count; i++)
+                        {
+                            var key = VMObject.FromObject(i);
+                            var val = children[key];
+
+                            var ch = (char)((uint)val.AsNumber());
+
+                            sb.Append(ch);
+                        }
+
+                        return sb.ToString();
+                    }
+                    else
+                    {
+                        using (var stream = new MemoryStream())
+                        {
+                            using (var writer = new BinaryWriter(stream))
+                            {
+                                SerializeData(writer);
+                            }
+                            return Convert.ToBase64String(stream.ToArray());
+                        }
+                    }
+
 
                 case VMType.Bool:
                     return ((bool)Data) ? "true" : "false";
@@ -200,6 +231,45 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 default:
                     throw new Exception($"Invalid cast: expected string, got {this.Type}");
             }
+        }
+
+        // this method checks if the VMObject is an array by checking the following rules
+        // a) must be a struct 
+        // b) all keys of the struct must be numeric indexes from 0 to count-1
+        // c) all element values must have same type
+        public VMType GetArrayType()
+        {
+            if (this.Type != VMType.Struct)
+            {
+                return VMType.None;
+            }
+
+            var children = GetChildren();
+
+            VMType result = VMType.None;
+
+            for (int i=0; i<children.Count; i++)
+            {
+                var key = VMObject.FromObject(i);
+
+                if (!children.ContainsKey(key))
+                {
+                    return VMType.None;
+                }
+
+                var val = children[key];
+
+                if (result == VMType.None)
+                {
+                    result = val.Type;
+                }
+                else if (val.Type != result)
+                {
+                    return VMType.None;
+                }                
+            }
+
+            return result;
         }
 
         public byte[] AsByteArray()
@@ -343,8 +413,116 @@ namespace Poltergeist.PhantasmaLegacy.VM
             }
         }
 
+        public T AsStruct<T>()
+        {
+            var structType = typeof(T);
+
+            if (this.Type == VMType.Object)
+            {
+                if (this.Data != null && this.Data.GetType() == structType)
+                {
+                    return (T)this.Data;
+                }
+                else
+                {
+                    throw new Exception($"Invalid cast: expected VMObject of type {structType.Name}");
+                }
+
+            }
+
+            Throw.If(this.Type != VMType.Struct, $"Invalid cast: expected struct, got {this.Type}");
+
+            if (this.Data == null)
+            {
+                return default(T);
+            }
+
+            var values = this.Data as Dictionary<VMObject, VMObject>;
+
+            Throw.If(values == null, "invalid struct data");
+
+            var result = Activator.CreateInstance<T>();
+
+            Throw.If(result == null, "asStruct createInstance failed");
+
+            TypedReference reference = __makeref(result);
+
+            Throw.If(result == null, "asStruct createInstance failed");
+
+            // WARNING this code is still experimental, probably wont work in every situation
+            // TODO check that values.Count equals the number of fields in type T
+            foreach (var entry in values)
+            {
+                Throw.If(entry.Key == null, $"null key found in struct");
+
+                var fieldName = entry.Key.AsString();
+
+                Throw.If(string.IsNullOrEmpty(fieldName), $"key with null or not string name found in struct");
+
+                FieldInfo fi = structType.GetField(fieldName, BindingFlags.Public | BindingFlags.Instance);
+
+                Throw.If(fi == null, "unknown field: " + fieldName);
+
+                object fieldValue;
+
+                if (entry.Value.Type == VMType.Struct)
+                {
+                    fieldValue = entry.Value.ToStruct(fi.FieldType);
+                }
+                else
+                {
+                    fieldValue = entry.Value.ToObject();
+                }
+
+                if (fieldValue == null && entry.Value.Type == VMType.String)
+                {
+                    fieldValue = string.Empty;
+                }
+
+                Throw.If(fieldValue == null, "could not instantiate properly field value: " + fieldName);
+
+                fieldValue = ConvertObjectInternal(fieldValue, fi.FieldType);
+
+                Throw.If(fieldValue == null, "could not convert properly field value: " + fieldName);
+
+                fi.SetValueDirect(reference, fieldValue);
+            }
+
+            return result;
+        }
+
+        private static object ConvertObjectInternal(object fieldValue, Type fieldType)
+        {
+            if (fieldType.IsStructOrClass() && fieldValue is byte[])
+            {
+                var bytes = (byte[])fieldValue;
+                fieldValue = Serialization.Unserialize(bytes, fieldType);
+            }
+            else if (fieldType.IsEnum)
+            {
+                fieldValue = Enum.Parse(fieldType, fieldValue.ToString());
+            }
+
+            return fieldValue;
+        }
+
         public T AsInterop<T>()
         {
+            if (typeof(T) == typeof(Hash) && this.Type != VMType.Object)
+            {
+                var bytes = this.AsByteArray();
+
+                if (bytes.Length == 33 && bytes[0] == 32)
+                {
+                    bytes = bytes.Skip(1).ToArray();
+                }
+
+                if (bytes.Length == 32)
+                {
+                    return (T)(object)(new Hash(bytes));
+                }
+            }
+
             Throw.If(this.Type != VMType.Object, $"Invalid cast: expected object, got {this.Type}");
 
             if (this.Data == null)
@@ -360,7 +538,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
         public VMObject SetValue(byte[] val, VMType type)
         {
             this.Type = type;
-            this._localSize = val.Length;
+            this._localSize = val != null ? val.Length : 0;
 
             switch (type)
             {
@@ -403,6 +581,37 @@ namespace Poltergeist.PhantasmaLegacy.VM
                     }
 
                 default:
+                    if (val is byte[])
+                    {
+                        var bytes = (byte[])val;
+
+                        var len = bytes != null ? bytes.Length : 0;
+
+                        switch (len)
+                        {
+                            case Address.LengthInBytes:
+                                this.Data = Address.FromBytes(bytes);
+                                break;
+
+                            case Hash.Length:
+                                this.Data = Hash.FromBytes(bytes);
+                                break;
+
+                            default:
+                                try
+                                {
+                                    this.UnserializeData(bytes);
+                                }
+                                catch// (Exception e)
+                                {
+                                    throw new Exception("Cannot decode interop object from bytes with length: " + len);
+                                }
+                                break;
+                    }
+
+                        break;
+                    }
+                    else
                     {
                         throw new Exception("Cannot set value for vmtype: " + type);
                     }
@@ -477,11 +686,40 @@ namespace Poltergeist.PhantasmaLegacy.VM
             return this;
         }
 
+        internal static void ValidateStructKey(VMObject key)
+        {
+            if (key.Type == VMType.None || key.Type == VMType.Struct || key.Type == VMType.Object)
+            {
+                throw new Exception($"Cannot use value of type {key.Type} as key for struct field");
+            }
+        }
+
         public VMObject SetValue(Dictionary<VMObject, VMObject> children)
         {
+            foreach (var key in children.Keys)
+            {
+                ValidateStructKey(key);
+            }
+
             this.Type = VMType.Struct;
             this.Data = children;
             this._localSize = 4; // TODO not valid
+            return this;
+        }
+
+        public VMObject SetValue(Hash hash)
+        {
+            this.Type = VMType.Object;
+            this.Data = hash;
+            this._localSize = 4;
+            return this;
+        }
+
+        public VMObject SetValue(Address address)
+        {
+            this.Type = VMType.Object;
+            this.Data = address;
+            this._localSize = 4;
             return this;
         }
 
@@ -542,6 +780,8 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
         public void SetKey(VMObject key, VMObject obj)
         {
+            ValidateStructKey(key);
+
             Dictionary<VMObject, VMObject> children;
 
             // NOTE: here we need to instantiate the key as new object
@@ -554,8 +794,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
             {
                 children = GetChildren();
             }
-            else
-            if (this.Type == VMType.None)
+            else if (this.Type == VMType.None)
             {
                 this.Type = VMType.Struct;
                 children = new Dictionary<VMObject, VMObject>();
@@ -607,7 +846,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
                         }
                     }
 
-                default: return Data.GetHashCode(); // TODO is this ok for all cases?
+                default: return Data != null ? Data.GetHashCode() : 0; // TODO is this ok for all cases?
 
             }
         }
@@ -665,11 +904,16 @@ namespace Poltergeist.PhantasmaLegacy.VM
             }
             else
             {
+                if (this.Data == null)
+                {
+                    return other.Data == null;
+                }
+
                 return this.Data.Equals(other.Data);
             }
         }
 
-        internal void Copy(VMObject other)
+        public void Copy(VMObject other)
         {
             if (other == null || other.Type == VMType.None)
             {
@@ -713,7 +957,18 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 case VMType.Timestamp: return $"[Time] => {((DateTime)((Timestamp)Data)).ToString(TimeFormat)}";
                 case VMType.String: return $"[String] => {((string)Data)}";
                 case VMType.Bool: return $"[Bool] => {((bool)Data)}";
-                case VMType.Enum: return $"[Enum] => {((uint)Data)}";
+                case VMType.Enum: 
+                                  uint res = 0;
+                                  try
+                                  {
+                                      res = (uint)Data;
+
+                                  }
+                                  catch
+                                  {
+                                      Console.WriteLine("failed cast");
+                                  }
+                    return $"[Enum] => {res}";
                 case VMType.Object: return $"[Object] => {(Data == null? "null" : Data.GetType().Name)}";
                 default: return "Unknown";
             }
@@ -770,6 +1025,14 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 case VMType.Struct:
                     switch (srcObj.Type)
                     {
+                        // this allow casting a string into char array (represented as unicode numbers)
+                        case VMType.String:
+                            {
+                                var str = srcObj.AsString();
+                                var chars = str.ToCharArray().Select(x => new BigInteger((uint)x)).ToArray();
+                                return VMObject.FromArray(chars);
+                            }
+
                         case VMType.Object: return CastViaReflection(srcObj.Data, 0);
 
                         default: throw new Exception($"invalid cast: {srcObj.Type} to {type}");
@@ -830,6 +1093,22 @@ namespace Poltergeist.PhantasmaLegacy.VM
             return result != VMType.None;
         }
 
+        public static VMObject FromArray(Array array)
+        {
+            var result = new VMObject();
+            for (int i = 0; i < array.Length; i++)
+            {
+                var key = VMObject.FromObject(i);
+
+                var temp = array.GetValue(i);
+                var val = VMObject.FromObject(temp);
+
+                result.SetKey(key, val);
+            }
+
+            return result;
+        }
+
         public static VMObject FromObject(object obj)
         {
             var objType = obj.GetType();
@@ -843,23 +1122,34 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 case VMType.Bool: result.SetValue((bool)obj); break;
                 case VMType.Bytes: result.SetValue((byte[])obj, VMType.Bytes); break;
                 case VMType.String: result.SetValue((string)obj); break;
+                case VMType.Enum: result.SetValue((Enum)obj); break;
+                case VMType.Object: result.SetValue(obj); break;
+
                 case VMType.Number:
-                    if (obj.GetType() == typeof(int))
+                    if (objType == typeof(int))
                     {
                         obj = new BigInteger((int)obj); // HACK
                     }
                     result.SetValue((BigInteger)obj);
                     break;
 
-                case VMType.Enum: result.SetValue((Enum)obj); break;
-                case VMType.Object: result.SetValue(obj); break;
                 case VMType.Timestamp:
-                    if (obj.GetType() == typeof(uint))
+                    if (objType == typeof(uint))
                     {
                         obj = new Timestamp((uint)obj); // HACK
                     }
                     result.SetValue((Timestamp)obj);
                     break;
+
+
+                case VMType.Struct:
+                    if (objType.IsArray)
+                    {
+                        return FromArray((Array)obj);
+                    }
+                    break;
+
+
                 default: return null;
             }
 
@@ -879,7 +1169,8 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 case VMType.Timestamp: return this.AsTimestamp();
                 case VMType.Object: return this.Data;
                 case VMType.Enum: return this.Data;
-                default: return null;
+
+                default:  throw new Exception($"Cannot cast {Type} to object");
             }
         }
 
@@ -892,8 +1183,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
                     var elementType = type.GetElementType();
                     return this.ToArray(elementType);
                 }
-                else
-                if (type.IsStructOrClass())
+                else if (type.IsStructOrClass())
                 {
                     return this.ToStruct(type);
                 }
@@ -904,7 +1194,8 @@ namespace Poltergeist.PhantasmaLegacy.VM
             }
             else
             {
-                return this.ToObject();
+                var temp = this.ToObject();
+                return temp;
             }
         }
 
@@ -942,6 +1233,9 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 var index = (int)temp;
 
                 var val = child.Value.ToObject(arrayElementType);
+
+                val = ConvertObjectInternal(val, arrayElementType);
+
                 array.SetValue(val, index);
             }
 
@@ -966,11 +1260,20 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
             object boxed = result;
             foreach (var field in fields)
-            {
+            {                
                 var key = VMObject.FromObject(field.Name);
-                Throw.If(!dict.ContainsKey(key), "field not present in source struct: " + field.Name);
-                var val = dict[key].ToObject(field.FieldType);
 
+                object val;
+                if (dict.ContainsKey(key))
+                {
+                    val = dict[key].ToObject(field.FieldType);
+                }
+                else
+                {
+                    Throw.If(!field.FieldType.IsStructOrClass() , "field not present in source struct: " + field.Name);
+                    val = null;
+                }
+                                
                 // here we check if the types mismatch
                 // in case of getting a byte[] instead of an object, we try unserializing the bytes in a different approach
                 // NOTE this should not be necessary often, but is already getting into black magic territory...
@@ -1003,7 +1306,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
         }
 
         // this does the opposite of ToStruct(), takes a InteropObject and converts it to a VM.Struct
-        private static VMObject CastViaReflection(object srcObj, int level)
+        private static VMObject CastViaReflection(object srcObj, int level, bool dontConvertSerializables = true)
         {
             var srcType = srcObj.GetType();
 
@@ -1031,7 +1334,12 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
                 VMObject result;
 
-                bool isKnownType = typeof(BigInteger) == srcType || typeof(Timestamp) == srcType || typeof(ISerializable).IsAssignableFrom(srcType);
+                bool isKnownType = typeof(BigInteger) == srcType || typeof(Timestamp) == srcType;
+
+                if (isKnownType == false && dontConvertSerializables && typeof(ISerializable).IsAssignableFrom(srcType))
+                {
+                    isKnownType = true;
+                }
 
                 if (srcType.IsStructOrClass() && !isKnownType)
                 {
@@ -1045,8 +1353,10 @@ namespace Poltergeist.PhantasmaLegacy.VM
                         {
                             var key = new VMObject();
                             key.SetValue(field.Name);
+                            ValidateStructKey(key);
+
                             var val = field.GetValue(srcObj);
-                            var vmVal = CastViaReflection(val, level + 1);
+                            var vmVal = CastViaReflection(val, level + 1, true);
                             children[key] = vmVal;
                         }
 
@@ -1076,46 +1386,78 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
             var dataType = this.Data.GetType();
 
-            if (this.Type == VMType.Struct)
+            switch (this.Type)
             {
-                var children = this.GetChildren();
-                writer.WriteVarInt(children.Count);
-                foreach (var entry in children)
-                {
-                    entry.Key.SerializeData(writer);
-                    entry.Value.SerializeData(writer);
-                }
-            }
-            else
-            if (this.Type == VMType.Object)
-            {
-                var obj = this.Data as ISerializable;
+                case VMType.Struct:
+                    {
+                        var children = this.GetChildren();
+                        writer.WriteVarInt(children.Count);
+                        foreach (var entry in children)
+                        {
+                            entry.Key.SerializeData(writer);
+                            entry.Value.SerializeData(writer);
+                        }
+                        break;
+                    }
 
-                if (obj != null)
-                {
-                    var bytes = Serialization.Serialize(obj);
-                    writer.WriteByteArray(bytes);
-                }
-                else
-                {
-                    throw new Exception($"Objects of type {dataType.Name} cannot be serialized");
-                }
-            }
-            else
-            {
-                Serialization.Serialize(writer, this.Data);
+                case VMType.Object:
+                    {
+                        var obj = this.Data as ISerializable;
+
+                        if (obj != null)
+                        {
+                            var bytes = Serialization.Serialize(obj);
+                            writer.WriteByteArray(bytes);
+                        }
+                        else
+                        {
+                            throw new Exception($"Objects of type {dataType.Name} cannot be serialized");
+                        }
+
+                        break;
+                    }
+
+                case VMType.Enum:
+                    uint temp2;
+
+                    if (this.Data is Enum)
+                    {
+                        var temp1 = (Enum)this.Data;
+                        temp2 = uint.Parse(temp1.ToString("d"));
+                    }
+                    else
+                    {
+                        temp2 = (uint)this.Data;
+                    }
+
+                    writer.WriteVarInt(temp2);
+                    break;
+
+                default:
+                    Serialization.Serialize(writer, this.Data);
+                    break;
             }
         }
 
         public static VMObject FromBytes(byte[] bytes)
         {
+            var result = new VMObject();
+            result.UnserializeData(bytes);
+            return result;
+        }
+
+        public static VMObject FromStruct(object obj)
+        {
+            return CastViaReflection(obj, 0, false);
+        }
+
+        public void UnserializeData(byte[] bytes)
+        {
             using (var stream = new MemoryStream(bytes))
             {
                 using (var reader = new BinaryReader(stream))
                 {
-                    var result = new VMObject();
-                    result.UnserializeData(reader);
-                    return result;
+                    UnserializeData(reader);
                 }
             }
         }
@@ -1153,6 +1495,8 @@ namespace Poltergeist.PhantasmaLegacy.VM
                         var key = new VMObject();
                         key.UnserializeData(reader);
 
+                        ValidateStructKey(key);
+
                         var val = new VMObject();
                         val.UnserializeData(reader);
 
@@ -1163,10 +1507,22 @@ namespace Poltergeist.PhantasmaLegacy.VM
                     this.Data = children;
                     break;
 
-                // NOTE object type information is lost during serialization, so we reconstruct it as byte array
                 case VMType.Object:
-                    this.Type = VMType.Bytes;
-                    this.Data = reader.ReadByteArray();
+                    var bytes  = reader.ReadByteArray();
+
+                    if (bytes.Length == 35)
+                    {
+                        var addr = Serialization.Unserialize<Address>(bytes);
+                        this.Data = addr;
+                        this.Type = VMType.Object;
+                    }
+                    else
+                    {
+                        // NOTE object type information is lost during serialization, so we reconstruct it as byte array
+                        this.Type = VMType.Bytes;
+                        this.Data = bytes;
+                    }
+
                     break;
 
                 case VMType.Enum:

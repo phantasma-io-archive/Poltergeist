@@ -1,7 +1,6 @@
 ﻿using System;
 
-
-namespace Poltergeist.PhantasmaLegacy.Storage.Context
+namespace Phantasma.Core.Storage.Context
 {
     public interface IStorageCollection
     {

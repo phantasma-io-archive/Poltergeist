@@ -1,11 +1,14 @@
-﻿using System.Text;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Poltergeist.PhantasmaLegacy.Core;
 using System.Numerics;
+using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Shared;
+using Phantasma.Shared.Utils;
 
-namespace Poltergeist.PhantasmaLegacy.Storage.Context
+namespace Phantasma.Core.Storage.Context
 {
     public struct StorageMap : IStorageCollection
     {
@@ -62,7 +65,12 @@ namespace Poltergeist.PhantasmaLegacy.Storage.Context
 
         public static bool ContainsKey<K>(this StorageMap map, K key)
         {
-            return map.Context.Has(ElementKey(map.BaseKey, key));
+            return ContainsKeyRaw(map, ElementKey(map.BaseKey, key));
+        }
+
+        public static bool ContainsKeyRaw(this StorageMap map, byte[] key)
+        {
+            return map.Context.Has(key);
         }
 
         public static void Set<K, V>(this StorageMap map, K key, V value)
@@ -195,6 +203,11 @@ namespace Poltergeist.PhantasmaLegacy.Storage.Context
             var found = false;
             var countKeyRun = false;
 
+            if (map.Count() == 0)
+            {
+                return values.ToArray();
+            }
+
             map.Context.Visit((key, value) =>
             {
                 if (!found && key.SequenceEqual(countKey))
@@ -231,15 +244,36 @@ namespace Poltergeist.PhantasmaLegacy.Storage.Context
         // TODO optimize this
         public static void Clear(this StorageMap map)
         {
-            var keys = new List<byte[]>();
             var count = (uint)map.Count();
+            if (count == 0)
+            {
+                return;
+            }
+
+            var keys = new List<byte[]>();
+            var countKey = CountKey(map.BaseKey);
+            var found = false;
+            var countKeyRun = false;
 
             map.Context.Visit((key, value) =>
             {
-                keys.Add(key);
+                if (!found && key.SequenceEqual(countKey))
+                {
+                    countKeyRun = true;
+                    found = true;
+                }
+                if (!countKeyRun)
+                {
+                    keys.Add(key);
+                }
+                else
+                {
+                    countKeyRun = false;
+                }
+
             }, count, map.BaseKey);
 
-            Throw.If(keys.Count != count, "map.clear failed to fetch all existing keys");
+            Throw.If(keys.Count != count, $"map.clear failed to fetch all existing keys keys: {keys.Count} count: {count}");
 
             foreach (var key in keys)
             {

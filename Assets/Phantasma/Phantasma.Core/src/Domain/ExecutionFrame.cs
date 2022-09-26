@@ -1,20 +1,24 @@
 ﻿using System;
 
-namespace Poltergeist.PhantasmaLegacy.VM
+namespace Phantasma.Core.Domain
 {
     public class ExecutionFrame
     {
-        public readonly VMObject[] Registers;
+        public VMObject[] Registers { get; }
 
-        public readonly uint Offset; // current instruction pointer **before** the frame was entered
-        public readonly ExecutionContext Context;
-        public readonly VirtualMachine VM;
+        /// <summary>
+        ///     Current instruction pointer **before** the frame was entered.
+        /// </summary>
+        public uint Offset { get; }
+        
+        public ExecutionContext Context { get; }
+        public IVirtualMachine VM { get; }
 
-        public ExecutionFrame(VirtualMachine VM, uint offset, ExecutionContext context, int registerCount)
+        public ExecutionFrame(IVirtualMachine vm, uint offset, ExecutionContext context, int registerCount)
         {
-            this.VM = VM;
-            this.Offset = offset;
-            this.Context = context;
+            VM = vm;
+            Offset = offset;
+            Context = context;
 
             Registers = new VMObject[registerCount];
 

@@ -4,7 +4,9 @@ using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
-using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Numerics;
 
 namespace Poltergeist.PhantasmaLegacy.Cryptography
 {
@@ -138,7 +140,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
         public static byte[] Base58CheckDecode(this string input)
         {
-            byte[] buffer = PhantasmaLegacy.Numerics.Base58.Decode(input);
+            byte[] buffer = Base58.Decode(input);
             if (buffer.Length < 4) throw new FormatException();
             byte[] checksum = buffer.Sha256(0, (uint)buffer.Length - 4).Sha256();
             if (!buffer.Skip(buffer.Length - 4).SequenceEqual(checksum.Take(4)))
@@ -152,7 +154,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             byte[] buffer = new byte[data.Length + 4];
             Buffer.BlockCopy(data, 0, buffer, 0, data.Length);
             Buffer.BlockCopy(checksum, 0, buffer, data.Length, 4);
-            return PhantasmaLegacy.Numerics.Base58.Encode(buffer);
+            return Base58.Encode(buffer);
         }
     }
 }

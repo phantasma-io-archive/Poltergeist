@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Poltergeist.PhantasmaLegacy.Core
+namespace Phantasma.Shared
 {
     public static class ExtensionMethods
     {
@@ -79,6 +79,12 @@ namespace Poltergeist.PhantasmaLegacy.Core
         public static void MoveToTail<T>(this List<T> list, T item, Predicate<T> pred)
         {
             int idx = list.FindIndex(pred);
+
+            if (idx == -1)
+            {
+                return;
+            }
+
             list.RemoveAt(idx);
             list.Add(item);
         }

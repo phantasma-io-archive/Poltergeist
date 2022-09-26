@@ -1,8 +1,8 @@
-﻿using Poltergeist.PhantasmaLegacy.Storage;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
+using Phantasma.Core.Domain;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     public abstract class Signature: ISerializable
     {

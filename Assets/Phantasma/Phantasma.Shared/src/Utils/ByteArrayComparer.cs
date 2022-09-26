@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Poltergeist.PhantasmaLegacy.Core.Utils
+namespace Phantasma.Shared.Utils
 {
     public class ByteArrayComparer : IEqualityComparer<byte[]>
     {

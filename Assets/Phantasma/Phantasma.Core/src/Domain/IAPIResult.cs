@@ -1,8 +1,9 @@
 ﻿using LunarLabs.Parser;
-using Poltergeist.PhantasmaLegacy.Core;
+using Phantasma.Core;
+using Phantasma.Shared;
 using System;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     public interface IAPIResult
     {

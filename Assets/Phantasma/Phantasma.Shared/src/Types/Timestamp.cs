@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Poltergeist.PhantasmaLegacy.Core.Types
+namespace Phantasma.Shared.Types
 {
     public struct Timestamp : IComparable<Timestamp>
     {
@@ -17,6 +17,7 @@ namespace Poltergeist.PhantasmaLegacy.Core.Types
         }
 
         public static Timestamp Now => DateTime.UtcNow;
+        public readonly static Timestamp Null = new Timestamp(0);
 
         public int CompareTo(Timestamp other)
         {

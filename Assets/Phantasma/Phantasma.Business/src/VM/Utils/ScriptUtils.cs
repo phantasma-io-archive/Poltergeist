@@ -1,9 +1,9 @@
-using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Storage;
 using System;
 using System.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.VM.Utils
+namespace Phantasma.Business.VM.Utils
 {
     public static class ScriptUtils
     {
@@ -15,7 +15,7 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
 
         public static byte[] EndScript(this ScriptBuilder sb)
         {
-            sb.Emit(VM.Opcode.RET);
+            sb.Emit(Opcode.RET);
             return sb.ToScript();
         }
 
@@ -29,43 +29,35 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
             {
                 sb.EmitLoad(target_reg, (string)arg);
             }
-            else
-            if (arg is int)
+            else if (arg is int)
             {
                 sb.EmitLoad(target_reg, new BigInteger((int)arg));
             }
-            else 
-            if (arg is long)
+            else if (arg is long)
             {
                 sb.EmitLoad(target_reg, new BigInteger((long)arg));
             }
-            else
-            if (arg is BigInteger)
+            else if (arg is BigInteger)
             {
                 sb.EmitLoad(target_reg, (BigInteger)arg);
             }
-            else
-            if (arg is bool)
+            else if (arg is bool)
             {
                 sb.EmitLoad(target_reg, (bool)arg);
             }
-            else
-            if (arg is byte[])
+            else if (arg is byte[])
             {
                 sb.EmitLoad(target_reg, (byte[])arg, VMType.Bytes);
             }
-            else
-            if (arg is Enum)
+            else if (arg is Enum)
             {
                 sb.EmitLoad(target_reg, (Enum)arg);
             }
-            else
-            if (arg is Timestamp)
+            else if (arg is Timestamp)
             {
                 sb.EmitLoad(target_reg, (Timestamp)arg);
             }
-            else
-            if (arg is ISerializable)
+            else if (arg is ISerializable)
             {
                 sb.EmitLoad(target_reg, (ISerializable)arg);
             }
@@ -116,7 +108,7 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
             byte dest_reg = 0;
             sb.EmitLoad(dest_reg, method);
 
-            sb.Emit(VM.Opcode.EXTCALL, new byte[] { dest_reg });
+            sb.Emit(Opcode.EXTCALL, new byte[] { dest_reg });
             return sb;
         }
 
@@ -131,9 +123,9 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
             byte src_reg = 0;
             byte dest_reg = 1;
             sb.EmitLoad(src_reg, contractName);
-            sb.Emit(VM.Opcode.CTX, new byte[] { src_reg, dest_reg });
+            sb.Emit(Opcode.CTX, new byte[] { src_reg, dest_reg });
 
-            sb.Emit(VM.Opcode.SWITCH, new byte[] { dest_reg });
+            sb.Emit(Opcode.SWITCH, new byte[] { dest_reg });
             return sb;
         }
     }

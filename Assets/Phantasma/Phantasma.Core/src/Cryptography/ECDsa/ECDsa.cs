@@ -1,13 +1,13 @@
+using System;
+using System.Linq;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
-using System;
-using System.Linq;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography.ECC
+namespace Phantasma.Core.Cryptography.ECDsa
 {
     public enum ECDsaCurve
     {
@@ -91,7 +91,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography.ECC
 
         public static byte[] FromDER(byte[] signature)
         {
-            var decoder = new Asn1InputStream(signature);
+            using var decoder = new Asn1InputStream(signature);
             var seq = decoder.ReadObject() as DerSequence;
             if (seq == null || seq.Count != 2)
                 throw new FormatException("Invalid DER Signature");

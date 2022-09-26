@@ -1,15 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
-using Poltergeist.PhantasmaLegacy.Storage;
-using Poltergeist.PhantasmaLegacy.Core.Utils;
-using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Cryptography.Hashing;
-using Poltergeist.PhantasmaLegacy.Storage.Utils;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using Phantasma.Shared;
+using Phantasma.Shared.Utils;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     public enum AddressKind
     {
@@ -30,13 +30,16 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
         public const int LengthInBytes = 34;
         public const int MaxPlatformNameLength = 10;
 
-        public AddressKind Kind => IsNull ? AddressKind.System : (_bytes[0] >= 3) ? AddressKind.Interop : (AddressKind)_bytes[0];
+        public AddressKind Kind => IsNull ? AddressKind.System : (_bytes[0] >= 3) ? AddressKind.Interop 
+            : (AddressKind)_bytes[0];
 
         public bool IsSystem => Kind == AddressKind.System;
 
         public bool IsInterop => Kind == AddressKind.Interop;
 
         public bool IsUser => Kind == AddressKind.User;
+
+        public string TendermintAddress => Base16.Encode(_bytes[2..].Sha256()[..20]);
 
         public bool IsNull
         {
@@ -68,11 +71,14 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             {
                 if (string.IsNullOrEmpty(_text))
                 {
-                    if (_keyToTextCache.ContainsKey(_bytes))
-                    {
-                        _text = _keyToTextCache[_bytes];
+                    lock (_keyToTextCache) {
+                        if (_keyToTextCache.ContainsKey(_bytes))
+                        {
+                            _text = _keyToTextCache[_bytes];
+                        }
                     }
-                    else
+
+                    if (string.IsNullOrEmpty(_text))
                     {
                         char prefix;
 
@@ -84,7 +90,9 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
                         }
                         _text = prefix + Base58.Encode(_bytes);
-                        _keyToTextCache[_bytes] = _text;
+                        lock (_keyToTextCache) {
+                            _keyToTextCache[_bytes] = _text;
+                        }
                     }
                 }
 
@@ -118,8 +126,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             {
                 ByteArrayUtils.CopyBytes(key.PublicKey, 0, bytes, 2, 32);
             }
-            else
-            if (key.PublicKey.Length == 33)
+            else if (key.PublicKey.Length == 33)
             {
                 ByteArrayUtils.CopyBytes(key.PublicKey, 0, bytes, 1, 33);
             }
@@ -139,7 +146,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
         public static Address FromHash(byte[] input)
         {
-            var hash = CryptoExtensions.SHA256(input);
+            var hash = CryptoExtensions.Sha256(input);
             var bytes = ByteArrayUtils.ConcatBytes(new byte[] { (byte)AddressKind.System, 0 }, hash);
             return new Address(bytes);
         }
@@ -212,6 +219,16 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
             if ((thisBytes == null) || (otherBytes == null))
             {
+                if (thisBytes == null && otherBytes != null && otherAddress.IsNull)
+                {
+                    return true;
+                }
+
+                if (otherBytes == null && thisBytes != null && this.IsNull)
+                {
+                    return true;
+                }
+
                 return (thisBytes == null) == (otherBytes == null);
             }
 
@@ -249,6 +266,11 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
         public static Address FromText(string text)
         {
+            return Address.Parse(text);
+        }
+
+        public static Address Parse(string text)
+        {
             Address addr;
 
             lock (_textToAddressCache)
@@ -257,6 +279,8 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
                 {
                     return _textToAddressCache[text];
                 }
+
+                var originalText = text;
 
                 var prefix = text[0];
 
@@ -285,7 +309,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
                         throw new Exception("invalid address prefix: " + prefix);
                 }
 
-                _textToAddressCache[text] = addr;
+                _textToAddressCache[originalText] = addr;
             }
 
             return addr;

@@ -1,7 +1,10 @@
-﻿using Poltergeist.PhantasmaLegacy.Cryptography;
+using System.IO;
 using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     public enum EventKind
     {
@@ -63,7 +66,11 @@ namespace Poltergeist.PhantasmaLegacy.Domain
         TaskStop = 55,
         CrownRewards = 56,
         Infusion = 57,
-        Custom = 64,
+        Crowdsale = 58,
+        OrderBid = 59,
+        ContractKill = 60,
+        Error = 64,
+        Custom = 65,
     }
 
     public struct TokenEventData

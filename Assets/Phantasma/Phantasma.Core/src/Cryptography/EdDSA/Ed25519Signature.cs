@@ -1,9 +1,9 @@
-﻿using Poltergeist.PhantasmaLegacy.Storage.Utils;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Phantasma.Core.Utils;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography.EdDSA
+namespace Phantasma.Core.Cryptography.EdDSA
 {
     public class Ed25519Signature : Signature
     {

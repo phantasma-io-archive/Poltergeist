@@ -10,11 +10,10 @@ using static NativeFilePicker;
 #endif
 using Archive = Phantasma.SDK.Archive;
 using System.Text;
-using Poltergeist.PhantasmaLegacy.Domain;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.VM.Utils;
-using Poltergeist.PhantasmaLegacy.Blockchain;
-using Poltergeist.PhantasmaLegacy.Blockchain.Storage;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Business.Blockchain.Storage;
 
 namespace Poltergeist
 {

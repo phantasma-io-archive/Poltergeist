@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Numerics;
 using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Poltergeist.PhantasmaLegacy.Storage.Context
+namespace Phantasma.Core.Storage.Context
 {
     public abstract class StorageContext
     {
@@ -61,6 +63,12 @@ namespace Poltergeist.PhantasmaLegacy.Storage.Context
         public void Put(byte[] key, BigInteger value) { Put(key, value.ToSignedByteArray()); }
 
         public void Put<T>(byte[] key, T obj)
+        {
+            var bytes = Serialization.Serialize(obj);
+            Put(key, bytes);
+        }
+
+        public void Put<T>(string key, T obj)
         {
             var bytes = Serialization.Serialize(obj);
             Put(key, bytes);

@@ -1,14 +1,14 @@
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Storage;
-using Poltergeist.PhantasmaLegacy.Storage.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
+using Phantasma.Shared;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.VM.Utils
+namespace Phantasma.Business.VM.Utils
 {
     public class ScriptBuilder
     {
@@ -16,7 +16,7 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
         private BinaryWriter writer;
 
         private Dictionary<int, string> _jumpLocations = new Dictionary<int, string>();
-        private Dictionary<string, int> _labelLocations = new Dictionary<string, int>();
+        private Dictionary<string, int> _labelLocations = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         public int CurrentSize => (int)writer.BaseStream.Position;
 
@@ -90,7 +90,7 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
 
         public ScriptBuilder EmitLoad(byte reg, BigInteger val)
         {
-            var bytes = val.ToSignedByteArray();
+            var bytes = val.ToByteArray();
             EmitLoad(reg, bytes, VMType.Number);
             return this;
         }
@@ -236,12 +236,18 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
         {
             var script = stream.ToArray();
 
-            labels = new Dictionary<string, int>();
+            labels = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             // resolve jump offsets
             foreach (var entry in _jumpLocations)
             {
                 var label = entry.Value;
+
+                if (!_labelLocations.ContainsKey(label))
+                {
+                    throw new Exception("Could not find label: " + label);
+                }
+
                 var labelOffset = (ushort)_labelLocations[label];
                 var bytes = BitConverter.GetBytes(labelOffset);
                 var targetOffset = entry.Key;

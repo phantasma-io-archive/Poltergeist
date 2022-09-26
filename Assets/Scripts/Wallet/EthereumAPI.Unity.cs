@@ -2,11 +2,11 @@ using System;
 using System.Collections;
 using System.Numerics;
 using LunarLabs.Parser;
-using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Ethereum;
 using Poltergeist.PhantasmaLegacy.Ethereum.Signer;
-using Poltergeist.PhantasmaLegacy.Numerics;
 using Poltergeist.PhantasmaLegacy.Ethereum.Hex.HexConvertors.Extensions;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
 namespace Phantasma.SDK
 {

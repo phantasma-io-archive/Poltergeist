@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace Poltergeist.PhantasmaLegacy.Numerics
+namespace Phantasma.Core.Numerics
 {
     public static class UnitConversion
     {
@@ -61,6 +61,23 @@ namespace Poltergeist.PhantasmaLegacy.Numerics
             }
 
             return A * B + C;
+        }
+
+        public static BigInteger ConvertDecimals(BigInteger value, int decimalFrom, int decimalTo)
+        {
+            if (decimalFrom == decimalTo)
+            {
+                return value;
+            }
+
+            //doing "value * BigInteger.Pow(10, decimalTo - decimalFrom)" would not work for negative exponents as it would always be 0;
+            //separating the calculations in two steps leads to only returning 0 when the final value would be < 1
+            var fromFactor = BigInteger.Pow(10, decimalFrom);
+            var toFactor = BigInteger.Pow(10, decimalTo);
+
+            var output = value * toFactor / fromFactor;
+
+            return output;
         }
 
         public static BigInteger GetUnitValue(int decimals)

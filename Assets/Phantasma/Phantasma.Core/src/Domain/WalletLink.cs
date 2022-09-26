@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LunarLabs.Parser;
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Shared;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     public enum WalletStatus
     {

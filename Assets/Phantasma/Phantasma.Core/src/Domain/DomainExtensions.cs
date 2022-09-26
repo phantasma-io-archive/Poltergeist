@@ -1,6 +1,9 @@
-﻿using Poltergeist.PhantasmaLegacy.Storage;
+using System;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     public static class DomainExtensions
     {

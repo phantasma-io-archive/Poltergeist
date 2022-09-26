@@ -1,125 +1,55 @@
-﻿using System.Collections.Generic;
-using System;
-using System.Linq;
-using System.IO;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Core.Performance;
+using System.IO;
+using System.Linq;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Shared;
+using Phantasma.Shared.Performance;
 
-namespace Poltergeist.PhantasmaLegacy.VM
+namespace Phantasma.Business.VM
 {
-    public class VMException : Exception
+
+    public abstract class VirtualMachine: IVirtualMachine
     {
-        public VirtualMachine vm;
+        public const int DefaultRegisterCount = 32;
 
-        public static string Header(string s)
-        {
-            return $"*********{s}*********";
-        }
-
-        public VMException(VirtualMachine vm, string msg) : base(msg)
-        {
-            this.vm = vm;
-
-            var fileName = vm.GetDumpFileName();
-            if (fileName != null)
-            {
-                DumpToFile(fileName);
-            }
-        }
-
-        private void DumpToFile(string fileName)
-        {
-            var temp = new Disassembler(vm.entryScript);
-
-            var lines = new List<string>();
-
-            lines.Add("Exception: "+this.Message);
-
-            if (vm.CurrentContext is ScriptContext sc)
-            {
-                lines.Add(Header("CURRENT OFFSET"));
-                lines.Add(sc.InstructionPointer.ToString());
-                lines.Add("");
-            }
-
-            lines.Add(Header("STACK"));
-            var stack = vm.Stack.ToArray();
-            for (int i = 0; i < stack.Length; i++)
-            {
-                lines.Add(stack[i].ToString());
-            }
-            lines.Add("");
-
-            lines.Add(Header("FRAMES"));
-            int ct = 0;
-            var frames = vm.frames.ToArray();
-            foreach (var frame in frames)
-            {
-                if (ct > 0)
-                {
-                    lines.Add("");
-                }
-
-                lines.Add("Active = " + (frame == vm.CurrentFrame).ToString());
-                lines.Add("Entry Offset = " + frame.Offset.ToString());
-                lines.Add("Registers:");
-                int ri = 0;
-                foreach (var reg in frame.Registers)
-                {
-                    if (reg.Type != VMType.None)
-                    {
-                        lines.Add($"\tR{ri} = {reg}");
-                    }
-
-                    ri++;
-                }
-                ct++;
-            }
-            lines.Add("");
-
-            var disasm = temp.Instructions.Select(inst => inst.ToString());
-            lines.Add(Header("DISASM"));
-            lines.AddRange(disasm);
-            lines.Add("");
-
-            vm.DumpData(lines);
-
-            var dirName = Directory.GetCurrentDirectory() + "/Dumps/";
-            Directory.CreateDirectory(dirName);
-
-            var path = dirName + fileName;
-            System.Diagnostics.Debug.WriteLine("Dumped VM data: " + path);
-            File.WriteAllLines(path, lines.ToArray());
-        }
-    }
-
-    public abstract class VirtualMachine
-    {
-        public const int DefaultRegisterCount = 32; // TODO temp hack, this should be 4
         public const int MaxRegisterCount = 32;
 
         public readonly static string EntryContextName = "entry";
 
-        public bool ThrowOnFault = false;
+        private readonly ExecutionContext entryContext;
 
-        public readonly Stack<VMObject> Stack = new Stack<VMObject>();
 
-        public readonly byte[] entryScript;
-        public Address EntryAddress { get; protected set; }
+        public Stack<VMObject> Stack { get; } = new Stack<VMObject>();
 
-        public readonly ExecutionContext entryContext;
-        public ExecutionContext CurrentContext { get; private set; }
-        public ExecutionContext PreviousContext { get; protected set; }
+        public byte[] EntryScript { get; }
 
-        protected Stack<Address> _activeAddresses = new Stack<Address>();
-        public IEnumerable<Address> ActiveAddresses => _activeAddresses;
+        private Address entryAddress;
+        public Address EntryAddress { 
+            get
+            {
+                return this.entryAddress;
+            }
+
+            set
+            {
+                this.entryAddress = value;
+            } 
+        }
+
+        public ExecutionContext CurrentContext { get; set; }
+        public ExecutionContext PreviousContext { get; set; }
+
+        private Stack<Address> _activeAddresses = new Stack<Address>();
+        public Stack<Address> ActiveAddresses => _activeAddresses;
 
         private Dictionary<string, ExecutionContext> _contextMap = new Dictionary<string, ExecutionContext>();
 
-        public readonly Stack<ExecutionFrame> frames = new Stack<ExecutionFrame>();
-        public ExecutionFrame CurrentFrame { get; protected set; }
+        private readonly Stack<ExecutionFrame> frames = new Stack<ExecutionFrame>();
+        public Stack<ExecutionFrame> Frames { get { return frames; } }
+        public ExecutionFrame CurrentFrame { get; set; }
 
         public VirtualMachine(byte[] script, uint offset, string contextName)
         {
@@ -138,10 +68,10 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
             PreviousContext = entryContext;
 
-            this.entryScript = script;
+            this.EntryScript = script;
         }
 
-        internal void RegisterContext(string contextName, ExecutionContext context)
+        public void RegisterContext(string contextName, ExecutionContext context)
         {
             _contextMap[contextName] = context;
         }
@@ -164,7 +94,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
             this.CurrentFrame = frame;
         }
 
-        public uint PopFrame()
+        public virtual uint PopFrame()
         {
             Throw.If(frames.Count < 2, "Not enough frames available");
 
@@ -177,7 +107,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
             return instructionPointer;
         }
 
-        internal ExecutionFrame PeekFrame()
+        public ExecutionFrame PeekFrame()
         {
             Throw.If(frames.Count < 2, "Not enough frames available");
 
@@ -189,7 +119,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
             return result;
         }
 
-        protected void SetCurrentContext(ExecutionContext context)
+        public void SetCurrentContext(ExecutionContext context)
         {
             if (context == null)
             {
@@ -199,7 +129,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
             this.CurrentContext = context;
         }
 
-        internal ExecutionContext FindContext(string contextName)
+        public virtual ExecutionContext FindContext(string contextName)
         {
             if (_contextMap.ContainsKey(contextName))
             {
@@ -222,7 +152,7 @@ namespace Poltergeist.PhantasmaLegacy.VM
             return ExecutionState.Running;
         }
 
-        internal ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
+        public virtual ExecutionState SwitchContext(ExecutionContext context, uint instructionPointer)
         {
             if (context == null)
             {
@@ -275,5 +205,91 @@ namespace Poltergeist.PhantasmaLegacy.VM
             throw new VMException(this, description);
         }
 
+    }
+
+    public class VMException : Exception
+    {
+        public IVirtualMachine vm;
+
+        public static string Header(string s)
+        {
+            return $"*********{s}*********";
+        }
+
+        public VMException(IVirtualMachine vm, string msg) : base(msg)
+        {
+            this.vm = vm;
+
+            var fileName = vm.GetDumpFileName();
+            if (fileName != null)
+            {
+                DumpToFile(fileName);
+            }
+        }
+
+        private void DumpToFile(string fileName)
+        {
+            var temp = new Disassembler(vm.EntryScript);
+
+            var lines = new List<string>();
+
+            lines.Add("Exception: "+this.Message);
+
+            if (vm.CurrentContext is ScriptContext sc)
+            {
+                lines.Add(Header("CURRENT OFFSET"));
+                lines.Add(sc.InstructionPointer.ToString());
+                lines.Add("");
+            }
+
+            lines.Add(Header("STACK"));
+            var stack = vm.Stack.ToArray();
+            for (int i = 0; i < stack.Length; i++)
+            {
+                lines.Add(stack[i].ToString());
+            }
+            lines.Add("");
+
+            lines.Add(Header("FRAMES"));
+            int ct = 0;
+            var frames = vm.Frames.ToArray();
+            foreach (var frame in frames)
+            {
+                if (ct > 0)
+                {
+                    lines.Add("");
+                }
+
+                lines.Add("Active = " + (frame == vm.CurrentFrame).ToString());
+                lines.Add("Entry Offset = " + frame.Offset.ToString());
+                lines.Add("Registers:");
+                int ri = 0;
+                foreach (var reg in frame.Registers)
+                {
+                    if (reg.Type != VMType.None)
+                    {
+                        lines.Add($"\tR{ri} = {reg}");
+                    }
+
+                    ri++;
+                }
+                ct++;
+            }
+            lines.Add("");
+
+            var disasm = temp.Instructions.Select(inst => inst.ToString());
+            lines.Add(Header("DISASM"));
+            lines.AddRange(disasm);
+            lines.Add("");
+
+            vm.DumpData(lines);
+
+            var dirName = Directory.GetCurrentDirectory() + "/Dumps/";
+            Directory.CreateDirectory(dirName);
+
+            var path = dirName + fileName;
+            System.Diagnostics.Debug.WriteLine("Dumped VM data: " + path);
+            File.WriteAllLines(path, lines.ToArray());
+        }
     }
 }

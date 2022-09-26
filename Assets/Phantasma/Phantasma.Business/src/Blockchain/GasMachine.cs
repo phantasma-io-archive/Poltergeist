@@ -1,9 +1,10 @@
-﻿using Poltergeist.PhantasmaLegacy.VM;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Phantasma.Business.VM;
+using Phantasma.Core.Domain;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Business.Blockchain
 {
     internal class DummyExecutionContext : ExecutionContext
     {
@@ -75,6 +76,7 @@ namespace Poltergeist.PhantasmaLegacy.Domain
                         gasCost = 200;
                         break;
 
+                    case "Account":
                     case "Leaderboard":
                         gasCost = 100;
                         break;

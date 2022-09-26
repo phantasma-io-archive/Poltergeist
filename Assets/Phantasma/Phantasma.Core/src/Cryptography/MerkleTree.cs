@@ -1,10 +1,10 @@
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Storage;
-using Poltergeist.PhantasmaLegacy.Storage.Utils;
 using System.IO;
 using System.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Utils;
+using Phantasma.Shared;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     // Merkle tree implemented as a binary heap
     public class MerkleTree: ISerializable

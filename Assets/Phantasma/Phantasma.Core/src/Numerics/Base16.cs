@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Poltergeist.PhantasmaLegacy.Numerics
+﻿namespace Phantasma.Core.Numerics
 {
     public static class Base16
     {
@@ -76,11 +74,7 @@ namespace Poltergeist.PhantasmaLegacy.Numerics
         // * Making `b` an int avoids unnecessary conversions from and to byte.
         public static string Encode(this byte[] input)
         {
-            if (input == null)
-            {
-                throw new ArgumentNullException(nameof(input));
-            }
-
+            if (input == null) return "";
             char[] c = new char[input.Length * 2];
             int b;
 

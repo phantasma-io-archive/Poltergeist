@@ -1,16 +1,16 @@
-﻿using Org.BouncyCastle.Crypto.Agreement;
-using Org.BouncyCastle.Asn1.X9;
-using Org.BouncyCastle.Asn1.Sec;
-using Org.BouncyCastle.Crypto.Parameters;
+﻿using System.Linq;
+using System.Security.Cryptography;
 using Org.BouncyCastle.Asn1.Nist;
-using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Asn1.Sec;
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Crypto.Agreement;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
-using System.Security.Cryptography;
-using System.Linq;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     public static class DiffieHellman
     {

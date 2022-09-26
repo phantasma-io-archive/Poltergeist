@@ -1,6 +1,7 @@
-﻿using Poltergeist.PhantasmaLegacy.VM;
+using Phantasma.Core.Cryptography;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     public enum ValidatorType
     {
@@ -46,27 +47,27 @@ namespace Poltergeist.PhantasmaLegacy.Domain
             {
                 return false;
             }
-        
+
             if (name.Length < 3 || name.Length > 15)
             {
                 return false;
             }
-        
-            if (name == ANONYMOUS_NAME || name == GENESIS_NAME || name == VirtualMachine.EntryContextName)
+
+            if (name == ANONYMOUS_NAME || name == GENESIS_NAME || name == ENTRY_CONTEXT_NAME)
             {
                 return false;
             }
-        
+
             int index = 0;
             while (index < name.Length)
             {
                 var c = name[index];
                 index++;
-        
+
                 if (c >= 97 && c <= 122) continue; // lowercase allowed
                 if (c == 95) continue; // underscore allowed
                 if (index > 1 && c >= 48 && c <= 57) continue; // numbers allowed except first char
-        
+
                 return false;
             }
         

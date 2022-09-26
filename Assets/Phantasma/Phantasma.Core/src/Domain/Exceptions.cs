@@ -1,7 +1,8 @@
-﻿using System;
+using System;
+using Phantasma.Core.Cryptography;
 
 //TODO
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     public class ChainException : Exception
     {

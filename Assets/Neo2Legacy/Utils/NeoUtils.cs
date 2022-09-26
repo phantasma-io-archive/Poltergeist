@@ -1,10 +1,12 @@
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Numerics;
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
@@ -49,7 +51,7 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
             byte[] buffer;
             try
             {
-                buffer = Poltergeist.PhantasmaLegacy.Numerics.Base58.Decode(address);
+                buffer = Base58.Decode(address);
 
             }
             catch
@@ -199,7 +201,7 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
         }
 
 
-        private static ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160> _ripemd160 = new ThreadLocal<PhantasmaLegacy.Cryptography.RIPEMD160>(() => new PhantasmaLegacy.Cryptography.RIPEMD160());
+        private static ThreadLocal<RIPEMD160> _ripemd160 = new ThreadLocal<RIPEMD160>(() => new RIPEMD160());
 
         public static T[] SubArray<T>(this T[] data, int index, int length)
         {
@@ -210,12 +212,12 @@ namespace Poltergeist.PhantasmaLegacy.Neo2
 
         public static byte[] AES256Decrypt(this byte[] block, byte[] key)
         {
-            using (Aes aes = Aes.Create())
+            using (var aes = System.Security.Cryptography.Aes.Create())
             {
                 aes.Key = key;
-                aes.Mode = CipherMode.ECB;
-                aes.Padding = PaddingMode.None;
-                using (ICryptoTransform decryptor = aes.CreateDecryptor())
+                aes.Mode = System.Security.Cryptography.CipherMode.ECB;
+                aes.Padding = System.Security.Cryptography.PaddingMode.None;
+                using (var decryptor = aes.CreateDecryptor())
                 {
                     return decryptor.TransformFinalBlock(block, 0, block.Length);
                 }

@@ -1,4 +1,4 @@
-﻿namespace Poltergeist.PhantasmaLegacy.Cryptography
+﻿namespace Phantasma.Core.Cryptography
 {
     public enum SignatureKind
     {

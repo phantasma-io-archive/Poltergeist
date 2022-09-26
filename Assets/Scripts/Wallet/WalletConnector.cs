@@ -2,13 +2,13 @@ using System;
 using System.IO;
 using System.Linq;
 using LunarLabs.Parser;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.SDK;
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
-using Poltergeist.PhantasmaLegacy.Domain;
+using Phantasma.Shared.Utils;
 using Poltergeist.PhantasmaLegacy.Ethereum;
-using Poltergeist.PhantasmaLegacy.Numerics;
 
 namespace Poltergeist
 {
@@ -243,7 +243,7 @@ namespace Poltergeist
 
                         var msg = ByteArrayUtils.ConcatBytes(randomBytes, data);
 
-                        Poltergeist.PhantasmaLegacy.Cryptography.Signature signature;
+                        Phantasma.Core.Cryptography.Signature signature;
 
                         var wif = account.GetWif(AccountManager.Instance.CurrentPasswordHash);
 
@@ -256,7 +256,7 @@ namespace Poltergeist
 
                             case SignatureKind.ECDSA:
                                 var ethKeys = EthereumKey.FromWIF(wif);
-                                var signatureBytes = Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                                var signatureBytes = Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, ECDsaCurve.Secp256k1);
                                 signature = new ECDsaSignature(signatureBytes, ECDsaCurve.Secp256k1);
                                 break;
 

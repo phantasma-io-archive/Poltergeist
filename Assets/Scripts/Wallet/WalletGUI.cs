@@ -13,15 +13,14 @@ using System.Globalization;
 using System.Collections;
 using System.Threading;
 using Poltergeist.Neo2.Core;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.Storage;
-using Poltergeist.PhantasmaLegacy.VM.Utils;
-using Poltergeist.PhantasmaLegacy.Blockchain;
-using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Domain;
 using Poltergeist.PhantasmaLegacy.Ethereum;
 using BigInteger = System.Numerics.BigInteger;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Shared.Types;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Business.Blockchain;
 #if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
 using Crosstales.FB;
 #elif UNITY_ANDROID

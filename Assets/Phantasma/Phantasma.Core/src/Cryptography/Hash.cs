@@ -1,20 +1,20 @@
-using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Core.Utils;
-using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.Storage;
-using Poltergeist.PhantasmaLegacy.Storage.Utils;
 using System;
 using System.IO;
 using System.Numerics;
 using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using Phantasma.Shared;
+using Phantasma.Shared.Utils;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     public struct Hash : ISerializable, IComparable<Hash>, IEquatable<Hash>
     {
         public const int Length = 32;
 
-        public static readonly Hash Null = Hash.FromBytes(new byte[Length]);
+        public static readonly Hash Null = FromBytes(new byte[Length]);
 
         private byte[] _data;
     
@@ -42,9 +42,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(obj, null))
-                return false;
-
             if (!(obj is Hash))
                 return false;
 
@@ -164,10 +161,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
         public static bool operator ==(Hash left, Hash right)
         {
-            if (ReferenceEquals(left, right))
-                return true;
-            if (ReferenceEquals(left, null) || ReferenceEquals(right, null))
-                return false;
             return left.Equals(right);
         }
 
@@ -210,7 +203,7 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
         {
             if (input.Length != Length) // NOTE this is actually problematic, better to separate into 2 methods
             {
-                input = CryptoExtensions.SHA256(input);
+                input = CryptoExtensions.Sha256(input);
             }
 
             var bytes = new byte[Length];
@@ -241,6 +234,31 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             ByteArrayUtils.CopyBytes(A._data, 0, bytes, 0, Hash.Length);
             ByteArrayUtils.CopyBytes(B._data, 0, bytes, Hash.Length, Hash.Length);
             return Hash.FromBytes(bytes);
+        }
+
+        public static Hash FromString(string str)
+        {
+            var bytes = CryptoExtensions.Sha256(str);
+            return new Hash(bytes);
+        }
+
+        public static Hash FromUnpaddedHex(string hash)
+        {
+            if (hash.StartsWith("0x"))
+            {
+                hash = hash.Substring(2);
+            }
+
+            var sb = new StringBuilder();
+            sb.Append(hash);
+            while (sb.Length < 64)
+            {
+                sb.Append('0');
+                sb.Append('0');
+            }
+
+            var temp = sb.ToString();
+            return Hash.Parse(temp);
         }
     }
 }

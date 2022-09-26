@@ -1,9 +1,8 @@
-﻿using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Domain;
-using System;
-using System.IO;
+﻿using System.IO;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
 
-namespace Poltergeist.PhantasmaLegacy.Blockchain.Storage
+namespace Phantasma.Business.Blockchain.Storage
 {
     // allows to encrypt data shared between two addresses
     public class SharedArchiveEncryption : IArchiveEncryption
@@ -29,7 +28,7 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain.Storage
         {
             if (keys.Address != this.Source && keys.Address != this.Destination)
             {
-                throw new Exception("encryption public address does not match");
+                throw new ChainException("encryption public address does not match");
             }
 
             return DiffieHellman.Encrypt(chunk, keys.PrivateKey);
@@ -39,7 +38,7 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain.Storage
         {
             if (keys.Address != this.Source && keys.Address != this.Destination)
             {
-                throw new Exception("decryption public address does not match");
+                throw new ChainException("decryption public address does not match");
             }
 
             return DiffieHellman.Decrypt(chunk, keys.PrivateKey);

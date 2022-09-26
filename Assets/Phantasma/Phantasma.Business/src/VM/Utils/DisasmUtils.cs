@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Phantasma.Core.Domain;
 
-namespace Poltergeist.PhantasmaLegacy.VM.Utils
+namespace Phantasma.Business.VM.Utils
 {
     public struct DisasmMethodCall
     {
@@ -82,6 +83,9 @@ namespace Poltergeist.PhantasmaLegacy.VM.Utils
             table["market.SellToken"] = 6;
             table["market.BuyToken"] = 3;
             table["market.CancelSale"] = 2;
+            table["market.EditAuction"] = 9;
+            table["market.ListToken"] = 12;
+            table["market.BidToken"] = 6;
 
             table["swap.GetRate"] = 3;
             table["swap.DepositTokens"] = 3;

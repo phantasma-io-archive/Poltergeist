@@ -1,7 +1,7 @@
-﻿using Poltergeist.PhantasmaLegacy.Core.Types;
-using Poltergeist.PhantasmaLegacy.Cryptography;
+using Phantasma.Core.Cryptography;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     public interface ITransaction
     {

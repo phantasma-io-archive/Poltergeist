@@ -1,8 +1,8 @@
-﻿using Poltergeist.PhantasmaLegacy.Domain;
-using System;
+﻿using System;
 using System.IO;
+using Phantasma.Core.Domain;
 
-namespace Poltergeist.PhantasmaLegacy.Blockchain.Storage
+namespace Phantasma.Business.Blockchain.Storage
 {
     public static class ArchiveExtensions
     {

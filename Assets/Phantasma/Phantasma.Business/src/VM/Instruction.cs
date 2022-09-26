@@ -1,8 +1,9 @@
-using Poltergeist.PhantasmaLegacy.Numerics;
 using System.Numerics;
 using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Poltergeist.PhantasmaLegacy.VM
+namespace Phantasma.Business.VM
 {
     public struct Instruction
     {
@@ -28,11 +29,14 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 case Opcode.COPY:
                 case Opcode.SWAP:
                 case Opcode.SIZE:
+                case Opcode.COUNT:
                 case Opcode.SIGN:
                 case Opcode.NOT:
                 case Opcode.NEGATE:
                 case Opcode.ABS:
                 case Opcode.CTX:
+                case Opcode.PACK:
+                case Opcode.UNPACK:
                     {
                         AppendRegister(sb, Args[0]);
                         sb.Append(',');
@@ -49,6 +53,18 @@ namespace Poltergeist.PhantasmaLegacy.VM
                 case Opcode.SHL:
                 case Opcode.MIN:
                 case Opcode.MAX:
+                case Opcode.POW:
+                case Opcode.PUT:
+                case Opcode.GET:
+                case Opcode.AND:
+                case Opcode.OR:
+                case Opcode.XOR:
+                case Opcode.CAT:
+                case Opcode.EQUAL:
+                case Opcode.LT:
+                case Opcode.GT:
+                case Opcode.LTE:
+                case Opcode.GTE:
                     {
                         AppendRegister(sb, Args[0]);
                         sb.Append(',');
@@ -58,9 +74,48 @@ namespace Poltergeist.PhantasmaLegacy.VM
                         break;
                     }
 
+                case Opcode.LEFT:
+                case Opcode.RIGHT:
+                    {
+                        AppendRegister(sb, Args[0]);
+                        sb.Append(',');
+                        AppendRegister(sb, Args[1]);
+                        sb.Append(',');
+                        sb.Append(' ');
+                        sb.Append((ushort)Args[2]);
+                        break;
+                    }
+
+                case Opcode.CAST:
+                    {
+                        AppendRegister(sb, Args[0]);
+                        sb.Append(',');
+                        AppendRegister(sb, Args[1]);
+                        sb.Append(',');
+                        sb.Append(' ');
+                        sb.Append((int)Args[2]);
+                        break;
+                    }
+
+                case Opcode.RANGE:
+                    {
+                        AppendRegister(sb, Args[0]);
+                        sb.Append(',');
+                        AppendRegister(sb, Args[1]);
+                        sb.Append(',');
+                        sb.Append(' ');
+                        sb.Append((int)Args[2]);
+                        sb.Append(',');
+                        sb.Append(' ');
+                        sb.Append((int)Args[3]);
+                        break;
+                    }
+
+                case Opcode.CLEAR:
                 case Opcode.POP:
                 case Opcode.PUSH:
                 case Opcode.EXTCALL:
+                case Opcode.THROW:
                 case Opcode.DEC:
                 case Opcode.INC:
                 case Opcode.SWITCH:
@@ -71,12 +126,19 @@ namespace Poltergeist.PhantasmaLegacy.VM
 
                 case Opcode.CALL:
                     {
-                        sb.Append((byte)Args[0]);
+                        AppendRegister(sb, (byte)Args[0]);
                         sb.Append(',');
                         sb.Append(' ');
                         sb.Append((ushort)Args[1]);
                         break;
                     }
+
+                //case Opcode.JMP:
+                //case Opcode.JMPIF:
+                //case Opcode.JMPNOT:
+                //    {
+
+                //    }
 
                 // args: byte dst_reg, byte type, var length, var data_bytes
                 case Opcode.LOAD:

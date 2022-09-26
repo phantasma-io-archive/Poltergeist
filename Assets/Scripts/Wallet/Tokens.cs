@@ -5,7 +5,7 @@ using Poltergeist;
 using System.Collections.Generic;
 using System.Linq;
 using System;
-using Poltergeist.PhantasmaLegacy.Domain;
+using Phantasma.Core.Domain;
 
 public static class Tokens
 {

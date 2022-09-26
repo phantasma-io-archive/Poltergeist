@@ -3,7 +3,7 @@ The MurmurHash3 algorithm was created by Austin Appleby and put into the public 
 This version was modified based on a version written by Elliott B. Edwards
  */
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography.Hashing
+namespace Phantasma.Core.Cryptography.Hashing
 {
     public static class Murmur32 
     {
@@ -18,7 +18,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography.Hashing
             const uint c2 = 0x1b873593;
 
             uint h1 = seed;
-            uint streamLength = 0;
 
             uint end = offset + length;
             while (offset < end)
@@ -69,7 +68,6 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography.Hashing
             }
 
             // finalization, magic chants to wrap it all up
-            h1 ^= streamLength;
             h1 = fmix(h1);
 
             return h1;

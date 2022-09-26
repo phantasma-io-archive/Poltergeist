@@ -1,10 +1,20 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading;
+using Phantasma.Core.Cryptography.Hashing;
+using Phantasma.Core.Numerics;
+using Phantasma.Shared;
+using Phantasma.Shared.Utils;
+using SHA256 = System.Security.Cryptography.SHA256;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     public static class CryptoExtensions
     {
+        private static ThreadLocal<SHA256> _sha256 = new ThreadLocal<SHA256>(() => SHA256.Create());
+
         public static byte[] AESGenerateIV(int vectorSize)
         {
             var ivBytes = new byte[vectorSize];
@@ -34,9 +44,20 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             return cipher.DoFinal(data);
         }
 
-        public static byte[] SHA256(this IEnumerable<byte> value)
+        public static byte[] Sha256(this IEnumerable<byte> value)
         {
-            return new Hashing.SHA256().ComputeHash(value.ToArray());
+            return _sha256.Value.ComputeHash(value.ToArray());
+        }
+
+        public static byte[] Sha256(this byte[] value, int offset, int count)
+        {
+            return _sha256.Value.ComputeHash(value, offset, count);
+        }
+
+        public static byte[] Sha256(this string value)
+        {
+            var bytes = Encoding.UTF8.GetBytes(value);
+            return bytes.Sha256();
         }
 
         public static byte[] Sha256(this byte[] value)

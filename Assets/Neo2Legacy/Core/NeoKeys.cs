@@ -1,10 +1,11 @@
 using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 using Poltergeist.PhantasmaLegacy.Neo2;
 using System;
 using System.Linq;
 using System.Text;
 using Org.BouncyCastle.Crypto.Generators;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Cryptography;
 
 namespace Poltergeist.Neo2.Core
 {

@@ -1,15 +1,14 @@
-using System;
 using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.TestTools;
 using NUnit.Framework;
 using System.Collections;
-using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Cryptography.ECC;
 using Poltergeist.PhantasmaLegacy.Ethereum;
-using Poltergeist.PhantasmaLegacy.Storage;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Domain;
 
 namespace Phantasma.Tests
 {
@@ -37,7 +36,7 @@ namespace Phantasma.Tests
             var msgBytes = Encoding.ASCII.GetBytes("Phantasma");
             var signature = ethKeys.Sign(msgBytes, (message, prikey, pubkey) =>
             {
-                return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, ECDsaCurve.Secp256k1);
             });
 
             var ecdsaSignature = (ECDsaSignature)signature;
@@ -50,7 +49,7 @@ namespace Phantasma.Tests
 
             var signatureDEREncoded = ethKeys.Sign(msgBytes, (message, prikey, pubkey) =>
             {
-                return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1, Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.SignatureFormat.DEREncoded);
+                return Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(message, prikey, pubkey, ECDsaCurve.Secp256k1, Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.SignatureFormat.DEREncoded);
             });
 
             var ecdsaSignatureDEREncoded = (ECDsaSignature)signatureDEREncoded;
@@ -61,14 +60,14 @@ namespace Phantasma.Tests
             // Since ECDsaSignature class not working for us,
             // we use signature .Bytes directly to verify it with Bouncy Castle.
             // Verifying concatenated signature / compressed Eth public key.
-            Assert.IsTrue(Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Verify(msgBytes, ecdsaSignature.Bytes, ethPublicKeyCompressed, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1));
+            Assert.IsTrue(Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Verify(msgBytes, ecdsaSignature.Bytes, ethPublicKeyCompressed, ECDsaCurve.Secp256k1));
 
             // Verifying concatenated signature / uncompressed Eth public key.
             // Not working with Bouncy Castle.
             // Assert.IsTrue(Phantasma.Neo.Utils.CryptoUtils.Verify(msgBytes, ecdsaSignature.Bytes, ethPublicKeyUncompressed, ECDsaCurve.Secp256k1));
 
             // Verifying DER signature.
-            Assert.IsTrue(Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Verify(msgBytes, ecdsaSignatureDEREncoded.Bytes, ethPublicKeyCompressed, Poltergeist.PhantasmaLegacy.Cryptography.ECC.ECDsaCurve.Secp256k1, Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.SignatureFormat.DEREncoded));
+            Assert.IsTrue(Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Verify(msgBytes, ecdsaSignatureDEREncoded.Bytes, ethPublicKeyCompressed, ECDsaCurve.Secp256k1, Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.SignatureFormat.DEREncoded));
 
             // This method we cannot use, it gives "System.NotImplementedException : The method or operation is not implemented."
             // exception in Unity, because Unity does not fully support .NET cryptography.

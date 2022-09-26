@@ -1,6 +1,14 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using Phantasma.Shared.Types;
 
-namespace Poltergeist.PhantasmaLegacy.Domain
+namespace Phantasma.Core.Domain
 {
     [Flags]
     public enum TokenFlags

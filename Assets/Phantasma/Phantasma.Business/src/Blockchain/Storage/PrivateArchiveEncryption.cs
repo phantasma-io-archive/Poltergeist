@@ -1,9 +1,9 @@
-﻿using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Domain;
-using System;
-using System.IO;
+﻿using System.IO;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Poltergeist.PhantasmaLegacy.Blockchain.Storage
+namespace Phantasma.Business.Blockchain.Storage
 {
     public class PrivateArchiveEncryption : IArchiveEncryption
     {
@@ -29,25 +29,25 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain.Storage
         {
             if (keys.Address != this.Address)
             {
-                throw new Exception("encryption public address does not match");
+                throw new ChainException("encryption public address does not match");
             }
 
-            return Numerics.Base58.Encode(CryptoExtensions.AESGCMEncrypt(System.Text.Encoding.UTF8.GetBytes(name), keys.PrivateKey, NameInitializationVector));
+            return Base58.Encode(CryptoExtensions.AESGCMEncrypt(System.Text.Encoding.UTF8.GetBytes(name), keys.PrivateKey, NameInitializationVector));
         }
         public string DecryptName(string name, PhantasmaKeys keys)
         {
             if (keys.Address != this.Address)
             {
-                throw new Exception("encryption public address does not match");
+                throw new ChainException("encryption public address does not match");
             }
 
-            return System.Text.Encoding.UTF8.GetString(CryptoExtensions.AESGCMDecrypt(Numerics.Base58.Decode(name), keys.PrivateKey, NameInitializationVector));
+            return System.Text.Encoding.UTF8.GetString(CryptoExtensions.AESGCMDecrypt(Base58.Decode(name), keys.PrivateKey, NameInitializationVector));
         }
         public byte[] Encrypt(byte[] chunk, PhantasmaKeys keys)
         {
             if (keys.Address != this.Address)
             {
-                throw new Exception("encryption public address does not match");
+                throw new ChainException("encryption public address does not match");
             }
 
             return CryptoExtensions.AESGCMEncrypt(chunk, keys.PrivateKey, ContentInitializationVector);
@@ -57,7 +57,7 @@ namespace Poltergeist.PhantasmaLegacy.Blockchain.Storage
         {
             if (keys.Address != this.Address)
             {
-                throw new Exception("decryption public address does not match");
+                throw new ChainException("decryption public address does not match");
             }
 
             return CryptoExtensions.AESGCMDecrypt(chunk, keys.PrivateKey, ContentInitializationVector);

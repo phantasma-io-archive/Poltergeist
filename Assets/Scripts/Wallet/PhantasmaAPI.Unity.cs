@@ -10,12 +10,11 @@ using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Poltergeist.PhantasmaLegacy.Cryptography;
-using Poltergeist.PhantasmaLegacy.Domain;
-using Poltergeist.PhantasmaLegacy.Numerics;
-using Poltergeist.PhantasmaLegacy.Blockchain.Storage;
-using Poltergeist.PhantasmaLegacy.VM;
-using Poltergeist.PhantasmaLegacy.Core.Types;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Shared.Types;
 
 namespace Phantasma.SDK
 {
@@ -1678,7 +1677,7 @@ namespace Phantasma.SDK
         {
             Log.Write("Sending transaction...");
 
-            var tx = new Poltergeist.PhantasmaLegacy.Blockchain.Transaction(nexus, chain, 0L, script, keys.Address, keys.Address, Address.Null, 10, 10, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
+            var tx = new Phantasma.Core.Domain.Transaction(nexus, chain, 0L, script, keys.Address, keys.Address, Address.Null, 10, 10, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
 
             if (PoW != ProofOfWork.None)
             {

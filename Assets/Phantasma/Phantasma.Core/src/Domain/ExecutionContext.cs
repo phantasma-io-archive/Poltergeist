@@ -1,16 +1,8 @@
-﻿using Poltergeist.PhantasmaLegacy.Cryptography;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Phantasma.Core.Cryptography;
 
-namespace Poltergeist.PhantasmaLegacy.VM
+namespace Phantasma.Core.Domain
 {
-    public enum ExecutionState
-    {
-        Running,
-        Break,
-        Fault,
-        Halt
-    }
-
     public abstract class ExecutionContext
     {
         public abstract string Name { get; }

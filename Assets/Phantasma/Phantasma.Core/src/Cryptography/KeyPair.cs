@@ -1,8 +1,11 @@
-﻿using Poltergeist.PhantasmaLegacy.Core;
-using Poltergeist.PhantasmaLegacy.Cryptography.EdDSA;
-using System;
+﻿using System;
+using System.Linq;
+using Phantasma.Core.Cryptography.EdDSA;
+using Phantasma.Shared;
+using Phantasma.Shared.Utils;
+using Poltergeist.PhantasmaLegacy.Cryptography;
 
-namespace Poltergeist.PhantasmaLegacy.Cryptography
+namespace Phantasma.Core.Cryptography
 {
     public interface IKeyPair
     {
@@ -20,15 +23,17 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
         public byte[] PublicKey { get; private set; }
 
         public readonly Address Address;
-
+        
         public const int PrivateKeyLength = 32;
 
         public PhantasmaKeys(byte[] privateKey)
         {
-            if (privateKey.Length != PrivateKeyLength)
+            if (privateKey.Length == 64)
             {
-                throw new Exception($"Constraint failed: privateKey should have length {PrivateKeyLength}");
+                privateKey = privateKey.Take(32).ToArray();
             }
+
+            Throw.If(privateKey.Length != PrivateKeyLength, $"privateKey should have length {PrivateKeyLength} but has {privateKey.Length}");
 
             this.PrivateKey = new byte[PrivateKeyLength];
             ByteArrayUtils.CopyBytes(privateKey, 0, PrivateKey, 0, PrivateKeyLength); 
@@ -64,6 +69,12 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
             string wif = data.Base58CheckEncode();
             Array.Clear(data, 0, data.Length);
             return wif;
+        }
+
+        private static byte[] XOR(byte[] x, byte[] y)
+        {
+            if (x.Length != y.Length) throw new ArgumentException();
+            return x.Zip(y, (a, b) => (byte)(a ^ b)).ToArray();
         }
 
         public Signature Sign(byte[] msg, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)

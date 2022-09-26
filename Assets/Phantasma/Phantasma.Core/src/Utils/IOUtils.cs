@@ -1,9 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
-namespace Poltergeist.PhantasmaLegacy.Storage.Utils
+namespace Phantasma.Core.Utils
 {
     public static class IOUtils
     {
