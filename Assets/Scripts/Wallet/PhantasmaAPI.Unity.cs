@@ -15,6 +15,7 @@ using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Business.Blockchain.Storage;
 using Phantasma.Shared.Types;
+using System.Threading.Tasks;
 
 namespace Phantasma.SDK
 {
@@ -1166,13 +1167,11 @@ namespace Phantasma.SDK
 
 
         //Returns the account name and balance of given address.
-        public IEnumerator GetAccount(string addressText, Action<Account> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public async Task<Account> GetAccount(string addressText)
         {
-            yield return WebClient.RPCRequest(Host, "getAccount", WebClient.DefaultTimeout, 0, errorHandlingCallback, (node) =>
-            {
-                var result = Account.FromNode(node);
-                callback(result);
-            }, addressText);
+            var node = await WebClient.RPCRequestAsync(Host, "getAccount", WebClient.DefaultTimeout, 0, addressText);
+
+            return Account.FromNode(node);
         }
 
         public IEnumerator GetContract(string contractName, Action<Contract> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)

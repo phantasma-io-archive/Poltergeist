@@ -314,7 +314,7 @@ namespace Poltergeist
                     // We don't do this on every consequent state change.
                     if (accountManager.accountBalanceNotLoaded)
                     {
-                        accountManager.RefreshBalances(true);
+                        accountManager.RefreshBalances(true).GetAwaiter().GetResult();
                         accountManager.accountBalanceNotLoaded = false;
                     }
                     break;
@@ -1009,7 +1009,7 @@ namespace Poltergeist
                                 accountManager.RefreshBalances(true, PlatformKind.None, () =>
                                 {
                                     InvokeTransactionCallback(transactionHash);
-                                }, true);
+                                }, true).GetAwaiter().GetResult();
                             }
                             else
                             {
@@ -2396,7 +2396,7 @@ namespace Poltergeist
 
             var startY = DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshBalances(false, accountManager.CurrentPlatform);
+                accountManager.RefreshBalances(false, accountManager.CurrentPlatform).GetAwaiter().GetResult();
             });
             var endY = DoBottomMenu();
 
@@ -3313,7 +3313,7 @@ namespace Poltergeist
 
             DrawPlatformTopMenu(() =>
             {
-                accountManager.RefreshBalances(false, accountManager.CurrentPlatform);
+                accountManager.RefreshBalances(false, accountManager.CurrentPlatform).GetAwaiter().GetResult();
                 accountManager.RefreshNft(false, transferSymbol);
                 accountManager.ResetNftsSorting();
             }, false);
@@ -5499,7 +5499,7 @@ namespace Poltergeist
                                                         Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
                                                     }
 
-                                                    accountManager.RefreshBalances(false);
+                                                    accountManager.RefreshBalances(false).GetAwaiter().GetResult();
                                                 });
                                         }
                                     });
@@ -5559,7 +5559,7 @@ namespace Poltergeist
                                                             Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
                                                     }
 
-                                                    accountManager.RefreshBalances(false);
+                                                    accountManager.RefreshBalances(false).GetAwaiter().GetResult();
                                                 });
                                         }
                                     });
@@ -5800,14 +5800,14 @@ namespace Poltergeist
                                                          // Balance updated after swap.
                                                          callback(PromptResult.Success);
                                                      }
-                                                 }, true);
+                                                 }, true).GetAwaiter().GetResult();
                                              }
                                              else
                                              {
                                                  // Balance updated after swap.
                                                  callback(PromptResult.Success);
                                              }
-                                         });
+                                         }).GetAwaiter().GetResult();
                                      }
                                      else
                                      {

@@ -8,6 +8,7 @@ using LunarLabs.Parser;
 using LunarLabs.Parser.JSON;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Phantasma.SDK
 {
@@ -29,6 +30,133 @@ namespace Phantasma.SDK
 
             return requestNumber;
         }
+
+        public static async Task<DataNode> RPCRequestAsync(string url, string method, int timeout, int retriesOnNetworkError, params object[] parameters)
+        {
+            var paramData = DataNode.CreateArray("params");
+
+            if (parameters != null && parameters.Length > 0)
+            {
+                foreach (var obj in parameters)
+                {
+                    paramData.AddField(null, obj);
+                }
+            }
+
+            var jsonRpcData = DataNode.CreateObject(null);
+            jsonRpcData.AddField("jsonrpc", "2.0");
+            jsonRpcData.AddField("method", method);
+            jsonRpcData.AddField("id", "1");
+            jsonRpcData.AddNode(paramData);
+
+            string json;
+
+            try
+            {
+                json = JSONWriter.WriteToString(jsonRpcData);
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+
+            var requestNumber = GetNextRequestNumber();
+            Log.Write($"RPC request [{requestNumber}]\nurl: {url}\njson: {json}", Log.Level.Networking);
+
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+
+            DateTime startTime = DateTime.Now;
+
+            UnityWebRequest request;
+            for (; ; )
+            {
+                request = new UnityWebRequest(url, "POST");
+                request.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
+                request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/json");
+                if (timeout > 0)
+                    request.timeout = timeout;
+
+                var operation = request.SendWebRequest();
+                while (!operation.isDone)
+                {
+                    await Task.Yield();
+                }
+
+                if (request.error == null || retriesOnNetworkError == 0)
+                {
+                    // success
+                    break;
+                }
+
+                Log.Write($"RPC network error [{requestNumber}], {retriesOnNetworkError} retries left.", Log.Level.Networking);
+                Thread.Sleep(1000);
+                retriesOnNetworkError--;
+            }
+
+            TimeSpan responseTime = DateTime.Now - startTime;
+
+            if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError || request.result == UnityWebRequest.Result.DataProcessingError)
+            {
+                throw new PhantasmaSDKException(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, $"RPC error [{requestNumber}]\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\n{request.error}\nIs connection error: {request.result == UnityWebRequest.Result.ConnectionError}\nIs protocol error: {request.result == UnityWebRequest.Result.ProtocolError}\nIs data processing error: {request.result == UnityWebRequest.Result.DataProcessingError}\nResponse code: {request.responseCode}");
+            }
+            else
+            {
+                Log.Write($"RPC response [{requestNumber}]\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.downloadHandler.text}", Log.Level.Networking);
+                DataNode root = null;
+
+                try
+                {
+                    var stringResponse = request.downloadHandler.text;
+                    if (method.ToUpper() == "GETNFT" && parameters.Length > 0 && ((string)parameters[0]).ToUpper() == "GAME")
+                    {
+                        // TODO remove later: Temporary HACK for binary data inside JSON
+                        var cutFrom = stringResponse.IndexOf(",{\"Key\" : \"OriginalMetadata\"");
+                        stringResponse = stringResponse.Substring(0, cutFrom) + "]}";
+                    }
+
+                    root = JSONReader.ReadFromString(stringResponse);
+                }
+                catch (Exception e)
+                {
+                    throw new PhantasmaSDKException(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, $"RPC response [{requestNumber}]\nurl: {url}\nFailed to parse JSON: " + e.Message);
+                }
+
+                if (root == null)
+                {
+                    throw new PhantasmaSDKException(EPHANTASMA_SDK_ERROR_TYPE.FAILED_PARSING_JSON, $"RPC response [{requestNumber}]\nurl: {url}\nFailed to parse JSON");
+                }
+                else
+                if (root.HasNode("error"))
+                {
+                    var errorDesc = root["error"].GetString("message");
+                    throw new PhantasmaSDKException(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, $"RPC response [{requestNumber}]\nurl: {url}\nError node found: {errorDesc}");
+                }
+                else
+                if (root.HasNode("result"))
+                {
+                    var result = root["result"];
+
+                    if (result.HasNode("error"))
+                    {
+                        // This is incorrect way of RPC error reporting,
+                        // but it happens sometimes and should be handeled at least for now.
+                        var errorDesc = result.GetString("error");
+                        Log.Write($"RPC response [{requestNumber}]\nurl: {url}\nError node found (2): {errorDesc}", Log.Level.Networking);
+                        throw new PhantasmaSDKException(EPHANTASMA_SDK_ERROR_TYPE.API_ERROR, errorDesc);
+                    }
+                    else
+                    {
+                        return result;
+                    }
+                }
+                else
+                {
+                    throw new PhantasmaSDKException(EPHANTASMA_SDK_ERROR_TYPE.MALFORMED_RESPONSE, "malformed response");
+                }
+            }
+        }
+        [Obsolete]
         public static IEnumerator RPCRequest(string url, string method, int timeout, int retriesOnNetworkError, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback,
                                             Action<DataNode> callback, params object[] parameters)
         {
