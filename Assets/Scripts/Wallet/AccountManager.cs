@@ -501,7 +501,7 @@ namespace Poltergeist
                 }
                 else
                 {
-                    url = $"https://peers.phantasma.io/testnet-getpeers.json";
+                    url = $"https://peers.phantasma.io/testnet-new-getpeers.json";
                 }
 
                 rpcBenchmarkedPhantasma = 0;

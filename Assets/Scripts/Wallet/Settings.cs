@@ -410,7 +410,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://testnet.phantasma.io:7077/rpc";
+                            _return_value = "http://testnet.phantasma.io:5101/rpc";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
@@ -435,7 +435,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://testnet.phantasma.io/";
+                            _return_value = "https://explorer-testnet.vercel.app/";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
@@ -579,7 +579,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "testnet";
+                            _return_value = "simnet";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
