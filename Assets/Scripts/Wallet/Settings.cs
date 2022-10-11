@@ -19,7 +19,7 @@ namespace Poltergeist
     {
         Unknown,
         Main_Net,
-        Ropsten,
+        Goerli,
         Local_Net
     }
 
@@ -287,7 +287,7 @@ namespace Poltergeist
                 this.ethereumNetwork = EthereumNetwork.Unknown;
             }
 
-            if (this.ethereumNetwork == EthereumNetwork.Main_Net || this.ethereumNetwork == EthereumNetwork.Ropsten)
+            if (this.ethereumNetwork == EthereumNetwork.Main_Net || this.ethereumNetwork == EthereumNetwork.Goerli)
             {
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
@@ -507,8 +507,8 @@ namespace Poltergeist
                             _return_value = "https://mainnet.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
                             break;
 
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "https://ropsten.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
+                        case EthereumNetwork.Goerli:
+                            _return_value = "https://goerli.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
                             break;
 
                         case EthereumNetwork.Local_Net:
@@ -686,15 +686,15 @@ namespace Poltergeist
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Main_Net;
                         break;
                     case NexusKind.Test_Net:
-                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.ethereumNetwork = EthereumNetwork.Goerli;
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                     case NexusKind.Mankini_Test_Net:
-                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.ethereumNetwork = EthereumNetwork.Goerli;
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                     case NexusKind.Local_Net:
-                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.ethereumNetwork = EthereumNetwork.Goerli;
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                 }
