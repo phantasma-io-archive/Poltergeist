@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 using Phantasma.Core.Domain;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.Business.VM.Utils
 {

@@ -34,7 +34,7 @@ namespace Phantasma.Business.Blockchain
 
         public override void DumpData(List<string> lines)
         {
-            throw new NotImplementedException();
+            // only called in unit test
         }
 
         public override ExecutionContext LoadContext(string contextName)

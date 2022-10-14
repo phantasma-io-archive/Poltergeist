@@ -4,7 +4,6 @@ using System.Linq;
 using LunarLabs.Parser;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared;
 
 namespace Phantasma.Core.Domain
 {

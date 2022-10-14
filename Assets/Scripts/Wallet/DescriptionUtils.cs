@@ -1,7 +1,7 @@
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Types;
 using Phantasma.SDK;
-using Phantasma.Shared.Types;
 using System;
 using System.Collections;
 using System.Collections.Generic;

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using Phantasma.Core;
 using Phantasma.Core.Domain;
-using Phantasma.Shared;
 
 namespace Phantasma.Business.VM
 {

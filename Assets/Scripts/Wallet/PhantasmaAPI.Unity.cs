@@ -14,7 +14,7 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Business.Blockchain.Storage;
-using Phantasma.Shared.Types;
+using Phantasma.Core.Types;
 
 namespace Phantasma.SDK
 {

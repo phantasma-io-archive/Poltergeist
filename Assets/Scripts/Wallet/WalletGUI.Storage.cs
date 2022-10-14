@@ -205,9 +205,9 @@ namespace Poltergeist
             try
             {
                 var sb = new ScriptBuilder();
-                sb.AllowGas(source, Address.Null);
+                sb.AllowGas();
                 sb.CallContract(NativeContractKind.Storage, "DeleteFile", source, fileHash);
-                sb.SpendGas(source);
+                sb.SpendGas();
                 script = sb.EndScript();
             }
             catch (Exception e)
@@ -258,9 +258,9 @@ namespace Poltergeist
             try
             {
                 var sb = new ScriptBuilder();
-                sb.AllowGas(target, Address.Null);
+                sb.AllowGas();
                 sb.CallInterop("Runtime.DeployContract", target, contractName, contractBytes, abiBytes);
-                sb.SpendGas(target);
+                sb.SpendGas();
                 script = sb.EndScript();
             }
             catch (Exception e)
@@ -321,9 +321,9 @@ namespace Poltergeist
             try
             {
                 var sb = new ScriptBuilder();
-                sb.AllowGas(target, Address.Null);
+                sb.AllowGas();
                 sb.CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, archiveEncryption);
-                sb.SpendGas(target);
+                sb.SpendGas();
                 script = sb.EndScript();
             }
             catch (Exception e)

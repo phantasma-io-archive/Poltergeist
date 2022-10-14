@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Text;
+using Phantasma.Core;
 using Phantasma.Core.Domain;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
 
 namespace Phantasma.Business.VM.Utils
 {

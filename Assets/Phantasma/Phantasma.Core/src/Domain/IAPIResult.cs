@@ -1,6 +1,4 @@
 ﻿using LunarLabs.Parser;
-using Phantasma.Core;
-using Phantasma.Shared;
 using System;
 
 namespace Phantasma.Core.Domain

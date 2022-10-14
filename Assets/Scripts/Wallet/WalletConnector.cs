@@ -6,8 +6,8 @@ using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
 using Phantasma.SDK;
-using Phantasma.Shared.Utils;
 using Poltergeist.PhantasmaLegacy.Ethereum;
 
 namespace Poltergeist

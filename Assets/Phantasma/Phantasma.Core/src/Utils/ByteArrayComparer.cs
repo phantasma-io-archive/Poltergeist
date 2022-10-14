@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
-namespace Phantasma.Shared.Utils
+namespace Phantasma.Core.Utils
 {
     public class ByteArrayComparer : IEqualityComparer<byte[]>
     {

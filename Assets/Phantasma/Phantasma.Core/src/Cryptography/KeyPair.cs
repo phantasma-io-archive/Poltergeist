@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Phantasma.Core.Cryptography.EdDSA;
-using Phantasma.Shared;
-using Phantasma.Shared.Utils;
-using Poltergeist.PhantasmaLegacy.Cryptography;
+using Phantasma.Core.Utils;
 
 namespace Phantasma.Core.Cryptography
 {
