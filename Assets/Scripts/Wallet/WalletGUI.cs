@@ -4937,7 +4937,6 @@ namespace Poltergeist
                         platform = PlatformKind.Neo,
                         amount = amount,
                         symbol = symbol,
-                        key = accountManager.CurrentWif,
                         destination = destAddress
                     };
 
@@ -5021,7 +5020,6 @@ namespace Poltergeist
                                     platform = PlatformKind.Ethereum,
                                     amount = amount,
                                     symbol = symbol,
-                                    key = accountManager.CurrentWif,
                                     destination = destAddress
                                 };
 
@@ -5112,7 +5110,6 @@ namespace Poltergeist
                                     platform = PlatformKind.BSC,
                                     amount = amount,
                                     symbol = symbol,
-                                    key = accountManager.CurrentWif,
                                     destination = destAddress
                                 };
 
@@ -5309,7 +5306,6 @@ namespace Poltergeist
                                         platform = accountManager.CurrentPlatform,
                                         amount = amount,
                                         symbol = symbol,
-                                        key = accountManager.CurrentWif,
                                         destination = interopAddress,
                                         interop = destination,
                                     };

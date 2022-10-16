@@ -168,7 +168,6 @@ namespace Poltergeist
     public struct TransferRequest
     {
         public PlatformKind platform;
-        public string key;
         public string destination;
         public string symbol;
         public decimal amount;
@@ -1253,7 +1252,7 @@ namespace Poltergeist
                                 {
                                     case PlatformKind.Neo:
                                         {
-                                            var keys = NeoKeys.FromWIF(transfer.key);
+                                            var keys = NeoKeys.FromWIF(CurrentWif);
 
                                             StartCoroutine(neoApi.GetUnspent(keys.Address,
                                             (unspent) =>
@@ -1371,7 +1370,7 @@ namespace Poltergeist
                                 {
                                     case PlatformKind.Ethereum:
                                         {
-                                            var keys = EthereumKey.FromWIF(transfer.key);
+                                            var keys = EthereumKey.FromWIF(CurrentWif);
 
                                             if (transfer.symbol == "ETH")
                                             {
@@ -1462,7 +1461,7 @@ namespace Poltergeist
                                 {
                                     case PlatformKind.BSC:
                                         {
-                                            var keys = EthereumKey.FromWIF(transfer.key);
+                                            var keys = EthereumKey.FromWIF(CurrentWif);
 
                                             if (transfer.symbol == "BNB")
                                             {
