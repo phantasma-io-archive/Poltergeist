@@ -4513,7 +4513,7 @@ namespace Poltergeist
             });
         }
 
-        public void SendTransactions(string description, List<byte[]> scripts, BigInteger gasPrice, BigInteger gasLimit, byte[] payload, string chain, ProofOfWork PoW, Action<Hash, string> callback)
+        public void SendPhaTransactions(string description, List<byte[]> scripts, BigInteger gasPrice, BigInteger gasLimit, byte[] payload, string chain, ProofOfWork PoW, Action<Hash, string> callback)
         {
             if (scripts.Count() == 0)
             {
@@ -4524,11 +4524,11 @@ namespace Poltergeist
             }
 
             var accountManager = AccountManager.Instance;
-            if (accountManager.CurrentPlatform == PlatformKind.Phantasma)
-            {
-                BigInteger usedGas = 0;
 
-                foreach(var script in scripts)
+            BigInteger usedGas = 0;
+
+            foreach (var script in scripts)
+            {
                 try
                 {
                     var vm = new GasMachine(script, 0, null);
@@ -4539,33 +4539,11 @@ namespace Poltergeist
                 {
                     usedGas += 400;
                 }
+            }
 
-                var estimatedFee = usedGas * gasPrice;
-                var feeDecimals = Tokens.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
-                description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
-            }
-            else if (accountManager.CurrentPlatform == PlatformKind.Neo)
-            {
-                description += $"\nFee: {accountManager.Settings.neoGasFee * scripts.Count()} GAS";
-            }
-            else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
-            {
-                var transfer = Serialization.Unserialize<TransferRequest>(scripts[0]);
-                if (transfer.platform == PlatformKind.Ethereum)
-                {
-                    var estimatedFee = gasLimit * gasPrice * scripts.Count();
-                    description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} ETH"; // 9 because we convert from Gwei, not Wei
-                }
-            }
-            else if (accountManager.CurrentPlatform == PlatformKind.BSC)
-            {
-                var transfer = Serialization.Unserialize<TransferRequest>(scripts[0]);
-                if (transfer.platform == PlatformKind.BSC)
-                {
-                    var estimatedFee = gasLimit * gasPrice * scripts.Count();
-                    description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, 9)} BNB"; // 9 because we convert from Gwei, not Wei
-                }
-            }
+            var estimatedFee = usedGas * gasPrice;
+            var feeDecimals = Tokens.GetTokenDecimals("KCAL", accountManager.CurrentPlatform);
+            description += $"\nEstimated fee: {UnitConversion.ToDecimal(estimatedFee, feeDecimals)} KCAL";
 
             RequestPassword(description, accountManager.CurrentPlatform, false, false, (auth) =>
             {
@@ -4816,7 +4794,7 @@ namespace Poltergeist
                         return;
                     }
 
-                    SendTransactions(description, scripts, gasPrice, gasLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                    SendPhaTransactions(description, scripts, gasPrice, gasLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                     {
                         if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                         {
