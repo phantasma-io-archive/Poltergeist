@@ -200,6 +200,66 @@ namespace Poltergeist
             });
         }
 
+        protected override void SignTransactionPow(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, ProofOfWork pow, Action<Hash, string> callback)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var targetPlatform = RequestPlatform(platform);
+            if (targetPlatform == PlatformKind.None)
+            {
+                callback(Hash.Null, "Unsupported platform: " + platform);
+                return;
+            }
+
+            var state = accountManager.CurrentState;
+            if (state == null)
+            {
+                callback(Hash.Null, "not logged in");
+                return;
+            }
+
+            var nexus = accountManager.Settings.nexusName;
+            var account = accountManager.CurrentAccount;
+
+            WalletGUI.Instance.CallOnUIThread(() =>
+            {
+                try
+                {
+                    WalletGUI.Instance.StartCoroutine(DescriptionUtils.GetDescription(script, (description, error) => {
+
+                        if (description == null)
+                        {
+                            Log.Write("Error during description parsing.\nDetails: " + error);
+                            description = "Could not decode transaction contents.";
+                        }
+
+                        WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
+                        {
+                            if (success)
+                            {
+                                WalletGUI.Instance.SendTransaction(description, script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, payload, chain, pow, (hash, error) =>
+                                {
+                                    AppFocus.Instance.EndFocus();
+
+                                    callback(hash, error);
+                                });
+                            }
+                            else
+                            {
+                                AppFocus.Instance.EndFocus();
+                                callback(Hash.Null, "user rejected");
+                            }
+                        });
+                    }));
+                }
+                catch (Exception e)
+                {
+                    WalletGUI.Instance.MessageBox(MessageKind.Error, "Error during description parsing.\nContact the developers.\nDetails: " + e.Message);
+                    callback(Hash.Null, "description parsing error");
+                    return;
+                }
+            });
+        }
 
         protected override void SignData(string platform, SignatureKind kind, byte[] data, int id, Action<string, string, string> callback)
         {

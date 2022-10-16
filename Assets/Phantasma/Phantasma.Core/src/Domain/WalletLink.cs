@@ -134,6 +134,8 @@ namespace Phantasma.Core.Domain
 
         protected abstract void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, Action<Hash, string> callback);
 
+        protected abstract void SignTransactionPow(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, ProofOfWork pow, Action<Hash, string> callback);
+
         protected abstract void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback);
 
         public void Execute(string cmd, Action<int, DataNode, bool> callback)
@@ -473,6 +475,68 @@ namespace Phantasma.Core.Domain
                             answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
                         }
                         break;
+                    }
+
+                case "signTxPow":
+                    {
+                        if (args.Length != 6)
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTxPow: Invalid amount of arguments: {args.Length}" });
+                            break;
+                        }
+
+                        int index = 0;
+
+                        var chain = args[index]; index++;
+                        var script = Base16.Decode(args[index], false); index++;
+
+                        if (script == null)
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTxPow: Invalid script data" });
+                            break;
+                        }
+
+                        byte[] payload = args[index].Length > 0 ? Base16.Decode(args[index], false) : null;
+                        index++;
+
+                        string platform;
+                        SignatureKind signatureKind;
+
+                        if (!Enum.TryParse<SignatureKind>(args[index], out signatureKind))
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTxPow: Invalid signature: " + args[index] });
+                            break;
+                        }
+                        index++;
+
+                        platform = args[index].ToLower();
+                        index++;
+
+                        ProofOfWork pow;
+
+                        if (!Enum.TryParse<ProofOfWork>(args[index], out pow))
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTxPow: Invalid POW argument: " + args[index] });
+                            break;
+                        }
+                        index++;
+
+                        SignTransactionPow(platform, signatureKind, chain, script, payload, id, pow, (hash, txError) => {
+                            if (hash != Hash.Null)
+                            {
+                                success = true;
+                                answer = APIUtils.FromAPIResult(new Transaction() { hash = hash.ToString() });
+                            }
+                            else
+                            {
+                                answer = APIUtils.FromAPIResult(new Error() { message = txError });
+                            }
+
+                            callback(id, answer, success);
+                            _isPendingRequest = false;
+                        });
+
+                        return;
                     }
 
                 case "invokeScript":
