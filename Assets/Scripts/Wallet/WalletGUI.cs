@@ -1026,36 +1026,7 @@ namespace Poltergeist
                         {
                             PopState();
 
-                            if (msg == "timeout")
-                            {
-                                ShowModal("Attention",
-                                    $"Your transaction has been broadcasted but its state cannot be determined.\nPlease use explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + transactionHash,
-                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                    {
-                                        AudioManager.Instance.PlaySFX("click");
-
-                                        if (viewTxChoice == PromptResult.Failure)
-                                        {
-                                            // We cannot get here for Ethereum tx,
-                                            // since RequestConfirmation() returns success immediatly for Eth.
-                                            switch (accountManager.CurrentPlatform)
-                                            {
-                                                case PlatformKind.Phantasma:
-                                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(transactionHash.ToString()));
-                                                    break;
-                                                case PlatformKind.Neo:
-                                                    Application.OpenURL(accountManager.GetNeoscanTransactionURL(transactionHash.ToString()));
-                                                    break;
-                                            }
-                                        }
-
-                                        InvokeTransactionCallback(Hash.Null, null);
-                                    });
-                            }
-                            else
-                            {
-                                InvokeTransactionCallback(Hash.Null, msg);
-                            }
+                            InvokeTransactionCallback(Hash.Null, msg);
                         }
                     });
                 }

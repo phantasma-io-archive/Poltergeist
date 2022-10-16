@@ -139,6 +139,10 @@ namespace Poltergeist
 
             var success = string.IsNullOrEmpty(error) && hash != Hash.Null;
 
+            // Timeout is not possible for Ethereum tx,
+            // since RequestConfirmation() returns success immediatly for Eth.
+            var timeout = error == "timeout";
+
             var message = "";
             if(success && !string.IsNullOrEmpty(successCustomMessage))
             {
@@ -156,18 +160,25 @@ namespace Poltergeist
                 }
                 else
                 {
-                    message = "Transaction failed.";
+                    if (timeout)
+                    {
+                        message = "Your transaction has been broadcasted but its state cannot be determined.\nPlease use explorer to ensure transaction is confirmed successfully and funds are transferred(button 'View' below).";
+                    }
+                    else
+                    {
+                        message = "Transaction failed.";
+                    }
                 }
             }
 
-            if (!string.IsNullOrEmpty(error))
+            if (!string.IsNullOrEmpty(error) && !timeout)
             {
                 message += "\nError: " + error;
             }
 
             message += "\nTransaction hash:\n" + hash;
 
-            ShowModal(success ? "Success" : "Failure",
+            ShowModal(success ? "Success" : (timeout ? "Attention" : "Failure"),
                 message,
                 ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
                 {
