@@ -359,17 +359,7 @@ namespace Poltergeist
                     {
                         PopState();
 
-                        ShowModal("Success",
-                            $"The archive '{fileName}' was uploaded!\nTransaction hash:\n" + creationTxHash,
-                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                            {
-                                AudioManager.Instance.PlaySFX("click");
-
-                                if (viewTxChoice == PromptResult.Failure)
-                                {
-                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(creationTxHash.ToString()));
-                                }
-                            });
+                        TxResultMessage(creationTxHash, error, $"The archive '{fileName}' was uploaded!");
                     }
                     else
                     {
@@ -380,7 +370,8 @@ namespace Poltergeist
                 else
                 {
                     PopState();
-                    MessageBox(MessageKind.Error, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!\nError: " + error);
+                    
+                    TxResultMessage(creationTxHash, error, null, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!");
                     // TODO allow user to retry ?
                 }
                     

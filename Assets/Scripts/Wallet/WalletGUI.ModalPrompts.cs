@@ -160,6 +160,11 @@ namespace Poltergeist
                 }
             }
 
+            if (!string.IsNullOrEmpty(error))
+            {
+                message += "\nError: " + error;
+            }
+
             message += "\nTransaction hash:\n" + hash;
 
             ShowModal(success ? "Success" : "Failure",
