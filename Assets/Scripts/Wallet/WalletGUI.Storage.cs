@@ -216,7 +216,7 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
             {
                 TxResultMessage(hash, error, null, $"The archive '{fileName}' was deleted!");
             });
@@ -255,7 +255,7 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading contract '{contractName}'.", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash, error) =>
+            SendTransaction($"Uploading contract '{contractName}'.", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash, error) =>
             {
                 TxResultMessage(hash, error, null, $"{contractName} was deployed successfully!");
             });
@@ -315,7 +315,7 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
             {
                 if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                 {

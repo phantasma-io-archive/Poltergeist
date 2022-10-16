@@ -1209,7 +1209,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, BigInteger phaGasPrice, BigInteger phaGasLimit, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public void SignAndSendTransaction(string chain, byte[] script, TransferRequest? transferRequest, BigInteger phaGasPrice, BigInteger phaGasLimit, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             if (payload == null)
             {
@@ -1239,7 +1239,10 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+                            if (transferRequest == null)
+                                throw new Exception($"Transfer request is null for {CurrentPlatform} platform");
+
+                            var transfer = (TransferRequest)transferRequest;
 
                             if (transfer.amount <=0)
                             {
@@ -1357,7 +1360,10 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+                            if (transferRequest == null)
+                                throw new Exception($"Transfer request is null for {CurrentPlatform} platform");
+
+                            var transfer = (TransferRequest)transferRequest;
 
                             if (transfer.amount <= 0)
                             {
@@ -1448,7 +1454,10 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+                            if (transferRequest == null)
+                                throw new Exception($"Transfer request is null for {CurrentPlatform} platform");
+
+                            var transfer = (TransferRequest)transferRequest;
 
                             if (transfer.amount <= 0)
                             {
@@ -3582,7 +3591,7 @@ namespace Poltergeist
                         .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
@@ -3600,7 +3609,7 @@ namespace Poltergeist
                         .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
@@ -3633,7 +3642,7 @@ namespace Poltergeist
                         .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
@@ -3651,7 +3660,7 @@ namespace Poltergeist
                         .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>

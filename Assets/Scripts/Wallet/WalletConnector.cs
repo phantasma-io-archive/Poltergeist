@@ -176,7 +176,7 @@ namespace Poltergeist
                         {
                             if (success)
                             {
-                                WalletGUI.Instance.SendTransaction(description, script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, payload, chain, ProofOfWork.None, (hash, error) =>
+                                WalletGUI.Instance.SendTransaction(description, script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, payload, chain, ProofOfWork.None, (hash, error) =>
                                 {
                                     AppFocus.Instance.EndFocus();
 

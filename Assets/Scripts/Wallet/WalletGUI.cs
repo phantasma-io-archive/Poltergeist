@@ -2577,7 +2577,7 @@ namespace Poltergeist
                                                         sb.SpendGas();
                                                         var script = sb.EndScript();
 
-                                                        SendTransaction($"Unstake {amount} SOUL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                                                        SendTransaction($"Unstake {amount} SOUL", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                                         {
                                                             TxResultMessage(hash, error, "Your SOUL was unstaked!");
                                                         });
@@ -2624,7 +2624,7 @@ namespace Poltergeist
                                                 sb.SpendGas();
                                                 var script = sb.EndScript();
 
-                                                SendTransaction($"Claim {balance.Claimable} KCAL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                                                SendTransaction($"Claim {balance.Claimable} KCAL", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                                 {
                                                     TxResultMessage(hash, error, "You claimed some KCAL!");
                                                 });
@@ -3062,7 +3062,7 @@ namespace Poltergeist
                         return;
                     }
 
-                    SendTransaction($"Claim SM reward", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                    SendTransaction($"Claim SM reward", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                     {
                         TxResultMessage(hash, error, "You claimed SM reward!");
                     });
@@ -3092,7 +3092,7 @@ namespace Poltergeist
                                     return;
                                 }
 
-                                SendTransaction($"Burn {amountToBurn} {balance.Symbol} tokens", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                                SendTransaction($"Burn {amountToBurn} {balance.Symbol} tokens", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                 {
                                     TxResultMessage(hash, error, $"You burned {amountToBurn} {balance.Symbol} tokens!");
                                 });
@@ -3808,7 +3808,7 @@ namespace Poltergeist
                                                 sb.SpendGas();
                                                 var script = sb.EndScript();
 
-                                                SendTransaction("Migrate account", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                                                SendTransaction("Migrate account", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                                 {
                                                     if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                                                     {
@@ -3948,7 +3948,7 @@ namespace Poltergeist
                                                         return;
                                                     }
 
-                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                                                    SendTransaction($"Register address name\nName: {name}\nAddress: {accountManager.CurrentState.address}?", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                                     {
                                                         if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                                                         {
@@ -4051,7 +4051,7 @@ namespace Poltergeist
 
                             var script = sb.EndScript();
 
-                            SendTransaction($"Stake {selectedAmount} SOUL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                            SendTransaction($"Stake {selectedAmount} SOUL", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                             {
                                 callback(hash, error);
                             });
@@ -4279,7 +4279,7 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, gasPrice, gasLimit * nftTransferList.Count, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                        SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, null, gasPrice, gasLimit * nftTransferList.Count, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                         {
                             TxResultMessage(hash, error, $"You burned {nftTransferList.Count} NFTs!");
                         });
@@ -4380,13 +4380,13 @@ namespace Poltergeist
             temp?.Invoke(hash, error);
         }
 
-        public void SendTransaction(string description, byte[] script, BigInteger phaGasPrice, BigInteger phaGasLimit, byte[] payload, string chain, ProofOfWork PoW, Action<Hash, string> callback)
+        public void SendTransaction(string description, byte[] script, TransferRequest? transferRequest, BigInteger phaGasPrice, BigInteger phaGasLimit, byte[] payload, string chain, ProofOfWork PoW, Action<Hash, string> callback)
         {
-            if (script == null)
+            if (script == null && transferRequest == null)
             {
-                MessageBox(MessageKind.Error, "Null transaction script", () =>
+                MessageBox(MessageKind.Error, "Null transaction script and request", () =>
                 {
-                    callback(Hash.Null, "Null transaction script");
+                    callback(Hash.Null, "Null transaction scrip and requestt");
                 });
             }
 
@@ -4418,7 +4418,11 @@ namespace Poltergeist
             {
                 BigInteger usedGas;
 
-                var transfer = Serialization.Unserialize<TransferRequest>(script);
+                if (transferRequest == null)
+                    throw new Exception($"Transfer request is null for {accountManager.CurrentPlatform} platform");
+
+                var transfer = (TransferRequest)transferRequest;
+
                 if (transfer.platform == PlatformKind.Ethereum)
                 {
                     if (transfer.symbol == "ETH")
@@ -4440,7 +4444,11 @@ namespace Poltergeist
             {
                 BigInteger usedGas;
 
-                var transfer = Serialization.Unserialize<TransferRequest>(script);
+                if (transferRequest == null)
+                    throw new Exception($"Transfer request is null for {accountManager.CurrentPlatform} platform");
+
+                var transfer = (TransferRequest)transferRequest;
+
                 if (transfer.platform == PlatformKind.BSC)
                 {
                     if (transfer.symbol == "BNB")
@@ -4477,7 +4485,7 @@ namespace Poltergeist
                                 {
                                     PushState(GUIState.Sending);
 
-                                    accountManager.SignAndSendTransaction(chain, script, phaGasPrice, phaGasLimit, payload, PoW, null, (hash, error) =>
+                                    accountManager.SignAndSendTransaction(chain, script, transferRequest, phaGasPrice, phaGasLimit, payload, PoW, null, (hash, error) =>
                                     {
                                         if (string.IsNullOrEmpty(error))
                                         {
@@ -4582,7 +4590,7 @@ namespace Poltergeist
         {
             PushState(GUIState.Sending);
 
-            accountManager.SignAndSendTransaction(chain, scripts[0], gasPrice, gasLimit, payload, PoW, null, (hash, error) =>
+            accountManager.SignAndSendTransaction(chain, scripts[0], null, gasPrice, gasLimit, payload, PoW, null, (hash, error) =>
             {
                 if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                 {
@@ -4695,7 +4703,7 @@ namespace Poltergeist
                             return;
                         }
 
-                        SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                        SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                         {
                             TxResultMessage(hash, error, $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!");
                         });
@@ -4940,9 +4948,7 @@ namespace Poltergeist
                         destination = destAddress
                     };
 
-                    byte[] script = Serialization.Serialize(transfer);
-
-                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
+                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", null, transfer, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                     {
                         TxResultMessage(hash, error, $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!");
                     });
@@ -5023,9 +5029,7 @@ namespace Poltergeist
                                     destination = destAddress
                                 };
 
-                                byte[] script = Serialization.Serialize(transfer);
-
-                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
+                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", null, transfer, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                                 {
                                     TxResultMessage(hash, error, $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).");
                                 });
@@ -5113,9 +5117,7 @@ namespace Poltergeist
                                     destination = destAddress
                                 };
 
-                                byte[] script = Serialization.Serialize(transfer);
-
-                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
+                                SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", null, transfer, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                                 {
                                     TxResultMessage(hash, error, $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use BSC explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).");
                                 });
@@ -5281,7 +5283,7 @@ namespace Poltergeist
                                         return;
                                     }
 
-                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}\nEstimated swap fee: {min} {feeSymbol}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}\nEstimated swap fee: {min} {feeSymbol}", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                     {
                                         TxResultMessage(hash, error, null, $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!");
                                     });
@@ -5310,9 +5312,7 @@ namespace Poltergeist
                                         interop = destination,
                                     };
 
-                                    byte[] script = Serialization.Serialize(transfer);
-
-                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
+                                    SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", null, transfer, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                                     {
                                         string successMessage;
                                         if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
@@ -5515,7 +5515,7 @@ namespace Poltergeist
                              var swapSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(swapSymbol);
                              var feeSymbolBalance = AccountManager.Instance.CurrentState.GetAvailableAmount(feeSymbol);
                              Log.Write($"Balance before swap: {swapSymbol}: {swapSymbolBalance}, {feeSymbol}: {feeSymbolBalance}.");
-                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
+                             SendTransaction($"Swap {swapSymbol} for {feeSymbol}", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                              {
                                  if (!string.IsNullOrEmpty(error) || hash == Hash.Null)
                                  {
