@@ -1,3 +1,4 @@
+using Phantasma.Core.Cryptography;
 using Phantasma.SDK;
 using System;
 using System.Collections.Generic;
@@ -130,6 +131,62 @@ namespace Poltergeist
             {
                 callback?.Invoke();
             });
+        }
+
+        public void TxResultMessage(Hash hash, string error, string successCustomMessage = null, string failureCustomMessage = null)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var success = string.IsNullOrEmpty(error) && hash != Hash.Null;
+
+            var message = "";
+            if(success && !string.IsNullOrEmpty(successCustomMessage))
+            {
+                message = successCustomMessage;
+            }
+            else if(!success && !string.IsNullOrEmpty(failureCustomMessage))
+            {
+                message = failureCustomMessage;
+            }
+            else
+            {
+                if(success)
+                {
+                    message = "Transaction succeeded.";
+                }
+                else
+                {
+                    message = "Transaction failed.";
+                }
+            }
+
+            message += "\nTransaction hash:\n" + hash;
+
+            ShowModal(success ? "Success" : "Failure",
+                message,
+                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                {
+                    AudioManager.Instance.PlaySFX("click");
+
+                    if (viewTxChoice == PromptResult.Failure)
+                    {
+                        switch (accountManager.CurrentPlatform)
+                        {
+                            case PlatformKind.Phantasma:
+                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                break;
+                            case PlatformKind.Neo:
+                                Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                break;
+                            case PlatformKind.Ethereum:
+                                Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                break;
+                            case PlatformKind.BSC:
+                                Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
+                                break;
+                        }
+                    }
+                });
         }
         #endregion
     }

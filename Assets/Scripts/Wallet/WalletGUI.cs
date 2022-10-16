@@ -2502,62 +2502,7 @@ namespace Poltergeist
                                     {
                                         ShowConfirmationScreen(settleHash, true, (hash, error) =>
                                         {
-                                            if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                            {
-                                                ShowModal("Success",
-                                                    $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.\nTransaction hash:\n" + hash,
-                                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                                    {
-                                                        AudioManager.Instance.PlaySFX("click");
-
-                                                        if (viewTxChoice == PromptResult.Failure)
-                                                        {
-                                                            switch (accountManager.CurrentPlatform)
-                                                            {
-                                                                case PlatformKind.Phantasma:
-                                                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                                                    break;
-                                                                case PlatformKind.Neo:
-                                                                    Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                                                    break;
-                                                                case PlatformKind.Ethereum:
-                                                                    Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                                    break;
-                                                                case PlatformKind.BSC:
-                                                                    Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
-                                                                    break;
-                                                            }
-                                                        }
-                                                    });
-                                            }
-                                            else
-                                            {
-                                                ShowModal("Failure",
-                                                    $"Transaction failed.\nTransaction hash:\n" + hash,
-                                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                                    {
-                                                        AudioManager.Instance.PlaySFX("click");
-
-                                                        if (viewTxChoice == PromptResult.Failure)
-                                                        {
-                                                            switch (accountManager.CurrentPlatform)
-                                                            {
-                                                                case PlatformKind.Phantasma:
-                                                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                                                    break;
-                                                                case PlatformKind.Neo:
-                                                                    Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                                                    break;
-                                                                case PlatformKind.Ethereum:
-                                                                    Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                                    break;
-                                                                case PlatformKind.BSC:
-                                                                    Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
-                                                                    break;
-                                                            }
-                                                        }
-                                                    });
-                                            }
+                                            TxResultMessage(hash, error, $"Your {balance.Symbol} arrived in your {accountManager.CurrentPlatform} account.");
                                         });
                                     }
                                     else
@@ -2627,14 +2572,7 @@ namespace Poltergeist
 
                                         StakeSOUL(selectedAmount, $"Do you want to stake {selectedAmount} SOUL?\nYou will be able to claim {MoneyFormat(expectedDailyKCAL, selectedAmount >= 1 ? MoneyFormatType.Standard : MoneyFormatType.Long)} KCAL per day.\n\nPlease note, after staking you won't be able to unstake SOUL for next 24 hours." + twoSmsWarning, (hash, error) =>
                                         {
-                                            if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                            {
-                                                MessageBox(MessageKind.Success, "Your SOUL was staked!\nTransaction hash: " + hash);
-                                            }
-                                            else
-                                            {
-                                                MessageBox(MessageKind.Error, "Transaction failed.\nTransaction hash: " + hash);
-                                            }
+                                            TxResultMessage(hash, error, "Your SOUL was staked!");
                                         });
                                     });
                                 };
@@ -2673,14 +2611,7 @@ namespace Poltergeist
 
                                                         SendTransaction($"Unstake {amount} SOUL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                                         {
-                                                            if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                                            {
-                                                                MessageBox(MessageKind.Success, "Your SOUL was unstaked!\nTransaction hash: " + hash);
-                                                            }
-                                                            else
-                                                            {
-                                                                MessageBox(MessageKind.Error, "Transaction failed!\nTransaction hash: " + hash);
-                                                            }
+                                                            TxResultMessage(hash, error, "Your SOUL was unstaked!");
                                                         });
                                                     }
                                                 });
@@ -2727,14 +2658,7 @@ namespace Poltergeist
 
                                                 SendTransaction($"Claim {balance.Claimable} KCAL", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                                 {
-                                                    if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                                    {
-                                                        MessageBox(MessageKind.Success, "You claimed some KCAL!\nTransaction hash: " + hash);
-                                                    }
-                                                    else
-                                                    {
-                                                        MessageBox(MessageKind.Error, "Transaction failed.\nTransaction hash: " + hash);
-                                                    }
+                                                    TxResultMessage(hash, error, "You claimed some KCAL!");
                                                 });
 
 
@@ -3172,34 +3096,7 @@ namespace Poltergeist
 
                     SendTransaction($"Claim SM reward", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                     {
-                        if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                        {
-                            ShowModal("Success",
-                                $"You claimed SM reward!\nTransaction hash: " + hash,
-                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                {
-                                    AudioManager.Instance.PlaySFX("click");
-
-                                    if (viewTxChoice == PromptResult.Failure)
-                                    {
-                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                    }
-                                });
-                        }
-                        else
-                        {
-                            ShowModal("Failure",
-                                $"Transaction failed.\nTransaction hash: " + hash,
-                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                {
-                                    AudioManager.Instance.PlaySFX("click");
-
-                                    if (viewTxChoice == PromptResult.Failure)
-                                    {
-                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                    }
-                                });
-                        }
+                        TxResultMessage(hash, error, "You claimed SM reward!");
                     });
 
                     accountManager.SignAndSendTransaction("main", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, System.Text.Encoding.UTF8.GetBytes(accountManager.WalletIdentifier), ProofOfWork.None, null, (hash, error) =>
@@ -3233,34 +3130,7 @@ namespace Poltergeist
 
                                 SendTransaction($"Burn {amountToBurn} {balance.Symbol} tokens", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                 {
-                                    if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                    {
-                                        ShowModal("Success",
-                                            $"You burned {amountToBurn} {balance.Symbol} tokens!\nTransaction hash: " + hash,
-                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                        {
-                                            AudioManager.Instance.PlaySFX("click");
-
-                                            if (viewTxChoice == PromptResult.Failure)
-                                            {
-                                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                            }
-                                        });
-                                    }
-                                    else
-                                    {
-                                        ShowModal("Failure",
-                                            $"Transaction failed.\nTransaction hash: " + hash,
-                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                            {
-                                                AudioManager.Instance.PlaySFX("click");
-
-                                                if (viewTxChoice == PromptResult.Failure)
-                                                {
-                                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                                }
-                                            });
-                                    }
+                                    TxResultMessage(hash, error, $"You burned {amountToBurn} {balance.Symbol} tokens!");
                                 });
                             }
                         }, 10);
@@ -4447,46 +4317,7 @@ namespace Poltergeist
 
                         SendTransaction($"Burn {nftTransferList.Count} {transferSymbol} NFTs", script, gasPrice, gasLimit * nftTransferList.Count, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                         {
-                            if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                            {
-                                ShowModal("Success",
-                                    $"You burned {nftTransferList.Count} NFTs!\nTransaction hash: " + hash,
-                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                    {
-                                        AudioManager.Instance.PlaySFX("click");
-
-                                        if (viewTxChoice == PromptResult.Failure)
-                                        {
-                                            Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                        }
-                                    });
-
-                                // Removing burnt NFTs from current NFT list.
-                                var nfts = accountManager.CurrentNfts;
-                                foreach (var nft in nftTransferList)
-                                {
-                                    nfts.Remove(nfts.Find(x => x.ID == nft));
-                                }
-
-                                // Returning to NFT's first screen.
-                                nftScroll = Vector2.zero;
-                                nftTransferList.Clear();
-                                PushState(GUIState.Nft);
-                            }
-                            else
-                            {
-                                ShowModal("Failure",
-                                    $"Transaction failed.\nTransaction hash: " + hash,
-                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                    {
-                                        AudioManager.Instance.PlaySFX("click");
-
-                                        if (viewTxChoice == PromptResult.Failure)
-                                        {
-                                            Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                        }
-                                    });
-                            }
+                            TxResultMessage(hash, error, $"You burned {nftTransferList.Count} NFTs!");
                         });
                     }
                 }, 10);
@@ -4924,34 +4755,7 @@ namespace Poltergeist
 
                         SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                         {
-                            if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                            {
-                                ShowModal("Success",
-                                    $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
-                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                    {
-                                        AudioManager.Instance.PlaySFX("click");
-                                    
-                                        if (viewTxChoice == PromptResult.Failure)
-                                        {
-                                            Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                        }
-                                    });
-                            }
-                            else
-                            {
-                                ShowModal("Failure",
-                                    $"Transaction failed.\nTransaction hash:\n" + hash,
-                                    ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                    {
-                                        AudioManager.Instance.PlaySFX("click");
-
-                                        if (viewTxChoice == PromptResult.Failure)
-                                        {
-                                            Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                        }
-                                    });
-                            }
+                            TxResultMessage(hash, error, $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!");
                         });
                     }
                     else
@@ -5052,17 +4856,7 @@ namespace Poltergeist
                     {
                         if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                         {
-                            ShowModal("Success",
-                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\n{(scripts.Count() > 1 ? "Last t" : "T")}ransaction hash:\n" + hash,
-                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                {
-                                    AudioManager.Instance.PlaySFX("click");
-
-                                    if (viewTxChoice == PromptResult.Failure)
-                                    {
-                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                    }
-                                });
+                            TxResultMessage(hash, error, $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!");
 
                             // Removing sent NFTs from current NFT list.
                             var nfts = accountManager.CurrentNfts;
@@ -5078,17 +4872,7 @@ namespace Poltergeist
                         }
                         else
                         {
-                            ShowModal("Failure",
-                                $"Some or all transactions failed.\n{(scripts.Count() > 1 ? "Last t" : "T")}ransaction hash:\n" + hash,
-                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                {
-                                    AudioManager.Instance.PlaySFX("click");
-
-                                    if (viewTxChoice == PromptResult.Failure)
-                                    {
-                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                    }
-                                });
+                            TxResultMessage(hash, error, null, "Some or all transactions failed.");
                         }
                     });
                 }
@@ -5219,34 +5003,7 @@ namespace Poltergeist
 
                     SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                     {
-                        if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                        {
-                            ShowModal("Success",
-                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
-                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                {
-                                    AudioManager.Instance.PlaySFX("click");
-
-                                    if (viewTxChoice == PromptResult.Failure)
-                                    {
-                                        Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                    }
-                                });
-                        }
-                        else
-                        {
-                            ShowModal("Failure",
-                                $"Transaction failed.\nTransaction hash:\n" + hash,
-                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                {
-                                    AudioManager.Instance.PlaySFX("click");
-
-                                    if (viewTxChoice == PromptResult.Failure)
-                                    {
-                                        Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                    }
-                                });
-                        }
+                        TxResultMessage(hash, error, $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!");
                     });
                 });
             });
@@ -5330,34 +5087,7 @@ namespace Poltergeist
 
                                 SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                                 {
-                                    if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                    {
-                                        ShowModal("Success",
-                                            $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash,
-                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                            {
-                                                AudioManager.Instance.PlaySFX("click");
-
-                                                if (viewTxChoice == PromptResult.Failure)
-                                                {
-                                                    Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                }
-                                            });
-                                    }
-                                    else
-                                    {
-                                        ShowModal("Failure",
-                                            $"Transaction failed.\nTransaction hash:\n" + hash,
-                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                            {
-                                                AudioManager.Instance.PlaySFX("click");
-
-                                                if (viewTxChoice == PromptResult.Failure)
-                                                {
-                                                    Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                }
-                                            });
-                                    }
+                                    TxResultMessage(hash, error, $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).");
                                 });
                             });
                         });
@@ -5448,34 +5178,7 @@ namespace Poltergeist
 
                                 SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destAddress}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                                 {
-                                    if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                    {
-                                        ShowModal("Success",
-                                            $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use BSC explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash,
-                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                            {
-                                                AudioManager.Instance.PlaySFX("click");
-
-                                                if (viewTxChoice == PromptResult.Failure)
-                                                {
-                                                    Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
-                                                }
-                                            });
-                                    }
-                                    else
-                                    {
-                                        ShowModal("Failure",
-                                            $"Transaction failed.\nTransaction hash:\n" + hash,
-                                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                            {
-                                                AudioManager.Instance.PlaySFX("click");
-
-                                                if (viewTxChoice == PromptResult.Failure)
-                                                {
-                                                    Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
-                                                }
-                                            });
-                                    }
+                                    TxResultMessage(hash, error, $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use BSC explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).");
                                 });
                             });
                         });
@@ -5641,38 +5344,7 @@ namespace Poltergeist
 
                                     SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}\nEstimated swap fee: {min} {feeSymbol}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
                                     {
-                                        if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                        {
-                                            ShowModal("Success",
-                                                $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash,
-                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                                {
-                                                    AudioManager.Instance.PlaySFX("click");
-
-                                                    if (viewTxChoice == PromptResult.Failure)
-                                                    {
-                                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                                    }
-
-                                                    accountManager.RefreshBalances(false);
-                                                });
-                                        }
-                                        else
-                                        {
-                                            ShowModal("Failure",
-                                                $"Transaction failed.\nTransaction hash:\n" + hash,
-                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                                {
-                                                    AudioManager.Instance.PlaySFX("click");
-
-                                                    if (viewTxChoice == PromptResult.Failure)
-                                                    {
-                                                        Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                                                    }
-
-                                                    accountManager.RefreshBalances(false);
-                                                });
-                                        }
+                                        TxResultMessage(hash, error, null, $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!");
                                     });
                                 }
                                 else
@@ -5704,56 +5376,15 @@ namespace Poltergeist
 
                                     SendTransaction($"Transfer {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}\nDestination: {destination}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, transfer.platform.ToString(), ProofOfWork.None, (hash, error) =>
                                     {
-                                        if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                                        {
-                                            string successMessage;
-                                            if(accountManager.CurrentPlatform == PlatformKind.Ethereum)
-                                                successMessage = $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
-                                            else if (accountManager.CurrentPlatform == PlatformKind.BSC)
-                                                successMessage = $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use BSC explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
-                                            else
-                                                successMessage = $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash;
-
-                                            ShowModal("Success",
-                                                successMessage,
-                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                                {
-                                                    AudioManager.Instance.PlaySFX("click");
-
-                                                    if (viewTxChoice == PromptResult.Failure)
-                                                    {
-                                                        if(accountManager.CurrentPlatform == PlatformKind.Neo)
-                                                            Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                                        else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
-                                                            Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                        else if (accountManager.CurrentPlatform == PlatformKind.BSC)
-                                                            Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
-                                                    }
-
-                                                    accountManager.RefreshBalances(false);
-                                                });
-                                        }
+                                        string successMessage;
+                                        if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
+                                            successMessage = $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use Ethereum explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
+                                        else if (accountManager.CurrentPlatform == PlatformKind.BSC)
+                                            successMessage = $"You sent transaction transferring {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nPlease use BSC explorer to ensure transaction is confirmed successfully and funds are transferred (button 'View' below).\nTransaction hash:\n" + hash;
                                         else
-                                        {
-                                            ShowModal("Failure",
-                                                $"Transaction failed.\nTransaction hash:\n" + hash,
-                                                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                                                {
-                                                    AudioManager.Instance.PlaySFX("click");
+                                            successMessage = $"You transfered {MoneyFormat(amount, MoneyFormatType.Long)} {symbol}!\nTransaction hash:\n" + hash;
 
-                                                    if (viewTxChoice == PromptResult.Failure)
-                                                    {
-                                                        if (accountManager.CurrentPlatform == PlatformKind.Neo)
-                                                            Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
-                                                        else if (accountManager.CurrentPlatform == PlatformKind.Ethereum)
-                                                            Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
-                                                        else if (accountManager.CurrentPlatform == PlatformKind.BSC)
-                                                            Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
-                                                    }
-
-                                                    accountManager.RefreshBalances(false);
-                                                });
-                                        }
+                                        TxResultMessage(hash, error, null, successMessage);
                                     });
                                 }
                                 else

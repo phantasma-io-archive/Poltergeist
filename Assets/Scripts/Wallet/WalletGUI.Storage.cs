@@ -218,36 +218,8 @@ namespace Poltergeist
 
             SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
             {
-                if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                {
-                    ShowModal("Success",
-                        $"The archive '{fileName}' was deleted!\nTransaction hash:\n" + hash,
-                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                        {
-                            AudioManager.Instance.PlaySFX("click");
-
-                            if (viewTxChoice == PromptResult.Failure)
-                            {
-                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                            }
-                        });
-                }
-                else
-                {
-                    ShowModal("Failure",
-                        $"Transaction failed.\nTransaction hash:\n" + hash,
-                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                        {
-                            AudioManager.Instance.PlaySFX("click");
-
-                            if (viewTxChoice == PromptResult.Failure)
-                            {
-                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                            }
-                        });
-                }    
+                TxResultMessage(hash, error, null, $"The archive '{fileName}' was deleted!");
             });
-
         }
 
         private void DeployContract(string scriptPath, string abiPath)
@@ -285,14 +257,7 @@ namespace Poltergeist
 
             SendTransaction($"Uploading contract '{contractName}'.", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash, error) =>
             {
-                if (string.IsNullOrEmpty(error) && hash != Hash.Null)
-                {
-                    MessageBox(MessageKind.Success, $"{contractName} was deployed successfully!");
-                }
-                else
-                {
-                    MessageBox(MessageKind.Error, $"Transaction failed.");
-                }
+                TxResultMessage(hash, error, null, $"{contractName} was deployed successfully!");
             });
 
         }
