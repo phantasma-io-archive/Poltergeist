@@ -3858,7 +3858,7 @@ namespace Poltergeist
                                                     }
                                                     else
                                                     {
-                                                        MessageBox(MessageKind.Error, "It was not possible to migrate the account.");
+                                                        TxResultMessage(hash, error, null, "It was not possible to migrate the account.");
                                                     }
                                                 });
                                             }
