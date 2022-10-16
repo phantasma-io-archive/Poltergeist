@@ -3066,10 +3066,6 @@ namespace Poltergeist
                     {
                         TxResultMessage(hash, error, "You claimed SM reward!");
                     });
-
-                    accountManager.SignAndSendTransaction("main", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, System.Text.Encoding.UTF8.GetBytes(accountManager.WalletIdentifier), ProofOfWork.None, null, (hash, error) =>
-                    {
-                    });
                 }
                 else if (mainAction == "Burn")
                 {
