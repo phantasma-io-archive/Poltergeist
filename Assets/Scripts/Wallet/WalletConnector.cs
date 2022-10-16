@@ -101,6 +101,11 @@ namespace Poltergeist
             callback(new Account(), "not logged in, devs should implement this case!");
         }
 
+        protected override void GetPeer(Action<string> callback)
+        {
+            callback(AccountManager.Instance.Settings.phantasmaRPCURL);
+        }
+
         protected override void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback)
         {
             WalletGUI.Instance.CallOnUIThread(() =>

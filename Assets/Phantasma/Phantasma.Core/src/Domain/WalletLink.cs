@@ -127,6 +127,8 @@ namespace Phantasma.Core.Domain
 
         protected abstract void GetAccount(string platform, Action<Account, string> callback);
 
+        protected abstract void GetPeer(Action<string> callback);
+
         protected abstract void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback);
 
         // NOTE for security, signData should not be usable as a way of signing transaction. That way the wallet is responsible for appending random bytes to the message, and return those in callback
@@ -325,6 +327,26 @@ namespace Phantasma.Core.Domain
                         }
 
                         break;
+                    }
+
+                case "getPeer":
+                    {
+                        if (args.Length != 0)
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"getPeer: Invalid amount of arguments: {args.Length}" });
+                        }
+
+                        GetPeer((peer) => {
+                            success = true;
+                            SingleResult result;
+                            result.value = peer;
+                            answer = APIUtils.FromAPIResult(result);
+
+                            callback(id, answer, success);
+                            _isPendingRequest = false;
+                        });
+
+                        return;
                     }
 
                 case "signData":
