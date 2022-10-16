@@ -176,18 +176,11 @@ namespace Poltergeist
                         {
                             if (success)
                             {
-                                WalletGUI.Instance.SendTransaction(description, script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, payload, chain, ProofOfWork.None, (hash) =>
+                                WalletGUI.Instance.SendTransaction(description, script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, payload, chain, ProofOfWork.None, (hash, error) =>
                                 {
                                     AppFocus.Instance.EndFocus();
 
-                                    if (hash != Hash.Null)
-                                    {
-                                        callback(hash, null);
-                                    }
-                                    else
-                                    {
-                                        callback(Hash.Null, "something bad happend while sending");
-                                    }
+                                    callback(hash, error);
                                 });
                             }
                             else

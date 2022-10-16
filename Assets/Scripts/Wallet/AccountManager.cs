@@ -1898,9 +1898,20 @@ namespace Poltergeist
             switch (CurrentPlatform)
             {
                 case PlatformKind.Phantasma:
-                    StartCoroutine(phantasmaApi.GetTransaction(transactionHash, (tx) =>
+                    StartCoroutine(phantasmaApi.GetTransaction(transactionHash, (state, tx) =>
                     {
-                        callback(null);
+                        if (state == ExecutionState.Running)
+                        {
+                            callback("pending");
+                        }
+                        else if (state == ExecutionState.Break || state == ExecutionState.Fault)
+                        {
+                            callback("Transaction failed");
+                        }
+                        else
+                        {
+                            callback(null);
+                        }
                     }, (error, msg) =>
                     {
                         if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)

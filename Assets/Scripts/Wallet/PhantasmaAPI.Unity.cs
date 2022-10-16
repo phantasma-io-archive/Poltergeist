@@ -408,6 +408,7 @@ namespace Phantasma.SDK
         public Event[] events; //
         public string result; //
         public string fee; //
+        public ExecutionState state;
 
         public static Transaction FromNode(DataNode node)
         {
@@ -438,6 +439,11 @@ namespace Phantasma.SDK
 
             result.result = node.GetString("result");
             result.fee = node.GetString("fee");
+
+            if(!Enum.TryParse<ExecutionState>(node.GetString("state"), out result.state))
+            {
+                result.state = ExecutionState.Break;
+            }
 
             return result;
         }
@@ -1330,12 +1336,12 @@ namespace Phantasma.SDK
 
 
         //Returns information about a transaction by hash.
-        public IEnumerator GetTransaction(string hashText, Action<Transaction> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator GetTransaction(string hashText, Action<ExecutionState, Transaction> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
             yield return WebClient.RPCRequest(Host, "getTransaction", WebClient.NoTimeout, 0, errorHandlingCallback, (node) =>
             {
                 var result = Transaction.FromNode(node);
-                callback(result);
+                callback(result.state, result);
             }, hashText);
         }
 

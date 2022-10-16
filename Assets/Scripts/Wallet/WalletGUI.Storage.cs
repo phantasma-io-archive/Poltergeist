@@ -216,9 +216,9 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
             {
-                if (hash != Hash.Null)
+                if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                 {
                     ShowModal("Success",
                         $"The archive '{fileName}' was deleted!\nTransaction hash:\n" + hash,
@@ -232,6 +232,20 @@ namespace Poltergeist
                             }
                         });
                 }
+                else
+                {
+                    ShowModal("Failure",
+                        $"Transaction failed.\nTransaction hash:\n" + hash,
+                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                        {
+                            AudioManager.Instance.PlaySFX("click");
+
+                            if (viewTxChoice == PromptResult.Failure)
+                            {
+                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                            }
+                        });
+                }    
             });
 
         }
@@ -269,11 +283,15 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading contract '{contractName}'.", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash) =>
+            SendTransaction($"Uploading contract '{contractName}'.", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash, error) =>
             {
-                if (hash != Hash.Null)
+                if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                 {
                     MessageBox(MessageKind.Success, $"{contractName} was deployed successfully!");
+                }
+                else
+                {
+                    MessageBox(MessageKind.Error, $"Transaction failed.");
                 }
             });
 
@@ -332,9 +350,9 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
             {
-                if (hash != Hash.Null)
+                if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                 {
                     PushState(GUIState.Upload);
 
@@ -591,9 +609,9 @@ namespace Poltergeist
 
             var requiredStake = expectedStake - currentStake;
 
-            StakeSOUL(requiredStake, $"Not enough available storage space to upload.\nStake {requiredStake} {DomainSettings.StakingTokenSymbol} to increase your storage?", (hash) =>
+            StakeSOUL(requiredStake, $"Not enough available storage space to upload.\nStake {requiredStake} {DomainSettings.StakingTokenSymbol} to increase your storage?", (hash, error) =>
             {
-                callback(hash != Hash.Null);
+                callback(string.IsNullOrEmpty(error) && hash != Hash.Null);
             });
         }
     }
