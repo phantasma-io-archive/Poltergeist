@@ -345,7 +345,7 @@ namespace Phantasma.Core.Domain
                             var data = Base16.Decode(args[0], false);
                             if (data == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid input received" });
+                                answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid input received" });
                             }
                             else
                             {
@@ -381,7 +381,7 @@ namespace Phantasma.Core.Domain
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid amount of arguments: {args.Length}" });
                         }
                         break;
                     }
@@ -484,7 +484,7 @@ namespace Phantasma.Core.Domain
 
                             if (script == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid script data" });
+                                answer = APIUtils.FromAPIResult(new Error() { message = $"invokeScript: Invalid script data" });
                             }
                             else
                             {
