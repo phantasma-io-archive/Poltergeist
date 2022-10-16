@@ -1054,10 +1054,7 @@ namespace Poltergeist
                             }
                             else
                             {
-                                MessageBox(MessageKind.Error, msg, () =>
-                                {
-                                    InvokeTransactionCallback(Hash.Null, msg);
-                                });
+                                InvokeTransactionCallback(Hash.Null, msg);
                             }
                         }
                     });
