@@ -285,7 +285,7 @@ namespace Poltergeist
                     break;
 
                 case GUIState.Dapps:
-                    currentTitle = "Dapps";
+                    currentTitle = "dApps";
                     break;
 
                 case GUIState.Storage:
@@ -4062,9 +4062,9 @@ namespace Poltergeist
         }
 
 #if UNITY_IOS
-        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "Dapps"};
+        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "dApps"};
 #else
-        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "Storage", "Dapps" };
+        private string[] accountMenu = new string[] { "Manage Account", "Customize Account", "Storage", "dApps" };
 #endif
         private string[] managerMenu = new string[] { "Export Private Key", "Migrate", "Delete Account", "Back" };
         private string[] customizationMenu = new string[] { "Setup Name", "Setup Avatar", "Multi-signature", "Back" };

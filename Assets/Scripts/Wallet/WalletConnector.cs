@@ -310,7 +310,7 @@ namespace Poltergeist
 
             WalletGUI.Instance.CallOnUIThread(() =>
             {
-                WalletGUI.Instance.Prompt($"Give access to dapp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
+                WalletGUI.Instance.Prompt($"Give access to dApp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
                {
                    AppFocus.Instance.EndFocus();
 
