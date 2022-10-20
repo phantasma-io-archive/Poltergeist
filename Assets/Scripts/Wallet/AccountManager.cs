@@ -3182,8 +3182,8 @@ namespace Poltergeist
                 case EthereumNetwork.Main_Net:
                     return $"https://etherscan.io/tx/{hash}";
 
-                case EthereumNetwork.Ropsten:
-                    return $"https://ropsten.etherscan.io/tx/{hash}";
+                case EthereumNetwork.Goerli:
+                    return $"https://goerli.etherscan.io/tx/{hash}";
 
                 default:
                     return null;
@@ -3200,8 +3200,8 @@ namespace Poltergeist
                 case EthereumNetwork.Main_Net:
                     return $"https://etherscan.io/address/{address}";
 
-                case EthereumNetwork.Ropsten:
-                    return $"https://ropsten.etherscan.io/address/{address}";
+                case EthereumNetwork.Goerli:
+                    return $"https://goerli.etherscan.io/address/{address}";
 
                 default:
                     return null;
@@ -3220,8 +3220,8 @@ namespace Poltergeist
                 case EthereumNetwork.Main_Net:
                     return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
 
-                case EthereumNetwork.Ropsten:
-                    return $"https://api-ropsten.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+                case EthereumNetwork.Goerli:
+                    return $"https://api-goerli.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
 
                 default:
                     return null;
