@@ -218,20 +218,9 @@ namespace Poltergeist
                 this.nexusKind = NexusKind.Unknown;
             }
 
+            this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
             if (this.nexusKind == NexusKind.Main_Net || this.nexusKind == NexusKind.Test_Net || this.nexusKind == NexusKind.Mankini_Test_Net)
             {
-                // For mainnet/testnet we always load defaults for hidden settings,
-                // to avoid dealing with "stuck" values from old PG version that had different defaults.
-                if (this.nexusKind == NexusKind.Main_Net)
-                {
-                    this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
-                }
-                else
-                {
-                    // We cannot do it for mainnet, because for mainnet we store best RPC here.
-                    // For testnets we should update with default value.
-                    this.phantasmaRPCURL = GetDefaultValue(PhantasmaRPCTag);
-                }
                 this.phantasmaExplorer = GetDefaultValue(PhantasmaExplorerTag);
                 this.phantasmaNftExplorer = GetDefaultValue(PhantasmaNftExplorerTag);
                 this.neoRPCURL = GetDefaultValue(NeoRPCTag);
@@ -240,7 +229,6 @@ namespace Poltergeist
             }
             else
             {
-                this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
                 this.phantasmaExplorer = PlayerPrefs.GetString(PhantasmaExplorerTag, GetDefaultValue(PhantasmaExplorerTag));
                 this.phantasmaNftExplorer = PlayerPrefs.GetString(PhantasmaNftExplorerTag, GetDefaultValue(PhantasmaNftExplorerTag));
                 this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));

@@ -521,15 +521,12 @@ namespace Poltergeist
                             if (String.IsNullOrEmpty(Settings.phantasmaRPCURL))
                             {
                                 // Checking if we are still on mainnet
-                                if (Settings.nexusKind == NexusKind.Main_Net)
-                                {
-                                    // If we have no previously used RPC, we select random one at first.
-                                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
-                                    var node = response.GetNodeByIndex(index);
-                                    var result = node.GetString("url") + "/rpc";
-                                    Settings.phantasmaRPCURL = result;
-                                    Log.Write($"Changed Phantasma RPC url {index} => {result}");
-                                }
+                                // If we have no previously used RPC, we select random one at first.
+                                var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
+                                var node = response.GetNodeByIndex(index);
+                                var result = node.GetString("url") + "/rpc";
+                                Settings.phantasmaRPCURL = result;
+                                Log.Write($"Changed Phantasma RPC url {index} => {result}");
                             }
 
                             UpdateAPIs();
@@ -565,13 +562,9 @@ namespace Poltergeist
                                             {
                                                 Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
 
-                                            // Checking if we are still on mainnet
-                                            if (Settings.nexusKind == NexusKind.Main_Net)
-                                                {
-                                                    Settings.phantasmaRPCURL = bestRpcUrl;
-                                                    UpdateAPIs();
-                                                    Settings.SaveOnExit();
-                                                }
+                                                Settings.phantasmaRPCURL = bestRpcUrl;
+                                                UpdateAPIs();
+                                                Settings.SaveOnExit();
                                             }
                                         }
                                     },
@@ -598,14 +591,10 @@ namespace Poltergeist
                                             }
                                             else
                                             {
-                                            // Checking if we are still on mainnet
-                                            if (Settings.nexusKind == NexusKind.Main_Net)
-                                                {
-                                                    Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                                    Settings.phantasmaRPCURL = bestRpcUrl;
-                                                    UpdateAPIs();
-                                                    Settings.SaveOnExit();
-                                                }
+                                                Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                                Settings.phantasmaRPCURL = bestRpcUrl;
+                                                UpdateAPIs();
+                                                Settings.SaveOnExit();
                                             }
                                         }
                                     })
