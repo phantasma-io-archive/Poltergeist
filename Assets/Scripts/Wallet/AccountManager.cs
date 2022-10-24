@@ -8,17 +8,16 @@ using Phantasma.SDK;
 using Poltergeist.Neo2.Core;
 using LunarLabs.Parser;
 using Archive = Phantasma.SDK.Archive;
-using Poltergeist.PhantasmaLegacy.Cryptography;
 using System.Numerics;
 using Poltergeist.PhantasmaLegacy.Ethereum;
-using Phantasma.Shared.Types;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared.Utils;
-using Phantasma.Shared;
 using Phantasma.Business.VM.Utils;
 using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Types;
+using Phantasma.Core.Utils;
+using Phantasma.Core;
 
 namespace Poltergeist
 {
@@ -169,7 +168,6 @@ namespace Poltergeist
     public struct TransferRequest
     {
         public PlatformKind platform;
-        public string key;
         public string destination;
         public string symbol;
         public decimal amount;
@@ -501,7 +499,7 @@ namespace Poltergeist
                 }
                 else
                 {
-                    url = $"https://peers.phantasma.io/testnet-getpeers.json";
+                    url = $"https://peers.phantasma.io/testnet-new-getpeers.json";
                 }
 
                 rpcBenchmarkedPhantasma = 0;
@@ -520,16 +518,12 @@ namespace Poltergeist
 
                             if (String.IsNullOrEmpty(Settings.phantasmaRPCURL))
                             {
-                                // Checking if we are still on mainnet
-                                if (Settings.nexusKind == NexusKind.Main_Net)
-                                {
-                                    // If we have no previously used RPC, we select random one at first.
-                                    var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
-                                    var node = response.GetNodeByIndex(index);
-                                    var result = node.GetString("url") + "/rpc";
-                                    Settings.phantasmaRPCURL = result;
-                                    Log.Write($"Changed Phantasma RPC url {index} => {result}");
-                                }
+                                // If we have no previously used RPC, we select random one at first.
+                                var index = ((int)(Time.realtimeSinceStartup * 1000)) % rpcNumberPhantasma;
+                                var node = response.GetNodeByIndex(index);
+                                var result = node.GetString("url") + "/rpc";
+                                Settings.phantasmaRPCURL = result;
+                                Log.Write($"Changed Phantasma RPC url {index} => {result}");
                             }
 
                             UpdateAPIs();
@@ -553,8 +547,8 @@ namespace Poltergeist
 
                                         if (rpcBenchmarkedPhantasma == rpcNumberPhantasma)
                                         {
-                                        // We finished benchmarking, time to select best RPC server.
-                                        TimeSpan bestTime;
+                                            // We finished benchmarking, time to select best RPC server.
+                                            TimeSpan bestTime;
                                             string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.Phantasma, out bestTime);
 
                                             if (String.IsNullOrEmpty(bestRpcUrl))
@@ -565,13 +559,9 @@ namespace Poltergeist
                                             {
                                                 Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
 
-                                            // Checking if we are still on mainnet
-                                            if (Settings.nexusKind == NexusKind.Main_Net)
-                                                {
-                                                    Settings.phantasmaRPCURL = bestRpcUrl;
-                                                    UpdateAPIs();
-                                                    Settings.SaveOnExit();
-                                                }
+                                                Settings.phantasmaRPCURL = bestRpcUrl;
+                                                UpdateAPIs();
+                                                Settings.SaveOnExit();
                                             }
                                         }
                                     },
@@ -588,8 +578,8 @@ namespace Poltergeist
 
                                         if (rpcBenchmarkedPhantasma == rpcNumberPhantasma)
                                         {
-                                        // We finished benchmarking, time to select best RPC server.
-                                        TimeSpan bestTime;
+                                            // We finished benchmarking, time to select best RPC server.
+                                            TimeSpan bestTime;
                                             string bestRpcUrl = GetFastestWorkingRPCURL(PlatformKind.Phantasma, out bestTime);
 
                                             if (String.IsNullOrEmpty(bestRpcUrl))
@@ -598,14 +588,10 @@ namespace Poltergeist
                                             }
                                             else
                                             {
-                                            // Checking if we are still on mainnet
-                                            if (Settings.nexusKind == NexusKind.Main_Net)
-                                                {
-                                                    Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
-                                                    Settings.phantasmaRPCURL = bestRpcUrl;
-                                                    UpdateAPIs();
-                                                    Settings.SaveOnExit();
-                                                }
+                                                Log.Write($"Fastest Phantasma RPC is {bestRpcUrl}: {new DateTime(bestTime.Ticks).ToString("ss.fff")} sec.");
+                                                Settings.phantasmaRPCURL = bestRpcUrl;
+                                                UpdateAPIs();
+                                                Settings.SaveOnExit();
                                             }
                                         }
                                     })
@@ -1223,7 +1209,7 @@ namespace Poltergeist
             return UnitConversion.ToDecimal(n, decimals);
         }
 
-        public void SignAndSendTransaction(string chain, byte[] script, BigInteger phaGasPrice, BigInteger phaGasLimit, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
+        public void SignAndSendTransaction(string chain, byte[] script, TransferRequest? transferRequest, BigInteger phaGasPrice, BigInteger phaGasLimit, byte[] payload, ProofOfWork PoW, IKeyPair customKeys, Action<Hash, string> callback, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             if (payload == null)
             {
@@ -1253,7 +1239,10 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+                            if (transferRequest == null)
+                                throw new Exception($"Transfer request is null for {CurrentPlatform} platform");
+
+                            var transfer = (TransferRequest)transferRequest;
 
                             if (transfer.amount <=0)
                             {
@@ -1266,7 +1255,7 @@ namespace Poltergeist
                                 {
                                     case PlatformKind.Neo:
                                         {
-                                            var keys = NeoKeys.FromWIF(transfer.key);
+                                            var keys = NeoKeys.FromWIF(CurrentWif);
 
                                             StartCoroutine(neoApi.GetUnspent(keys.Address,
                                             (unspent) =>
@@ -1371,7 +1360,10 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+                            if (transferRequest == null)
+                                throw new Exception($"Transfer request is null for {CurrentPlatform} platform");
+
+                            var transfer = (TransferRequest)transferRequest;
 
                             if (transfer.amount <= 0)
                             {
@@ -1384,7 +1376,7 @@ namespace Poltergeist
                                 {
                                     case PlatformKind.Ethereum:
                                         {
-                                            var keys = EthereumKey.FromWIF(transfer.key);
+                                            var keys = EthereumKey.FromWIF(CurrentWif);
 
                                             if (transfer.symbol == "ETH")
                                             {
@@ -1462,7 +1454,10 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var transfer = Serialization.Unserialize<TransferRequest>(script);
+                            if (transferRequest == null)
+                                throw new Exception($"Transfer request is null for {CurrentPlatform} platform");
+
+                            var transfer = (TransferRequest)transferRequest;
 
                             if (transfer.amount <= 0)
                             {
@@ -1475,7 +1470,7 @@ namespace Poltergeist
                                 {
                                     case PlatformKind.BSC:
                                         {
-                                            var keys = EthereumKey.FromWIF(transfer.key);
+                                            var keys = EthereumKey.FromWIF(CurrentWif);
 
                                             if (transfer.symbol == "BNB")
                                             {
@@ -1911,9 +1906,20 @@ namespace Poltergeist
             switch (CurrentPlatform)
             {
                 case PlatformKind.Phantasma:
-                    StartCoroutine(phantasmaApi.GetTransaction(transactionHash, (tx) =>
+                    StartCoroutine(phantasmaApi.GetTransaction(transactionHash, (state, tx) =>
                     {
-                        callback(null);
+                        if (state == ExecutionState.Running)
+                        {
+                            callback("pending");
+                        }
+                        else if (state == ExecutionState.Break || state == ExecutionState.Fault)
+                        {
+                            callback("Transaction failed");
+                        }
+                        else
+                        {
+                            callback(null);
+                        }
                     }, (error, msg) =>
                     {
                         if (error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
@@ -3241,8 +3247,8 @@ namespace Poltergeist
                 case EthereumNetwork.Main_Net:
                     return $"https://etherscan.io/tx/{hash}";
 
-                case EthereumNetwork.Ropsten:
-                    return $"https://ropsten.etherscan.io/tx/{hash}";
+                case EthereumNetwork.Goerli:
+                    return $"https://goerli.etherscan.io/tx/{hash}";
 
                 default:
                     return null;
@@ -3259,8 +3265,8 @@ namespace Poltergeist
                 case EthereumNetwork.Main_Net:
                     return $"https://etherscan.io/address/{address}";
 
-                case EthereumNetwork.Ropsten:
-                    return $"https://ropsten.etherscan.io/address/{address}";
+                case EthereumNetwork.Goerli:
+                    return $"https://goerli.etherscan.io/address/{address}";
 
                 default:
                     return null;
@@ -3279,8 +3285,8 @@ namespace Poltergeist
                 case EthereumNetwork.Main_Net:
                     return $"https://api.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
 
-                case EthereumNetwork.Ropsten:
-                    return $"https://api-ropsten.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
+                case EthereumNetwork.Goerli:
+                    return $"https://api-goerli.etherscan.io/api?apikey={etherscanAPIToken}&{request}";
 
                 default:
                     return null;
@@ -3580,12 +3586,12 @@ namespace Poltergeist
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
                         .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                        .AllowGas(transcodedAddress, Address.Null)
+                        .AllowGas()
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas(transcodedAddress)
+                        .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
@@ -3598,12 +3604,12 @@ namespace Poltergeist
                     // We use KCAL that is available on this account already
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
-                        .AllowGas(address, Address.Null)
+                        .AllowGas()
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas(address)
+                        .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
@@ -3631,12 +3637,12 @@ namespace Poltergeist
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
                         .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                        .AllowGas(transcodedAddress, Address.Null)
+                        .AllowGas()
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas(transcodedAddress)
+                        .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>
@@ -3649,12 +3655,12 @@ namespace Poltergeist
                     // We use KCAL that is available on this account already
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
-                        .AllowGas(address, Address.Null)
+                        .AllowGas()
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas(address)
+                        .SpendGas()
                         .EndScript();
 
-                    SignAndSendTransaction("main", script, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
+                    SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
                     {
                         callback(hash, error);
                     }, (message, prikey, pubkey) =>

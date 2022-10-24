@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Phantasma.Shared.Performance
+namespace Phantasma.Core.Performance
 {
     public class ProfileSession : IDisposable
     {

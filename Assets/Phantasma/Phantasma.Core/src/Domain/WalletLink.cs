@@ -4,7 +4,6 @@ using System.Linq;
 using LunarLabs.Parser;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared;
 
 namespace Phantasma.Core.Domain
 {
@@ -128,12 +127,14 @@ namespace Phantasma.Core.Domain
 
         protected abstract void GetAccount(string platform, Action<Account, string> callback);
 
+        protected abstract void GetPeer(Action<string> callback);
+
         protected abstract void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback);
 
         // NOTE for security, signData should not be usable as a way of signing transaction. That way the wallet is responsible for appending random bytes to the message, and return those in callback
         protected abstract void SignData(string platform, SignatureKind kind, byte[] data, int id, Action<string, string, string> callback);
 
-        protected abstract void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, Action<Hash, string> callback);
+        protected abstract void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, ProofOfWork pow, Action<Hash, string> callback);
 
         protected abstract void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback);
 
@@ -326,6 +327,26 @@ namespace Phantasma.Core.Domain
                         break;
                     }
 
+                case "getPeer":
+                    {
+                        if (args.Length != 0)
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"getPeer: Invalid amount of arguments: {args.Length}" });
+                        }
+
+                        GetPeer((peer) => {
+                            success = true;
+                            SingleResult result;
+                            result.value = peer;
+                            answer = APIUtils.FromAPIResult(result);
+
+                            callback(id, answer, success);
+                            _isPendingRequest = false;
+                        });
+
+                        return;
+                    }
+
                 case "signData":
                     {
                         int expectedLength;
@@ -346,7 +367,7 @@ namespace Phantasma.Core.Domain
                             var data = Base16.Decode(args[0], false);
                             if (data == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid input received" });
+                                answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid input received" });
                             }
                             else
                             {
@@ -382,98 +403,94 @@ namespace Phantasma.Core.Domain
                         }
                         else
                         {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid amount of arguments: {args.Length}" });
                         }
                         break;
                     }
 
                 case "signTx":
                     {
-                        int expectedLength;
-
-                        switch (connection.Version)
+                        if ((connection.Version == 1 && args.Length != 4) ||
+                            (args.Length != 5 && args.Length != 6))
                         {
-                            case 1:
-                                expectedLength = 4;
-                                break;
-
-                            default:
-                                expectedLength = 5;
-                                break;
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
+                            break;
                         }
 
-                        if (args.Length == expectedLength)
-                        {
-                            int index = 0;
+                        int index = 0;
 
-                            if (connection.Version == 1)
+                        if (connection.Version == 1)
+                        {
+                            var txNexus = args[index]; index++;
+                            if (txNexus != this.Nexus)
                             {
-                                var txNexus = args[index]; index++;
-                                if (txNexus != this.Nexus)
+                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Expected nexus {this.Nexus}, instead got {txNexus}" });
+                                callback(id, answer, false);
+                                _isPendingRequest = false;
+                                return;
+                            }
+                        }
+
+                        var chain = args[index]; index++;
+                        var script = Base16.Decode(args[index], false); index++;
+
+                        if (script == null)
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid script data" });
+                        }
+                        else
+                        {
+                            byte[] payload = args[index].Length > 0 ? Base16.Decode(args[index], false) : null;
+                            index++;
+
+                            string platform;
+                            SignatureKind signatureKind;
+
+                            if (connection.Version >= 2) {
+                                if (!Enum.TryParse<SignatureKind>(args[index], out signatureKind))
                                 {
-                                    answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Expected nexus {this.Nexus}, instead got {txNexus}" });
+                                    answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid signature: " + args[index] });
                                     callback(id, answer, false);
                                     _isPendingRequest = false;
                                     return;
                                 }
-                            }
-
-                            var chain = args[index]; index++;
-                            var script = Base16.Decode(args[index], false); index++;
-
-                            if (script == null)
-                            {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid script data" });
-                            }
-                            else
-                            {
-                                byte[] payload = args[index].Length > 0 ? Base16.Decode(args[index], false) : null;
                                 index++;
 
-                                string platform;
-                                SignatureKind signatureKind;
-
-                                if (connection.Version >= 2) {
-                                    if (!Enum.TryParse<SignatureKind>(args[index], out signatureKind))
-                                    {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid signature: " + args[index] });
-                                        callback(id, answer, false);
-                                        _isPendingRequest = false;
-                                        return;
-                                    }
-                                    index++;
-
-                                    platform = args[index].ToLower();
-                                    index++;
-                                }
-                                else {
-                                    platform = "phantasma";
-                                    signatureKind = SignatureKind.Ed25519;
-                                }
-
-                                SignTransaction(platform, signatureKind, chain, script, payload, id, (hash, txError) => {
-                                    if (hash != Hash.Null)
-                                    {
-                                        success = true;
-                                        answer = APIUtils.FromAPIResult(new Transaction() { hash = hash.ToString() });
-                                    }
-                                    else
-                                    {
-                                        answer = APIUtils.FromAPIResult(new Error() { message = txError });
-                                    }
-
-                                    callback(id, answer, success);
-                                    _isPendingRequest = false;
-                                });
+                                platform = args[index].ToLower();
+                                index++;
+                            }
+                            else {
+                                platform = "phantasma";
+                                signatureKind = SignatureKind.Ed25519;
                             }
 
-                            return;
+                            var pow = ProofOfWork.None;
+                            if (args.Length == 6) // Optional argument
+                            {
+                                if (!Enum.TryParse<ProofOfWork>(args[5], out pow))
+                                {
+                                    answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid POW argument: " + args[index] });
+                                    break;
+                                }
+                            }
+
+                            SignTransaction(platform, signatureKind, chain, script, payload, id, pow, (hash, txError) => {
+                                if (hash != Hash.Null)
+                                {
+                                    success = true;
+                                    answer = APIUtils.FromAPIResult(new Transaction() { hash = hash.ToString() });
+                                }
+                                else
+                                {
+                                    answer = APIUtils.FromAPIResult(new Error() { message = txError });
+                                }
+
+                                callback(id, answer, success);
+                                _isPendingRequest = false;
+                            });
                         }
-                        else
-                        {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
-                        }
-                        break;
+
+                        return;
                     }
 
                 case "invokeScript":
@@ -485,7 +502,7 @@ namespace Phantasma.Core.Domain
 
                             if (script == null)
                             {
-                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid script data" });
+                                answer = APIUtils.FromAPIResult(new Error() { message = $"invokeScript: Invalid script data" });
                             }
                             else
                             {

@@ -1,6 +1,5 @@
 ﻿using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
-using Phantasma.Shared;
 
 namespace Phantasma.Core.Cryptography.EdDSA
 {

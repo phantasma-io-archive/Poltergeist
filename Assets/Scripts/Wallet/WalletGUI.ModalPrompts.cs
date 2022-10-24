@@ -1,3 +1,4 @@
+using Phantasma.Core.Cryptography;
 using Phantasma.SDK;
 using System;
 using System.Collections.Generic;
@@ -130,6 +131,78 @@ namespace Poltergeist
             {
                 callback?.Invoke();
             });
+        }
+
+        public void TxResultMessage(Hash hash, string error, string successCustomMessage = null, string failureCustomMessage = null)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var success = string.IsNullOrEmpty(error) && hash != Hash.Null;
+
+            // Timeout is not possible for Ethereum tx,
+            // since RequestConfirmation() returns success immediatly for Eth.
+            var timeout = error == "timeout";
+
+            var message = "";
+            if(success && !string.IsNullOrEmpty(successCustomMessage))
+            {
+                message = successCustomMessage;
+            }
+            else if(!success && !string.IsNullOrEmpty(failureCustomMessage))
+            {
+                message = failureCustomMessage;
+            }
+            else
+            {
+                if(success)
+                {
+                    message = "Transaction succeeded.";
+                }
+                else
+                {
+                    if (timeout)
+                    {
+                        message = "Your transaction has been broadcasted but its state cannot be determined.\nPlease use explorer to ensure transaction is confirmed successfully and funds are transferred(button 'View' below).";
+                    }
+                    else
+                    {
+                        message = "Transaction failed.";
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(error) && !timeout)
+            {
+                message += "\nError: " + error;
+            }
+
+            message += "\nTransaction hash:\n" + hash;
+
+            ShowModal(success ? "Success" : (timeout ? "Attention" : "Failure"),
+                message,
+                ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
+                {
+                    AudioManager.Instance.PlaySFX("click");
+
+                    if (viewTxChoice == PromptResult.Failure)
+                    {
+                        switch (accountManager.CurrentPlatform)
+                        {
+                            case PlatformKind.Phantasma:
+                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
+                                break;
+                            case PlatformKind.Neo:
+                                Application.OpenURL(accountManager.GetNeoscanTransactionURL(hash.ToString()));
+                                break;
+                            case PlatformKind.Ethereum:
+                                Application.OpenURL(accountManager.GetEtherscanTransactionURL(hash.ToString()));
+                                break;
+                            case PlatformKind.BSC:
+                                Application.OpenURL(accountManager.GetBscTransactionURL(hash.ToString()));
+                                break;
+                        }
+                    }
+                });
         }
         #endregion
     }

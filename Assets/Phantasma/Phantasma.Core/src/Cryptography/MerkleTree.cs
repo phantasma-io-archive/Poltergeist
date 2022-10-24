@@ -2,7 +2,6 @@ using System.IO;
 using System.Numerics;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Utils;
-using Phantasma.Shared;
 
 namespace Phantasma.Core.Cryptography
 {

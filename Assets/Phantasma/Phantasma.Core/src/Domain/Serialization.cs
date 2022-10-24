@@ -5,9 +5,8 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
 
 namespace Phantasma.Core.Domain
 {

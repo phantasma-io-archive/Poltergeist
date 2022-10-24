@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace Phantasma.Shared.Utils
+namespace Phantasma.Core.Utils
 {
     public static class Utils
     {

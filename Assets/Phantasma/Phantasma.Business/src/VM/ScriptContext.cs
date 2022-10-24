@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
+using Phantasma.Core;
 using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
-using Phantasma.Shared;
-using Phantasma.Shared.Performance;
+using Phantasma.Core.Performance;
 
 namespace Phantasma.Business.VM
 {

@@ -137,24 +137,5 @@ namespace Poltergeist.PhantasmaLegacy.Cryptography
 
             return signer.VerifySignature(signature);
         }
-
-        public static byte[] Base58CheckDecode(this string input)
-        {
-            byte[] buffer = Base58.Decode(input);
-            if (buffer.Length < 4) throw new FormatException();
-            byte[] checksum = buffer.Sha256(0, (uint)buffer.Length - 4).Sha256();
-            if (!buffer.Skip(buffer.Length - 4).SequenceEqual(checksum.Take(4)))
-                throw new FormatException();
-            return buffer.Take(buffer.Length - 4).ToArray();
-        }
-
-        public static string Base58CheckEncode(this byte[] data)
-        {
-            byte[] checksum = data.Sha256().Sha256();
-            byte[] buffer = new byte[data.Length + 4];
-            Buffer.BlockCopy(data, 0, buffer, 0, data.Length);
-            Buffer.BlockCopy(checksum, 0, buffer, data.Length, 4);
-            return Base58.Encode(buffer);
-        }
     }
 }

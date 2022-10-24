@@ -4,9 +4,8 @@ using System.IO;
 using System.Text;
 using System.Numerics;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Types;
 using Phantasma.Core.Utils;
-using Phantasma.Shared;
-using Phantasma.Shared.Types;
 
 namespace Phantasma.Core.Domain
 {
@@ -40,7 +39,7 @@ namespace Phantasma.Core.Domain
 
         public Hash Hash { get; private set; }
 
-        public static Transaction Unserialize(byte[] bytes)
+        public static Transaction? Unserialize(byte[] bytes)
         {
             using (var stream = new MemoryStream(bytes))
             {
@@ -51,11 +50,18 @@ namespace Phantasma.Core.Domain
             }
         }
 
-        public static Transaction Unserialize(BinaryReader reader)
+        public static Transaction? Unserialize(BinaryReader reader)
         {
             var tx = new Transaction();
-            tx.UnserializeData(reader);
-            return tx;
+            try
+            {
+                tx.UnserializeData(reader);
+                return tx;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public void Serialize(BinaryWriter writer, bool withSignature)
@@ -108,7 +114,7 @@ namespace Phantasma.Core.Domain
                     0L,
                     script,
                     sender,
-                    sender,
+                    gasPayer,
                     Address.Null,
                     gasPrice,
                     gasLimit,
