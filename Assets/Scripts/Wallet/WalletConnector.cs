@@ -105,6 +105,12 @@ namespace Poltergeist
         {
             callback(AccountManager.Instance.Settings.phantasmaRPCURL);
         }
+        
+        protected override void GetNexus(Action<string> callback)
+        {
+            callback(AccountManager.Instance.Settings.nexusName);
+        }
+        
 
         protected override void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback)
         {
