@@ -3586,9 +3586,9 @@ namespace Poltergeist
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
                         .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                        .AllowGas()
+                        .AllowGas(transcodedAddress, Address.Null, phaGasPrice, phaGasLimit)
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas()
+                        .SpendGas(transcodedAddress)
                         .EndScript();
 
                     SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
@@ -3604,9 +3604,9 @@ namespace Poltergeist
                     // We use KCAL that is available on this account already
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
-                        .AllowGas()
+                        .AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit)
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas()
+                        .SpendGas(address)
                         .EndScript();
 
                     SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
@@ -3637,9 +3637,9 @@ namespace Poltergeist
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
                         .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
-                        .AllowGas()
+                        .AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit)
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas()
+                        .SpendGas(address)
                         .EndScript();
 
                     SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>
@@ -3655,9 +3655,9 @@ namespace Poltergeist
                     // We use KCAL that is available on this account already
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
-                        .AllowGas()
+                        .AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit)
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
-                        .SpendGas()
+                        .SpendGas(address)
                         .EndScript();
 
                     SignAndSendTransaction("main", script, null, phaGasPrice, phaGasLimit, System.Text.Encoding.UTF8.GetBytes(WalletIdentifier), ProofOfWork.None, ethKeys, (hash, error) =>

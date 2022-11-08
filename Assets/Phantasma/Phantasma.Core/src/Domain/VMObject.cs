@@ -189,9 +189,9 @@ namespace Phantasma.Core.Domain
                         return "Interop:" + Data.GetType().Name;
                     }
                 case VMType.Struct:
-                    VMType arrayType = GetArrayType(); 
+                    VMType arrayType = GetArrayType();
                     if (arrayType == VMType.Number) // convert array of unicode numbers into a string
-                    {                        
+                    {
                         var children = GetChildren();
                         var sb = new StringBuilder();
 
@@ -232,6 +232,37 @@ namespace Phantasma.Core.Domain
             }
         }
 
+        public VMObject[] AsArray(VMType type)
+        {
+            Throw.If(this.Type != VMType.Struct, $"Invalid cast: expected struct, got {this.Type}");
+
+            if (this.Data == null)
+            {
+                return new VMObject[0];
+            }
+
+            var values = this.Data as Dictionary<VMObject, VMObject>;
+
+            Throw.If(values == null, "invalid struct data");
+
+            var result = new VMObject[values.Count];
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                var key = VMObject.FromObject(i);
+
+                Throw.If(!values.ContainsKey(key), $"index {i} not found in array");
+
+                if (values.ContainsKey(key))
+                {
+                    var val = values[key];
+                    result[i] = CastTo(val, type);
+                }
+            }
+
+            return result;
+        }
+
         // this method checks if the VMObject is an array by checking the following rules
         // a) must be a struct 
         // b) all keys of the struct must be numeric indexes from 0 to count-1
@@ -247,7 +278,7 @@ namespace Phantasma.Core.Domain
 
             VMType result = VMType.None;
 
-            for (int i=0; i<children.Count; i++)
+            for (int i = 0; i < children.Count; i++)
             {
                 var key = VMObject.FromObject(i);
 
@@ -262,10 +293,11 @@ namespace Phantasma.Core.Domain
                 {
                     result = val.Type;
                 }
-                else if (val.Type != result)
+                else
+                if (val.Type != result)
                 {
                     return VMType.None;
-                }                
+                }
             }
 
             return result;
@@ -497,7 +529,8 @@ namespace Phantasma.Core.Domain
                 var bytes = (byte[])fieldValue;
                 fieldValue = Serialization.Unserialize(bytes, fieldType);
             }
-            else if (fieldType.IsEnum)
+            else
+            if (fieldType.IsEnum)
             {
                 fieldValue = Enum.Parse(fieldType, fieldValue.ToString());
             }
@@ -568,7 +601,7 @@ namespace Phantasma.Core.Domain
 
                 case VMType.Timestamp:
                     {
-                        var temp = BitConverter.ToUInt32(val, 0);
+                        var temp = val == null ? 0 : BitConverter.ToUInt32(val, 0);
                         this.Data = new Timestamp(temp);
                         break;
                     }
@@ -601,12 +634,12 @@ namespace Phantasma.Core.Domain
                                 {
                                     this.UnserializeData(bytes);
                                 }
-                                catch// (Exception e)
+                                catch (Exception e)
                                 {
                                     throw new Exception("Cannot decode interop object from bytes with length: " + len);
                                 }
                                 break;
-                    }
+                        }
 
                         break;
                     }
@@ -724,6 +757,11 @@ namespace Phantasma.Core.Domain
 
         public VMObject SetValue(object val)
         {
+            if (val != null && val.GetType() == typeof(Timestamp))
+            {
+                return SetValue((Timestamp)val);
+            }
+
             var type = val.GetType();
             Throw.If(!type.IsStructOrClass(), $"Invalid cast: expected struct or class, got {type.Name}");
             this.Type = VMType.Object;
@@ -793,7 +831,8 @@ namespace Phantasma.Core.Domain
             {
                 children = GetChildren();
             }
-            else if (this.Type == VMType.None)
+            else
+            if (this.Type == VMType.None)
             {
                 this.Type = VMType.Struct;
                 children = new Dictionary<VMObject, VMObject>();
@@ -956,19 +995,8 @@ namespace Phantasma.Core.Domain
                 case VMType.Timestamp: return $"[Time] => {((DateTime)((Timestamp)Data)).ToString(TimeFormat)}";
                 case VMType.String: return $"[String] => {((string)Data)}";
                 case VMType.Bool: return $"[Bool] => {((bool)Data)}";
-                case VMType.Enum: 
-                                  uint res = 0;
-                                  try
-                                  {
-                                      res = (uint)Data;
-
-                                  }
-                                  catch
-                                  {
-                                      Console.WriteLine("failed cast");
-                                  }
-                    return $"[Enum] => {res}";
-                case VMType.Object: return $"[Object] => {(Data == null? "null" : Data.GetType().Name)}";
+                case VMType.Enum: return $"[Enum] => {((int)Data)}";
+                case VMType.Object: return $"[Object] => {(Data == null ? "null" : Data.GetType().Name)}";
                 default: return "Unknown";
             }
         }
@@ -982,7 +1010,8 @@ namespace Phantasma.Core.Domain
                 return result;
             }
 
-            switch (type) {
+            switch (type)
+            {
                 case VMType.None:
                     return new VMObject();
 
@@ -1169,7 +1198,7 @@ namespace Phantasma.Core.Domain
                 case VMType.Object: return this.Data;
                 case VMType.Enum: return this.Data;
 
-                default:  throw new Exception($"Cannot cast {Type} to object");
+                default: throw new Exception($"Cannot cast {Type} to object");
             }
         }
 
@@ -1182,7 +1211,8 @@ namespace Phantasma.Core.Domain
                     var elementType = type.GetElementType();
                     return this.ToArray(elementType);
                 }
-                else if (type.IsStructOrClass())
+                else
+                if (type.IsStructOrClass())
                 {
                     return this.ToStruct(type);
                 }
@@ -1259,7 +1289,7 @@ namespace Phantasma.Core.Domain
 
             object boxed = result;
             foreach (var field in fields)
-            {                
+            {
                 var key = VMObject.FromObject(field.Name);
 
                 object val;
@@ -1269,10 +1299,10 @@ namespace Phantasma.Core.Domain
                 }
                 else
                 {
-                    Throw.If(!field.FieldType.IsStructOrClass() , "field not present in source struct: " + field.Name);
+                    Throw.If(!field.FieldType.IsStructOrClass(), "field not present in source struct: " + field.Name);
                     val = null;
                 }
-                                
+
                 // here we check if the types mismatch
                 // in case of getting a byte[] instead of an object, we try unserializing the bytes in a different approach
                 // NOTE this should not be necessary often, but is already getting into black magic territory...
@@ -1507,7 +1537,7 @@ namespace Phantasma.Core.Domain
                     break;
 
                 case VMType.Object:
-                    var bytes  = reader.ReadByteArray();
+                    var bytes = reader.ReadByteArray();
 
                     if (bytes.Length == 35)
                     {

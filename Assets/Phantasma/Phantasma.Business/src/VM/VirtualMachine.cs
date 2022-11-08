@@ -167,27 +167,25 @@ namespace Phantasma.Business.VM
                 throw new VMException(this, "SwitchContext failed, context can't be null");
             }
 
-            using (var m = new ProfileMarker("SwitchContext"))
+            var tempContext = PreviousContext;
+            PreviousContext = CurrentContext;
+            SetCurrentContext(context);
+            PushFrame(context, instructionPointer, DefaultRegisterCount);
+
+            _activeAddresses.Push(context.Address);
+
+            var result = context.Execute(this.CurrentFrame, this.Stack);
+
+            PreviousContext = tempContext;
+
+            var temp = _activeAddresses.Pop();
+            if (temp != context.Address)
             {
-                var tempContext = PreviousContext;
-                PreviousContext = CurrentContext;
-                SetCurrentContext(context);
-                PushFrame(context, instructionPointer, DefaultRegisterCount);
-
-                _activeAddresses.Push(context.Address);
-
-                var result = context.Execute(this.CurrentFrame, this.Stack);
-
-                PreviousContext = tempContext;
-
-                var temp = _activeAddresses.Pop();
-                if (temp != context.Address)
-                {
-                    throw new VMException(this, "VM implementation bug detected: address stack");
-                }
-
-                return result;
+                throw new VMException(this, "VM implementation bug detected: address stack");
             }
+
+            return result;
+            
         }
         #endregion
 
