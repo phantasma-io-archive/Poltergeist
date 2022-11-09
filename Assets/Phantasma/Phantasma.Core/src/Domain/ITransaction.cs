@@ -10,8 +10,6 @@ namespace Phantasma.Core.Domain
         string NexusName { get; }
         string ChainName { get; }
 
-        Address Sender { get; }
-
         Timestamp Expiration { get; }
 
         byte[] Payload { get; }

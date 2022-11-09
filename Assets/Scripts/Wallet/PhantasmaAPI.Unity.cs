@@ -1683,7 +1683,7 @@ namespace Phantasma.SDK
         {
             Log.Write("Sending transaction...");
 
-            var tx = new Phantasma.Core.Domain.Transaction(nexus, chain, 0L, script, keys.Address, keys.Address, Address.Null, gasPrice, gasLimit, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
+            var tx = new Phantasma.Core.Domain.Transaction(nexus, chain, script,  DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
 
             if (PoW != ProofOfWork.None)
             {

@@ -205,9 +205,9 @@ namespace Poltergeist
             try
             {
                 var sb = new ScriptBuilder();
-                sb.AllowGas();
+                sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                 sb.CallContract(NativeContractKind.Storage, "DeleteFile", source, fileHash);
-                sb.SpendGas();
+                sb.SpendGas(source);
                 script = sb.EndScript();
             }
             catch (Exception e)
@@ -243,10 +243,13 @@ namespace Poltergeist
             byte[] script;
             try
             {
+                var gasPrice = accountManager.Settings.feePrice;
+                var gasLimit = accountManager.Settings.feeLimit;
+                
                 var sb = new ScriptBuilder();
-                sb.AllowGas();
+                sb.AllowGas(target, Address.Null, gasPrice, gasLimit);
                 sb.CallInterop("Runtime.DeployContract", target, contractName, contractBytes, abiBytes);
-                sb.SpendGas();
+                sb.SpendGas(target);
                 script = sb.EndScript();
             }
             catch (Exception e)
@@ -304,9 +307,9 @@ namespace Poltergeist
             try
             {
                 var sb = new ScriptBuilder();
-                sb.AllowGas();
+                sb.AllowGas(target, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                 sb.CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, archiveEncryption);
-                sb.SpendGas();
+                sb.SpendGas(target);
                 script = sb.EndScript();
             }
             catch (Exception e)

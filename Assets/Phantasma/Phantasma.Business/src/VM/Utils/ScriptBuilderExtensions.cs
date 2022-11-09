@@ -6,14 +6,14 @@ namespace Phantasma.Business.VM.Utils
 {
     public static class ScriptBuilderExtensions
     {
-        public static ScriptBuilder AllowGas(this ScriptBuilder sb)
+        public static ScriptBuilder AllowGas(this ScriptBuilder sb, Address from, Address to, BigInteger gasPrice, BigInteger gasLimit)
         {
-            return sb.CallContract(NativeContractKind.Gas, "AllowGas");
+            return sb.CallContract(NativeContractKind.Gas, "AllowGas", from, to, gasPrice, gasLimit);
         }
 
-        public static ScriptBuilder SpendGas(this ScriptBuilder sb)
+        public static ScriptBuilder SpendGas(this ScriptBuilder sb, Address address)
         {
-            return sb.CallContract(NativeContractKind.Gas, "SpendGas");
+            return sb.CallContract(NativeContractKind.Gas, "SpendGas", address);
         }
 
         public static ScriptBuilder MintTokens(this ScriptBuilder sb, string tokenSymbol, Address from, Address target, BigInteger amount)

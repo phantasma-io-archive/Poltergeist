@@ -2571,10 +2571,10 @@ namespace Poltergeist
                                                         var address = Address.FromText(state.address);
 
                                                         var sb = new ScriptBuilder();
-
-                                                        sb.AllowGas();
+                                                        
+                                                        sb.AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                                         sb.CallContract("stake", "Unstake", address, UnitConversion.ToBigInteger(amount, balance.Decimals));
-                                                        sb.SpendGas();
+                                                        sb.SpendGas(address);
                                                         var script = sb.EndScript();
 
                                                         SendTransaction($"Unstake {amount} SOUL", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
@@ -2612,16 +2612,16 @@ namespace Poltergeist
 
                                                 if (balance.Available > 0)
                                                 {
-                                                    sb.AllowGas();
+                                                    sb.AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                                     sb.CallContract("stake", "Claim", address, address);
                                                 }
                                                 else
                                                 {
                                                     sb.CallContract("stake", "Claim", address, address);
-                                                    sb.AllowGas();
+                                                    sb.AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                                 }
 
-                                                sb.SpendGas();
+                                                sb.SpendGas(address);
                                                 var script = sb.EndScript();
 
                                                 SendTransaction($"Claim {balance.Claimable} KCAL", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
@@ -3051,9 +3051,9 @@ namespace Poltergeist
 
                         var sb = new ScriptBuilder();
 
-                        sb.AllowGas();
+                        sb.AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                         sb.CallContract("stake", "MasterClaim", address);
-                        sb.SpendGas();
+                        sb.SpendGas(address);
                         script = sb.EndScript();
                     }
                     catch (Exception e)
@@ -3081,9 +3081,9 @@ namespace Poltergeist
                                     var target = Address.FromText(state.address);
 
                                     var sb = new ScriptBuilder();
-                                    sb.AllowGas();
+                                    sb.AllowGas(target, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                     sb.CallInterop("Runtime.BurnTokens", target, balance.Symbol, UnitConversion.ToBigInteger(amountToBurn, balance.Decimals));
-                                    sb.SpendGas();
+                                    sb.SpendGas(target);
                                     script = sb.EndScript();
                                 }
                                 catch (Exception e)
@@ -3803,9 +3803,9 @@ namespace Poltergeist
 
                                                 var sb = new ScriptBuilder();
 
-                                                sb.AllowGas();
+                                                sb.AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                                 sb.CallContract("account", "Migrate", address, newKeys.Address);
-                                                sb.SpendGas();
+                                                sb.SpendGas(address);
                                                 var script = sb.EndScript();
 
                                                 SendTransaction("Migrate account", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
@@ -3937,9 +3937,9 @@ namespace Poltergeist
                                                         var source = Address.FromText(accountManager.CurrentState.address);
 
                                                         var sb = new ScriptBuilder();
-                                                        sb.AllowGas();
+                                                        sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                                         sb.CallContract("account", "RegisterName", source, name);
-                                                        sb.SpendGas();
+                                                        sb.SpendGas(source);
                                                         script = sb.EndScript();
                                                     }
                                                     catch (Exception e)
@@ -4045,9 +4045,9 @@ namespace Poltergeist
 
                             var sb = new ScriptBuilder();
 
-                            sb.AllowGas();
+                            sb.AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                             sb.CallContract("stake", "Stake", address, UnitConversion.ToBigInteger(selectedAmount, balance.Decimals));
-                            sb.SpendGas();
+                            sb.SpendGas(address);
 
                             var script = sb.EndScript();
 
@@ -4265,12 +4265,12 @@ namespace Poltergeist
                             var target = Address.FromText(state.address);
 
                             var sb = new ScriptBuilder();
-                            sb.AllowGas();
+                            sb.AllowGas(target, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                             foreach (var nftToBurn in nftTransferList)
                             {
                                 sb.CallInterop("Runtime.BurnToken", target, transferSymbol, BigInteger.Parse(nftToBurn));
                             }
-                            sb.SpendGas();
+                            sb.SpendGas(target);
                             script = sb.EndScript();
                         }
                         catch (Exception e)
@@ -4683,7 +4683,7 @@ namespace Poltergeist
                             var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                             var sb = new ScriptBuilder();
-                            sb.AllowGas();
+                            sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
 
                             if (symbol == "KCAL" && amount == balance)
                             {
@@ -4694,7 +4694,7 @@ namespace Poltergeist
                                 sb.TransferTokens(symbol, source, destination, UnitConversion.ToBigInteger(amount, decimals));
                             }
 
-                            sb.SpendGas();
+                            sb.SpendGas(source);
                             script = sb.EndScript();
                         }
                         catch (Exception e)
@@ -4768,7 +4768,7 @@ namespace Poltergeist
                             var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                             var sb = new ScriptBuilder();
-                            sb.AllowGas();
+                            sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
 
                             foreach (var nft in nftSublist)
                             {
@@ -4790,7 +4790,7 @@ namespace Poltergeist
 
                             gasLimit *= nftSublist.Count;
 
-                            sb.SpendGas();
+                            sb.SpendGas(source);
                             scripts.Add(sb.EndScript());
                         }
 
@@ -5272,9 +5272,9 @@ namespace Poltergeist
                                         var decimals = Tokens.GetTokenDecimals(symbol, accountManager.CurrentPlatform);
 
                                         var sb = new ScriptBuilder();
-                                        sb.AllowGas();
+                                        sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                         sb.TransferTokens(symbol, source, destAddress, UnitConversion.ToBigInteger(amount, decimals));
-                                        sb.SpendGas();
+                                        sb.SpendGas(source);
                                         script = sb.EndScript();
                                     }
                                     catch (Exception e)
@@ -5502,8 +5502,8 @@ namespace Poltergeist
                                  {
                                      sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.1m, decimals));
                                  }
-                                 sb.AllowGas();
-                                 sb.SpendGas();
+                                 sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
+                                 sb.SpendGas(source);
                                  script = sb.EndScript();
                              }
                              catch (Exception e)

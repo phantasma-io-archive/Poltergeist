@@ -21,6 +21,7 @@ namespace Phantasma.Core.Cryptography
     {
         public static readonly Address Null = new Address(NullPublicKey);
 
+        public static readonly string NullText = "NULL";
         private static byte[] NullPublicKey => new byte[LengthInBytes];
 
         private byte[] _bytes;
@@ -67,6 +68,11 @@ namespace Phantasma.Core.Cryptography
         {
             get
             {
+                if (IsNull)
+                {
+                    return NullText;
+                }
+
                 if (string.IsNullOrEmpty(_text))
                 {
                     lock (_keyToTextCache) {
@@ -271,6 +277,11 @@ namespace Phantasma.Core.Cryptography
         {
             Address addr;
 
+            if (text.Equals(NullText, StringComparison.OrdinalIgnoreCase))
+            {
+                return Address.Null;
+            }
+
             lock (_textToAddressCache)
             {
                 if (_textToAddressCache.ContainsKey(text))
@@ -389,6 +400,20 @@ namespace Phantasma.Core.Cryptography
                     return -1;
             }
             return 0;
+        }
+
+        public bool ValidateSignedData(string signedData, string random, string data)
+        {
+            var msgData = Base16.Decode(data);
+            var randomBytes = Base16.Decode(random);
+            var signedDataBytes = Base16.Decode(signedData);
+            var msgBytes = ByteArrayUtils.ConcatBytes(randomBytes, msgData);
+            using (var stream = new MemoryStream(signedDataBytes))
+            using (var reader = new BinaryReader(stream))
+            {
+                var signature = reader.ReadSignature();
+                return signature.Verify(msgBytes, this);
+            }
         }
     }
 }

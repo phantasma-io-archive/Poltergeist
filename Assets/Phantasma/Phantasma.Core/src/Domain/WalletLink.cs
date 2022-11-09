@@ -129,6 +129,8 @@ namespace Phantasma.Core.Domain
 
         protected abstract void GetPeer(Action<string> callback);
 
+        protected abstract void GetNexus(Action<string> callback);
+
         protected abstract void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback);
 
         // NOTE for security, signData should not be usable as a way of signing transaction. That way the wallet is responsible for appending random bytes to the message, and return those in callback
