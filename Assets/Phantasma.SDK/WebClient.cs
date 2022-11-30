@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 
 using UnityEngine;
@@ -368,7 +368,9 @@ namespace Phantasma.SDK
             yield return request.SendWebRequest();
             TimeSpan responseTime = DateTime.Now - startTime;
 
-            if(request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError || request.result == UnityWebRequest.Result.DataProcessingError)
+            // TODO return proper check later when PHA RPC would return something instead of 405 error code.
+            // if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError || request.result == UnityWebRequest.Result.DataProcessingError)
+            if (request.result == UnityWebRequest.Result.ConnectionError)
             {
                 Log.Write($"Ping error\nurl: {url}\nResponse time: {responseTime.Seconds}.{responseTime.Milliseconds} sec\n{request.error}\nIs connection error: {request.result == UnityWebRequest.Result.ConnectionError}\nIs protocol error: {request.result == UnityWebRequest.Result.ProtocolError}\nIs data processing error: {request.result == UnityWebRequest.Result.DataProcessingError}\nResponse code: {request.responseCode}", Log.Level.Networking);
                 if (errorHandlingCallback != null) errorHandlingCallback(EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR, request.error + $"\nURL: {url}\nIs connection error: {request.result == UnityWebRequest.Result.ConnectionError}\nIs protocol error: {request.result == UnityWebRequest.Result.ProtocolError}\nIs data processing error: {request.result == UnityWebRequest.Result.DataProcessingError}\nResponse code: {request.responseCode}");

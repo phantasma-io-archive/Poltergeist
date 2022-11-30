@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Macs;

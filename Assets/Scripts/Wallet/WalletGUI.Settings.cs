@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Linq;
 using UnityEngine;
-using Phantasma.Numerics;
 using Phantasma.SDK;
-using Phantasma.Cryptography;
-using Phantasma.VM.Utils;
-using Phantasma.VM;
+using System.Numerics;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 
 namespace Poltergeist
 {
@@ -352,6 +352,23 @@ namespace Poltergeist
             settings.uiThemeName = availableUiThemes[uiThemeIndex].ToString();
             curY += dropHeight + Units(1);
 
+            GUI.Label(new Rect(posX, curY, labelWidth, labelHeight), "UI framerate");
+            var uiFramerate = GUI.TextField(new Rect(fieldX, curY, fieldWidth, Units(2)), settings.uiFramerate.ToString());
+            if (int.TryParse(uiFramerate, out var uiFramerateInt))
+            {
+                if (uiFramerateInt is -1 or (>= 1 and <= 120))
+                {
+                    settings.uiFramerate = uiFramerateInt;
+                    
+                    if (settings.uiFramerate > 0)
+                    {
+                        QualitySettings.vSyncCount = 0;
+                        Application.targetFrameRate = settings.uiFramerate;
+                    }
+                }
+            }
+
+            curY += Units(3);
 
             DoButton(true, new Rect(posX, curY, Units(16), Units(2)), "Add token", () =>
             {

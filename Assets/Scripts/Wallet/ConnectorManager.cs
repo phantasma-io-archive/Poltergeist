@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using LunarLabs.WebSockets;
@@ -10,9 +10,8 @@ using System.Net;
 using System.Text;
 using LunarLabs.WebServer.HTTP;
 using System.Security.Cryptography;
-using Phantasma.Domain;
 using Phantasma.SDK;
-
+using Phantasma.Core.Domain;
 
 namespace Poltergeist
 {
@@ -89,6 +88,7 @@ namespace Poltergeist
                                 try
                                 {
                                     socket.Send(json);
+                                    IntentPluginManager.Instance.ReturnMessage(json);
                                 }
                                 catch (Exception e)
                                 {
@@ -437,5 +437,34 @@ namespace Poltergeist
                 }
             }
         }
+        
+        #region Intents
+        public void OnIntentInteraction(string msg)
+        {
+#if UNITY_ANDROID
+            var str = msg;
+
+            WalletGUI.Instance.CallOnUIThread(() =>
+            {
+                PhantasmaLink.Execute(str, (id, root, success) =>
+                {
+                    root.AddField("id", id);
+                    root.AddField("success", success);
+
+                    var json = JSONWriter.WriteToString(root);
+
+                    try
+                    {
+                        IntentPluginManager.Instance.ReturnMessage(json);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.WriteWarning("websocket send failure, while answering phantasma link request: " + str + "\nExcepion: " + e.Message);
+                    }
+                });
+            });
+#endif
+        }
+        #endregion
     }
 }
