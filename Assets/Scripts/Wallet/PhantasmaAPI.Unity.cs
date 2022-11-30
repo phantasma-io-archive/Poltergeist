@@ -6,15 +6,15 @@ using UnityEngine;
 
 using LunarLabs.Parser;
 
-using Phantasma.Numerics;
-using Phantasma.Cryptography;
 using System.Text;
-using Phantasma.Domain;
-using Phantasma.Blockchain.Storage;
 using System.Collections.Generic;
-using Phantasma.Storage.Utils;
-using Phantasma.VM;
 using System.Linq;
+using System.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Domain;
+using Phantasma.Business.Blockchain.Storage;
+using Phantasma.Core.Types;
 
 namespace Phantasma.SDK
 {
@@ -408,6 +408,7 @@ namespace Phantasma.SDK
         public Event[] events; //
         public string result; //
         public string fee; //
+        public ExecutionState state;
 
         public static Transaction FromNode(DataNode node)
         {
@@ -438,6 +439,11 @@ namespace Phantasma.SDK
 
             result.result = node.GetString("result");
             result.fee = node.GetString("fee");
+
+            if(!Enum.TryParse<ExecutionState>(node.GetString("state"), out result.state))
+            {
+                result.state = ExecutionState.Break;
+            }
 
             return result;
         }
@@ -736,7 +742,7 @@ namespace Phantasma.SDK
     {
         public string tokenId;
         public Address staker;
-        public Core.Types.Timestamp date;
+        public Timestamp date;
 
         public CrownRom(byte[] rom, string tokenId)
         {
@@ -758,7 +764,7 @@ namespace Phantasma.SDK
         private void UnserializeData(System.IO.BinaryReader reader)
         {
             this.staker = reader.ReadAddress();
-            this.date = new Core.Types.Timestamp(reader.ReadUInt32());
+            this.date = new Timestamp(reader.ReadUInt32());
         }
     }
     public class CustomRom : IRom
@@ -1330,12 +1336,12 @@ namespace Phantasma.SDK
 
 
         //Returns information about a transaction by hash.
-        public IEnumerator GetTransaction(string hashText, Action<Transaction> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator GetTransaction(string hashText, Action<ExecutionState, Transaction> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
             yield return WebClient.RPCRequest(Host, "getTransaction", WebClient.NoTimeout, 0, errorHandlingCallback, (node) =>
             {
                 var result = Transaction.FromNode(node);
-                callback(result);
+                callback(result.state, result);
             }, hashText);
         }
 
@@ -1663,31 +1669,31 @@ namespace Phantasma.SDK
         }
 
 
-        public IEnumerator SignAndSendTransaction(PhantasmaKeys keys, string nexus, byte[] script, string chain, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator SignAndSendTransaction(PhantasmaKeys keys, string nexus, byte[] script, string chain, BigInteger gasPrice, BigInteger gasLimit, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            return SignAndSendTransactionWithPayload(keys, nexus, script, chain, new byte[0], PoW, callback, errorHandlingCallback);
+            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, gasPrice, gasLimit, new byte[0], PoW, callback, errorHandlingCallback);
         }
 
-        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, string nexus, byte[] script, string chain, string payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
+        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, string nexus, byte[] script, string chain, BigInteger gasPrice, BigInteger gasLimit, string payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null)
         {
-            return SignAndSendTransactionWithPayload(keys, nexus, script, chain, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
+            return SignAndSendTransactionWithPayload(keys, null, nexus, script, chain, gasPrice, gasLimit, Encoding.UTF8.GetBytes(payload), PoW, callback, errorHandlingCallback);
         }
 
-        public IEnumerator SignAndSendTransactionWithPayload(IKeyPair keys, string nexus, byte[] script, string chain, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null, IKeyPair keys2 = null, Func<byte[], byte[], byte[], byte[]> customSignFunction2 = null)
+        public IEnumerator SignAndSendTransactionWithPayload(PhantasmaKeys keys, IKeyPair otherKeys, string nexus, byte[] script, string chain, BigInteger gasPrice, BigInteger gasLimit, byte[] payload, ProofOfWork PoW, Action<string> callback, Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback = null, Func<byte[], byte[], byte[], byte[]> customSignFunction = null)
         {
             Log.Write("Sending transaction...");
 
-            var tx = new Blockchain.Transaction(nexus, chain, script, DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
+            var tx = new Phantasma.Core.Domain.Transaction(nexus, chain, script,  DateTime.UtcNow + TimeSpan.FromMinutes(20), payload);
 
             if (PoW != ProofOfWork.None)
             {
                 tx.Mine(PoW);
             }
 
-            tx.Sign(keys, customSignFunction);
-            if (keys2 != null)
+            tx.Sign(keys, null);
+            if (otherKeys != null)
             {
-                tx.Sign(keys2, customSignFunction2);
+                tx.Sign(otherKeys, customSignFunction);
             }
 
             yield return SendRawTransaction(Base16.Encode(tx.ToByteArray(true)), callback, errorHandlingCallback);
