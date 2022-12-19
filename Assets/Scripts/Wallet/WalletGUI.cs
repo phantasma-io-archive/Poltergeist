@@ -1000,7 +1000,7 @@ namespace Poltergeist
                     transactionCheckCount++;
                     accountManager.RequestConfirmation(transactionHash.ToString(), transactionCheckCount, (msg) =>
                     {
-                        if (msg == null)
+                        if (string.IsNullOrEmpty(msg))
                         {
                             PopState();
 
@@ -5496,7 +5496,7 @@ namespace Poltergeist
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")
                                  {
-                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(0.5m, decimals));
+                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimals));
                                  }
                                  else
                                  {
