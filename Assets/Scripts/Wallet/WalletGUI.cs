@@ -1000,7 +1000,7 @@ namespace Poltergeist
                     transactionCheckCount++;
                     accountManager.RequestConfirmation(transactionHash.ToString(), transactionCheckCount, (msg) =>
                     {
-                        if (msg == null)
+                        if (string.IsNullOrEmpty(msg))
                         {
                             PopState();
 
@@ -2204,7 +2204,7 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var wordsToVerify = input.Split(' ');
+                            var wordsToVerify = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                             var wordsToVerifyOrdered = new string[wordsToVerify.Length];
                             for (var i = 0; i < wordsOrder.Length; i++)
                             {
@@ -2292,6 +2292,7 @@ namespace Poltergeist
             GUI.Label(rect, "For your own safety, write down these words on a piece of paper and store it safely and hidden.\nThese words serve as a back-up of your wallet.\nWithout a backup, it is impossible to recover your private key,\nand any funds in the account will be lost if something happens to this device.");
 
             var btnWidth = Units(10);
+            var btnHeight = Units(3);
             curY = (int)(windowRect.height - Units(VerticalLayout ? 6: 7));
             DoButton(true, new Rect(windowRect.width / 3 - btnWidth / 2, curY, btnWidth, Units(2)), "Copy to clipboard", () =>
             {
@@ -2300,7 +2301,7 @@ namespace Poltergeist
                 MessageBox(MessageKind.Default, "Seed phrase copied to the clipboard.");
             });
 
-            DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Continue", () =>
+            DoButton(true, new Rect((windowRect.width / 2) - btnWidth / 2, curY, btnWidth, Units(2)), "Continue", () =>
             {
                 AudioManager.Instance.PlaySFX("confirm");
 
@@ -2324,6 +2325,12 @@ namespace Poltergeist
                         PopState();
                     }
                 });
+            });
+            
+            DoButton(true, new Rect((windowRect.width / 3) * 2 - btnWidth / 2, curY, btnWidth, Units(2)), "Cancel", () =>
+            {
+                AudioManager.Instance.PlaySFX("click");
+                PopState();
             });
         }
 
@@ -5496,7 +5503,7 @@ namespace Poltergeist
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")
                                  {
-                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(0.5m, decimals));
+                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimals));
                                  }
                                  else
                                  {
