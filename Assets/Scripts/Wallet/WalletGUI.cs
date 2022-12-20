@@ -2204,7 +2204,7 @@ namespace Poltergeist
                     {
                         try
                         {
-                            var wordsToVerify = input.Split(' ');
+                            var wordsToVerify = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                             var wordsToVerifyOrdered = new string[wordsToVerify.Length];
                             for (var i = 0; i < wordsOrder.Length; i++)
                             {
