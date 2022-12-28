@@ -17,3 +17,8 @@ Assets/StreamingAssets/BuildInfo
 Assets/StreamingAssets/BuildInfo.meta
 .vsconfig
 UserSettings/
+
+Assets/Editor Default Resources/crosstales
+Assets/Plugins/crosstales
+
+.idea

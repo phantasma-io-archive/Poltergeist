@@ -4,12 +4,14 @@ using Phantasma.SDK;
 using Poltergeist;
 using System.Collections.Generic;
 using System.Linq;
-using Phantasma.Domain;
 using System;
+using Phantasma.Core.Domain;
 
 public static class Tokens
 {
     public static List<Token> SupportedTokens = new List<Token>();
+    public static object __lockObj = new object();
+
 
     public static void Reset()
     {
@@ -147,8 +149,6 @@ public static class Tokens
     }
     public static void Init(Token[] mainnetTokens)
     {
-        lock (string.Intern("TokensInit"))
-        {
             Tokens.Reset();
 
             Tokens.AddTokens(mainnetTokens);
@@ -188,7 +188,6 @@ public static class Tokens
             Log.Write($"{Tokens.GetTokens().Length} tokens supported");
 
             Tokens.ToLog();
-        }
     }
 
     public static Token[] GetTokens(string symbol)

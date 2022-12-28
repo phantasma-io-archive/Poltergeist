@@ -1,7 +1,7 @@
-using Phantasma.Numerics;
 using Phantasma.SDK;
 using System;
 using UnityEngine;
+using System.Numerics;
 
 namespace Poltergeist
 {
@@ -19,7 +19,7 @@ namespace Poltergeist
     {
         Unknown,
         Main_Net,
-        Ropsten,
+        Goerli,
         Local_Net
     }
 
@@ -111,6 +111,7 @@ namespace Poltergeist
         public const string LogOverwriteModeTag = "log.overwrite.mode";
 
         public const string UiThemeNameTag = "ui.theme.name";
+        public const string UiFramerateTag = "ui.framerate";
 
         public const string TtrsNftSortModeTag = "ttrs.nft.sort.mode";
         public const string NftSortModeTag = "nft.sort.mode";
@@ -151,6 +152,7 @@ namespace Poltergeist
         public Log.Level logLevel;
         public bool logOverwriteMode;
         public string uiThemeName;
+        public int uiFramerate;
         public int ttrsNftSortMode;
         public int nftSortMode;
         public int nftSortDirection;
@@ -187,6 +189,7 @@ namespace Poltergeist
                 "Currency: " + this.currency + "\n" +
                 "Sfx: " + this.sfx + "\n" +
                 "UI theme: " + this.uiThemeName + "\n" +
+                "UI framerate: " + this.uiFramerate + "\n" +
                 "Log level: " + this.logLevel + "\n" +
                 "Log overwrite: " + this.logOverwriteMode + "\n" +
                 "TTRS NFT sort mode: " + this.ttrsNftSortMode + "\n" +
@@ -218,20 +221,11 @@ namespace Poltergeist
                 this.nexusKind = NexusKind.Unknown;
             }
 
+            this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
             if (this.nexusKind == NexusKind.Main_Net || this.nexusKind == NexusKind.Test_Net || this.nexusKind == NexusKind.Mankini_Test_Net)
             {
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
-                if (this.nexusKind == NexusKind.Main_Net)
-                {
-                    this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
-                }
-                else
-                {
-                    // We cannot do it for mainnet, because for mainnet we store best RPC here.
-                    // For testnets we should update with default value.
-                    this.phantasmaRPCURL = GetDefaultValue(PhantasmaRPCTag);
-                }
                 this.phantasmaExplorer = GetDefaultValue(PhantasmaExplorerTag);
                 this.phantasmaNftExplorer = GetDefaultValue(PhantasmaNftExplorerTag);
                 this.neoRPCURL = GetDefaultValue(NeoRPCTag);
@@ -240,7 +234,6 @@ namespace Poltergeist
             }
             else
             {
-                this.phantasmaRPCURL = PlayerPrefs.GetString(PhantasmaRPCTag, GetDefaultValue(PhantasmaRPCTag));
                 this.phantasmaExplorer = PlayerPrefs.GetString(PhantasmaExplorerTag, GetDefaultValue(PhantasmaExplorerTag));
                 this.phantasmaNftExplorer = PlayerPrefs.GetString(PhantasmaNftExplorerTag, GetDefaultValue(PhantasmaNftExplorerTag));
                 this.neoRPCURL = PlayerPrefs.GetString(NeoRPCTag, GetDefaultValue(NeoRPCTag));
@@ -284,7 +277,7 @@ namespace Poltergeist
                 this.ethereumNetwork = EthereumNetwork.Unknown;
             }
 
-            if (this.ethereumNetwork == EthereumNetwork.Main_Net || this.ethereumNetwork == EthereumNetwork.Ropsten)
+            if (this.ethereumNetwork == EthereumNetwork.Main_Net || this.ethereumNetwork == EthereumNetwork.Goerli)
             {
                 // For mainnet/testnet we always load defaults for hidden settings,
                 // to avoid dealing with "stuck" values from old PG version that had different defaults.
@@ -344,6 +337,7 @@ namespace Poltergeist
             binanceSmartChainUserTokens = PlayerPrefs.GetString(BinanceSmartChainUserTokensTag, null);
 
             this.uiThemeName = PlayerPrefs.GetString(UiThemeNameTag, UiThemes.Phantasia.ToString());
+            this.uiFramerate = PlayerPrefs.GetInt(UiFramerateTag, -1);
 
             LoadLogSettings();
 
@@ -402,11 +396,11 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            _return_value = "http://207.148.17.86:7077/rpc";
+                            _return_value = "http://bp1.phantasma.io:7078/rpc";
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://testnet.phantasma.io:7077/rpc";
+                            _return_value = "http://testnet.phantasma.io:5101/rpc";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
@@ -431,7 +425,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://testnet.phantasma.io/";
+                            _return_value = "https://explorer-testnet.vercel.app/";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
@@ -477,7 +471,7 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            var neoRpcList = Phantasma.Neo.Utils.NeoRpcs.GetList();
+                            var neoRpcList = Poltergeist.Neo2.Utils.NeoRpcs.GetList();
                             int index = (int)(DateTime.UtcNow.Ticks % neoRpcList.Count);
                             _return_value = neoRpcList[index];
                             break;
@@ -500,11 +494,11 @@ namespace Poltergeist
                     switch (ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "https://mainnet.infura.io/v3/2bc1e4018304466d95d02f3f28d246b0";
+                            _return_value = "https://mainnet.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
                             break;
 
-                        case EthereumNetwork.Ropsten:
-                            _return_value = "https://ropsten.infura.io/v3/2bc1e4018304466d95d02f3f28d246b0";
+                        case EthereumNetwork.Goerli:
+                            _return_value = "https://goerli.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
                             break;
 
                         case EthereumNetwork.Local_Net:
@@ -575,7 +569,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "testnet";
+                            _return_value = "simnet";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
@@ -628,6 +622,7 @@ namespace Poltergeist
             PlayerPrefs.SetString(CurrencyTag, this.currency);
             PlayerPrefs.SetInt(SFXTag, this.sfx ?1:0);
             PlayerPrefs.SetString(UiThemeNameTag, this.uiThemeName);
+            PlayerPrefs.SetInt(UiFramerateTag, this.uiFramerate);
             PlayerPrefs.SetString(LogLevelTag, this.logLevel.ToString());
             PlayerPrefs.SetInt(LogOverwriteModeTag, this.logOverwriteMode ? 1 : 0);
             PlayerPrefs.SetString(MnemonicPhraseLengthTag, this.mnemonicPhraseLength.ToString());
@@ -681,15 +676,15 @@ namespace Poltergeist
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Main_Net;
                         break;
                     case NexusKind.Test_Net:
-                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.ethereumNetwork = EthereumNetwork.Goerli;
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                     case NexusKind.Mankini_Test_Net:
-                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.ethereumNetwork = EthereumNetwork.Goerli;
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                     case NexusKind.Local_Net:
-                        this.ethereumNetwork = EthereumNetwork.Ropsten;
+                        this.ethereumNetwork = EthereumNetwork.Goerli;
                         this.binanceSmartChainNetwork = BinanceSmartChainNetwork.Test_Net;
                         break;
                 }

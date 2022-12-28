@@ -1,20 +1,19 @@
 using UnityEngine;
 using System.IO;
-using Phantasma.Domain;
-using Phantasma.Cryptography;
 using System;
-using Phantasma.VM.Utils;
 using Phantasma.SDK;
 using System.Linq;
-using Phantasma.Blockchain;
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-using SFB;
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+using Crosstales.FB;
 #elif UNITY_ANDROID
 using static NativeFilePicker;
 #endif
 using Archive = Phantasma.SDK.Archive;
-using Phantasma.Blockchain.Storage;
 using System.Text;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Cryptography;
+using Phantasma.Business.VM.Utils;
+using Phantasma.Business.Blockchain.Storage;
 
 namespace Poltergeist
 {
@@ -111,8 +110,8 @@ namespace Poltergeist
                 {
                     case 0:
                         {
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-                            UploadSelectedFile(StandaloneFileBrowser.OpenFilePanel("Open File", accountManager.Settings.GetLastVisitedFolder(), "", false).FirstOrDefault());
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+                            UploadSelectedFile(FileBrowser.Instance.OpenSingleFile("Open File", accountManager.Settings.GetLastVisitedFolder(), null, new string[] { "*" }));
 #elif UNITY_ANDROID
                             var extensionFilter = new string[] {"audio/*", "video/*", "image/*", "text/*", "application/*"};
 //#else // iOS
@@ -157,8 +156,8 @@ namespace Poltergeist
 
             DoButton(true, btnRect, "Download", () =>
             {
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX
-                var outputFolderPath = StandaloneFileBrowser.OpenFolderPanel("Select output folder", accountManager.Settings.GetLastVisitedFolder(), false).FirstOrDefault();
+#if CT_FB && (UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX || UNITY_STANDALONE_LINUX || UNITY_EDITOR_LINUX)
+                var outputFolderPath = FileBrowser.Instance.OpenSingleFolder("Select output folder", accountManager.Settings.GetLastVisitedFolder());
 
                 if (!string.IsNullOrEmpty(outputFolderPath))
                 {
@@ -205,11 +204,8 @@ namespace Poltergeist
 
             try
             {
-                var gasPrice = accountManager.Settings.feePrice;
-                var gasLimit = accountManager.Settings.feeLimit;
-
                 var sb = new ScriptBuilder();
-                sb.AllowGas(source, Address.Null, gasPrice, gasLimit);
+                sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                 sb.CallContract(NativeContractKind.Storage, "DeleteFile", source, fileHash);
                 sb.SpendGas(source);
                 script = sb.EndScript();
@@ -220,24 +216,10 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+            SendTransaction($"Deleting file '{fileName}'.\nSize: {BytesToString(size)}", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
             {
-                if (hash != Hash.Null)
-                {
-                    ShowModal("Success",
-                        $"The archive '{fileName}' was deleted!\nTransaction hash:\n" + hash,
-                        ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                        {
-                            AudioManager.Instance.PlaySFX("click");
-
-                            if (viewTxChoice == PromptResult.Failure)
-                            {
-                                Application.OpenURL(accountManager.GetPhantasmaTransactionURL(hash.ToString()));
-                            }
-                        });
-                }
+                TxResultMessage(hash, error, null, $"The archive '{fileName}' was deleted!");
             });
-
         }
 
         private void DeployContract(string scriptPath, string abiPath)
@@ -263,7 +245,7 @@ namespace Poltergeist
             {
                 var gasPrice = accountManager.Settings.feePrice;
                 var gasLimit = accountManager.Settings.feeLimit;
-
+                
                 var sb = new ScriptBuilder();
                 sb.AllowGas(target, Address.Null, gasPrice, gasLimit);
                 sb.CallInterop("Runtime.DeployContract", target, contractName, contractBytes, abiBytes);
@@ -276,12 +258,9 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading contract '{contractName}'.", script, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash) =>
+            SendTransaction($"Uploading contract '{contractName}'.", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.Minimal, (hash, error) =>
             {
-                if (hash != Hash.Null)
-                {
-                    MessageBox(MessageKind.Success, $"{contractName} was deployed succesfully!");
-                }
+                TxResultMessage(hash, error, null, $"{contractName} was deployed successfully!");
             });
 
         }
@@ -327,11 +306,8 @@ namespace Poltergeist
             byte[] script;
             try
             {
-                var gasPrice = accountManager.Settings.feePrice;
-                var gasLimit = accountManager.Settings.feeLimit;
-
                 var sb = new ScriptBuilder();
-                sb.AllowGas(target, Address.Null, gasPrice, gasLimit);
+                sb.AllowGas(target, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                 sb.CallContract(NativeContractKind.Storage, "CreateFile", target, newFileName, fileSize, merkleBytes, archiveEncryption);
                 sb.SpendGas(target);
                 script = sb.EndScript();
@@ -342,9 +318,9 @@ namespace Poltergeist
                 return;
             }
 
-            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, null, DomainSettings.RootChainName, ProofOfWork.None, (hash) =>
+            SendTransaction($"Uploading file '{fileName}'.\nSize: {BytesToString(fileSize)}", script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, null, DomainSettings.RootChainName, ProofOfWork.None, (hash, error) =>
             {
-                if (hash != Hash.Null)
+                if (string.IsNullOrEmpty(error) && hash != Hash.Null)
                 {
                     PushState(GUIState.Upload);
 
@@ -386,17 +362,7 @@ namespace Poltergeist
                     {
                         PopState();
 
-                        ShowModal("Success",
-                            $"The archive '{fileName}' was uploaded!\nTransaction hash:\n" + creationTxHash,
-                            ModalState.Message, 0, 0, ModalOkView, 0, (viewTxChoice, input) =>
-                            {
-                                AudioManager.Instance.PlaySFX("click");
-
-                                if (viewTxChoice == PromptResult.Failure)
-                                {
-                                    Application.OpenURL(accountManager.GetPhantasmaTransactionURL(creationTxHash.ToString()));
-                                }
-                            });
+                        TxResultMessage(creationTxHash, error, $"The archive '{fileName}' was uploaded!");
                     }
                     else
                     {
@@ -407,7 +373,8 @@ namespace Poltergeist
                 else
                 {
                     PopState();
-                    MessageBox(MessageKind.Error, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!\nError: " + error);
+                    
+                    TxResultMessage(creationTxHash, error, null, $"Something went wrong when uploading chunk {blockIndex} for {fileName}!");
                     // TODO allow user to retry ?
                 }
                     
@@ -601,9 +568,9 @@ namespace Poltergeist
 
             var requiredStake = expectedStake - currentStake;
 
-            StakeSOUL(requiredStake, $"Not enough available storage space to upload.\nStake {requiredStake} {DomainSettings.StakingTokenSymbol} to increase your storage?", (hash) =>
+            StakeSOUL(requiredStake, $"Not enough available storage space to upload.\nStake {requiredStake} {DomainSettings.StakingTokenSymbol} to increase your storage?", (hash, error) =>
             {
-                callback(hash != Hash.Null);
+                callback(string.IsNullOrEmpty(error) && hash != Hash.Null);
             });
         }
     }

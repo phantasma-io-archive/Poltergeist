@@ -1,6 +1,7 @@
 using Org.BouncyCastle.Asn1.Sec;
 using NBitcoin;
 using System;
+using Phantasma.Core.Cryptography;
 
 public static class BIP39NBitcoin
 {
@@ -14,7 +15,7 @@ public static class BIP39NBitcoin
     {
         var mnemonic = new Mnemonic(mnemonicPhrase);
         var keyPathToDerive = KeyPath.Parse("m/44'/60'/0'/0");
-        var pk = new ExtKey(mnemonic.DeriveSeed(null)).Derive(keyPathToDerive);
+        var pk = mnemonic.DeriveExtKey(null).Derive(keyPathToDerive);
         var keyNew = pk.Derive(pkIndex);
         var pkeyBytes = keyNew.PrivateKey.PubKey.ToBytes();
         var ecParams = SecNamedCurves.GetByName("secp256k1");
@@ -34,7 +35,7 @@ public static class BIP39NBitcoin
     public static string MnemonicToWif(string mnemonicPhrase, uint pkIndex = 0)
     {
         var privKey = BIP39NBitcoin.MnemonicToPK(mnemonicPhrase, pkIndex);
-        var phaKeys = new Phantasma.Cryptography.PhantasmaKeys(privKey);
+        var phaKeys = new PhantasmaKeys(privKey);
         return phaKeys.ToWIF();
     }
 }

@@ -2,11 +2,13 @@ using System;
 using System.IO;
 using System.Linq;
 using LunarLabs.Parser;
-using Phantasma.Cryptography;
-using Phantasma.Domain;
-using Phantasma.SDK;
-using Phantasma.Numerics;
+using Phantasma.Core.Cryptography;
+using Phantasma.Core.Cryptography.ECDsa;
+using Phantasma.Core.Domain;
+using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
+using Phantasma.SDK;
+using Poltergeist.PhantasmaLegacy.Ethereum;
 
 namespace Poltergeist
 {
@@ -99,6 +101,17 @@ namespace Poltergeist
             callback(new Account(), "not logged in, devs should implement this case!");
         }
 
+        protected override void GetPeer(Action<string> callback)
+        {
+            callback(AccountManager.Instance.Settings.phantasmaRPCURL);
+        }
+        
+        protected override void GetNexus(Action<string> callback)
+        {
+            callback(AccountManager.Instance.Settings.nexusName);
+        }
+        
+
         protected override void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback)
         {
             WalletGUI.Instance.CallOnUIThread(() =>
@@ -137,7 +150,7 @@ namespace Poltergeist
             });
         }
 
-        protected override void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, Action<Hash, string> callback)
+        protected override void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, ProofOfWork pow, Action<Hash, string> callback)
         {
             var accountManager = AccountManager.Instance;
 
@@ -148,15 +161,15 @@ namespace Poltergeist
                 return;
             }
 
-            var state = AccountManager.Instance.CurrentState;
+            var state = accountManager.CurrentState;
             if (state == null)
             {
                 callback(Hash.Null, "not logged in");
                 return;
             }
 
-            var nexus = AccountManager.Instance.Settings.nexusName;
-            var account = AccountManager.Instance.CurrentAccount;
+            var nexus = accountManager.Settings.nexusName;
+            var account = accountManager.CurrentAccount;
 
             WalletGUI.Instance.CallOnUIThread(() =>
             {
@@ -174,18 +187,11 @@ namespace Poltergeist
                         {
                             if (success)
                             {
-                                WalletGUI.Instance.SendTransaction(description, script, payload, chain, ProofOfWork.None, (hash) =>
+                                WalletGUI.Instance.SendTransaction(description, script, null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit, payload, chain, pow, (hash, error) =>
                                 {
                                     AppFocus.Instance.EndFocus();
 
-                                    if (hash != Hash.Null)
-                                    {
-                                        callback(hash, null);
-                                    }
-                                    else
-                                    {
-                                        callback(Hash.Null, "something bad happend while sending");
-                                    }
+                                    callback(hash, error);
                                 });
                             }
                             else
@@ -204,7 +210,6 @@ namespace Poltergeist
                 }
             });
         }
-
 
         protected override void SignData(string platform, SignatureKind kind, byte[] data, int id, Action<string, string, string> callback)
         {
@@ -241,7 +246,7 @@ namespace Poltergeist
 
                         var msg = ByteArrayUtils.ConcatBytes(randomBytes, data);
 
-                        Phantasma.Cryptography.Signature signature;
+                        Phantasma.Core.Cryptography.Signature signature;
 
                         var wif = account.GetWif(AccountManager.Instance.CurrentPasswordHash);
 
@@ -253,9 +258,9 @@ namespace Poltergeist
                                 break;
 
                             case SignatureKind.ECDSA:
-                                var ethKeys = Phantasma.Ethereum.EthereumKey.FromWIF(wif);
-                                var signatureBytes = Phantasma.Neo.Utils.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
-                                signature = new Phantasma.Cryptography.ECC.ECDsaSignature(signatureBytes, Phantasma.Cryptography.ECC.ECDsaCurve.Secp256k1);
+                                var ethKeys = EthereumKey.FromWIF(wif);
+                                var signatureBytes = Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, ECDsaCurve.Secp256k1);
+                                signature = new ECDsaSignature(signatureBytes, ECDsaCurve.Secp256k1);
                                 break;
 
                             default:
@@ -311,7 +316,7 @@ namespace Poltergeist
 
             WalletGUI.Instance.CallOnUIThread(() =>
             {
-                WalletGUI.Instance.Prompt($"Give access to dapp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
+                WalletGUI.Instance.Prompt($"Give access to dApp \"{dapp}\" to your \"{state.name}\" account?", (result) =>
                {
                    AppFocus.Instance.EndFocus();
 
