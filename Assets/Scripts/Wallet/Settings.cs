@@ -412,7 +412,7 @@ namespace Poltergeist
                             break;
 
                         default:
-                            _return_value = "http://pharpc1.phnatasma.io:7077/rpc";
+                            _return_value = "http://pharpc1.phantasma.io:7077/rpc";
                             break;
                     }
                     break;
