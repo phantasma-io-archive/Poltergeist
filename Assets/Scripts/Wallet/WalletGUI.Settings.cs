@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Numerics;
 using UnityEngine;
 using Phantasma.SDK;
 using System.Numerics;
