@@ -396,7 +396,7 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            _return_value = "http://bp1.phantasma.io:7078/rpc";
+                            _return_value = "http://pharpc1.phantasma.io:7077/rpc";
                             break;
 
                         case NexusKind.Test_Net:
@@ -412,7 +412,7 @@ namespace Poltergeist
                             break;
 
                         default:
-                            _return_value = "http://207.148.17.86:7077/rpc";
+                            _return_value = "http://pharpc1.phantasma.io:7077/rpc";
                             break;
                     }
                     break;
@@ -569,7 +569,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "simnet";
+                            _return_value = "testnet";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
