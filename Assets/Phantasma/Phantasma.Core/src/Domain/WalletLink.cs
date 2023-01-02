@@ -412,17 +412,15 @@ namespace Phantasma.Core.Domain
 
                 case "signTx":
                     {
-                        if ((connection.Version == 1 && args.Length != 4) ||
-                            (args.Length != 5 && args.Length != 6))
-                        {
-                            answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
-                            break;
-                        }
-
                         int index = 0;
 
                         if (connection.Version == 1)
                         {
+                            if (args.Length != 4)
+                            {
+                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
+                                break;
+                            }
                             var txNexus = args[index]; index++;
                             if (txNexus != this.Nexus)
                             {
@@ -430,6 +428,14 @@ namespace Phantasma.Core.Domain
                                 callback(id, answer, false);
                                 _isPendingRequest = false;
                                 return;
+                            }
+                        }
+                        else if (connection.Version == 2)
+                        {
+                            if (args.Length != 5 && args.Length != 6)
+                            {
+                                answer = APIUtils.FromAPIResult(new Error() { message = $"signTx: Invalid amount of arguments: {args.Length}" });
+                                break;
                             }
                         }
 
