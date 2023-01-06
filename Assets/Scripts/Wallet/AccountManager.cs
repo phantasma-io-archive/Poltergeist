@@ -1222,8 +1222,25 @@ namespace Poltergeist
                     {
                         StartCoroutine(phantasmaApi.SignAndSendTransactionWithPayload(PhantasmaKeys.FromWIF(CurrentWif), customKeys, Settings.nexusName, script, chain, phaGasPrice, phaGasLimit, payload, PoW, (hashText) =>
                         {
-                            var hash = Hash.Parse(hashText);
-                            callback(hash, null);
+
+                            if ( !string.IsNullOrEmpty(hashText) )
+                            {
+                                try
+                                {
+                                    var hash = Hash.Parse(hashText);
+                                    callback(hash, null);
+
+                                }catch (Exception e)
+                                {
+                                    Log.WriteError("Error parsing hash: " + e.Message);
+                                    callback(Hash.Null,  $"Error: hashText={hashText}");
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                callback(Hash.Null, "Failed to send transaction");
+                            }
                         }, (error, msg) =>
                         {
                             if(error == EPHANTASMA_SDK_ERROR_TYPE.WEB_REQUEST_ERROR)
