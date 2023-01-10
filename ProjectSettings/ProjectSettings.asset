@@ -250,8 +250,8 @@ PlayerSettings:
   AndroidTargetDevices: 0
   AndroidSplashScreenScale: 0
   androidSplashScreen: {fileID: 0}
-  AndroidKeystoreName: /Users/joaonovo/Code/Phantasma/Keys/poltergeist-deploy.keystore
-  AndroidKeyaliasName: poltergeist wallet
+  AndroidKeystoreName: '{inproject}: poltergeist.keystore'
+  AndroidKeyaliasName: poltergeist
   AndroidBuildApkPerCpuArchitecture: 0
   AndroidTVCompatibility: 0
   AndroidIsGame: 1
