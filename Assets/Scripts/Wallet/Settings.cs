@@ -250,7 +250,7 @@ namespace Poltergeist
                 this.feePrice = defaultGasPrice;
             }
 
-            var defaultGasLimit = 2100;
+            var defaultGasLimit = 21000;
             if (!BigInteger.TryParse(PlayerPrefs.GetString(GasLimitTag, defaultGasLimit.ToString()), out feeLimit))
             {
                 this.feeLimit = defaultGasLimit;
