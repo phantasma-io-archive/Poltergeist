@@ -425,7 +425,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "https://explorer-testnet.vercel.app/";
+                            _return_value = "https://test-explorer.phantasma.io/";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
