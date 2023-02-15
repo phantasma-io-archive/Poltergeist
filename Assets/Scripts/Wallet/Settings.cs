@@ -250,7 +250,7 @@ namespace Poltergeist
                 this.feePrice = defaultGasPrice;
             }
 
-            var defaultGasLimit = 2100;
+            var defaultGasLimit = 21000;
             if (!BigInteger.TryParse(PlayerPrefs.GetString(GasLimitTag, defaultGasLimit.ToString()), out feeLimit))
             {
                 this.feeLimit = defaultGasLimit;
@@ -425,7 +425,7 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "https://explorer-testnet.vercel.app/";
+                            _return_value = "https://test-explorer.phantasma.io/";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
