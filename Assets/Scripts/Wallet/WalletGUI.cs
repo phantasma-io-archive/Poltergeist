@@ -2441,7 +2441,8 @@ namespace Poltergeist
 
             style.fontSize -= VerticalLayout ? 0 : 4;
             var value = accountManager.GetTokenWorth(balance.Symbol, balance.Available);
-            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{MoneyFormat(balance.Available)} {balance.Symbol}" + (value == null ? "" : $" ({value})"));
+            var balanceFormat = $"{MoneyFormat(balance.Available)}";
+            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{balanceFormat} {balance.Symbol}" + (value == null ? "" : $" ({value})"));
             style.fontSize += VerticalLayout ? 0 : 4;
 
             var subRect = new Rect(posX, posY + Units(1) + 4, Units(20), Units(2));
@@ -3825,7 +3826,9 @@ namespace Poltergeist
 
                                                         ShowModal("Message",
                                                             $"The account was migrated.\n{(string.IsNullOrEmpty(deletedDuplicateWallet) ? "" : $"\nDuplicate account '{deletedDuplicateWallet}' was deleted.\n")}If you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
-                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (_, input) => { });
+                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (_, input) =>
+                                                            {
+                                                            });
                                                     }
                                                     else
                                                     {
@@ -5499,15 +5502,16 @@ namespace Poltergeist
                                  var source = Address.FromText(state.address);
 
                                  var decimals = Tokens.GetTokenDecimals(feeSymbol, accountManager.CurrentPlatform);
+                                 var decimalsSwap = Tokens.GetTokenDecimals(swapSymbol, accountManager.CurrentPlatform);
 
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")
                                  {
-                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimals));
+                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimalsSwap));
                                  }
                                  else
                                  {
-                                     sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.1m, decimals));
+                                     sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(1m, decimals));
                                  }
                                  sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                  sb.SpendGas(source);
