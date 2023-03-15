@@ -136,6 +136,9 @@ namespace Phantasma.Core.Domain
         // NOTE for security, signData should not be usable as a way of signing transaction. That way the wallet is responsible for appending random bytes to the message, and return those in callback
         protected abstract void SignData(string platform, SignatureKind kind, byte[] data, int id, Action<string, string, string> callback);
 
+        protected abstract void SignTransactionSignature(Phantasma.Core.Domain.Transaction transaction, string platform,
+            SignatureKind kind, Action<Phantasma.Core.Cryptography.Signature, string> callback);
+        
         protected abstract void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, ProofOfWork pow, Action<Hash, string> callback);
 
         protected abstract void WriteArchive(Hash hash, int blockIndex, byte[] data, Action<bool, string> callback);
@@ -500,7 +503,66 @@ namespace Phantasma.Core.Domain
 
                         return;
                     }
+                case "signTxSignature":
+                {
+                    int expectedLength;
 
+                    switch (connection.Version)
+                    {
+                        case 1:
+                            expectedLength = 2;
+                            break;
+
+                        default:
+                            expectedLength = 3;
+                            break;
+                    }
+
+                    if (args.Length != expectedLength)
+                    {
+                        answer = APIUtils.FromAPIResult(new Error()
+                            { message = $"signData: Invalid amount of arguments: {args.Length}" });
+                        break;
+                    }
+
+                    var data = Base16.Decode(args[0], false);
+                    if (data == null)
+                    {
+                        answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid input received" });
+                    }
+                    else
+                    {
+                        SignatureKind signatureKind;
+
+                        if (!Enum.TryParse<SignatureKind>(args[1], out signatureKind))
+                        {
+                            answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid signature: " + args[1] });
+                            callback(id, answer, false);
+                            _isPendingRequest = false;
+                            return;
+                        }
+
+                        var platform = connection.Version >= 2 ? args[2].ToLower() : "phantasma";
+
+                        var transaction = Phantasma.Core.Domain.Transaction.Unserialize(data);
+                        
+                        SignTransactionSignature(transaction, platform, signatureKind, (signature, txError) => {
+                            if (signature != null)
+                            {
+                                success = true;
+                                answer = APIUtils.FromAPIResult(new Signature() { signature = Base16.Encode(signature.ToByteArray()) });
+                            }
+                            else
+                            {
+                                answer = APIUtils.FromAPIResult(new Error() { message = txError });
+                            }
+
+                            callback(id, answer, success);
+                            _isPendingRequest = false;
+                        });
+                    }
+                    return;
+                }
                 case "invokeScript":
                     {
                         if (args.Length == 2)

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using LunarLabs.Parser;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Cryptography.ECDsa;
@@ -147,6 +148,83 @@ namespace Poltergeist
                     callback(false, "WriteArchive call error: " + e.Message);
                     return;
                 }
+            });
+        }
+
+        protected override void SignTransactionSignature(Phantasma.Core.Domain.Transaction transaction, string platform, SignatureKind kind, Action<Phantasma.Core.Cryptography.Signature, string> callback)
+        {
+            var accountManager = AccountManager.Instance;
+
+            var targetPlatform = RequestPlatform(platform);
+            if (targetPlatform == PlatformKind.None || targetPlatform == PlatformKind.Neo)
+            {
+                callback(null, "Unsupported platform: " + platform);
+                return;
+            }
+
+            var state = AccountManager.Instance.CurrentState;
+            if (state == null)
+            {
+                callback(null, "not logged in");
+                return;
+            }
+
+            var account = AccountManager.Instance.CurrentAccount;
+
+            WalletGUI.Instance.CallOnUIThread(() =>
+            {
+                var description = $"{transaction.Hash}\n{transaction.Expiration}\n{Encoding.UTF8.GetString(transaction.Payload)}\n{Encoding.UTF8.GetString(transaction.Script)}";
+
+                WalletGUI.Instance.Prompt($"The dapp wants to sign the following transaction with your {platform} keys. Accept?\n{description}", (success) =>
+                {
+                    AppFocus.Instance.EndFocus();
+
+                    if (success)
+                    {
+                        Phantasma.Core.Cryptography.Signature signature;
+
+                        var msg = transaction.ToByteArray(false);
+
+                        var wif = account.GetWif(AccountManager.Instance.CurrentPasswordHash);
+
+                        switch (kind)
+                        {
+                            case SignatureKind.Ed25519:
+                                var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
+                                signature = phantasmaKeys.Sign(msg);
+                                break;
+
+                            case SignatureKind.ECDSA:
+                                var ethKeys = EthereumKey.FromWIF(wif);
+                                var signatureBytes = Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, ECDsaCurve.Secp256k1);
+                                signature = new ECDsaSignature(signatureBytes, ECDsaCurve.Secp256k1);
+                                break;
+
+                            default:
+                                callback(null, kind + " signatures unsupported");
+                                return;
+                        }
+
+                        byte[] sigBytes = null;
+
+                        using (var stream = new MemoryStream())
+                        {
+                            using (var writer = new BinaryWriter(stream))
+                            {
+                                writer.WriteSignature(signature);
+                            }
+
+                            sigBytes = stream.ToArray();
+                        }
+
+                        callback(signature, "");
+                    }
+                    else
+                    {
+                        callback(null, "user rejected");
+                    }
+                });
+
             });
         }
 
