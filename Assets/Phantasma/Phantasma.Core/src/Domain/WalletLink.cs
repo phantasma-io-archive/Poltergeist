@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using LunarLabs.Parser;
 using Phantasma.Core.Cryptography;
 using Phantasma.Core.Numerics;
@@ -67,6 +68,12 @@ namespace Phantasma.Core.Domain
         public struct Transaction : IAPIResult
         {
             public string hash;
+        }
+        
+        public struct MultiSig : IAPIResult
+        {
+            public bool success;
+            public string message;
         }
 
         public struct Signature : IAPIResult
@@ -138,6 +145,9 @@ namespace Phantasma.Core.Domain
 
         protected abstract void SignTransactionSignature(Phantasma.Core.Domain.Transaction transaction, string platform,
             SignatureKind kind, Action<Phantasma.Core.Cryptography.Signature, string> callback);
+        
+        protected abstract void FetchAndMultiSignature(string subject, string platform,
+            SignatureKind kind, int id, Action<bool, string> callback);
         
         protected abstract void SignTransaction(string platform, SignatureKind kind, string chain, byte[] script, byte[] payload, int id, ProofOfWork pow, Action<Hash, string> callback);
 
@@ -561,17 +571,18 @@ namespace Phantasma.Core.Domain
                 return;
             }
 
-            var data = Base16.Decode(args[0], false);
-            if (data == null)
+            /*var subjectBytes = Base16.Decode(args[0], false);
+            if (subjectBytes == null)
             {
                 answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid input received" });
                 callback(id, answer, false);
                 _isPendingRequest = false;
                 return;
-            }
+            }*/
+            
+            var subject = args[0];
 
             SignatureKind signatureKind;
-
             if (!Enum.TryParse<SignatureKind>(args[1], out signatureKind))
             {
                 answer = APIUtils.FromAPIResult(new Error() { message = $"signData: Invalid signature: " + args[1] });
@@ -581,18 +592,12 @@ namespace Phantasma.Core.Domain
             }
 
             var platform = connection.Version >= 2 ? args[2].ToLower() : "phantasma";
-            
-            // Get Transaction from subject
-            // Shows the Transaciton DATA to the user.
-            // Signs the transaction fetched  and sends it.
 
-            var transaction = Phantasma.Core.Domain.Transaction.Unserialize(data);
-            
-            SignTransactionSignature(transaction, platform, signatureKind, (signature, txError) => {
-                if (signature != null)
+            FetchAndMultiSignature(subject, platform, signatureKind, id, (_success, txError) => {
+                if (_success)
                 {
                     success = true;
-                    answer = APIUtils.FromAPIResult(new Signature() { signature = Base16.Encode(signature.ToByteArray()) });
+                    answer = APIUtils.FromAPIResult(new MultiSig{ message = txError, success = _success});
                 }
                 else
                 {
