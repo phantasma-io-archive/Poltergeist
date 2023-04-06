@@ -838,6 +838,8 @@ namespace Poltergeist
                 modalRect = new Rect((virtualWidth - modalWidth) / 2, (virtualHeight - modalHeight) / 2, modalWidth, modalHeight);
                 modalRect = GUI.ModalWindow(0, modalRect, DoModalWindow, modalTitle);
             }
+
+            
         }
 
         void OnApplicationQuit()
