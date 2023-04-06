@@ -13,7 +13,7 @@ namespace Phantasma.Core.Domain
     {
         public readonly static Transaction Null = null;
 
-        public static readonly int DefaultGasLimit = 9999;
+        public static readonly int DefaultGasLimit = 10000;
 
         public byte[] Script { get; private set; }
 

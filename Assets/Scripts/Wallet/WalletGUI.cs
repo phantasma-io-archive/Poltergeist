@@ -838,6 +838,8 @@ namespace Poltergeist
                 modalRect = new Rect((virtualWidth - modalWidth) / 2, (virtualHeight - modalHeight) / 2, modalWidth, modalHeight);
                 modalRect = GUI.ModalWindow(0, modalRect, DoModalWindow, modalTitle);
             }
+
+            
         }
 
         void OnApplicationQuit()
@@ -1774,9 +1776,7 @@ namespace Poltergeist
                             accountManagementSelectedList.Remove(accountManagementSelectedList.Single(x => x == account.phaAddress));
                         }
                     }
-
-
-
+                    
                     DoButton(index != 0, btnRect3, "Move up", () =>
                     {
                         var accountToMoveUp = accountManager.Accounts.ElementAt(index);
@@ -1795,6 +1795,19 @@ namespace Poltergeist
                     {
                         ShowModal("Rename", $"Current local name: {account.name}\nPhantasma address: {account.phaAddress}\nNeo address: {account.neoAddress}\nEthereum address: {account.ethAddress}\n\nEnter new local account name:", ModalState.Input, AccountManager.MinAccountNameLength, AccountManager.MaxAccountNameLength, ModalConfirmCancel, 1, (result, input) =>
                         {
+                            if (input == null || input.Length < AccountManager.MinAccountNameLength ||
+                                input.Length > AccountManager.MaxAccountNameLength)
+                            {
+                                MessageBox(MessageKind.Error, "Invalid account name.\n");
+                                return;
+                            }
+                            
+                            if ( accountManager.Accounts.Any(x => x.name.ToLower() == input.ToLower()))
+                            {
+                                MessageBox(MessageKind.Error, "Account with this name already exists.\n");
+                                return;
+                            }
+                            
                             if (result == PromptResult.Success)
                             {
                                 account.name = input;
@@ -2441,7 +2454,8 @@ namespace Poltergeist
 
             style.fontSize -= VerticalLayout ? 0 : 4;
             var value = accountManager.GetTokenWorth(balance.Symbol, balance.Available);
-            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{MoneyFormat(balance.Available)} {balance.Symbol}" + (value == null ? "" : $" ({value})"));
+            var balanceFormat = $"{MoneyFormat(balance.Available)}";
+            GUI.Label(new Rect(posX, posY, rect.width - posX, Units(2)), $"{balanceFormat} {balance.Symbol}" + (value == null ? "" : $" ({value})"));
             style.fontSize += VerticalLayout ? 0 : 4;
 
             var subRect = new Rect(posX, posY + Units(1) + 4, Units(20), Units(2));
@@ -3552,6 +3566,7 @@ namespace Poltergeist
             {
                 accountManager.RefreshHistory(false, accountManager.CurrentPlatform);
             });
+            
             var endY = DoBottomMenu();
 
             if (accountManager.HistoryRefreshing)
@@ -3583,8 +3598,6 @@ namespace Poltergeist
             {
                 DrawCenteredText($"No transactions found for this {accountManager.CurrentPlatform} account.");
             }
-
-            DoBottomMenu();
         }
 
         private void DoHistoryEntry(HistoryEntry entry, int index, int curY, Rect rect)
@@ -3624,7 +3637,6 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
 
             var startY = DrawPlatformTopMenu(null);
-            var endY = DoBottomMenu();
 
             int curY = startY;
 
@@ -3650,8 +3662,6 @@ namespace Poltergeist
                 curY += qrResolution;
                 curY += Units(1);
             }
-
-            curY = endY - Units(3);
 
             int btnOffset = Units(4);
 
@@ -3825,7 +3835,9 @@ namespace Poltergeist
 
                                                         ShowModal("Message",
                                                             $"The account was migrated.\n{(string.IsNullOrEmpty(deletedDuplicateWallet) ? "" : $"\nDuplicate account '{deletedDuplicateWallet}' was deleted.\n")}If you haven't stored old account's WIF yet, please do it now.\n\nOld WIF: {oldWif}",
-                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (_, input) => { });
+                                                            ModalState.Message, 0, 0, ModalOkCopy, 0, (_, input) =>
+                                                            {
+                                                            });
                                                     }
                                                     else
                                                     {
@@ -5499,15 +5511,16 @@ namespace Poltergeist
                                  var source = Address.FromText(state.address);
 
                                  var decimals = Tokens.GetTokenDecimals(feeSymbol, accountManager.CurrentPlatform);
+                                 var decimalsSwap = Tokens.GetTokenDecimals(swapSymbol, accountManager.CurrentPlatform);
 
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")
                                  {
-                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimals));
+                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimalsSwap));
                                  }
                                  else
                                  {
-                                     sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(0.1m, decimals));
+                                     sb.CallContract("swap", "SwapReverse", source, swapSymbol, feeSymbol, UnitConversion.ToBigInteger(1m, decimals));
                                  }
                                  sb.AllowGas(source, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit);
                                  sb.SpendGas(source);
