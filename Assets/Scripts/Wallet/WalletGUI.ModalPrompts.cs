@@ -41,6 +41,8 @@ namespace Poltergeist
 
         private Texture2D _promptPicture;
 
+        
+
         private void ShowModal(string title, string caption, ModalState state, int minInputLength, int maxInputLength, string[] options, int multiLine, Action<PromptResult, string> callback, int confirmDelay = 0, string defaultValue = "")
         {
             if (modalState == ModalState.None)
@@ -131,6 +133,23 @@ namespace Poltergeist
             {
                 callback?.Invoke();
             });
+        }
+        
+        public void ShowUpdateModal(string title, string caption, Action callback = null)
+        {
+            ShowModal( title,  caption,  ModalState.Message, 0, 0, ModalOkView, 2,  (result, input) =>
+                {
+                    Debug.Log("Update modal result: " + result + ", input: " + input + ", callback: " + callback);
+                    if (result == PromptResult.Failure)
+                    {
+                        Application.OpenURL(UpdateChecker.UPDATE_URL);
+                    }
+                    
+                    if (result == PromptResult.Success)
+                    {
+                        callback?.Invoke();
+                    }
+                });
         }
 
         public void TxResultMessage(Hash hash, string error, string successCustomMessage = null, string failureCustomMessage = null)

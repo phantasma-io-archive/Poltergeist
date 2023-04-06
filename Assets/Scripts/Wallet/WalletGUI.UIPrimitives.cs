@@ -195,6 +195,12 @@ namespace Poltergeist
                     if (modalOptions == ModalOkCopy)
                     {
                         AudioManager.Instance.PlaySFX("click");
+                        var wifText = modalCaption;
+                        if (modalCaption.Contains("The account was migrated."))
+                        {
+                            modalCaption = modalCaption.Split(":")[1];
+                        }
+                       
                         GUIUtility.systemCopyBuffer = modalCaption;
                     }
                     else if(modalOptions == ModalHexWif ||
