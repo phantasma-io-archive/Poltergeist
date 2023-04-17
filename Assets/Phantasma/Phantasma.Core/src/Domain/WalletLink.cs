@@ -133,7 +133,7 @@ namespace Phantasma.Core.Domain
 
         protected abstract void Authorize(string dapp, string token, int version, Action<bool, string> callback);
 
-        protected abstract void GetAccount(string platform, Action<Account, string> callback);
+        protected abstract void GetAccount(string platform, int version, Action<Account, string> callback);
 
         protected abstract void GetPeer(Action<string> callback);
 
@@ -260,7 +260,7 @@ namespace Phantasma.Core.Domain
                 platform = "phantasma";
             }
 
-            GetAccount(platform, (account, error) => {
+            GetAccount(platform, connection.Version, (account, error) => {
                 if (error == null)
                 {
                     success = true;
