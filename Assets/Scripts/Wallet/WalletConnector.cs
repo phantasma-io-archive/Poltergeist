@@ -103,7 +103,7 @@ namespace Poltergeist
             
         }
 
-        protected override void GetAccount(string platform, Action<Account, string> callback)
+        protected override void GetAccount(string platform, int version, Action<Account, string> callback)
         {
             var targetPlatform = RequestPlatform(platform);
             if (targetPlatform == PlatformKind.None)
@@ -124,32 +124,45 @@ namespace Poltergeist
 
             var state = accountManager.CurrentState;
 
-            if (state != null)
+            if (state == null)
             {
+                callback(new Account(), "not logged in, devs should implement this case!");
+                return;
+            }
 
-                var balances = state.balances.Select(x => new Balance()
+            IEnumerable<Balance> balances;
+
+            if (version >= 3)
+            {
+                balances = state.balances.Select(x => new Balance()
                 {
                     symbol = x.Symbol,
                     value = UnitConversion.ToBigInteger(x.Available, x.Decimals).ToString(),
                     decimals = x.Decimals,
                     ids = x.Ids
                 });
-
-                callback(new Account()
-                {                    
-                    name = account.name,
-                    alias = account.name,
-                    address = AccountManager.Instance.MainState.address,
-                    balances = balances.ToArray(),
-                    avatar = state.avatarData,
-                    platform = platform,
-                    external = targetPlatform != PlatformKind.Phantasma ? state.address : ""
-                }, null);
-
-                return;
             }
+            else
+            {
+                balances = state.balances.Select(x => new Balance()
+                {
+                    symbol = x.Symbol,
+                    value = UnitConversion.ToBigInteger(x.Available, x.Decimals).ToString(),
+                    decimals = x.Decimals
+                });
+            }
+            
+            callback(new Account()
+            {                    
+                name = account.name,
+                alias = account.name,
+                address = AccountManager.Instance.MainState.address,
+                balances = balances.ToArray(),
+                avatar = state.avatarData,
+                platform = platform,
+                external = targetPlatform != PlatformKind.Phantasma ? state.address : ""
+            }, null);
 
-            callback(new Account(), "not logged in, devs should implement this case!");
         }
 
         protected override void GetPeer(Action<string> callback)
