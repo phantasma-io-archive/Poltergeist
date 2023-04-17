@@ -37,6 +37,7 @@ namespace Phantasma.Core.Domain
             public string symbol;
             public string value;
             public int decimals;
+            public string[] ids;
         }
 
         public struct File: IAPIResult

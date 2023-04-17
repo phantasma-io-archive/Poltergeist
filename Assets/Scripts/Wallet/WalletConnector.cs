@@ -132,6 +132,7 @@ namespace Poltergeist
                     symbol = x.Symbol,
                     value = UnitConversion.ToBigInteger(x.Available, x.Decimals).ToString(),
                     decimals = x.Decimals,
+                    ids = x.Ids
                 });
 
                 callback(new Account()

@@ -3602,7 +3602,7 @@ namespace Poltergeist
                     // We swap some tokens into KCAL
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.Ethereum.ToString().ToLower(), PlatformKind.Ethereum.ToString().ToLower(), ethTxHash)
-                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(1m, DomainSettings.FuelTokenDecimals))
                         .AllowGas(transcodedAddress, Address.Null, phaGasPrice, phaGasLimit)
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
                         .SpendGas(transcodedAddress)
@@ -3653,7 +3653,7 @@ namespace Poltergeist
                     // We swap some tokens into KCAL
                     script = ScriptUtils.BeginScript()
                         .CallContract("interop", "SettleTransaction", transcodedAddress, PlatformKind.BSC.ToString().ToLower(), PlatformKind.BSC.ToString().ToLower(), ethTxHash)
-                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(0.1m, DomainSettings.FuelTokenDecimals))
+                        .CallContract("swap", "SwapFee", transcodedAddress, symbol, UnitConversion.ToBigInteger(1m, DomainSettings.FuelTokenDecimals))
                         .AllowGas(address, Address.Null, accountManager.Settings.feePrice, accountManager.Settings.feeLimit)
                         .TransferBalance(symbol, transcodedAddress, phantasmaKeys.Address)
                         .SpendGas(address)
