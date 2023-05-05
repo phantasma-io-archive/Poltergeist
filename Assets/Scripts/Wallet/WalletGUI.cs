@@ -5516,7 +5516,7 @@ namespace Poltergeist
                                  var sb = new ScriptBuilder();
                                  if (feeSymbol == "KCAL")
                                  {
-                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimalsSwap));
+                                     sb.CallContract("swap", "SwapFee", source, swapSymbol, UnitConversion.ToBigInteger(1m, decimals));
                                  }
                                  else
                                  {
