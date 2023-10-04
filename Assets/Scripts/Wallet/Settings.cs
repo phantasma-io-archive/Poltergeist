@@ -494,7 +494,7 @@ namespace Poltergeist
                     switch (ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "https://mainnet.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
+                                _return_value = "https://mainnet.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
                             break;
 
                         case EthereumNetwork.Goerli:

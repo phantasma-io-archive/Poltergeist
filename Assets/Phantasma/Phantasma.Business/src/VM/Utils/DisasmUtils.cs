@@ -109,6 +109,10 @@ namespace Phantasma.Business.VM.Utils
             table["storage.UploadFile"] = 7;
             table["storage.DeleteFile"] = 2;
             table["storage.SetForeignSpace"] = 2;
+            
+            table["Nexus.CreateOrganization"] = 4;
+            table["Organization.AddMember"] = 3;
+            table["Organization.RemoveMember"] = 3;
 
             // TODO add more here
             return table;

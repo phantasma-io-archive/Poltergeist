@@ -17,10 +17,17 @@ public static class Tokens
     {
         SupportedTokens.Clear();
     }
+    
     public static void AddTokens(Token[] tokens)
     {
         SupportedTokens.AddRange(tokens);
     }
+    
+    public static void AddToken(Token token)
+    {
+        SupportedTokens.Add(token);
+    }
+    
     public static void LoadFromText(string tokensJson, PlatformKind platform)
     {
         if (string.IsNullOrEmpty(tokensJson))
@@ -152,6 +159,44 @@ public static class Tokens
             Tokens.Reset();
 
             Tokens.AddTokens(mainnetTokens);
+            var flags = TokenFlags.Fungible | TokenFlags.Transferable | TokenFlags.Finite | TokenFlags.Swappable | TokenFlags.Burnable;
+            var token = new Token
+            {
+                address = "149Eb82884e8F42f5C2EDDc8dfD302BbbaB395eF",
+                symbol = "SOUL",
+                name = "Phantasma Stake",
+                decimals = 8,
+                apiSymbol = "SOUL",
+                flags =  flags.ToString(),
+                external = new TokenPlatform[]
+                {
+                    new TokenPlatform
+                    {
+                        hash = "149Eb82884e8F42f5C2EDDc8dfD302BbbaB395eF",
+                        platform = "ethereum"
+                    }
+                }
+            };
+                            
+            var token2 = new Token
+            {
+                address = "0x0000000",
+                symbol = "ETH",
+                name = "Ethereum",
+                decimals = 18,
+                apiSymbol = "ETH",
+                flags = flags.ToString(),
+                external = new TokenPlatform[]
+                {
+                    new TokenPlatform
+                    {
+                        hash = "",
+                        platform = "ethereum"
+                    }
+                }
+            };
+            Tokens.AddToken(token);
+            Tokens.AddToken(token2);
 
             // TODO remove after mainnet fix.
             // Fix for incorrect hash returned by BP.
