@@ -2057,7 +2057,8 @@ namespace Poltergeist
 
                         case PlatformKind.Neo:
                         {
-                            var keys = NeoKeys.FromWIF(wif);
+                            ReportWalletBalance(platform, null);
+                            /*var keys = NeoKeys.FromWIF(wif);
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
@@ -2190,7 +2191,7 @@ namespace Poltergeist
                                         }
                                     });
 
-                                }));
+                                }));*/
                         }
                             break;
 
