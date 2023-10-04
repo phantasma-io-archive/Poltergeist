@@ -13,6 +13,7 @@ namespace Phantasma.Core.Domain
         Closed,
         Ready
     }
+    
     public abstract class WalletLink
     {
         public const int WebSocketPort = 7090;

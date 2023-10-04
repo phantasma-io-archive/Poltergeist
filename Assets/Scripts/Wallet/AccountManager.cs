@@ -21,230 +21,6 @@ using Phantasma.Core;
 
 namespace Poltergeist
 {
-    public enum WalletState
-    {
-        Refreshing,
-        Ready,
-        Error
-    }
-
-    [Flags]
-    public enum PlatformKind
-    {
-        None = 0x0,
-        Phantasma = 0x1,
-        Neo = 0x2,
-        Ethereum = 0x4,
-        BSC = 0x8,
-    }
-
-    public struct Account
-    {
-        public string name;
-        public PlatformKind platforms;
-        public string phaAddress;
-        public string neoAddress;
-        public string ethAddress;
-        public string WIF;
-        public bool passwordProtected;
-        public int passwordIterations;
-        public string salt;
-        public string iv;
-        public string password; // Not used after account upgrade to version 2.
-        public string misc;
-
-        public override string ToString()
-        {
-            return $"{name.ToUpper()} [{platforms}]";
-        }
-
-        public string GetWif(string passwordHash)
-        {
-            return String.IsNullOrEmpty(passwordHash) ? WIF : AccountManager.DecryptString(WIF, passwordHash, iv);
-        }
-    }
-
-    public struct AccountLegacyV1
-    {
-        public static readonly int MinPasswordLength = 6;
-        public static readonly int MaxPasswordLength = 32;
-
-        public string name;
-        public PlatformKind platforms;
-        public string WIF;
-        public string password;
-        public string misc;
-
-        public override string ToString()
-        {
-            return $"{name.ToUpper()} [{platforms}]";
-        }
-    }
-
-    public struct AccountsExport
-    {
-        public string walletIdentifier;
-        public int accountsVersion;
-        public string accounts;
-        public bool passwordProtected;
-        public int passwordIterations;
-        public string salt;
-        public string iv;
-    }
-
-    public struct HistoryEntry
-    {
-        public string hash;
-        public DateTime date;
-        public string url;
-    }
-
-    public enum AccountFlags
-    {
-        None = 0x0,
-        Master = 0x1,
-        Validator = 0x2
-    }
-
-    public static class AccountFlagsExtensions
-    {
-        public static List<PlatformKind> Split(this PlatformKind kind)
-        {
-            var list = new List<PlatformKind>();
-            foreach (var platform in AccountManager.AvailablePlatforms)
-            {
-                if (kind.HasFlag(platform))
-                {
-                    list.Add(platform);
-                }
-            }
-            return list;
-        }
-
-        public static PlatformKind GetTransferTargets(this PlatformKind kind, Token token)
-        {
-            if (!token.IsSwappable())
-            {
-                return kind;
-            }
-
-            PlatformKind targets;
-
-            switch (kind)
-            {
-                case PlatformKind.Phantasma:
-                    targets = PlatformKind.Phantasma;
-                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Neo) ? PlatformKind.Neo : PlatformKind.None;
-                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Ethereum) ? PlatformKind.Ethereum : PlatformKind.None;
-                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.BSC) ? PlatformKind.BSC : PlatformKind.None;
-                    return targets;
-
-                case PlatformKind.Neo:
-                    targets = PlatformKind.Neo;
-                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
-                    return targets;
-
-                case PlatformKind.Ethereum:
-                    targets = PlatformKind.Ethereum;
-                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
-                    return targets;
-
-                case PlatformKind.BSC:
-                    targets = PlatformKind.BSC;
-                    targets |= Tokens.HasSwappableToken(token.symbol, PlatformKind.Phantasma) ? PlatformKind.Phantasma : PlatformKind.None;
-                    return targets;
-
-                default:
-                    return PlatformKind.None;
-            }
-        }
-        public static bool ValidateTransferTarget(this PlatformKind kind, Token token, PlatformKind targetKind)
-        {
-            var targets = kind.GetTransferTargets(token);
-            return targets.HasFlag(targetKind);
-        }
-    }
-
-    public struct TransferRequest
-    {
-        public PlatformKind platform;
-        public string destination;
-        public string symbol;
-        public decimal amount;
-        public string interop;
-    }
-
-    public class AccountState
-    {
-        public PlatformKind platform;
-        public string name;
-        public string address;
-        public Balance[] balances;
-        public AccountFlags flags;
-        public Timestamp stakeTime;
-
-        public Archive[] archives;
-        public string avatarData;
-        public uint availableStorage;
-        public uint usedStorage;
-        public uint totalStorage => availableStorage + usedStorage;
-
-        public Dictionary<string, string> dappTokens = new Dictionary<string, string>();
-
-        public decimal GetAvailableAmount(string symbol)
-        {
-            for (int i = 0; i < balances.Length; i++)
-            {
-                var entry = balances[i];
-                if (entry.Symbol == symbol)
-                {
-                    return entry.Available;
-                }
-            }
-
-            return 0;
-        }
-
-        public void RegisterDappToken(string dapp, string token)
-        {
-            dappTokens[dapp] = token;
-        }
-    }
-
-    public class Balance
-    {
-        public string Symbol;
-        public decimal Available;
-        public decimal Staked;
-        public decimal Pending;
-        public decimal Claimable;
-        public string Chain;
-        public int Decimals;
-        public bool Burnable;
-        public bool Fungible;
-        public string PendingPlatform;
-        public string PendingHash;
-        public string[] Ids;
-
-        public decimal Total => Available + Staked + Pending + Claimable;
-    }
-
-    public class RefreshStatus
-    {
-        // Balance
-        public bool BalanceRefreshing;
-        public DateTime LastBalanceRefresh;
-        public Action BalanceRefreshCallback;
-        // History
-        public bool HistoryRefreshing;
-        public DateTime LastHistoryRefresh;
-
-        public override string ToString()
-        {
-            return $"BalanceRefreshing: {BalanceRefreshing}, LastBalanceRefresh: {LastBalanceRefresh}, HistoryRefreshing: {HistoryRefreshing}, LastHistoryRefresh: {LastHistoryRefresh}";
-        }
-    }
-
     public class AccountManager : MonoBehaviour
     {
         public static readonly int MinPasswordLength = 6;
@@ -2281,7 +2057,8 @@ namespace Poltergeist
 
                         case PlatformKind.Neo:
                         {
-                            var keys = NeoKeys.FromWIF(wif);
+                            ReportWalletBalance(platform, null);
+                            /*var keys = NeoKeys.FromWIF(wif);
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");
 
@@ -2414,14 +2191,13 @@ namespace Poltergeist
                                         }
                                     });
 
-                                }));
+                                }));*/
                         }
                             break;
 
                         case PlatformKind.Ethereum:
                         {
                             var keys = EthereumKey.FromWIF(wif);
-
                             var ethTokens = Tokens.GetTokens(PlatformKind.Ethereum);
                             var balances = new List<Balance>();
 
@@ -2430,8 +2206,7 @@ namespace Poltergeist
                                 var balanceMap = new Dictionary<string, Balance>();
                                 foreach (var ethToken in ethTokens)
                                 {
-                                    var tokenBalance = balances
-                                        .Where(x => x.Symbol.ToUpper() == ethToken.symbol.ToUpper()).SingleOrDefault();
+                                    var tokenBalance = balances.Where(x => x.Symbol.ToUpper() == ethToken.symbol.ToUpper()).SingleOrDefault();
                                     if (tokenBalance != null)
                                         balanceMap[tokenBalance.Symbol] = tokenBalance;
                                 }

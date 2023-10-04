@@ -396,15 +396,15 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            _return_value = "http://pharpc1.phantasma.io:7077/rpc";
+                            _return_value = "https://pharpc1.phantasma.io/rpc";
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://testnet.phantasma.io:5101/rpc";
+                            _return_value = "https://testnet.phantasma.io/rpc";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
-                            _return_value = "http://mankinitest.phantasma.io:7077/rpc";
+                            _return_value = "https://mankinitest.phantasma.io/rpc";
                             break;
 
                         case NexusKind.Local_Net:
@@ -412,7 +412,7 @@ namespace Poltergeist
                             break;
 
                         default:
-                            _return_value = "http://pharpc1.phantasma.io:7077/rpc";
+                            _return_value = "https://pharpc1.phantasma.io/rpc";
                             break;
                     }
                     break;
@@ -494,7 +494,7 @@ namespace Poltergeist
                     switch (ethereumNetwork)
                     {
                         case EthereumNetwork.Main_Net:
-                            _return_value = "https://mainnet.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
+                                _return_value = "https://mainnet.infura.io/v3/9593a317786f4a498f4698e2983bd7dc";
                             break;
 
                         case EthereumNetwork.Goerli:
