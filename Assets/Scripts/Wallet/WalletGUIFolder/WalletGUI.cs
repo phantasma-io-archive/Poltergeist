@@ -2845,8 +2845,8 @@ namespace Poltergeist
                         }
 
                     default:
-                        {
-                            if (Tokens.GetToken(balance.Symbol, accountManager.CurrentPlatform, out var token))
+                    {
+                            if (Tokens.GetToken(balance.Symbol, accountManager.CurrentPlatform, out var token)) 
                             {
                                 if (!token.IsFungible())
                                 {

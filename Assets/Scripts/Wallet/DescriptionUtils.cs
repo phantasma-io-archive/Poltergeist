@@ -481,6 +481,34 @@ namespace Poltergeist
                             break;
                         }
 
+                    case "Nexus.CreateOrganization":
+                    {
+                        var address = GetStringArg(entry, 0);
+                        var id = GetStringArg(entry, 1);
+                        var name = GetStringArg(entry, 2);
+                        var _script = GetByteArrayArg(entry, 3);
+                        sb.AppendLine($"\u2605 {address} -> Create Organization '{id}' with name '{name}', with script: {_script}.");
+                        break;
+                    }
+                    
+                    case "Organization.AddMember":
+                    {
+                        var address = GetStringArg(entry, 0);
+                        var org_id = GetStringArg(entry, 1);
+                        var target = GetStringArg(entry, 2);
+                        sb.AppendLine($"\u2605 {address} -> Adding {target} to Organization '{org_id}'.");
+                        break;
+                    }
+                    
+                    case "Organization.RemoveMember":
+                    {
+                        var address = GetStringArg(entry, 0);
+                        var org_id = GetStringArg(entry, 1);
+                        var target = GetStringArg(entry, 2);
+                        sb.AppendLine($"\u2605 {address} -> Removing {target} from Organization '{org_id}'.");
+                        break;
+                    }
+
                     case "GHOST.getLockedContent":
                             {
                                 var nftSymbol = GetStringArg(entry, 0);

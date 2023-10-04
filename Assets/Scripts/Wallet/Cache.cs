@@ -11,6 +11,7 @@ public static class Cache
         JSON,
         PNG
     }
+    
     private static string FolderPath;
     private static string ImageFolderPath;
     private static string FilePath;

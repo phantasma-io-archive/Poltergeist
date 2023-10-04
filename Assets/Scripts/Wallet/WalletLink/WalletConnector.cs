@@ -415,7 +415,7 @@ namespace Poltergeist
                         if (description == null)
                         {
                             Log.Write("Error during description parsing.\nDetails: " + error);
-                            description = "Could not decode transaction contents.";
+                            //description = "Could not decode transaction contents. (Not an error)";
                         }
 
                         WalletGUI.Instance.Prompt("Allow dapp to send a transaction on your behalf?\n" + description, (success) =>
