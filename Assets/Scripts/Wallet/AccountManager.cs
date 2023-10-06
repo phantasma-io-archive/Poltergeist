@@ -127,7 +127,7 @@ namespace Poltergeist
 
             var platforms = new List<PlatformKind>();
             platforms.Add(PlatformKind.Phantasma);
-            platforms.Add(PlatformKind.Neo);
+            //platforms.Add(PlatformKind.Neo);
             platforms.Add(PlatformKind.Ethereum);
             platforms.Add(PlatformKind.BSC);
 
@@ -2786,7 +2786,7 @@ namespace Poltergeist
 
                     case PlatformKind.Neo:
                         {
-                            var keys = NeoKeys.FromWIF(wif);
+                            /*var keys = NeoKeys.FromWIF(wif);
                             var url = GetNeoscanAPIUrl($"get_address_abstracts/{keys.Address}/1");
 
                             StartCoroutine(WebClient.RESTRequest(url, WebClient.DefaultTimeout, (error, msg) =>
@@ -2819,7 +2819,7 @@ namespace Poltergeist
                                 }
 
                                 ReportWalletHistory(platform, history);
-                            }));
+                            }));*/
                         }
                         break;
 
