@@ -23,6 +23,11 @@ namespace Poltergeist
 
         public decimal GetAvailableAmount(string symbol)
         {
+            if (balances == null)
+            {
+                return 0;
+            }
+            
             for (int i = 0; i < balances.Length; i++)
             {
                 var entry = balances[i];
