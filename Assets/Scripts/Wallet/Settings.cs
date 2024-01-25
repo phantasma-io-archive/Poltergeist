@@ -396,11 +396,11 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            _return_value = "https://pharpc1.phantasma.io/rpc";
+                            _return_value = "https://pharpc1.phantasma.info/rpc";
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "https://testnet.phantasma.io/rpc";
+                            _return_value = "https://testnet.phantasma.info/rpc";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
@@ -412,7 +412,7 @@ namespace Poltergeist
                             break;
 
                         default:
-                            _return_value = "https://pharpc1.phantasma.io/rpc";
+                            _return_value = "https://pharpc1.phantasma.info/rpc";
                             break;
                     }
                     break;
@@ -421,11 +421,11 @@ namespace Poltergeist
                     switch (nexusKind)
                     {
                         case NexusKind.Main_Net:
-                            _return_value = "https://explorer.phantasma.io";
+                            _return_value = "https://explorer.phantasma.info";
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "https://test-explorer.phantasma.io/";
+                            _return_value = "https://test-explorer.phantasma.info/";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
@@ -437,7 +437,7 @@ namespace Poltergeist
                             break;
 
                         default:
-                            _return_value = "https://explorer.phantasma.io";
+                            _return_value = "https://explorer.phantasma.info";
                             break;
                     }
                     break;
@@ -477,15 +477,15 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://mankinighost.phantasma.io:30333";
+                            _return_value = "http://mankinighost.phantasma.info:30333";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
-                            _return_value = "http://mankinighost.phantasma.io:30333";
+                            _return_value = "http://mankinighost.phantasma.info:30333";
                             break;
 
                         default:
-                            _return_value = "http://mankinighost.phantasma.io:30333";
+                            _return_value = "http://mankinighost.phantasma.info:30333";
                             break;
                     }
                     break;
@@ -502,7 +502,7 @@ namespace Poltergeist
                             break;
 
                         case EthereumNetwork.Local_Net:
-                            _return_value = "http://mankinieth.phantasma.io:7545/";
+                            _return_value = "http://mankinieth.phantasma.info:7545/";
                             break;
 
                         default:
@@ -548,15 +548,15 @@ namespace Poltergeist
                             break;
 
                         case NexusKind.Test_Net:
-                            _return_value = "http://mankinighost.phantasma.io:4000";
+                            _return_value = "http://mankinighost.phantasma.info:4000";
                             break;
 
                         case NexusKind.Mankini_Test_Net:
-                            _return_value = "http://mankinighost.phantasma.io:4000";
+                            _return_value = "http://mankinighost.phantasma.info:4000";
                             break;
 
                         default:
-                            _return_value = "http://mankinighost.phantasma.io:4000";
+                            _return_value = "http://mankinighost.phantasma.info:4000";
                             break;
                     }
                     break;

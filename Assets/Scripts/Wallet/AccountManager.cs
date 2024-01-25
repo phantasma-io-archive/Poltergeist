@@ -127,7 +127,7 @@ namespace Poltergeist
 
             var platforms = new List<PlatformKind>();
             platforms.Add(PlatformKind.Phantasma);
-            //platforms.Add(PlatformKind.Neo);
+            platforms.Add(PlatformKind.Neo);
             platforms.Add(PlatformKind.Ethereum);
             platforms.Add(PlatformKind.BSC);
 
@@ -271,11 +271,11 @@ namespace Poltergeist
                 string url;
                 if(Settings.nexusKind == NexusKind.Main_Net)
                 {
-                    url = $"https://peers.phantasma.io/mainnet-getpeers.json";
+                    url = $"https://peers.phantasma.info/mainnet-getpeers.json";
                 }
                 else
                 {
-                    url = $"https://peers.phantasma.io/testnet-getpeers.json";
+                    url = $"https://peers.phantasma.info/testnet-getpeers.json";
                 }
 
                 rpcBenchmarkedPhantasma = 0;
@@ -1568,6 +1568,26 @@ namespace Poltergeist
                 platforms.Add(PlatformKind.BSC);
             }
 
+            if (!platforms.Contains(PlatformKind.Neo))
+            {
+                var account = Accounts[_selectedAccountIndex];
+                account.platforms |= PlatformKind.Neo;
+                Accounts[_selectedAccountIndex] = account;
+
+                _states[PlatformKind.Neo] = new AccountState()
+                {
+                    platform = PlatformKind.Neo,
+                    address = GetAddress(CurrentIndex, PlatformKind.Neo),
+                    balances = new Balance[0],
+                    flags = AccountFlags.None,
+                    name = ValidationUtils.ANONYMOUS_NAME,
+                };
+                
+                SaveAccounts();
+                
+                platforms.Add(PlatformKind.Neo);
+            }
+
             CurrentPlatform = platforms.FirstOrDefault();
             _states.Clear();
 
@@ -2057,7 +2077,21 @@ namespace Poltergeist
 
                         case PlatformKind.Neo:
                         {
-                            ReportWalletBalance(platform, null);
+                            var keys = NeoKeys.FromWIF(wif);
+                            var state = new AccountState()
+                            {
+                                platform = platform,
+                                address = keys.Address,
+                                name = "Anonymous",
+                                balances = new Balance[0],
+                                flags = AccountFlags.None,
+                                archives = new Archive[0],
+                                avatarData = "",
+                                usedStorage = 0,
+                                availableStorage = 0,
+                                stakeTime = 0,
+                            };
+                            ReportWalletBalance(platform, state);
                             /*var keys = NeoKeys.FromWIF(wif);
 
                             var url = GetNeoscanAPIUrl($"get_balance/{keys.Address}");

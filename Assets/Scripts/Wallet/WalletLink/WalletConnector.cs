@@ -11,7 +11,9 @@ using Phantasma.Core.Domain;
 using Phantasma.Core.Numerics;
 using Phantasma.Core.Utils;
 using Phantasma.SDK;
+using Poltergeist.Neo2.Core;
 using Poltergeist.PhantasmaLegacy.Ethereum;
+using UnityEngine.Device;
 
 namespace Poltergeist
 {
@@ -144,6 +146,11 @@ namespace Poltergeist
             }
             else
             {
+                if (state.balances == null)
+                {
+                    state.balances = new Poltergeist.Balance[0];
+                }
+                
                 balances = state.balances.Select(x => new Balance()
                 {
                     symbol = x.Symbol,
@@ -174,7 +181,14 @@ namespace Poltergeist
         {
             callback(AccountManager.Instance.Settings.nexusName);
         }
-        
+
+        protected override void GetWalletVersion(Action<string> callback)
+        {
+            callback(Application.version.StartsWith("v")
+                ? Application.version.Substring(1)
+                : Application.version);
+        }
+
 
         protected override void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback)
         {
@@ -451,7 +465,7 @@ namespace Poltergeist
             var accountManager = AccountManager.Instance;
 
             var targetPlatform = RequestPlatform(platform);
-            if (targetPlatform == PlatformKind.None || targetPlatform == PlatformKind.Neo)
+            if (targetPlatform == PlatformKind.None)
             {
                 callback(null, null, "Unsupported platform: " + platform);
                 return;
@@ -484,18 +498,29 @@ namespace Poltergeist
                         Phantasma.Core.Cryptography.Signature signature;
 
                         var wif = account.GetWif(AccountManager.Instance.CurrentPasswordHash);
+                        var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
 
                         switch (kind)
                         {
                             case SignatureKind.Ed25519:
-                                var phantasmaKeys = PhantasmaKeys.FromWIF(wif);
                                 signature = phantasmaKeys.Sign(msg);
                                 break;
 
                             case SignatureKind.ECDSA:
-                                var ethKeys = EthereumKey.FromWIF(wif);
-                                var signatureBytes = Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, ECDsaCurve.Secp256k1);
-                                signature = new ECDsaSignature(signatureBytes, ECDsaCurve.Secp256k1);
+
+                                if ( targetPlatform == PlatformKind.Ethereum || targetPlatform == PlatformKind.BSC)
+                                {
+                                    var ethKeys = EthereumKey.FromWIF(wif);
+                                
+                                    var signatureBytes = Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(msg, ethKeys.PrivateKey, ethKeys.PublicKey, ECDsaCurve.Secp256k1);
+                                    signature = new ECDsaSignature(signatureBytes, ECDsaCurve.Secp256k1);
+                                }
+                                else
+                                {
+                                    var neoKeys = NeoKeys.FromWIF(wif);
+                                    var signatureBytes = Poltergeist.PhantasmaLegacy.Cryptography.CryptoUtils.Sign(msg, neoKeys.PrivateKey, neoKeys.CompressedPublicKey, ECDsaCurve.Secp256k1);
+                                    signature = new ECDsaSignature(signatureBytes, ECDsaCurve.Secp256k1);
+                                }
                                 break;
 
                             default:
