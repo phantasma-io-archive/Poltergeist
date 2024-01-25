@@ -2386,6 +2386,7 @@ namespace Poltergeist
             {
                 accountManager.RefreshBalances(false, accountManager.CurrentPlatform);
             });
+            
             var endY = DoBottomMenu();
 
             if (accountManager.BalanceRefreshing)
@@ -2410,6 +2411,12 @@ namespace Poltergeist
 
             decimal feeBalance = state.GetAvailableAmount("KCAL");
 
+            if (state.balances == null)
+            {
+                DrawCenteredText($"No assets found in this {accountManager.CurrentPlatform} account.");
+                return;
+            }
+            
             var balanceCount = DoScrollArea<Balance>(ref balanceScroll, startY, endY, VerticalLayout ? Units(7) : Units(6), state.balances.Where(x => x.Total >= 0.001m),
                 DoBalanceEntry);
 

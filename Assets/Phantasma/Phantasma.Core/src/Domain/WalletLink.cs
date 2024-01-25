@@ -83,6 +83,21 @@ namespace Phantasma.Core.Domain
             public string signature;
             public string random;
         }
+        
+        public struct Peer : IAPIResult
+        {
+            public string peer;
+        }
+        
+        public struct NexusResult : IAPIResult
+        {
+            public string nexus;
+        }
+        
+        public struct WalletVersion : IAPIResult
+        {
+            public string version;
+        }
 
         public class Connection
         {
@@ -139,7 +154,9 @@ namespace Phantasma.Core.Domain
         protected abstract void GetPeer(Action<string> callback);
 
         protected abstract void GetNexus(Action<string> callback);
-
+        
+        protected abstract void GetWalletVersion(Action<string> callback);
+        
         protected abstract void InvokeScript(string chain, byte[] script, int id, Action<string[], string> callback);
 
         // NOTE for security, signData should not be usable as a way of signing transaction. That way the wallet is responsible for appending random bytes to the message, and return those in callback
@@ -278,13 +295,37 @@ namespace Phantasma.Core.Domain
         }
         #endregion
         
+        #region Nexus
+
+        private void HandleGetNexus(string[] args, Connection connection, int id, Action<int, DataNode, bool> callback)
+        {
+            DataNode answer;
+            bool success = false;
+
+            if (args.Length > 1)
+            {
+                answer = APIUtils.FromAPIResult(new Error() { message = $"getNexus: Invalid amount of arguments: {args.Length}" });
+                callback(id, answer, success);
+                _isPendingRequest = false;
+                return;
+            }
+
+            GetNexus((nexus) => {
+                success = true;
+                answer = APIUtils.FromAPIResult(new NexusResult { nexus = nexus });
+                callback(id, answer, success);
+                _isPendingRequest = false;
+            });
+        }
+        #endregion
+        
         #region Peer
         private void HandleGetPeer(string[] args, Connection connection, int id, Action<int, DataNode, bool> callback)
         {
             DataNode answer;
             bool success = false;
 
-            if (args.Length != 0)
+            if (args.Length > 1)
             {
                 answer = APIUtils.FromAPIResult(new Error() { message = $"getPeer: Invalid amount of arguments: {args.Length}" });
                 callback(id, answer, success);
@@ -294,16 +335,36 @@ namespace Phantasma.Core.Domain
 
             GetPeer((peer) => {
                 success = true;
-                SingleResult result;
-                result.value = peer;
-                answer = APIUtils.FromAPIResult(result);
-
+                answer = APIUtils.FromAPIResult(new Peer() { peer = peer });
                 callback(id, answer, success);
                 _isPendingRequest = false;
             });
         }
         #endregion
 
+        #region Wallet Version
+        private void HandleGetWalletVersion(string[] args, Connection connection, int id, Action<int, DataNode, bool> callback)
+        {
+            DataNode answer;
+            bool success = false;
+
+            if (args.Length > 1)
+            {
+                answer = APIUtils.FromAPIResult(new Error() { message = $"getWalletVersion: Invalid amount of arguments: {args.Length}" });
+                callback(id, answer, success);
+                _isPendingRequest = false;
+                return;
+            }
+
+            GetWalletVersion((version) => {
+                success = true;
+                answer = APIUtils.FromAPIResult(new WalletVersion() { version = version });
+                callback(id, answer, success);
+                _isPendingRequest = false;
+            });
+        }
+        #endregion
+        
         #region Sign Data
 
         private void HandleSignData(string[] args, Connection connection, int id, Action<int, DataNode, bool> callback)
@@ -786,6 +847,12 @@ namespace Phantasma.Core.Domain
                     HandleGetPeer(args, connection, id, callback);
                     return;
                 }
+                
+                case "getWalletVersion":
+                {
+                    HandleGetWalletVersion(args, connection, id, callback);
+                    return;
+                }
 
                 case "signData":
                 {
@@ -814,6 +881,12 @@ namespace Phantasma.Core.Domain
                 case "invokeScript":
                 {
                     HandleInvokeRawScript(args, connection, id, callback);
+                    return;
+                }
+
+                case "getNexus":
+                {
+                    HandleGetNexus(args, connection, id, callback);
                     return;
                 }
 
