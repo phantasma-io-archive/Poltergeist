@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using System;
+using System.IO;
 using System.Linq;
 using Phantasma.SDK;
 using Poltergeist.Neo2.Core;
@@ -737,7 +738,6 @@ namespace Poltergeist
             var walletVersion = PlayerPrefs.GetInt(WalletVersionTag, 1);
 
             var wallets = PlayerPrefs.GetString(WalletTag, "");
-
             Accounts = new List<Account>();
 
             if (walletVersion == 1 && !string.IsNullOrEmpty(wallets))
@@ -808,7 +808,24 @@ namespace Poltergeist
             else if (!string.IsNullOrEmpty(wallets))
             {
                 var bytes = Base16.Decode(wallets);
-                Accounts = Serialization.Unserialize<Account[]>(bytes).ToList();
+                try
+                {
+                    List<Account >accountsTemp = new List<Account>();
+                    var reader = new BinaryReader(new MemoryStream(bytes));
+                    var size = reader.ReadVarInt();
+                    for (int i = 0; i < (int)size; i++)
+                    {
+                        var account = new Account();
+                        account.UnserializeData(reader);
+                        accountsTemp.Add(account);
+                    }
+
+                    Accounts = accountsTemp; //  = Serialization.Unserialize<Account[]>(bytes).ToList();
+                }
+                catch (Exception e)
+                {
+                    Log.WriteError("Error deserializing accounts: " + e);
+                }
             }
 
             if (walletVersion == 2)
@@ -830,8 +847,17 @@ namespace Poltergeist
         public void SaveAccounts()
         {
             PlayerPrefs.SetInt(WalletVersionTag, 3);
+            MemoryStream stream = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(stream);
+            Accounts.ForEach(acc => acc.version = 3);
 
-            var bytes = Serialization.Serialize(Accounts.ToArray());
+            writer.WriteVarInt(Accounts.Count);
+            foreach (var account in Accounts)
+            {
+                account.SerializeData(writer);
+            }
+
+            var bytes = stream.ToArray();//Serialization.Serialize(Accounts.ToArray());
             PlayerPrefs.SetString(WalletTag, Base16.Encode(bytes));
             PlayerPrefs.Save();
         }
@@ -1863,6 +1889,7 @@ namespace Poltergeist
                         {
                             var keys = PhantasmaKeys.FromWIF(wif);
                             var ethKeys = EthereumKey.FromWIF(wif);
+                            UpdateOpenAccount();
                             StartCoroutine(phantasmaApi.GetAccount(keys.Address.Text, (acc) =>
                                 {
                                     var balanceMap = new Dictionary<string, Balance>();
@@ -3236,6 +3263,7 @@ namespace Poltergeist
 
             var neoKeys = NeoKeys.FromWIF(wif);
             account.neoAddress = neoKeys.Address.ToString();
+            account.neoAddress = neoKeys.AddressN3.ToString();
 
             var ethereumAddressUtil = new Poltergeist.PhantasmaLegacy.Ethereum.Util.AddressUtil();
             account.ethAddress = ethereumAddressUtil.ConvertToChecksumAddress(EthereumKey.FromWIF(wif).Address);
@@ -3981,6 +4009,17 @@ namespace Poltergeist
                 }
 
             });
+        }
+
+        public void UpdateOpenAccount()
+        {
+            NeoKeys neoKeys = NeoKeys.FromWIF(CurrentWif);
+            var SelectedAccount = CurrentAccount;
+            SelectedAccount.neoAddressN3 = neoKeys.AddressN3;
+            SelectedAccount.neoAddress = neoKeys.Address;
+            SelectedAccount.version = 3;
+            Accounts[CurrentIndex] = SelectedAccount;
+            SaveAccounts();
         }
     }
 }

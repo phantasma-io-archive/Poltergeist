@@ -6,6 +6,7 @@ using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
+using Poltergeist.PhantasmaLegacy.Ethereum.Hex.HexConvertors.Extensions;
 
 namespace Phantasma.Core.Cryptography.ECDsa
 {
@@ -34,9 +35,26 @@ namespace Phantasma.Core.Cryptography.ECDsa
 
             var d = new BigInteger(1, privateKey);
             var q = dom.G.Multiply(d);
+            
 
             var publicParams = new ECPublicKeyParameters(q, dom);
             return publicParams.Q.GetEncoded(compressed);
+        }
+        
+        public static ECDomainParameters GetDomain(ECDsaCurve curve)
+        {
+            X9ECParameters ecCurve;
+            switch (curve)
+            {
+                case ECDsaCurve.Secp256k1:
+                    ecCurve = SecNamedCurves.GetByName("secp256k1");
+                    break;
+                default:
+                    ecCurve = SecNamedCurves.GetByName("secp256r1");
+                    break;
+            }
+
+            return new ECDomainParameters(ecCurve.Curve, ecCurve.G, ecCurve.N, ecCurve.H);
         }
 
         public static byte[] Sign(byte[] message, byte[] prikey, ECDsaCurve curve)

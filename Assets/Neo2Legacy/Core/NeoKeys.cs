@@ -1,11 +1,21 @@
 using Poltergeist.PhantasmaLegacy.Cryptography;
 using Poltergeist.PhantasmaLegacy.Neo2;
 using System;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
+using NBitcoin.DataEncoders;
 using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Math.EC;
 using Phantasma.Core.Cryptography.ECDsa;
 using Phantasma.Core.Cryptography;
+using Phantasma.Core.Numerics;
+using Phantasma.Core.Utils;
+using Poltergeist.Neo2.Utils;
+using UnityEngine;
+using ECCurve = System.Security.Cryptography.ECCurve;
+using ECPoint = System.Security.Cryptography.ECPoint;
 
 namespace Poltergeist.Neo2.Core
 {
@@ -16,28 +26,37 @@ namespace Poltergeist.Neo2.Core
         public readonly byte[] CompressedPublicKey;
         public readonly UInt160 PublicKeyHash;
         public readonly string Address;
+        public readonly string AddressN3;
         public readonly string WIF;
 
-        public readonly UInt160 signatureHash;
-        public readonly byte[] signatureScript;
+        public readonly UInt160 signatureHashN2;
+        public readonly UInt160 signatureHashN3;
+        public readonly byte[] signatureScriptN2;
+        public readonly byte[] signatureScriptN3;
 
         public NeoKeys(byte[] privateKey)
         {
             if (privateKey.Length != 32 && privateKey.Length != 96 && privateKey.Length != 104)
                 throw new ArgumentException();
             this.PrivateKey = new byte[32];
+            privateKey= privateKey[^32..];
             Buffer.BlockCopy(privateKey, privateKey.Length - 32, PrivateKey, 0, 32);
+            this.PrivateKey = privateKey[^32..];
 
-            this.CompressedPublicKey = ECDsa.GetPublicKey(privateKey, true, ECDsaCurve.Secp256r1);
-
+            this.CompressedPublicKey = ECDsa.GetPublicKey(this.PrivateKey, true, ECDsaCurve.Secp256r1);
+            
             this.PublicKeyHash = NeoUtils.ToScriptHash(this.CompressedPublicKey);
 
-            this.signatureScript = CreateSignatureScript(this.CompressedPublicKey);
-            signatureHash = NeoUtils.ToScriptHash(signatureScript);
-
-            this.PublicKey = ECDsa.GetPublicKey(privateKey, false, ECDsaCurve.Secp256r1).Skip(1).ToArray();
-
-            this.Address = NeoUtils.ToAddress(signatureHash);
+            this.signatureScriptN2 = CreateSignatureScript(this.CompressedPublicKey);
+            signatureHashN2 = NeoUtils.ToScriptHash(signatureScriptN2);
+            
+            this.signatureScriptN3 = CreateSignatureScriptN3(this.CompressedPublicKey);
+            signatureHashN3 = NeoUtils.ToScriptHash(signatureScriptN3);
+            
+            this.PublicKey = ECDsa.GetPublicKey(this.PrivateKey, false, ECDsaCurve.Secp256r1).Skip(1).ToArray();
+            
+            this.Address = NeoUtils.ToAddress(signatureHashN2);
+            this.AddressN3 = NeoUtils.ToAddressN3(signatureHashN3);
             this.WIF = GetWIF();
         }
 
@@ -104,6 +123,24 @@ namespace Poltergeist.Neo2.Core
             script[script.Length - 1] = (byte) OpCode.CHECKSIG;
 
             return  script;
+        }
+        
+        public static byte[] CreateSignatureScriptN3(byte[] bytes)
+        {
+            var sb = new ScriptBuilder();
+            sb.EmitPush(EncodePoint(bytes));
+            sb.Emit(OpCode.SYSCALL, BitConverter.GetBytes(666101590));
+            var endScript = sb.ToArray();
+
+            return endScript;
+        }
+
+        public static byte[] EncodePoint(byte[] bytes)
+        {
+            byte[] data = new byte[33];
+            Array.Copy(bytes, 0, data, 33 - bytes.Length, bytes.Length);
+            data[0] = (byte)0x03;
+            return data;
         }
       
         private string GetWIF()

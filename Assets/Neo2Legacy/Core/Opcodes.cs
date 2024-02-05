@@ -80,9 +80,9 @@ namespace Poltergeist.Neo2.Core
         PUSHBYTES73 = 0x49,
         PUSHBYTES74 = 0x4A,
         PUSHBYTES75 = 0x4B,
-        PUSHDATA1 = 0x4C, // The next byte contains the number of bytes to be pushed onto the stack.
-        PUSHDATA2 = 0x4D, // The next two bytes contain the number of bytes to be pushed onto the stack.
-        PUSHDATA4 = 0x4E, // The next four bytes contain the number of bytes to be pushed onto the stack.
+        PUSHDATA1 = 0x0C, // The next byte contains the number of bytes to be pushed onto the stack.
+        PUSHDATA2 = 0x0D, // The next two bytes contain the number of bytes to be pushed onto the stack.
+        PUSHDATA4 = 0x0E, // The next four bytes contain the number of bytes to be pushed onto the stack.
         PUSHM1 = 0x4F, // The number -1 is pushed onto the stack.
         PUSH1 = 0x51, // The number 1 is pushed onto the stack.
         PUSHT = PUSH1,
@@ -111,7 +111,7 @@ namespace Poltergeist.Neo2.Core
         CALL = 0x65,
         RET = 0x66,
         APPCALL = 0x67,
-        SYSCALL = 0x68,
+        SYSCALL = 0x41,
         TAILCALL = 0x69,
 
 

@@ -158,9 +158,9 @@ namespace Poltergeist
                     decimals = x.Decimals
                 });
             }
-            
-            callback(new Account()
-            {                    
+
+            var accountExport = new Account()
+            {
                 name = account.name,
                 alias = account.name,
                 address = AccountManager.Instance.MainState.address,
@@ -168,8 +168,14 @@ namespace Poltergeist
                 avatar = state.avatarData,
                 platform = platform,
                 external = targetPlatform != PlatformKind.Phantasma ? state.address : ""
-            }, null);
-
+            };
+            
+            if ( version == 3 && targetPlatform == PlatformKind.Neo)
+            {
+                accountExport.external = account.neoAddressN3;
+            }
+            
+            callback(accountExport, null);
         }
 
         protected override void GetPeer(Action<string> callback)
@@ -180,6 +186,11 @@ namespace Poltergeist
         protected override void GetNexus(Action<string> callback)
         {
             callback(AccountManager.Instance.Settings.nexusName);
+        }
+        
+        protected override void GetN3Address(Action<string> callback)
+        {
+            callback(AccountManager.Instance.CurrentAccount.neoAddressN3);
         }
 
         protected override void GetWalletVersion(Action<string> callback)
