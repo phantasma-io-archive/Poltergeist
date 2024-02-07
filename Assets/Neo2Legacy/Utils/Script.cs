@@ -55,12 +55,8 @@ namespace Poltergeist.Neo2.Utils
         {
             if (data == null)
                 throw new ArgumentNullException();
-            if (data.Length <= (int)OpCode.PUSHBYTES75)
-            {
-                ms.WriteByte((byte)data.Length);
-                ms.Write(data, 0, data.Length);
-            }
-            else if (data.Length < 0x100)
+            
+            if (data.Length < 0x100)
             {
                 Emit(OpCode.PUSHDATA1);
                 ms.WriteByte((byte)data.Length);
