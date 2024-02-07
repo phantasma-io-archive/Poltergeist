@@ -284,7 +284,7 @@ namespace Poltergeist.Neo2.Core
 
         public void GenerateInputsOutputs(Action<EPHANTASMA_SDK_ERROR_TYPE, string> errorHandlingCallback, UnspentEntries unspent, NeoKeys key, string symbol, IEnumerable<Transaction.Output> targets, out List<Transaction.Input> inputs, out List<Transaction.Output> outputs, decimal system_fee = 0, bool allowSameSourceAndDest = false)
         {
-            var from_script_hash = new UInt160(key.signatureHash.ToArray());
+            var from_script_hash = new UInt160(key.signatureScriptN2.ToArray());
             var info = GetAssetsInfo();
             var targetAssetID = NeoUtils.ReverseHex(info[symbol]).HexToBytes();
             if (targets != null)

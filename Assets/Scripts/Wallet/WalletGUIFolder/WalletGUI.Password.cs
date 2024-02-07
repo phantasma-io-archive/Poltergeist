@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using Phantasma.SDK;
 using Phantasma.Core.Cryptography;
+using Poltergeist.Neo2.Core;
 
 namespace Poltergeist
 {
@@ -24,6 +25,7 @@ namespace Poltergeist
                 if (PhantasmaKeys.FromWIF(wif).Address.ToString() == accountManager.CurrentAccount.phaAddress)
                 {
                     accountManager.CurrentPasswordHash = passwordHash;
+                    accountManager.UpdateOpenAccount();
                     callback(PromptResult.Success);
                 }
                 else

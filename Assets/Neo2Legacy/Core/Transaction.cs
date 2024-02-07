@@ -265,11 +265,11 @@ namespace Poltergeist.Neo2.Core
                 var signature = CryptoUtils.Sign(txdata, privkey, pubkey);
 
                 var invocationScript = new byte[] { (byte)OpCode.PUSHBYTES64 }.Concat(signature).ToArray();
-                var verificationScript = new byte[key.signatureScript.Length];
+                var verificationScript = new byte[key.signatureScriptN2.Length];
 
                 for (int i=0; i<verificationScript.Length; i++)
                 {
-                    verificationScript[i] = key.signatureScript[i];
+                    verificationScript[i] = key.signatureScriptN2[i];
                 }
 
                 witList.Add(new Witness() { invocationScript = invocationScript, verificationScript = verificationScript });

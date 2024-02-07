@@ -94,6 +94,11 @@ namespace Phantasma.Core.Domain
             public string nexus;
         }
         
+        public struct N3Address : IAPIResult
+        {
+            public string address;
+        }
+        
         public struct WalletVersion : IAPIResult
         {
             public string version;
@@ -154,6 +159,7 @@ namespace Phantasma.Core.Domain
         protected abstract void GetPeer(Action<string> callback);
 
         protected abstract void GetNexus(Action<string> callback);
+        protected abstract void GetN3Address(Action<string> callback);
         
         protected abstract void GetWalletVersion(Action<string> callback);
         
@@ -313,6 +319,30 @@ namespace Phantasma.Core.Domain
             GetNexus((nexus) => {
                 success = true;
                 answer = APIUtils.FromAPIResult(new NexusResult { nexus = nexus });
+                callback(id, answer, success);
+                _isPendingRequest = false;
+            });
+        }
+        #endregion
+        
+        #region N3 Address
+
+        private void HandleGetN3Address(string[] args, Connection connection, int id, Action<int, DataNode, bool> callback)
+        {
+            DataNode answer;
+            bool success = false;
+
+            if (args.Length > 1)
+            {
+                answer = APIUtils.FromAPIResult(new Error() { message = $"getN3Address: Invalid amount of arguments: {args.Length}" });
+                callback(id, answer, success);
+                _isPendingRequest = false;
+                return;
+            }
+            
+            GetN3Address((address) => {
+                success = true;
+                answer = APIUtils.FromAPIResult(new N3Address() { address = address });
                 callback(id, answer, success);
                 _isPendingRequest = false;
             });
@@ -845,6 +875,12 @@ namespace Phantasma.Core.Domain
                 case "getPeer":
                 {
                     HandleGetPeer(args, connection, id, callback);
+                    return;
+                }
+
+                case "getN3Address":
+                {
+                    HandleGetN3Address(args, connection, id, callback);
                     return;
                 }
                 
